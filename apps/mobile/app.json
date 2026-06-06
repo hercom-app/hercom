@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Choferes Reemplazo",
+    "slug": "choferes-reemplazo-driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "scheme": "choferes",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.proyecto.choferes"
+    },
+    "android": {
+      "package": "com.proyecto.choferes"
+    },
+    "plugins": ["expo-secure-store"]
+  }
+}

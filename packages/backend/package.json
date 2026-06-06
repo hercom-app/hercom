@@ -1,0 +1,32 @@
+{
+  "name": "@proyecto/backend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./convex/_generated/api.d.ts",
+      "default": "./convex/_generated/api.js"
+    },
+    "./dataModel": {
+      "types": "./convex/_generated/dataModel.d.ts",
+      "default": "./convex/_generated/dataModel.js"
+    },
+    "./schema": {
+      "types": "./convex/schema.ts",
+      "default": "./convex/schema.ts"
+    }
+  },
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@convex-dev/auth": "^0.0.87",
+    "convex": "^1.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

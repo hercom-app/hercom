@@ -1,0 +1,23 @@
+{
+  "name": "choferes-reemplazo",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "backend:dev": "pnpm --filter @proyecto/backend dev",
+    "web:comercial": "pnpm --filter @proyecto/web-comercial dev",
+    "web:admin": "pnpm --filter @proyecto/web-admin dev",
+    "mobile": "pnpm --filter @proyecto/mobile start"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

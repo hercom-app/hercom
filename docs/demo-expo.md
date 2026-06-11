@@ -27,6 +27,12 @@ requisito**.
 7. Computadora y teléfono en la **misma red Wi-Fi** (o usar modo túnel, ver
    abajo).
 
+> **Expo Go y versión del SDK:** La app móvil usa **Expo SDK 54**, igual que la
+> versión actual de Expo Go en Play Store / App Store. Si ves el error
+> *"Project is incompatible with this version of Expo Go"*, asegúrate de tener
+> las dependencias al día (`pnpm install` en la raíz) y reinicia Expo con caché
+> limpia: `pnpm --filter @proyecto/mobile start -- --clear`.
+
 ## Pasos (Windows / PowerShell)
 
 ```powershell
@@ -121,5 +127,41 @@ lento pero es lo más confiable para una demo fuera de tu red local.
   verás la pantalla de disponibilidad y el estado vacío de viajes.
 - Para una versión instalable sin Expo Go (APK/IPA standalone) se usa EAS Build,
   pero eso ya es fase de distribución, no necesario para este borrador.
+
+## Cómo obtener logs para compartir (correo, WhatsApp, etc.)
+
+Expo Go **no envía logs por correo** de forma nativa. Lo más rápido:
+
+### 1. Terminal de la PC (mejor opción)
+
+Los errores 500 y de bundling aparecen en la terminal donde corre `pnpm mobile`.
+Selecciona el texto → **Ctrl+C** → pégalo en correo o chat.
+
+Guardar en archivo:
+
+```powershell
+pnpm --filter @proyecto/mobile start -- --clear 2>&1 | Tee-Object -FilePath expo-log.txt
 ```
 
+Adjunta `expo-log.txt`.
+
+### 2. Captura de pantalla del celular
+
+La pantalla roja de error en Expo Go. Comparte la imagen por correo o WhatsApp.
+
+### 3. Menú de desarrollo en Expo Go
+
+Agita el teléfono → menú dev → Reload (reproduce el error mientras miras la PC).
+
+### 4. Android con USB (logcat)
+
+```powershell
+adb logcat *:S ReactNative:V ReactNativeJS:V Expo:V
+```
+
+### 5. Atajo en Metro
+
+Con Expo corriendo, pulsa **`j`** en la terminal para abrir el depurador en el navegador.
+
+**Recomendación:** para errores de Metro (500, módulos faltantes), la **terminal de
+la PC** tiene el log completo; el celular solo muestra un resumen.

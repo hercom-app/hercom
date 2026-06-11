@@ -8,6 +8,7 @@ import { authTables } from "@convex-dev/auth/server";
  */
 export const userRoleValidator = v.union(
   v.literal("client"),
+  v.literal("driver"),
   v.literal("admin"),
 );
 
@@ -33,6 +34,14 @@ export const paymentStatusValidator = v.union(
 export const payoutStatusValidator = v.union(
   v.literal("pending"),
   v.literal("paid"),
+);
+
+export const sexValidator = v.union(v.literal("M"), v.literal("F"));
+
+export const driverApplicationStatusValidator = v.union(
+  v.literal("pending"),
+  v.literal("approved"),
+  v.literal("rejected"),
 );
 
 export const locationValidator = v.object({
@@ -82,6 +91,28 @@ export default defineSchema({
     totalTrips: v.number(),
   })
     .index("by_user", ["userId"])
+    .index("by_status", ["status"]),
+
+  /**
+   * Solicitudes de registro de chofer (RENIEC + brevete + documentos).
+   */
+  driverApplications: defineTable({
+    userId: v.id("users"),
+    dni: v.string(),
+    firstName: v.string(),
+    firstLastName: v.string(),
+    secondLastName: v.string(),
+    sex: sexValidator,
+    licenseNumber: v.string(),
+    licenseCategory: v.string(),
+    licensePhotoIds: v.array(v.id("_storage")),
+    culPdfId: v.id("_storage"),
+    status: driverApplicationStatusValidator,
+    submittedAt: v.number(),
+    reviewedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_dni", ["dni"])
     .index("by_status", ["status"]),
 
   /**

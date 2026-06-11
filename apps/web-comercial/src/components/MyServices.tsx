@@ -32,12 +32,12 @@ export function MyServices() {
 
   return (
     <section className="space-y-3">
-      <h2 className="text-lg font-semibold text-slate-900">Mis servicios</h2>
+      <h2 className="text-lg font-bold text-slate-900">Mis servicios</h2>
       <ul className="space-y-2">
         {services.map((service) => (
           <li
             key={service._id}
-            className="rounded-xl bg-white p-4 shadow-sm"
+            className="rounded-3xl bg-white p-4 shadow-lg"
           >
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-slate-800">

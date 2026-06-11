@@ -36,9 +36,12 @@ export function RequestServiceForm() {
     }
   }
 
+const inputClass =
+  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-hercom";
+
   return (
-    <section className="rounded-2xl bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-lg font-semibold text-slate-900">
+    <section className="rounded-3xl bg-white p-6 shadow-lg">
+      <h2 className="mb-4 text-lg font-bold text-slate-900">
         Solicitar un chofer
       </h2>
       <form onSubmit={handleSubmit} className="space-y-3">
@@ -46,13 +49,13 @@ export function RequestServiceForm() {
           name="originAddress"
           required
           placeholder="Dirección de origen"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className={inputClass}
         />
         <input
           name="destinationAddress"
           required
           placeholder="Dirección de destino"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className={inputClass}
         />
         <input
           name="totalPrice"
@@ -61,17 +64,17 @@ export function RequestServiceForm() {
           step="0.01"
           required
           placeholder="Precio acordado"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className={inputClass}
         />
         <textarea
           name="notes"
           placeholder="Notas (opcional)"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className={inputClass}
         />
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+          className="rounded-2xl bg-hercom px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-hercom-dark disabled:opacity-60"
         >
           {submitting ? "Enviando..." : "Solicitar servicio"}
         </button>

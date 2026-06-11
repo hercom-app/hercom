@@ -4,9 +4,13 @@ export default {
   theme: {
     extend: {
       colors: {
+        hercom: {
+          DEFAULT: "#007AFF",
+          dark: "#0062CC",
+        },
         brand: {
-          DEFAULT: "#0f766e",
-          dark: "#115e59",
+          DEFAULT: "#007AFF",
+          dark: "#0062CC",
         },
       },
     },

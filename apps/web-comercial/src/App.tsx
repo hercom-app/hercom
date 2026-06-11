@@ -3,16 +3,17 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { SignInForm } from "./components/SignInForm";
 import { RequestServiceForm } from "./components/RequestServiceForm";
 import { MyServices } from "./components/MyServices";
+import { HercomHeaderTitle } from "./components/HercomBrand";
 
 function Header() {
   const { signOut } = useAuthActions();
   return (
-    <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
-      <h1 className="text-lg font-bold text-brand">Choferes de Reemplazo</h1>
+    <header className="flex items-center justify-between bg-hercom px-6 py-4 shadow-md">
+      <HercomHeaderTitle />
       <button
         type="button"
         onClick={() => void signOut()}
-        className="text-sm text-slate-500 hover:text-slate-800"
+        className="text-sm font-medium text-white/90 hover:text-white"
       >
         Cerrar sesión
       </button>
@@ -22,9 +23,11 @@ function Header() {
 
 export default function App() {
   return (
-    <div className="min-h-full">
+    <div className="min-h-full bg-slate-100">
       <AuthLoading>
-        <p className="p-6 text-sm text-slate-500">Cargando...</p>
+        <div className="flex min-h-full items-center justify-center bg-hercom">
+          <p className="text-sm text-white/90">Cargando...</p>
+        </div>
       </AuthLoading>
       <Unauthenticated>
         <SignInForm />

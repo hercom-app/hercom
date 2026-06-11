@@ -23,6 +23,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@auth/core": "0.37.0",
     "@convex-dev/auth": "^0.0.87",
     "convex": "^1.23.0"
   },

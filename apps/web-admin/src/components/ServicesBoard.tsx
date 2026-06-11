@@ -33,8 +33,8 @@ export function ServicesBoard() {
   }
 
   return (
-    <section className="rounded-2xl bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-lg font-semibold text-slate-900">Servicios</h2>
+    <section className="rounded-3xl bg-white p-6 shadow-lg">
+      <h2 className="mb-4 text-lg font-bold text-slate-900">Servicios</h2>
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
@@ -82,7 +82,7 @@ export function ServicesBoard() {
                       <button
                         type="button"
                         onClick={() => void handleAssign(service._id)}
-                        className="rounded bg-brand px-3 py-1 text-xs font-semibold text-white hover:bg-brand-dark"
+                        className="rounded bg-hercom px-3 py-1 text-xs font-bold uppercase text-white hover:bg-hercom-dark"
                       >
                         Asignar
                       </button>

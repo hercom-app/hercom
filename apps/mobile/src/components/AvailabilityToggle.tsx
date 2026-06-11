@@ -41,7 +41,7 @@ export function AvailabilityToggle({ status }: { status: DriverStatus }) {
         onPress={() => void setStatus({ status: next })}
         disabled={status === "busy"}
         className={`rounded-xl py-3 ${
-          status === "busy" ? "bg-slate-300" : "bg-brand active:bg-brand-dark"
+          status === "busy" ? "bg-slate-300" : "bg-hercom active:bg-hercom-dark"
         }`}
       >
         <Text className="text-center text-base font-semibold text-white">

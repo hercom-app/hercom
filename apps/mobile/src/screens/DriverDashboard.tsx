@@ -8,32 +8,21 @@ import { ServiceCard } from "../components/ServiceCard";
 export function DriverDashboard() {
   const { signOut } = useAuthActions();
   const driver = useQuery(api.drivers.getMyDriverProfile);
-  const services = useQuery(api.services.listForDriver, {});
+  const services = useQuery(
+    api.services.listForDriver,
+    driver === undefined || driver === null ? "skip" : {},
+  );
 
   if (driver === undefined) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator color="#2563eb" />
+      <View className="flex-1 items-center justify-center bg-slate-100">
+        <ActivityIndicator color="#007AFF" />
       </View>
     );
   }
 
   if (driver === null) {
-    return (
-      <View className="flex-1 items-center justify-center px-6">
-        <Text className="mb-2 text-center text-base text-slate-700">
-          Tu cuenta no tiene un perfil de chofer asignado.
-        </Text>
-        <Text className="text-center text-sm text-slate-500">
-          Contacta al administrador para activar tu cuenta.
-        </Text>
-        <TouchableOpacity onPress={() => void signOut()} className="mt-6">
-          <Text className="text-sm font-semibold text-brand">
-            Cerrar sesión
-          </Text>
-        </TouchableOpacity>
-      </View>
-    );
+    return null;
   }
 
   const activeServices = (services ?? []).filter(
@@ -41,9 +30,12 @@ export function DriverDashboard() {
   );
 
   return (
-    <View className="flex-1 px-4 pt-4">
+    <View className="flex-1 bg-slate-100 px-4 pt-4">
       <View className="mb-4 flex-row items-center justify-between">
-        <Text className="text-2xl font-bold text-slate-900">Mis viajes</Text>
+        <View>
+          <Text className="text-2xl font-bold text-slate-900">Mis viajes</Text>
+          <Text className="text-sm text-slate-500">Chofer · atiende servicios</Text>
+        </View>
         <TouchableOpacity onPress={() => void signOut()}>
           <Text className="text-sm font-semibold text-slate-500">Salir</Text>
         </TouchableOpacity>

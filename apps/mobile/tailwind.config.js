@@ -5,10 +5,17 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        brand: {
-          DEFAULT: "#2563eb",
-          dark: "#1d4ed8",
+        hercom: {
+          DEFAULT: "#007AFF",
+          dark: "#0062CC",
         },
+        brand: {
+          DEFAULT: "#007AFF",
+          dark: "#0062CC",
+        },
+      },
+      borderRadius: {
+        card: "1.5rem",
       },
     },
   },

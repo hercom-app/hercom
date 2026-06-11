@@ -14,6 +14,15 @@
     "android": {
       "package": "com.proyecto.choferes"
     },
-    "plugins": ["expo-secure-store"]
+    "plugins": [
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Hercom necesita acceso a fotos para subir imágenes del brevete."
+        }
+      ]
+    ]
   }
 }

@@ -29,7 +29,7 @@ export const seedDemo = internalMutation({
   args: {},
   handler: async (ctx) => {
     const admin = await ensureUser(ctx, DEMO_ADMIN.email, DEMO_ADMIN.name, "admin");
-    const driverUser = await ensureUser(ctx, DEMO_DRIVER.email, DEMO_DRIVER.name, "client");
+    const driverUser = await ensureUser(ctx, DEMO_DRIVER.email, DEMO_DRIVER.name, "driver");
     const client = await ensureUser(ctx, DEMO_CLIENT.email, DEMO_CLIENT.name, "client");
 
     const driver = await ensureDriver(ctx, driverUser._id);

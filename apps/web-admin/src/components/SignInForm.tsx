@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 
+const inputClass =
+  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 outline-none transition focus:border-hercom focus:ring-1 focus:ring-hercom";
+
 export function SignInForm() {
   const { signIn } = useAuthActions();
   const [error, setError] = useState<string | null>(null);
@@ -22,35 +25,58 @@ export function SignInForm() {
   }
 
   return (
-    <div className="mx-auto mt-24 w-full max-w-sm rounded-2xl bg-white p-8 shadow-sm">
-      <h1 className="mb-1 text-2xl font-bold text-slate-900">Panel Admin</h1>
-      <p className="mb-6 text-sm text-slate-500">
-        Acceso restringido a administradores.
-      </p>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          name="email"
-          type="email"
-          required
-          placeholder="Correo"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand"
-        />
-        <input
-          name="password"
-          type="password"
-          required
-          placeholder="Contraseña"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand"
-        />
-        {error !== null && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-lg bg-brand py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
-        >
-          {submitting ? "Entrando..." : "Entrar"}
-        </button>
-      </form>
+    <div className="flex h-full min-h-0 items-center justify-center overflow-hidden bg-white p-6">
+      <div className="flex w-full max-w-3xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
+        {/* Logo — columna izquierda */}
+        <div className="flex w-2/5 min-w-[220px] items-center justify-center border-r border-slate-100 bg-white px-8 py-10">
+          <img
+            src="/hercom-logo.png"
+            alt="Hercom"
+            className="w-full max-w-[200px]"
+          />
+        </div>
+
+        {/* Formulario — columna derecha */}
+        <div className="flex flex-1 flex-col justify-center px-8 py-10">
+          <h2 className="mb-1 text-xl font-bold text-slate-900">
+            Acceso administrador
+          </h2>
+          <p className="mb-6 text-sm text-slate-500">
+            Solo personal autorizado de Hercom.
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              name="email"
+              type="email"
+              required
+              autoComplete="username"
+              placeholder="Cuenta"
+              className={inputClass}
+            />
+            <input
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              placeholder="Contraseña"
+              className={inputClass}
+            />
+
+            {error !== null && (
+              <p className="text-sm text-red-600">{error}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full rounded-xl bg-hercom py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-hercom-dark disabled:opacity-60"
+            >
+              {submitting ? "Entrando..." : "Entrar"}
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,248 @@
+import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
+import { computePlatformCommission } from "./lib/constants";
+import { requireDriver, requireUser } from "./lib/auth";
+import { hasSufficientBalance } from "./driverWallets";
+import { createNotification } from "./notifications";
+
+function normalizeMoney(amount: number): number {
+  return Math.round(amount * 100) / 100;
+}
+
+function generateSecurityCode(): string {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
+/**
+ * Chofer envía o actualiza oferta para un servicio pendiente.
+ */
+export const submitMyOffer = mutation({
+  args: {
+    serviceId: v.id("services"),
+    offeredPrice: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { driver } = await requireDriver(ctx);
+    if (driver.status !== "available") {
+      throw new Error("Debes estar disponible para ofertar.");
+    }
+
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null) {
+      throw new Error("Servicio no encontrado.");
+    }
+    if (service.status !== "pending") {
+      throw new Error("Solo puedes ofertar servicios pendientes.");
+    }
+    if (service.driverId !== undefined) {
+      throw new Error("Este servicio ya tiene chofer asignado.");
+    }
+
+    const offeredPrice = normalizeMoney(args.offeredPrice);
+    if (offeredPrice < service.basePrice) {
+      throw new Error(
+        `La oferta debe ser mayor o igual a la tarifa base S/${service.basePrice.toFixed(2)}.`,
+      );
+    }
+
+    const projectedCommission = computePlatformCommission(offeredPrice);
+    const enoughBalance = await hasSufficientBalance(
+      ctx,
+      driver._id,
+      projectedCommission,
+    );
+    if (!enoughBalance) {
+      throw new Error(
+        "Saldo insuficiente para cubrir la comisión de esta oferta. Recarga primero.",
+      );
+    }
+
+    const existing = await ctx.db
+      .query("serviceOffers")
+      .withIndex("by_service_driver", (q) =>
+        q.eq("serviceId", service._id).eq("driverId", driver._id),
+      )
+      .unique();
+
+    if (existing !== null) {
+      if (existing.status !== "pending") {
+        throw new Error("Ya no puedes modificar una oferta respondida.");
+      }
+      await ctx.db.patch(existing._id, {
+        offeredPrice,
+      });
+      await createNotification(ctx, {
+        userId: service.clientId,
+        type: "offer_received",
+        title: "Oferta actualizada",
+        message: `Un chofer actualizó su oferta a S/${offeredPrice.toFixed(2)}.`,
+        serviceId: service._id,
+      });
+      return existing._id;
+    }
+
+    const offerId = await ctx.db.insert("serviceOffers", {
+      serviceId: service._id,
+      driverId: driver._id,
+      offeredPrice,
+      status: "pending",
+      createdAt: Date.now(),
+    });
+    await createNotification(ctx, {
+      userId: service.clientId,
+      type: "offer_received",
+      title: "Nueva oferta recibida",
+      message: `Recibiste una oferta de S/${offeredPrice.toFixed(2)} para tu viaje.`,
+      serviceId: service._id,
+    });
+    return offerId;
+  },
+});
+
+/**
+ * Cliente lista ofertas de su servicio pendiente.
+ */
+export const listForServiceAsClient = query({
+  args: {
+    serviceId: v.id("services"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null) {
+      throw new Error("Servicio no encontrado.");
+    }
+    if (service.clientId !== user._id) {
+      throw new Error("No autorizado para ver ofertas de este servicio.");
+    }
+    const offers = await ctx.db
+      .query("serviceOffers")
+      .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+      .order("desc")
+      .collect();
+    const offersWithDriver = await Promise.all(
+      offers.map(async (offer) => {
+        const driver = await ctx.db.get(offer.driverId);
+        return {
+          ...offer,
+          driverStatus: driver?.status ?? "offline",
+          driverPlate: driver?.vehicle.plate ?? "N/A",
+          driverRating: driver?.rating ?? 0,
+        };
+      }),
+    );
+    return offersWithDriver;
+  },
+});
+
+/**
+ * Cliente acepta oferta y se asigna chofer automáticamente.
+ */
+export const acceptOffer = mutation({
+  args: {
+    serviceId: v.id("services"),
+    offerId: v.id("serviceOffers"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null) {
+      throw new Error("Servicio no encontrado.");
+    }
+    if (service.clientId !== user._id) {
+      throw new Error("No autorizado para aceptar ofertas de este servicio.");
+    }
+    if (service.status !== "pending") {
+      throw new Error("El servicio ya no acepta ofertas.");
+    }
+
+    const offer = await ctx.db.get(args.offerId);
+    if (offer === null || offer.serviceId !== service._id) {
+      throw new Error("Oferta no encontrada para este servicio.");
+    }
+    if (offer.status !== "pending") {
+      throw new Error("Esta oferta ya fue respondida.");
+    }
+
+    const driver = await ctx.db.get(offer.driverId);
+    if (driver === null) {
+      throw new Error("Chofer no encontrado.");
+    }
+    if (driver.status !== "available") {
+      throw new Error("El chofer ya no está disponible.");
+    }
+
+    const commission = computePlatformCommission(offer.offeredPrice);
+    const enoughBalance = await hasSufficientBalance(ctx, driver._id, commission);
+    if (!enoughBalance) {
+      throw new Error(
+        "El chofer seleccionado ya no tiene saldo suficiente. Elige otra oferta.",
+      );
+    }
+
+    const securityCode = generateSecurityCode();
+    await ctx.db.patch(service._id, {
+      driverId: driver._id,
+      offeredPrice: offer.offeredPrice,
+      totalPrice: normalizeMoney(offer.offeredPrice + service.tipAmount),
+      driverCommission: commission,
+      securityCode,
+      status: "assigned",
+      assignedAt: Date.now(),
+    });
+    await ctx.db.patch(driver._id, { status: "busy" });
+    await ctx.db.patch(offer._id, {
+      status: "accepted",
+      respondedAt: Date.now(),
+    });
+
+    const pendingOffers = await ctx.db
+      .query("serviceOffers")
+      .withIndex("by_service_status", (q) =>
+        q.eq("serviceId", service._id).eq("status", "pending"),
+      )
+      .collect();
+    await Promise.all(
+      pendingOffers
+        .filter((pending) => pending._id !== offer._id)
+        .map((pending) =>
+          ctx.db.patch(pending._id, {
+            status: "rejected",
+            respondedAt: Date.now(),
+          }),
+        ),
+    );
+
+    await createNotification(ctx, {
+      userId: driver.userId,
+      type: "trip_confirmed_driver",
+      title: "Viaje confirmado",
+      message: `El cliente aceptó tu oferta. Código de inicio: ${securityCode}.`,
+      serviceId: service._id,
+    });
+    await createNotification(ctx, {
+      userId: user._id,
+      type: "trip_confirmed_client",
+      title: "Chofer confirmado",
+      message: `Tu viaje fue confirmado. Código de inicio: ${securityCode}.`,
+      serviceId: service._id,
+    });
+
+    return service._id;
+  },
+});
+
+/**
+ * Mis ofertas como chofer.
+ */
+export const listMine = query({
+  args: {},
+  handler: async (ctx) => {
+    const { driver } = await requireDriver(ctx);
+    return await ctx.db
+      .query("serviceOffers")
+      .withIndex("by_driver", (q) => q.eq("driverId", driver._id))
+      .order("desc")
+      .collect();
+  },
+});

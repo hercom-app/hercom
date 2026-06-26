@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { driverStatusValidator } from "./schema";
 import { requireDriver, requireRole, requireUser } from "./lib/auth";
+import { ensureWallet } from "./driverWallets";
 
 /**
  * Lista los choferes disponibles. Usado por el panel admin para asignar.
@@ -73,7 +74,7 @@ export const upsertDriverProfile = mutation({
       return existing._id;
     }
 
-    return await ctx.db.insert("drivers", {
+    const driverId = await ctx.db.insert("drivers", {
       userId: user._id,
       status: "offline",
       vehicle: args.vehicle,
@@ -82,6 +83,8 @@ export const upsertDriverProfile = mutation({
       rating: 5,
       totalTrips: 0,
     });
+    await ensureWallet(ctx, driverId);
+    return driverId;
   },
 });
 

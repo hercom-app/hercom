@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { sexValidator } from "./schema";
 import { requireRole, requireUser } from "./lib/auth";
+import { ensureWallet } from "./driverWallets";
 
 /** URL temporal para subir archivos (fotos brevete, CUL PDF). */
 export const generateUploadUrl = mutation({
@@ -98,7 +99,7 @@ export const submit = mutation({
 
     const fullName = `${args.firstLastName} ${args.secondLastName} ${args.firstName}`.trim();
 
-    await ctx.db.insert("drivers", {
+    const driverId = await ctx.db.insert("drivers", {
       userId: user._id,
       status: "offline",
       vehicle: {
@@ -112,6 +113,7 @@ export const submit = mutation({
       rating: 5,
       totalTrips: 0,
     });
+    await ensureWallet(ctx, driverId);
 
     await ctx.db.patch(user._id, { name: fullName, role: "driver" });
 

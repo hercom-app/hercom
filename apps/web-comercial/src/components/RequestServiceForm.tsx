@@ -24,10 +24,13 @@ export function RequestServiceForm() {
           lat: Number(form.get("destinationLat") ?? 0),
           lng: Number(form.get("destinationLng") ?? 0),
         },
-        totalPrice: Number(form.get("totalPrice")),
-        notes: String(form.get("notes") ?? "") || undefined,
+        basePrice: Number(form.get("basePrice")),
+        tipAmount: Number(form.get("tipAmount") ?? 0),
+        ...(String(form.get("notes") ?? "").trim() !== ""
+          ? { notes: String(form.get("notes") ?? "").trim() }
+          : {}),
       });
-      setMessage("Solicitud creada. Un administrador asignará un chofer.");
+      setMessage("Solicitud creada. Espera ofertas de choferes y elige una.");
       event.currentTarget.reset();
     } catch {
       setMessage("No se pudo crear la solicitud.");
@@ -58,14 +61,26 @@ const inputClass =
           className={inputClass}
         />
         <input
-          name="totalPrice"
+          name="basePrice"
           type="number"
-          min="1"
+          min="40"
           step="0.01"
           required
-          placeholder="Precio acordado"
+          placeholder="Tarifa base solicitada (mínimo S/40)"
           className={inputClass}
         />
+        <input
+          name="tipAmount"
+          type="number"
+          min="0"
+          step="0.01"
+          defaultValue="0"
+          placeholder="Propina (opcional)"
+          className={inputClass}
+        />
+        <p className="text-xs text-slate-500">
+          Tarifa base mínima: S/40. Los choferes ofertan su tarifa y eliges una.
+        </p>
         <textarea
           name="notes"
           placeholder="Notas (opcional)"

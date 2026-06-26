@@ -1,10 +1,15 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { locationValidator, serviceStatusValidator } from "./schema";
-import { computeDriverCommission } from "./lib/constants";
+import { computePlatformCommission, MIN_SERVICE_PRICE_PEN } from "./lib/constants";
 import { requireDriver, requireRole, requireUser } from "./lib/auth";
+import {
+  debitCommissionForService,
+  hasSufficientBalance,
+} from "./driverWallets";
+import { createNotification } from "./notifications";
 
 /**
  * Crea una solicitud de servicio (cliente autenticado).
@@ -14,21 +19,33 @@ export const createService = mutation({
   args: {
     origin: locationValidator,
     destination: locationValidator,
-    totalPrice: v.number(),
+    basePrice: v.number(),
+    tipAmount: v.optional(v.number()),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    if (args.totalPrice <= 0) {
-      throw new Error("El precio total debe ser mayor que 0.");
+    if (args.basePrice < MIN_SERVICE_PRICE_PEN) {
+      throw new Error(
+        `La tarifa base mínima del servicio es S/${MIN_SERVICE_PRICE_PEN}.`,
+      );
     }
+    const tipAmount = normalizeMoney(args.tipAmount ?? 0);
+    if (tipAmount < 0) {
+      throw new Error("La propina no puede ser negativa.");
+    }
+    const basePrice = normalizeMoney(args.basePrice);
 
     return await ctx.db.insert("services", {
       clientId: user._id,
       origin: args.origin,
       destination: args.destination,
-      totalPrice: args.totalPrice,
-      driverCommission: computeDriverCommission(args.totalPrice),
+      basePrice,
+      tipAmount,
+      totalPrice: normalizeMoney(basePrice + tipAmount),
+      // Se mantiene el nombre del campo por compatibilidad, pero aquí guardamos
+      // la comisión de plataforma que se descontará del saldo del chofer.
+      driverCommission: computePlatformCommission(basePrice),
       status: "pending",
       ...(args.notes !== undefined ? { notes: args.notes } : {}),
       requestedAt: Date.now(),
@@ -63,33 +80,82 @@ export const assignDriver = mutation({
     if (driver.status !== "available") {
       throw new Error("El chofer no está disponible.");
     }
+    const enoughBalance = await hasSufficientBalance(
+      ctx,
+      driver._id,
+      service.driverCommission,
+    );
+    if (!enoughBalance) {
+      throw new Error(
+        "Saldo insuficiente del chofer para este servicio según regla de límite mínimo S/-10.",
+      );
+    }
 
+    const securityCode = generateSecurityCode();
     await ctx.db.patch(service._id, {
       driverId: driver._id,
+      offeredPrice: service.basePrice,
+      totalPrice: normalizeMoney(service.basePrice + service.tipAmount),
+      driverCommission: computePlatformCommission(service.basePrice),
+      securityCode,
       status: "assigned",
       assignedAt: Date.now(),
     });
     await ctx.db.patch(driver._id, { status: "busy" });
+    await createNotification(ctx, {
+      userId: driver.userId,
+      type: "trip_confirmed_driver",
+      title: "Viaje confirmado",
+      message: `Se te asignó un viaje. Código de inicio: ${securityCode}.`,
+      serviceId: service._id,
+    });
+    await createNotification(ctx, {
+      userId: service.clientId,
+      type: "trip_confirmed_client",
+      title: "Chofer confirmado",
+      message: `Tu viaje ya tiene chofer asignado. Código de inicio: ${securityCode}.`,
+      serviceId: service._id,
+    });
 
     return service._id;
   },
 });
 
 /**
+ * Servicios abiertos para que choferes disponibles puedan ofertar tarifa.
+ */
+export const listOpenForOffers = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireDriver(ctx);
+    return await ctx.db
+      .query("services")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .order("desc")
+      .collect();
+  },
+});
+
+/**
  * Transiciones de estado permitidas por parte del chofer.
+ * Nota: `en_route` se conserva por compatibilidad con datos legacy.
  */
 const DRIVER_TRANSITIONS: Record<Doc<"services">["status"], Doc<"services">["status"][]> = {
   pending: [],
-  assigned: ["en_route", "cancelled"],
-  en_route: ["finished", "cancelled"],
+  assigned: ["heading_to_pickup", "cancelled"],
+  heading_to_pickup: ["arrived_pickup", "cancelled"],
+  arrived_pickup: ["in_progress", "cancelled"],
+  in_progress: ["arrived_destination", "cancelled"],
+  arrived_destination: ["finished"],
+  en_route: ["arrived_destination", "finished", "cancelled"],
   finished: [],
   cancelled: [],
 };
 
 /**
  * Actualiza el estado de un servicio (chofer asignado).
- * Al finalizar: libera al chofer, suma viaje, genera el pago pendiente del
- * cliente y acumula la comisión en el payout del chofer.
+ * Al finalizar: libera al chofer, suma viaje, descuenta comisión de app y
+ * genera el pago pendiente del cliente.
  */
 export const updateStatus = mutation({
   args: {
@@ -114,8 +180,47 @@ export const updateStatus = mutation({
       );
     }
 
-    if (args.status === "en_route") {
-      await ctx.db.patch(service._id, { status: "en_route" });
+    if (args.status === "in_progress") {
+      throw new Error(
+        "Para iniciar viaje debes validar el código de seguridad (startTripWithCode).",
+      );
+    }
+
+    if (args.status === "heading_to_pickup") {
+      await ctx.db.patch(service._id, {
+        status: "heading_to_pickup",
+        headingToPickupAt: Date.now(),
+      });
+      await createNotification(ctx, {
+        userId: service.clientId,
+        type: "driver_heading_pickup",
+        title: "Tu chofer salió a recogerte",
+        message: "El chofer va en camino al punto de partida.",
+        serviceId: service._id,
+      });
+      return service._id;
+    }
+
+    if (args.status === "arrived_pickup") {
+      await ctx.db.patch(service._id, {
+        status: "arrived_pickup",
+        arrivedPickupAt: Date.now(),
+      });
+      await createNotification(ctx, {
+        userId: service.clientId,
+        type: "driver_arrived_pickup",
+        title: "Tu chofer ya llegó",
+        message: "El chofer llegó al punto de partida. Comparte el código para iniciar.",
+        serviceId: service._id,
+      });
+      return service._id;
+    }
+
+    if (args.status === "arrived_destination") {
+      await ctx.db.patch(service._id, {
+        status: "arrived_destination",
+        arrivedDestinationAt: Date.now(),
+      });
       return service._id;
     }
 
@@ -129,6 +234,11 @@ export const updateStatus = mutation({
     }
 
     // args.status === "finished"
+    await debitCommissionForService(ctx, {
+      driverId: driver._id,
+      serviceId: service._id,
+      amount: service.driverCommission,
+    });
     await ctx.db.patch(service._id, {
       status: "finished",
       finishedAt: Date.now(),
@@ -139,8 +249,42 @@ export const updateStatus = mutation({
     });
 
     await createPaymentForService(ctx, service);
-    await accrueCommission(ctx, driver._id, service.driverCommission);
 
+    return service._id;
+  },
+});
+
+/**
+ * Inicia el viaje validando el código de seguridad entre cliente y chofer.
+ */
+export const startTripWithCode = mutation({
+  args: {
+    serviceId: v.id("services"),
+    code: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { driver } = await requireDriver(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null) {
+      throw new Error("Servicio no encontrado.");
+    }
+    if (service.driverId !== driver._id) {
+      throw new Error("Este servicio no está asignado a ti.");
+    }
+    if (service.status !== "arrived_pickup") {
+      throw new Error("El servicio aún no está listo para iniciar viaje.");
+    }
+    if (service.securityCode === undefined) {
+      throw new Error("Este servicio no tiene código de seguridad.");
+    }
+    if (args.code.trim() !== service.securityCode) {
+      throw new Error("Código de seguridad incorrecto.");
+    }
+
+    await ctx.db.patch(service._id, {
+      status: "in_progress",
+      departedWithClientAt: Date.now(),
+    });
     return service._id;
   },
 });
@@ -294,33 +438,11 @@ async function createPaymentForService(
   });
 }
 
-/**
- * Acumula la comisión en el payout pendiente del chofer (lo crea si no existe).
- */
-async function accrueCommission(
-  ctx: MutationCtx,
-  driverId: Id<"drivers">,
-  commission: number,
-): Promise<void> {
-  const payout = await ctx.db
-    .query("payouts")
-    .withIndex("by_driver_status", (q) =>
-      q.eq("driverId", driverId).eq("status", "pending"),
-    )
-    .unique();
-
-  if (payout === null) {
-    await ctx.db.insert("payouts", {
-      driverId,
-      accumulatedAmount: commission,
-      paidAmount: 0,
-      status: "pending",
-      periodStart: Date.now(),
-    });
-    return;
-  }
-
-  await ctx.db.patch(payout._id, {
-    accumulatedAmount: payout.accumulatedAmount + commission,
-  });
+function normalizeMoney(amount: number): number {
+  return Math.round(amount * 100) / 100;
 }
+
+function generateSecurityCode(): string {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+

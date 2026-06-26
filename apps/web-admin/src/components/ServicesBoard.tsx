@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
-import type { Id } from "@proyecto/backend/dataModel";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "Pendiente",
   assigned: "Asignado",
+  heading_to_pickup: "Chofer yendo a recoger",
+  arrived_pickup: "Chofer llegó al punto",
+  in_progress: "Chofer salió con cliente",
+  arrived_destination: "Chofer llegó al destino",
   en_route: "En camino",
   finished: "Finalizado",
   cancelled: "Cancelado",
@@ -13,37 +16,40 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function ServicesBoard() {
   const services = useQuery(api.services.listAllForAdmin, {});
-  const availableDrivers = useQuery(api.drivers.listAvailable);
-  const assignDriver = useMutation(api.services.assignDriver);
-  const [selection, setSelection] = useState<Record<string, string>>({});
+  const [showLegacyHelp, setShowLegacyHelp] = useState(false);
 
   if (services === undefined) {
     return <p className="text-sm text-slate-500">Cargando servicios...</p>;
   }
 
-  async function handleAssign(serviceId: Id<"services">) {
-    const driverId = selection[serviceId];
-    if (driverId === undefined) {
-      return;
-    }
-    await assignDriver({
-      serviceId,
-      driverId: driverId as Id<"drivers">,
-    });
-  }
-
   return (
     <section className="rounded-3xl bg-white p-6 shadow-lg">
-      <h2 className="mb-4 text-lg font-bold text-slate-900">Servicios</h2>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-lg font-bold text-slate-900">Servicios</h2>
+        <button
+          type="button"
+          onClick={() => setShowLegacyHelp((prev) => !prev)}
+          className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+        >
+          {showLegacyHelp ? "Ocultar nota" : "Ver nota"}
+        </button>
+      </div>
+      {showLegacyHelp && (
+        <p className="mb-3 rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+          Flujo actual: el cliente elige ofertas de chofer. Este tablero es de
+          monitoreo (no asignación manual).
+        </p>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-slate-500">
               <th className="py-2 pr-4">Ruta</th>
               <th className="py-2 pr-4">Total</th>
-              <th className="py-2 pr-4">Comisión</th>
+              <th className="py-2 pr-4">Comisión app (25%)</th>
               <th className="py-2 pr-4">Estado</th>
-              <th className="py-2">Acción</th>
+              <th className="py-2 pr-4">Código inicio</th>
+              <th className="py-2">Chofer</th>
             </tr>
           </thead>
           <tbody>
@@ -52,43 +58,21 @@ export function ServicesBoard() {
                 <td className="py-2 pr-4 text-slate-800">
                   {service.origin.address} → {service.destination.address}
                 </td>
-                <td className="py-2 pr-4">${service.totalPrice.toFixed(2)}</td>
+                <td className="py-2 pr-4">S/{service.totalPrice.toFixed(2)}</td>
                 <td className="py-2 pr-4">
-                  ${service.driverCommission.toFixed(2)}
+                  S/{service.driverCommission.toFixed(2)}
                 </td>
                 <td className="py-2 pr-4">
                   {STATUS_LABELS[service.status] ?? service.status}
                 </td>
+                <td className="py-2 pr-4">
+                  {service.securityCode ?? <span className="text-slate-400">-</span>}
+                </td>
                 <td className="py-2">
-                  {service.status === "pending" ? (
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={selection[service._id] ?? ""}
-                        onChange={(e) =>
-                          setSelection((prev) => ({
-                            ...prev,
-                            [service._id]: e.target.value,
-                          }))
-                        }
-                        className="rounded border border-slate-300 px-2 py-1 text-xs"
-                      >
-                        <option value="">Elegir chofer</option>
-                        {(availableDrivers ?? []).map((driver) => (
-                          <option key={driver._id} value={driver._id}>
-                            {driver.vehicle.plate} ({driver.rating}★)
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => void handleAssign(service._id)}
-                        className="rounded bg-hercom px-3 py-1 text-xs font-bold uppercase text-white hover:bg-hercom-dark"
-                      >
-                        Asignar
-                      </button>
-                    </div>
+                  {service.driverId !== undefined ? (
+                    <span className="text-xs text-slate-600">{service.driverId}</span>
                   ) : (
-                    <span className="text-xs text-slate-400">—</span>
+                    <span className="text-xs text-slate-400">Sin asignar</span>
                   )}
                 </td>
               </tr>

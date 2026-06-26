@@ -12,7 +12,10 @@
       "bundleIdentifier": "com.proyecto.choferes"
     },
     "android": {
-      "package": "com.proyecto.choferes"
+      "package": "com.proyecto.choferes",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-secure-store",
@@ -23,6 +26,11 @@
           "photosPermission": "Hercom necesita acceso a fotos para subir imágenes del brevete."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d08dad4f-69fd-49e7-8e1f-156f4c7ae1d6"
+      }
+    }
   }
 }

@@ -1,6 +1,7 @@
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { SignInForm } from "./components/SignInForm";
+import { NotificationsPanel } from "./components/NotificationsPanel";
 import { RequestServiceForm } from "./components/RequestServiceForm";
 import { MyServices } from "./components/MyServices";
 import { HercomHeaderTitle } from "./components/HercomBrand";
@@ -35,6 +36,7 @@ export default function App() {
       <Authenticated>
         <Header />
         <main className="mx-auto max-w-2xl space-y-6 p-6">
+          <NotificationsPanel />
           <RequestServiceForm />
           <MyServices />
         </main>

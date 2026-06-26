@@ -7,8 +7,8 @@ dist/
 build/
 .turbo/
 
-# Convex
-**/convex/_generated/
+# Convex (generated files are committed so EAS Build can bundle them)
+# **/convex/_generated/
 
 # Expo / React Native
 .expo/

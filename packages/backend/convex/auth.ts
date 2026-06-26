@@ -1,19 +1,20 @@
 import Google from "@auth/core/providers/google";
 import { Password } from "@convex-dev/auth/providers/Password";
 import { convexAuth } from "@convex-dev/auth/server";
-import type { DataModel } from "./_generated/dataModel";
 
 /**
  * Perfil por defecto al registrarse con email/contraseña.
  * El rol "admin" se asigna manualmente (users.setRole).
  */
-const ProviderPassword = Password<DataModel>({
+const ProviderPassword = Password({
   profile(params) {
+    const name = params.name as string | undefined;
+    const phone = params.phone as string | undefined;
     return {
       email: params.email as string,
-      name: (params.name as string | undefined) ?? undefined,
-      phone: (params.phone as string | undefined) ?? undefined,
       role: "client" as const,
+      ...(name !== undefined ? { name } : {}),
+      ...(phone !== undefined ? { phone } : {}),
     };
   },
 });

@@ -10,6 +10,7 @@ import { SignInForm } from "./components/SignInForm";
 import { ServicesBoard } from "./components/ServicesBoard";
 import { PaymentsPanel } from "./components/PaymentsPanel";
 import { PayoutsPanel } from "./components/PayoutsPanel";
+import { TopUpsTodayPanel } from "./components/TopUpsTodayPanel";
 import { UsersPanel } from "./components/UsersPanel";
 import { HercomHeaderTitle } from "./components/HercomBrand";
 
@@ -52,6 +53,7 @@ function Dashboard() {
     <main className="mx-auto max-w-4xl space-y-6 p-6">
       <UsersPanel />
       <ServicesBoard />
+      <TopUpsTodayPanel />
       <div className="grid gap-6 md:grid-cols-2">
         <PaymentsPanel />
         <PayoutsPanel />

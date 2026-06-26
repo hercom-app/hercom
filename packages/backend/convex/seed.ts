@@ -2,7 +2,8 @@ import { createAccount } from "@convex-dev/auth/server";
 import { internalMutation } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { computeDriverCommission } from "./lib/constants";
+import { computePlatformCommission } from "./lib/constants";
+import { ensureWallet } from "./driverWallets";
 
 /**
  * Credenciales de la demo. Todas usan la misma contraseña para simplificar.
@@ -33,6 +34,7 @@ export const seedDemo = internalMutation({
     const client = await ensureUser(ctx, DEMO_CLIENT.email, DEMO_CLIENT.name, "client");
 
     const driver = await ensureDriver(ctx, driverUser._id);
+    await ensureDemoWalletBalance(ctx, driver._id);
 
     const existingServices = await ctx.db
       .query("services")
@@ -41,7 +43,10 @@ export const seedDemo = internalMutation({
 
     let serviceId: Id<"services"> | null = null;
     if (existingServices.length === 0) {
-      const totalPrice = 480;
+      const basePrice = 40;
+      const tipAmount = 5;
+      const offeredPrice = 40;
+      const totalPrice = basePrice + tipAmount;
       serviceId = await ctx.db.insert("services", {
         clientId: client._id,
         origin: {
@@ -54,8 +59,12 @@ export const seedDemo = internalMutation({
           lat: 19.4361,
           lng: -99.0719,
         },
+        basePrice,
+        tipAmount,
+        offeredPrice,
         totalPrice,
-        driverCommission: computeDriverCommission(totalPrice),
+        driverCommission: computePlatformCommission(offeredPrice),
+        securityCode: "1234",
         status: "assigned",
         notes: "Servicio de demostración (seed)",
         requestedAt: Date.now(),
@@ -107,7 +116,7 @@ async function ensureUser(
     return (await ctx.db.get(existing._id)) as Doc<"users">;
   }
 
-  await createAccount(ctx, {
+  await createAccount(ctx as never, {
     provider: "password",
     account: { id: email, secret: DEMO_PASSWORD },
     profile: { email, name, role },
@@ -135,6 +144,7 @@ async function ensureDriver(
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .unique();
   if (existing !== null) {
+    await ensureWallet(ctx, existing._id);
     return existing;
   }
 
@@ -153,5 +163,28 @@ async function ensureDriver(
     rating: 5,
     totalTrips: 0,
   });
+  await ensureWallet(ctx, driverId);
   return (await ctx.db.get(driverId)) as Doc<"drivers">;
+}
+
+async function ensureDemoWalletBalance(
+  ctx: MutationCtx,
+  driverId: Id<"drivers">,
+): Promise<void> {
+  const wallet = await ensureWallet(ctx, driverId);
+  if (wallet.balance >= 50) {
+    return;
+  }
+  await ctx.db.patch(wallet._id, {
+    balance: 50,
+    updatedAt: Date.now(),
+  });
+  await ctx.db.insert("walletTransactions", {
+    driverId,
+    type: "top_up",
+    amount: 50,
+    balanceAfter: 50,
+    note: "Recarga seed demo",
+    createdAt: Date.now(),
+  });
 }

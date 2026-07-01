@@ -52,9 +52,15 @@ export const setRole = mutation({
  * Lista todos los usuarios (panel admin).
  */
 export const listAll = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    role: v.optional(userRoleValidator),
+  },
+  handler: async (ctx, args) => {
     await requireRole(ctx, "admin");
-    return await ctx.db.query("users").order("desc").collect();
+    let users = await ctx.db.query("users").order("desc").collect();
+    if (args.role !== undefined) {
+      users = users.filter((user) => user.role === args.role);
+    }
+    return users;
   },
 });

@@ -9,12 +9,18 @@
     "scheme": "choferes",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.proyecto.choferes"
+      "bundleIdentifier": "com.proyecto.choferes",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Hercom usa tu ubicación para detectar departamento, provincia y distrito del recojo.",
+        "LSApplicationQueriesSchemes": ["waze"]
+      }
     },
     "android": {
       "package": "com.proyecto.choferes",
       "permissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "plugins": [
@@ -24,6 +30,12 @@
         "expo-image-picker",
         {
           "photosPermission": "Hercom necesita acceso a fotos para subir imágenes del brevete."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Hercom usa tu ubicación para detectar departamento, provincia y distrito del recojo."
         }
       ]
     ],

@@ -54,21 +54,31 @@ export function MyServices() {
             key={service._id}
             className="rounded-3xl bg-white p-4 shadow-lg"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-slate-800">
                 {service.origin.address} → {service.destination.address}
               </span>
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                  STATUS_STYLES[service.status] ?? ""
-                }`}
-              >
-                {STATUS_LABELS[service.status] ?? service.status}
-              </span>
+              <div className="flex items-center gap-2">
+                {(service.serviceType ?? "premium") === "premium" && (
+                  <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800">
+                    Premium
+                  </span>
+                )}
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                    STATUS_STYLES[service.status] ?? ""
+                  }`}
+                >
+                  {STATUS_LABELS[service.status] ?? service.status}
+                </span>
+              </div>
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              Base: S/{service.basePrice.toFixed(2)} · Propina: S/
-              {service.tipAmount.toFixed(2)} · Total: S/{service.totalPrice.toFixed(2)}
+              Tarifa base: S/{service.basePrice.toFixed(2)}
+              {service.offeredPrice !== undefined
+                ? ` · Acordada: S/${service.offeredPrice.toFixed(2)}`
+                : ""}
+              {" · "}Total: S/{service.totalPrice.toFixed(2)}
             </p>
             {service.securityCode !== undefined &&
               service.status !== "finished" &&

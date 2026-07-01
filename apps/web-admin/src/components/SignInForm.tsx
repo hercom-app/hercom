@@ -8,6 +8,7 @@ export function SignInForm() {
   const { signIn } = useAuthActions();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -27,7 +28,6 @@ export function SignInForm() {
   return (
     <div className="flex h-full min-h-0 items-center justify-center overflow-hidden bg-white p-6">
       <div className="flex w-full max-w-3xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
-        {/* Logo — columna izquierda */}
         <div className="flex w-2/5 min-w-[220px] items-center justify-center border-r border-slate-100 bg-white px-8 py-10">
           <img
             src="/hercom-logo.png"
@@ -36,14 +36,10 @@ export function SignInForm() {
           />
         </div>
 
-        {/* Formulario — columna derecha */}
         <div className="flex flex-1 flex-col justify-center px-8 py-10">
-          <h2 className="mb-1 text-xl font-bold text-slate-900">
+          <h2 className="mb-6 text-xl font-bold text-slate-900">
             Acceso administrador
           </h2>
-          <p className="mb-6 text-sm text-slate-500">
-            Solo personal autorizado de Hercom.
-          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <input
@@ -51,17 +47,27 @@ export function SignInForm() {
               type="email"
               required
               autoComplete="username"
-              placeholder="Cuenta"
+              placeholder="Correo"
               className={inputClass}
             />
-            <input
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              placeholder="Contraseña"
-              className={inputClass}
-            />
+            <div className="relative">
+              <input
+                name="password"
+                type={showPassword ? "text" : "password"}
+                required
+                autoComplete="current-password"
+                placeholder="Contraseña"
+                className={`${inputClass} pr-12`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((previous) => !previous)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:text-slate-800"
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showPassword ? "Ocultar" : "Ver"}
+              </button>
+            </div>
 
             {error !== null && (
               <p className="text-sm text-red-600">{error}</p>

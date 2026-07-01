@@ -1,7 +1,18 @@
 /**
- * Tarifa mínima para crear un servicio de chofer de reemplazo.
+ * Tarifa horaria de referencia para servicio de chofer de reemplazo.
  */
-export const MIN_SERVICE_PRICE_PEN = 40;
+export const HOURLY_SERVICE_RATE_PEN = 40;
+
+/**
+ * Contratación mínima del servicio (en horas).
+ */
+export const MIN_SERVICE_HOURS = 2;
+
+/**
+ * Tarifa base mínima para crear un servicio (= tarifa horaria × horas mínimas).
+ */
+export const MIN_SERVICE_PRICE_PEN =
+  HOURLY_SERVICE_RATE_PEN * MIN_SERVICE_HOURS;
 
 /**
  * Comisión de intermediación de plataforma.
@@ -22,6 +33,21 @@ export const MIN_DRIVER_WALLET_BALANCE = -10;
 export function computePlatformCommission(totalPrice: number): number {
   return Math.round(totalPrice * PLATFORM_COMMISSION_RATE * 100) / 100;
 }
+
+/**
+ * Adelanto que el cliente entrega al chofer antes de que salga (25% de la tarifa ofertada).
+ */
+export const CLIENT_ADVANCE_RATE = PLATFORM_COMMISSION_RATE;
+
+export function computeClientAdvance(offeredPrice: number): number {
+  return computePlatformCommission(offeredPrice);
+}
+
+/**
+ * Descuento máximo de promoción festiva: 25%.
+ * A ese tope Hercom deja de ganar (cliente paga lo mismo que el neto del chofer).
+ */
+export const MAX_PROMOTION_DISCOUNT_RATE = PLATFORM_COMMISSION_RATE;
 
 /**
  * Alias de compatibilidad con código existente.

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { sexValidator } from "./schema";
+import { driverApplicationStatusValidator, sexValidator } from "./schema";
 import { requireRole, requireUser } from "./lib/auth";
 import { ensureWallet } from "./driverWallets";
 
@@ -131,5 +131,62 @@ export const listPending = query({
       .withIndex("by_status", (q) => q.eq("status", "pending"))
       .order("desc")
       .collect();
+  },
+});
+
+/**
+ * Expedientes de registro de choferes para evaluación en panel admin.
+ * Incluye URLs temporales de fotos del brevete y PDF del CUL.
+ */
+export const listForAdmin = query({
+  args: {
+    status: v.optional(driverApplicationStatusValidator),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, "admin");
+    let applications = await ctx.db
+      .query("driverApplications")
+      .order("desc")
+      .collect();
+
+    if (args.status !== undefined) {
+      applications = applications.filter(
+        (application) => application.status === args.status,
+      );
+    }
+
+    return await Promise.all(
+      applications.map(async (application) => {
+        const user = await ctx.db.get(application.userId);
+        const driver = await ctx.db
+          .query("drivers")
+          .withIndex("by_user", (q) => q.eq("userId", application.userId))
+          .unique();
+
+        const licensePhotoUrls = (
+          await Promise.all(
+            application.licensePhotoIds.map((storageId) =>
+              ctx.storage.getUrl(storageId),
+            ),
+          )
+        ).filter((url): url is string => url !== null);
+
+        const culPdfUrl = await ctx.storage.getUrl(application.culPdfId);
+
+        return {
+          ...application,
+          fullName: `${application.firstLastName} ${application.secondLastName} ${application.firstName}`.trim(),
+          userName: user?.name ?? null,
+          userEmail: user?.email ?? null,
+          userPhone: user?.phone ?? null,
+          userRole: user?.role ?? null,
+          driverId: driver?._id ?? null,
+          driverPlate: driver?.vehicle.plate ?? null,
+          driverStatus: driver?.status ?? null,
+          licensePhotoUrls,
+          culPdfUrl,
+        };
+      }),
+    );
   },
 });

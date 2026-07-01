@@ -1,6 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { computePlatformCommission } from "./lib/constants";
+import { computeClientAdvance } from "./lib/constants";
+import {
+  computeClientTotalForOffer,
+  computePlatformCommissionForService,
+  getMinimumOfferPrice,
+} from "./lib/pricing";
 import { requireDriver, requireUser } from "./lib/auth";
 import { hasSufficientBalance } from "./driverWallets";
 import { createNotification } from "./notifications";
@@ -39,13 +44,17 @@ export const submitMyOffer = mutation({
     }
 
     const offeredPrice = normalizeMoney(args.offeredPrice);
-    if (offeredPrice < service.basePrice) {
+    const minOffer = getMinimumOfferPrice(service);
+    if (offeredPrice < minOffer) {
       throw new Error(
-        `La oferta debe ser mayor o igual a la tarifa base S/${service.basePrice.toFixed(2)}.`,
+        `La oferta debe ser mayor o igual a la tarifa de lista S/${minOffer.toFixed(2)}.`,
       );
     }
 
-    const projectedCommission = computePlatformCommission(offeredPrice);
+    const projectedCommission = computePlatformCommissionForService(
+      offeredPrice,
+      service.discountRate,
+    );
     const enoughBalance = await hasSufficientBalance(
       ctx,
       driver._id,
@@ -172,7 +181,15 @@ export const acceptOffer = mutation({
       throw new Error("El chofer ya no está disponible.");
     }
 
-    const commission = computePlatformCommission(offer.offeredPrice);
+    const commission = computePlatformCommissionForService(
+      offer.offeredPrice,
+      service.discountRate,
+    );
+    const clientTotal = computeClientTotalForOffer(
+      offer.offeredPrice,
+      service.discountRate,
+    );
+    const advanceAmount = computeClientAdvance(offer.offeredPrice);
     const enoughBalance = await hasSufficientBalance(ctx, driver._id, commission);
     if (!enoughBalance) {
       throw new Error(
@@ -184,8 +201,9 @@ export const acceptOffer = mutation({
     await ctx.db.patch(service._id, {
       driverId: driver._id,
       offeredPrice: offer.offeredPrice,
-      totalPrice: normalizeMoney(offer.offeredPrice + service.tipAmount),
+      totalPrice: clientTotal,
       driverCommission: commission,
+      advanceAmount,
       securityCode,
       status: "assigned",
       assignedAt: Date.now(),
@@ -217,14 +235,14 @@ export const acceptOffer = mutation({
       userId: driver.userId,
       type: "trip_confirmed_driver",
       title: "Viaje confirmado",
-      message: `El cliente aceptó tu oferta. Código de inicio: ${securityCode}.`,
+      message: `El cliente aceptó tu oferta. Anticipo a recibir: S/${advanceAmount.toFixed(2)} (25%). Código de inicio: ${securityCode}.`,
       serviceId: service._id,
     });
     await createNotification(ctx, {
       userId: user._id,
       type: "trip_confirmed_client",
       title: "Chofer confirmado",
-      message: `Tu viaje fue confirmado. Código de inicio: ${securityCode}.`,
+      message: `Tu viaje fue confirmado. Entrega S/${advanceAmount.toFixed(2)} de anticipo (25%) antes de que salga. Código de inicio: ${securityCode}.`,
       serviceId: service._id,
     });
 

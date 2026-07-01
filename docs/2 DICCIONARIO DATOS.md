@@ -166,16 +166,26 @@ Campos:
   - `address` (string)
   - `lat` (number)
   - `lng` (number)
+  - `department` (optional string, para promociones regionales)
+  - `province` (optional string)
+  - `district` (optional string)
 - `destination` (object):
   - `address` (string)
   - `lat` (number)
   - `lng` (number)
-- `basePrice` (number, minimo S/40)
-- `tipAmount` (number, propina del cliente >= 0)
+- `basePrice` (number, tarifa efectiva que paga el cliente; minimo S/80 sin promo)
+- `catalogBasePrice` (optional number, tarifa de lista antes de descuento festivo)
+- `discountRate` (optional number, 0-0.25)
+- `promotionId` (optional id `promotions`)
+- `promotionName` (optional string)
 - `offeredPrice` (optional number, tarifa ofertada y aceptada)
 - `securityCode` (optional string, codigo compartido cliente/chofer para iniciar viaje)
-- `totalPrice` (number, offeredPrice + tipAmount; mientras está pendiente inicia en basePrice + tip)
-- `driverCommission` (number, comision de app = 25% de `offeredPrice`)
+- `totalPrice` (number, tarifa acordada; mientras esta pendiente inicia en basePrice)
+- `driverCommission` (number, ganancia Hercom; con promo = clientPrice - driverNet)
+- `advanceAmount` (optional number, anticipo del 25% sobre `offeredPrice`; se calcula al asignar chofer)
+- `advanceConfirmedAt` (optional number, timestamp cuando el chofer confirma que recibio el anticipo)
+- `serviceType` (optional `"app" | "premium"`; legacy sin valor se trata como app)
+- `requestChannel` (optional `"mobile_app" | "web_comercial" | "phone"`)
 - `status` (`"pending" | "assigned" | "heading_to_pickup" | "arrived_pickup" | "in_progress" | "arrived_destination" | "en_route" (legacy) | "finished" | "cancelled"`)
 - `notes` (optional string)
 - `requestedAt` (number)
@@ -192,6 +202,25 @@ Indices:
 - `by_driver` sobre `driverId`
 - `by_status` sobre `status`
 - `by_driver_status` sobre `driverId, status`
+
+## `promotions` (descuentos festivos por region)
+
+Campos:
+- `name` (string)
+- `festivityLabel` (optional string, ej. Fiestas Patrias)
+- `department` (string)
+- `province` (optional string; vacio = todo el departamento)
+- `district` (optional string; vacio = toda la provincia)
+- `discountRate` (number, max 0.25)
+- `startsAt` (number, inicio de vigencia)
+- `endsAt` (number, fin de vigencia)
+- `active` (boolean)
+- `createdAt` (number)
+- `createdBy` (id `users`)
+
+Indices:
+- `by_active` sobre `active`
+- `by_department` sobre `department`
 
 ## `serviceOffers` (ofertas de choferes por servicio pendiente)
 
@@ -245,7 +274,7 @@ Indices:
 
 Campos:
 - `userId` (id `users`, destinatario)
-- `type` (`"offer_received" | "trip_confirmed_driver" | "trip_confirmed_client" | "driver_heading_pickup" | "driver_arrived_pickup"`)
+- `type` (`"offer_received" | "trip_confirmed_driver" | "trip_confirmed_client" | "driver_heading_pickup" | "driver_arrived_pickup" | "advance_confirmed"`)
 - `title` (string)
 - `message` (string)
 - `serviceId` (optional id `services`)

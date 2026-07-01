@@ -129,7 +129,7 @@ según la plataforma**:
 | --- | --- | --- |
 | `apps/web-comercial` | `.env.local` | `VITE_CONVEX_URL` |
 | `apps/web-admin` | `.env.local` | `VITE_CONVEX_URL` |
-| `apps/mobile` | `.env` | `EXPO_PUBLIC_CONVEX_URL` |
+| `apps/mobile` | `.env` | `EXPO_PUBLIC_CONVEX_URL`, `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` (GPS / geocoding; ver [google-maps-mobile.md](./google-maps-mobile.md)) |
 
 En el código, la conexión se crea así (ya está implementado):
 
@@ -153,6 +153,7 @@ Vite expone variables que empiezan por `VITE_`; Expo expone las que empiezan por
 
 # Móvil
 "EXPO_PUBLIC_CONVEX_URL=https://abc-123.convex.cloud" | Out-File -Encoding utf8 apps\mobile\.env
+# Opcional: agrega EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=... para GPS (ver docs/google-maps-mobile.md)
 ```
 
 (También puedes copiar los `.env.example` que ya existen en cada app y pegar la

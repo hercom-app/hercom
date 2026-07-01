@@ -1,0 +1,14 @@
+La vista de login está en:
+
+apps/web-admin/src/components/SignInForm.tsx
+
+El panel completo (después de iniciar sesión) se arma en apps/web-admin/src/App.tsx, que incluye:
+
+Componente	Archivo
+Login SignInForm.tsx
+Usuarios UsersPanel.tsx
+Promociones PromotionsPanel.tsx
+Viajes premium PremiumServiceForm.tsx
+Tablero servicios ServicesBoard.tsx
+Recargas del día TopUpsTodayPanel.tsx
+Pagos / comisiones PaymentsPanel.tsx, PayoutsPanel.tsx

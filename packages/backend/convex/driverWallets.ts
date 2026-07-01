@@ -5,6 +5,13 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireDriver, requireRole } from "./lib/auth";
 import { MIN_DRIVER_WALLET_BALANCE } from "./lib/constants";
 
+const topUpPeriodValidator = v.union(
+  v.literal("today"),
+  v.literal("week"),
+  v.literal("month"),
+  v.literal("all"),
+);
+
 type WalletTxType = Doc<"walletTransactions">["type"];
 
 /**
@@ -69,6 +76,59 @@ export const listForAdmin = query({
         };
       }),
     );
+  },
+});
+
+/**
+ * Recargas para panel admin (periodo configurable).
+ */
+export const listTopUpsForAdmin = query({
+  args: {
+    timezoneOffsetMinutes: v.optional(v.number()),
+    period: v.optional(topUpPeriodValidator),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, "admin");
+    const period = args.period ?? "today";
+    const now = Date.now();
+    const offset = args.timezoneOffsetMinutes ?? 0;
+    const { startMs, endMs } =
+      period === "all"
+        ? { startMs: 0, endMs: now + 1 }
+        : getPeriodRangeUtc(offset, now, period);
+
+    const topUps = await ctx.db
+      .query("walletTransactions")
+      .withIndex("by_type_created", (q) =>
+        period === "all"
+          ? q.eq("type", "top_up")
+          : q.eq("type", "top_up").gte("createdAt", startMs).lt("createdAt", endMs),
+      )
+      .order("desc")
+      .collect();
+
+    const items = await Promise.all(
+      topUps.map(async (tx) => {
+        const driver = await ctx.db.get(tx.driverId);
+        const user = driver !== null ? await ctx.db.get(driver.userId) : null;
+        return {
+          ...tx,
+          driverStatus: driver?.status ?? "offline",
+          plate: driver?.vehicle.plate ?? "N/A",
+          userName: user?.name ?? "Sin nombre",
+          userEmail: user?.email ?? "Sin correo",
+        };
+      }),
+    );
+    const totalAmount = normalizeAmount(items.reduce((sum, item) => sum + item.amount, 0));
+    return {
+      period,
+      startMs,
+      endMs,
+      totalAmount,
+      count: items.length,
+      items,
+    };
   },
 });
 
@@ -275,5 +335,32 @@ function getLocalDayRangeUtc(
   return {
     startMs: startLocal.getTime() + offsetMs,
     endMs: endLocal.getTime() + offsetMs,
+  };
+}
+
+function getPeriodRangeUtc(
+  timezoneOffsetMinutes: number,
+  nowUtcMs: number,
+  period: "today" | "week" | "month",
+): { startMs: number; endMs: number } {
+  if (period === "today") {
+    return getLocalDayRangeUtc(timezoneOffsetMinutes, nowUtcMs);
+  }
+  const offsetMs = timezoneOffsetMinutes * 60 * 1000;
+  const localNow = new Date(nowUtcMs - offsetMs);
+  const daysBack = period === "week" ? 7 : 30;
+  const startLocal = new Date(
+    localNow.getFullYear(),
+    localNow.getMonth(),
+    localNow.getDate() - daysBack,
+    0,
+    0,
+    0,
+    0,
+  );
+  const { endMs } = getLocalDayRangeUtc(timezoneOffsetMinutes, nowUtcMs);
+  return {
+    startMs: startLocal.getTime() + offsetMs,
+    endMs,
   };
 }

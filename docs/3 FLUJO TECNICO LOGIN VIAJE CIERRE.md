@@ -229,9 +229,13 @@ Tablas tocadas:
 1. `ClientDashboard` ejecuta `services.createService` con:
    - `origin` (recojo),
    - `destination`,
-   - `basePrice` (>= 40),
-   - `tipAmount`.
+   - `basePrice` (>= 80, S/40/h x 2h minimas).
+   - Resultado: `serviceType=app`, `requestChannel=mobile_app`.
 2. Servicio queda en `pending`.
+
+Web comercial: mismo mutation con `requestChannel=web_comercial` → `serviceType=premium`.
+
+Admin telefono: `services.createPremiumServiceAsAdmin` con `requestChannel=phone`.
 
 Tablas tocadas:
 
@@ -249,9 +253,10 @@ Tablas tocadas:
 6. Efecto de aceptacion:
    - servicio `assigned`,
    - chofer `busy`,
+   - se calcula `advanceAmount` (25% de `offeredPrice`),
    - se genera `securityCode`,
    - ofertas restantes `rejected`,
-   - notificaciones a cliente y chofer.
+   - notificaciones a cliente y chofer (incluyen monto de anticipo).
 
 Tablas tocadas:
 
@@ -259,9 +264,29 @@ Tablas tocadas:
 
 ---
 
+## 4.4.1 Etapa D.1 - Anticipo del 25% antes de salir
+
+1. Cliente entrega al chofer el anticipo en efectivo (`advanceAmount`).
+2. Chofer confirma recepcion con `services.confirmAdvanceReceived`:
+   - registra `advanceConfirmedAt`,
+   - notifica al cliente (`advance_confirmed`).
+3. Solo con anticipo confirmado el chofer puede pasar a `heading_to_pickup`.
+
+Frontend:
+
+- Chofer: `ServiceCard.tsx` — boton **Confirmo que recibi el anticipo (25%)** y luego **Salir a recoger**.
+- Cliente: `ClientDashboard.tsx` — aviso de monto de anticipo y estado de confirmacion.
+- Admin: `ServicesBoard.tsx` — columnas **Anticipo (25%)** y **Anticipo confirmado**.
+
+Tablas tocadas:
+
+- Escritura: `services`, `notifications`.
+
+---
+
 ## 4.5 Etapa E - Ejecucion del viaje
 
-1. Chofer cambia a `heading_to_pickup` (`services.updateStatus`):
+1. Chofer cambia a `heading_to_pickup` (`services.updateStatus`; requiere `advanceConfirmedAt`):
    - notificacion al cliente,
    - frontend abre Waze hacia `origin`.
 2. Chofer marca `arrived_pickup` (`services.updateStatus`):
@@ -289,7 +314,8 @@ Al pasar a `finished`:
 1. Se descuenta comision del chofer:
    - update en `driverWallets`
    - insercion en `walletTransactions` tipo `commission_debit`
-2. Se crea pago pendiente del cliente (idempotente):
+2. Se crea pago pendiente del cliente por el saldo restante (idempotente):
+   - `amount = totalPrice - advanceAmount` (el 25% ya se pago al chofer al inicio),
    - insercion en `payments` si no existe.
 3. Chofer vuelve a `available` y aumenta `totalTrips`.
 
@@ -305,8 +331,13 @@ Tablas tocadas:
 | --- | --- | --- | --- |
 | Login + resolver perfil | `App.tsx`, `HomeScreen.tsx` | `users.getMe`, `drivers.getMyDriverProfile` | `users`, `drivers` |
 | Registro chofer | `DriverRegisterScreen.tsx`, `PendingRegistrationSubmit.tsx` | `reniec.lookupDni`, `driverApplications.generateUploadUrl`, `driverApplications.submit` | `driverApplications`, `drivers`, `driverWallets`, `users`, `storage` |
-| Solicitar viaje | `ClientDashboard.tsx` | `services.createService` | `services` |
+| Solicitar viaje app | `ClientDashboard.tsx` | `services.createService` | `services` |
+| Solicitar viaje premium web | `RequestServiceForm.tsx` | `services.createService` (`web_comercial`) | `services` |
+| Registrar premium telefono | `PremiumServiceForm.tsx` | `services.createPremiumServiceAsAdmin` | `services` |
+| Gestionar promociones | `PromotionsPanel.tsx` | `promotions.create`, `promotions.setActive` | `promotions` |
+| Preview promo al solicitar | `RequestServiceForm.tsx`, `ClientDashboard.tsx` | `promotions.previewForRegion` | `promotions`, `services` |
 | Ofertar/aceptar | `DriverDashboard.tsx`, `ClientDashboard.tsx` | `serviceOffers.submitMyOffer`, `serviceOffers.acceptOffer`, `serviceOffers.listForServiceAsClient` | `serviceOffers`, `services`, `notifications`, `drivers` |
+| Confirmar anticipo 25% | `ServiceCard.tsx`, `ClientDashboard.tsx`, `ServicesBoard.tsx` | `services.confirmAdvanceReceived` | `services`, `notifications` |
 | Operar viaje | `ServiceCard.tsx`, `SlideToConfirm.tsx` | `services.updateStatus`, `serviceChecklists.upsertPickupChecklist`, `services.startTripWithCode` | `services`, `serviceVehicleChecklists`, `notifications` |
 | Finalizar | `ServiceCard.tsx` | `services.updateStatus` (+ helpers internos) | `services`, `driverWallets`, `walletTransactions`, `payments`, `drivers` |
 

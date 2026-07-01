@@ -95,11 +95,11 @@ Hechos de negocio (fact types):
 | RN-006 | Relacion cliente-servicio | Todo `Servicio` DEBE estar asociado a un `Cliente` (`clientId`). | Estructural | Validacion | Fija | Producto | Activa |
 | RN-007 | Relacion chofer-servicio opcional | Un `Servicio` PUEDE no tener chofer al crearse (`driverId` opcional), y luego quedar asignado. | Estructural | Flujo de trabajo | Fija | Operaciones | Activa |
 | RN-008 | Un pago por servicio | Un `Servicio` NO DEBE generar mas de un `Pago` (creacion idempotente por `serviceId`). | Estructural | Validacion | Fija | Finanzas + Backend | Activa |
-| RN-009 | Comision de plataforma | La comision de plataforma DEBE derivarse de `offeredPrice * 0.25`, redondeada a 2 decimales. La propina no participa de este calculo. | Estructural | Calculo / Derivacion | Dinamica | Direccion + Finanzas | Activa |
+| RN-009 | Comision de plataforma | La comision de plataforma DEBE derivarse de `offeredPrice * 0.25`, redondeada a 2 decimales. | Estructural | Calculo / Derivacion | Dinamica | Direccion + Finanzas | Activa |
 | RN-010 | Acceso autenticado | Para ejecutar operaciones de negocio, el usuario DEBE estar autenticado. | Operativa | Autorizacion | Fija | Seguridad | Activa |
-| RN-011 | Precio minimo de servicio | SI un cliente crea un servicio, ENTONCES `totalPrice` DEBE ser mayor o igual a S/40. | Operativa | Validacion | Fija | Operaciones | Activa |
+| RN-011 | Tarifa minima de contratacion | SI un cliente crea un servicio, ENTONCES `basePrice` DEBE ser >= S/80 (S/40/hora x 2 horas minimas de contratacion). | Operativa | Validacion | Fija | Operaciones | Activa |
 | RN-012 | Estado inicial del servicio | SI un servicio se crea correctamente, ENTONCES su estado DEBE ser `pending` y registrar `requestedAt`. | Operativa | Flujo de trabajo | Fija | Operaciones | Activa |
-| RN-013 | Oferta de chofer | Un chofer disponible PUEDE ofertar tarifa para un servicio en `pending`, siempre que la oferta sea >= tarifa base. | Operativa | Flujo de trabajo | Fija | Operaciones | Activa |
+| RN-013 | Oferta de chofer | Un chofer disponible PUEDE ofertar tarifa para un servicio en `pending`, siempre que la oferta sea >= tarifa base (minimo S/80 = 2h x S/40/h). | Operativa | Flujo de trabajo | Fija | Operaciones | Activa |
 | RN-014 | Seleccion de oferta por cliente | Solo el cliente dueño del servicio PUEDE aceptar una oferta de su servicio pendiente. | Operativa | Autorizacion | Fija | Operaciones | Activa |
 | RN-015 | Restriccion para aceptar oferta | SI el cliente acepta una oferta, ENTONCES el servicio DEBE estar en `pending`, el chofer en `available` y con saldo suficiente según límite S/-10. | Operativa | Validacion | Fija | Operaciones | Activa |
 | RN-016 | Efecto de aceptacion de oferta | SI una oferta es aceptada, ENTONCES el servicio pasa a `assigned`, se genera `securityCode`, el chofer pasa a `busy`, la oferta queda `accepted` y el resto de ofertas `rejected`. | Operativa | Flujo de trabajo | Fija | Operaciones | Activa |
@@ -140,6 +140,18 @@ Hechos de negocio (fact types):
 | RN-051 | Navegacion Waze hacia destino al iniciar | SI el viaje pasa a `in_progress`, ENTONCES la app de chofer DEBE abrir Waze con ruta al `destination` del servicio. | Operativa | Integracion externa | Dinamica | Operaciones | Activa |
 | RN-052 | Checklist pre-viaje obligatorio | Antes de iniciar viaje (`arrived_pickup` -> `in_progress`), el chofer DEBE completar checklist de estado vehicular y documentos. | Operativa | Validacion | Fija | Operaciones + Cumplimiento | Activa |
 | RN-053 | Datos minimos de checklist | El checklist DEBE registrar como minimo: observaciones de abolladuras/estado, verificacion de `Tarjeta de Propiedad` y verificacion de `SOAT`. | Estructural | Validacion | Fija | Operaciones + Cumplimiento | Activa |
+| RN-054 | Adelanto del 25% antes de salir | SI un servicio queda `assigned`, ENTONCES el cliente DEBE entregar al chofer un anticipo del 25% sobre `offeredPrice` antes de que el chofer pueda pasar a `heading_to_pickup`. | Operativa | Flujo de trabajo | Fija | Operaciones + Finanzas | Activa |
+| RN-055 | Confirmacion de anticipo por chofer | SI el chofer recibe el anticipo, ENTONCES DEBE confirmarlo en la app (`confirmAdvanceReceived`) registrando `advanceConfirmedAt`. Sin esa confirmacion NO puede salir a recoger. | Operativa | Validacion | Fija | Operaciones | Activa |
+| RN-056 | Saldo pendiente al finalizar | SI el servicio finaliza, ENTONCES el registro en `payments` DEBE ser por el saldo restante (`totalPrice - advanceAmount`), no por el total completo. | Operativa | Calculo / Derivacion | Fija | Finanzas | Activa |
+| RN-057 | Tipo de viaje app | SI un cliente crea servicio desde la app movil, ENTONCES `serviceType=app` y `requestChannel=mobile_app`. | Operativa | Flujo de trabajo | Fija | Operaciones + Producto | Activa |
+| RN-058 | Tipo de viaje premium web | SI un cliente crea servicio desde la web comercial, ENTONCES `serviceType=premium` y `requestChannel=web_comercial`. | Operativa | Flujo de trabajo | Fija | Operaciones + Producto | Activa |
+| RN-059 | Tipo de viaje premium telefono | SI operaciones registra una solicitud telefonica, ENTONCES un admin DEBE crearla con `serviceType=premium` y `requestChannel=phone`. | Operativa | Flujo de trabajo | Fija | Operaciones | Activa |
+| RN-060 | Visibilidad de tipo en tablero | El tablero admin DEBE distinguir visualmente viajes app vs premium e indicar el canal de solicitud. | Operativa | Flujo de trabajo | Dinamica | Operaciones | Activa |
+| RN-061 | Promociones por region y fechas | Hercom DEBE poder activar promociones festivas segmentadas por departamento, provincia (opcional) y distrito (opcional), con rango de fechas. | Operativa | Flujo de trabajo | Dinamica | Operaciones + Marketing | Activa |
+| RN-062 | Descuento absorbido por Hercom | SI aplica promocion, ENTONCES el descuento reduce lo que paga el cliente pero el chofer DEBE mantener su neto del 75% sobre la tarifa de lista ofertada. | Operativa | Calculo / Derivacion | Fija | Finanzas + Operaciones | Activa |
+| RN-063 | Tope de descuento promocional | El descuento maximo DEBE ser 25% sobre la tarifa de lista; a ese tope la ganancia de Hercom es S/0 (ejemplo lista S/80). | Operativa | Validacion | Fija | Finanzas | Activa |
+| RN-064 | Aplicacion automatica al crear servicio | SI existe promocion activa para la region del recojo y la fecha, ENTONCES el servicio DEBE registrar `catalogBasePrice`, `discountRate`, `promotionId` y `basePrice` con descuento. | Operativa | Flujo de trabajo | Fija | Backend + Operaciones | Activa |
+| RN-065 | GPS y region en app movil | Al solicitar servicio desde la app movil, el cliente PUEDE usar GPS + geocodificacion inversa (Google Maps) para autocompletar direccion de origen, coordenadas y departamento/provincia/distrito; puede corregir la region manualmente. | Operativa | Flujo de trabajo | Dinamica | App movil + Operaciones | Activa |
 
 ---
 
@@ -156,8 +168,18 @@ Hechos de negocio (fact types):
 
 ### 5.2 Regla de derivacion financiera
 
+- Tarifa horaria de referencia: S/40/hora.
+- Contratacion minima del servicio: 2 horas.
+- Tarifa base minima (`basePrice`): S/80 (= S/40 x 2).
+- `advanceAmount = round(offeredPrice * 0.25, 2 decimales)` (anticipo cliente → chofer)
 - `driverCommission = round(offeredPrice * 0.25, 2 decimales)` (comision de app)
-- `totalPrice = offeredPrice + tipAmount`
+- `totalPrice = offeredPrice` (tarifa acordada del servicio)
+- Saldo pendiente al cierre: `totalPrice - advanceAmount`
+- Promocion festiva (si aplica):
+  - `clientPrice = listPrice * (1 - discountRate)`
+  - `driverNet = listPrice * 0.75` (sin cambio para el chofer)
+  - `platformCommission = max(clientPrice - driverNet, 0)`
+  - `discountRate` maximo: 25%
 
 ---
 
@@ -165,14 +187,15 @@ Hechos de negocio (fact types):
 
 ### 6.1 Flujo principal servicio -> ofertas -> saldo chofer -> pago
 
-1. SI cliente crea servicio con precio base valido (>= S/40), ENTONCES estado inicial es `pending`.
+1. SI cliente crea servicio con tarifa base valida (>= S/80, equivalente a 2h x S/40/h), ENTONCES estado inicial es `pending`.
 2. SI chofer disponible oferta tarifa (>= base), ENTONCES se registra oferta en `serviceOffers` y se notifica al cliente.
-3. SI cliente acepta una oferta valida, ENTONCES servicio `assigned`, chofer `busy` y se genera `securityCode`.
-4. SI chofer sale a recoger, ENTONCES servicio `heading_to_pickup` y se notifica al cliente.
-5. SI chofer llega al punto de partida, ENTONCES servicio `arrived_pickup` y se notifica al cliente.
-6. SI chofer valida el `securityCode`, ENTONCES servicio `in_progress` (sale con cliente).
-7. SI chofer llega al punto final, ENTONCES servicio `arrived_destination`.
-8. SI chofer finaliza viaje, ENTONCES:
+3. SI cliente acepta una oferta valida, ENTONCES servicio `assigned`, chofer `busy`, se genera `securityCode` y `advanceAmount` (25% de `offeredPrice`).
+4. SI chofer confirma anticipo recibido, ENTONCES se registra `advanceConfirmedAt` y el chofer puede pasar a `heading_to_pickup`.
+5. SI chofer sale a recoger, ENTONCES servicio `heading_to_pickup` y se notifica al cliente.
+6. SI chofer llega al punto de partida, ENTONCES servicio `arrived_pickup` y se notifica al cliente.
+7. SI chofer valida el `securityCode`, ENTONCES servicio `in_progress` (sale con cliente).
+8. SI chofer llega al punto final, ENTONCES servicio `arrived_destination`.
+9. SI chofer finaliza viaje, ENTONCES:
    - servicio `finished`
    - chofer `available`
    - `totalTrips + 1`
@@ -191,15 +214,17 @@ Hechos de negocio (fact types):
 
 ### 6.3 Flujo del servicio (explicacion simple de negocio)
 
-1. El cliente solicita un servicio indicando punto de recojo (`origin`) y punto de destino (`destination`).
-2. Los choferes disponibles envian ofertas de tarifa.
+1. El cliente solicita un servicio indicando punto de recojo (`origin`), punto de destino (`destination`) y tarifa base (minimo S/80 = S/40/h x 2h).
+2. Los choferes disponibles envian ofertas de tarifa (>= tarifa base indicada por el cliente).
 3. El cliente elige una oferta y se confirma el chofer.
-4. El chofer sale a recoger al cliente.
-5. El chofer llega al punto de recojo y coordina con el cliente.
-6. Se valida el inicio del viaje (codigo de seguridad y, en flujo extendido, checklist + slide).
-7. El chofer traslada al cliente al destino.
-8. El chofer confirma llegada y finaliza servicio.
-9. El sistema descuenta comision, registra pago y actualiza estados/notificaciones.
+4. El cliente entrega al chofer el anticipo del 25% sobre la tarifa acordada.
+5. El chofer confirma en la app que recibió el anticipo.
+6. El chofer sale a recoger al cliente.
+7. El chofer llega al punto de recojo y coordina con el cliente.
+8. Se valida el inicio del viaje (codigo de seguridad y, en flujo extendido, checklist + slide).
+9. El chofer traslada al cliente al destino.
+10. El chofer confirma llegada y finaliza servicio.
+11. El sistema descuenta comision, registra pago del saldo restante y actualiza estados/notificaciones.
 
 ### 6.4 Flujo operativo extendido implementado (Waze + slide + checklist)
 
@@ -314,11 +339,20 @@ Caracteristica: Limite de saldo negativo
 ```
 
 ```gherkin
-Caracteristica: Regla de precio minimo
+Caracteristica: Regla de tarifa minima
   Escenario: Cliente intenta crear un servicio por debajo del minimo
     Dado que el cliente esta autenticado
-    Cuando intenta crear un servicio con totalPrice de S/30
-    Entonces el sistema rechaza la solicitud por precio minimo
+    Cuando intenta crear un servicio con basePrice de S/50
+    Entonces el sistema rechaza la solicitud por tarifa base minima (S/80)
+```
+
+```gherkin
+Caracteristica: Anticipo del 25% antes de salir
+  Escenario: Chofer no puede salir sin confirmar anticipo
+    Dado que el servicio esta en estado assigned
+    Y el chofer no ha confirmado el anticipo
+    Cuando intenta pasar a heading_to_pickup
+    Entonces el sistema rechaza la transicion
 ```
 
 ```gherkin
@@ -336,7 +370,8 @@ Caracteristica: Seguridad de acceso
 
 | ID Regla | Implementacion principal |
 | --- | --- |
-| RN-009, RN-011, RN-015, RN-017 a RN-029, RN-046, RN-047 | `packages/backend/convex/services.ts` |
+| RN-061, RN-062, RN-063, RN-064 | `packages/backend/convex/promotions.ts`, `packages/backend/convex/lib/pricing.ts`, `packages/backend/convex/lib/promotions.ts` |
+| RN-009, RN-011, RN-015, RN-017 a RN-029, RN-046, RN-047, RN-054, RN-055, RN-056, RN-057, RN-058, RN-059 | `packages/backend/convex/services.ts` |
 | RN-013, RN-014, RN-016, RN-041 a RN-043 | `packages/backend/convex/serviceOffers.ts` |
 | RN-020 a RN-024 | `packages/backend/convex/driverWallets.ts` + `apps/mobile/src/screens/DriverDashboard.tsx` |
 | RN-041 a RN-045 | `packages/backend/convex/notifications.ts` + paneles de cliente/chofer |
@@ -363,7 +398,7 @@ Recomendacion de mantenimiento:
   - `services.totalPrice` -> RN-011, RN-009
   - `services.status` -> RN-002, RN-012, RN-017
   - `services.basePrice` -> RN-011
-  - `services.tipAmount` -> RN-009
+  - `services.offeredPrice` -> RN-009, RN-013
   - `services.securityCode` -> RN-016, RN-046
   - `services.driverCommission` -> RN-009, RN-020
   - `notifications.type` -> RN-041, RN-042, RN-043, RN-044, RN-045
@@ -385,7 +420,9 @@ Recomendacion de mantenimiento:
 - `services`:
   - identidad/relaciones: `clientId`, `driverId`
   - ruta: `origin.address`, `origin.lat`, `origin.lng`, `destination.address`, `destination.lat`, `destination.lng`
-  - negocio precio: `basePrice`, `offeredPrice`, `tipAmount`, `totalPrice`, `driverCommission`
+  - negocio precio: `basePrice` (min. S/80), `offeredPrice`, `advanceAmount`, `advanceConfirmedAt`, `totalPrice`, `driverCommission`
+  - clasificacion: `serviceType`, `requestChannel`
+  - promocion: `catalogBasePrice`, `discountRate`, `promotionId`, `promotionName`
   - seguridad/estado: `securityCode`, `status`
   - tiempos: `requestedAt`, `assignedAt`, `headingToPickupAt`, `arrivedPickupAt`, `departedWithClientAt`, `arrivedDestinationAt`, `finishedAt`, `cancelledAt`
 - `serviceOffers`: `serviceId`, `driverId`, `offeredPrice`, `status`, `createdAt`, `respondedAt`
@@ -398,8 +435,10 @@ Recomendacion de mantenimiento:
 
 - Backend Convex:
   - `packages/backend/convex/services.ts`
-    - `createService()`: crea solicitud con recojo/destino
-    - `updateStatus()`: transiciones operativas del chofer
+    - `createService()`: crea solicitud (app o premium segun canal)
+    - `createPremiumServiceAsAdmin()`: registro premium por admin (telefono/web manual)
+    - `confirmAdvanceReceived()`: chofer confirma anticipo del 25%
+    - `updateStatus()`: transiciones operativas del chofer (exige anticipo confirmado para salir)
     - `startTripWithCode()`: inicio con codigo de seguridad
     - `cancelService()`: cancelacion por cliente/admin
   - `packages/backend/convex/serviceOffers.ts`
@@ -407,12 +446,15 @@ Recomendacion de mantenimiento:
   - `packages/backend/convex/notifications.ts`
     - `createNotification()` (helper), `listMine()`, `markAsRead()`, `markAllAsRead()`
   - `packages/backend/convex/schema.ts`: contratos de tablas/validadores
+  - `packages/backend/convex/promotions.ts`: CRUD promociones + catalogo Peru
+  - `packages/backend/convex/lib/pricing.ts`: reparto cliente/chofer/Hercom con descuento
 - Mobile:
-  - `apps/mobile/src/components/ServiceCard.tsx`: acciones operativas del chofer por estado
+  - `apps/mobile/src/components/ServiceCard.tsx`: confirmacion de anticipo y acciones operativas del chofer por estado
   - `apps/mobile/src/screens/DriverDashboard.tsx`: viajes activos y panel operativo chofer
   - `apps/mobile/src/screens/ClientDashboard.tsx`: solicitud y seguimiento del servicio
 - Web:
-  - `apps/web-admin/src/components/ServicesBoard.tsx`: monitoreo interno de estados
+  - `apps/web-admin/src/components/ServicesBoard.tsx`: monitoreo interno de estados, anticipo y tipo de viaje
+  - `apps/web-admin/src/components/PromotionsPanel.tsx`: promociones festivas por region
   - `apps/web-comercial/src/components/MyServices.tsx`: seguimiento cliente
   - `apps/web-comercial/src/components/NotificationsPanel.tsx`: notificaciones cliente
 

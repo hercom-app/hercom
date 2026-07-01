@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Authenticated,
   AuthLoading,
@@ -7,31 +8,42 @@ import {
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@proyecto/backend";
 import { SignInForm } from "./components/SignInForm";
-import { ServicesBoard } from "./components/ServicesBoard";
-import { PaymentsPanel } from "./components/PaymentsPanel";
-import { PayoutsPanel } from "./components/PayoutsPanel";
-import { TopUpsTodayPanel } from "./components/TopUpsTodayPanel";
-import { UsersPanel } from "./components/UsersPanel";
+import { AdminNav, type AdminSection } from "./components/AdminNav";
 import { HercomHeaderTitle } from "./components/HercomBrand";
+import { AccountsView } from "./views/AccountsView";
+import { TopUpsView } from "./views/TopUpsView";
+import { ServicesView } from "./views/ServicesView";
+import { PromotionsView } from "./views/PromotionsView";
+import { PremiumTripsView } from "./views/PremiumTripsView";
 
-function Header() {
+function Header({
+  section,
+  onSectionChange,
+}: {
+  section: AdminSection;
+  onSectionChange: (section: AdminSection) => void;
+}) {
   const { signOut } = useAuthActions();
   return (
-    <header className="flex items-center justify-between bg-hercom px-6 py-4 shadow-md">
-      <HercomHeaderTitle />
-      <button
-        type="button"
-        onClick={() => void signOut()}
-        className="text-sm font-medium text-white/90 hover:text-white"
-      >
-        Cerrar sesión
-      </button>
+    <header className="bg-hercom shadow-md">
+      <div className="flex items-center justify-between px-6 py-4">
+        <HercomHeaderTitle />
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          className="text-sm font-medium text-white/90 hover:text-white"
+        >
+          Cerrar sesión
+        </button>
+      </div>
+      <AdminNav active={section} onChange={onSectionChange} />
     </header>
   );
 }
 
 function Dashboard() {
   const me = useQuery(api.users.getMe);
+  const [section, setSection] = useState<AdminSection>("services");
 
   if (me === undefined) {
     return <p className="p-6 text-sm text-slate-500">Cargando...</p>;
@@ -50,15 +62,16 @@ function Dashboard() {
   }
 
   return (
-    <main className="mx-auto max-w-4xl space-y-6 p-6">
-      <UsersPanel />
-      <ServicesBoard />
-      <TopUpsTodayPanel />
-      <div className="grid gap-6 md:grid-cols-2">
-        <PaymentsPanel />
-        <PayoutsPanel />
-      </div>
-    </main>
+    <>
+      <Header section={section} onSectionChange={setSection} />
+      <main className="mx-auto max-w-6xl p-6">
+        {section === "accounts" && <AccountsView />}
+        {section === "topups" && <TopUpsView />}
+        {section === "services" && <ServicesView />}
+        {section === "promotions" && <PromotionsView />}
+        {section === "premium" && <PremiumTripsView />}
+      </main>
+    </>
   );
 }
 
@@ -77,7 +90,6 @@ export default function App() {
       </Unauthenticated>
       <Authenticated>
         <div className="flex h-full min-h-0 flex-col overflow-auto bg-slate-100">
-          <Header />
           <Dashboard />
         </div>
       </Authenticated>

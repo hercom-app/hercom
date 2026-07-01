@@ -1,4 +1,4 @@
-import { createAccount } from "@convex-dev/auth/server";
+import { createAccount, modifyAccountCredentials } from "@convex-dev/auth/server";
 import { internalMutation } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
@@ -43,10 +43,10 @@ export const seedDemo = internalMutation({
 
     let serviceId: Id<"services"> | null = null;
     if (existingServices.length === 0) {
-      const basePrice = 40;
-      const tipAmount = 5;
-      const offeredPrice = 40;
-      const totalPrice = basePrice + tipAmount;
+      const basePrice = 80;
+      const offeredPrice = 80;
+      const advanceAmount = 20;
+      const totalPrice = offeredPrice;
       serviceId = await ctx.db.insert("services", {
         clientId: client._id,
         origin: {
@@ -60,10 +60,12 @@ export const seedDemo = internalMutation({
           lng: -99.0719,
         },
         basePrice,
-        tipAmount,
         offeredPrice,
         totalPrice,
         driverCommission: computePlatformCommission(offeredPrice),
+        advanceAmount,
+        serviceType: "app",
+        requestChannel: "mobile_app",
         securityCode: "1234",
         status: "assigned",
         notes: "Servicio de demostración (seed)",
@@ -109,10 +111,10 @@ async function ensureUser(
     .withIndex("email", (q) => q.eq("email", email))
     .unique();
   if (existing !== null) {
-    // Asegura el rol esperado aunque la cuenta ya existiera.
     if (existing.role !== role) {
       await ctx.db.patch(existing._id, { role });
     }
+    await ensurePasswordAccount(ctx, email, name, role);
     return (await ctx.db.get(existing._id)) as Doc<"users">;
   }
 
@@ -130,6 +132,35 @@ async function ensureUser(
     throw new Error(`No se pudo crear la cuenta para ${email}.`);
   }
   return created;
+}
+
+async function ensurePasswordAccount(
+  ctx: MutationCtx,
+  email: string,
+  name: string,
+  role: Doc<"users">["role"],
+): Promise<void> {
+  const existingAccount = await ctx.db
+    .query("authAccounts")
+    .withIndex("providerAndAccountId", (q) =>
+      q.eq("provider", "password").eq("providerAccountId", email),
+    )
+    .unique();
+
+  if (existingAccount === null) {
+    await createAccount(ctx as never, {
+      provider: "password",
+      account: { id: email, secret: DEMO_PASSWORD },
+      profile: { email, name, role },
+      shouldLinkViaEmail: true,
+    });
+    return;
+  }
+
+  await modifyAccountCredentials(ctx as never, {
+    provider: "password",
+    account: { id: email, secret: DEMO_PASSWORD },
+  });
 }
 
 /**

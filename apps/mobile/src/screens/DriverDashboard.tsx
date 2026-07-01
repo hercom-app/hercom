@@ -12,6 +12,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@proyecto/backend";
 import { AvailabilityToggle } from "../components/AvailabilityToggle";
 import { ServiceCard } from "../components/ServiceCard";
+import { formatServiceStopsLabel } from "../lib/wazeNavigation";
 
 export function DriverDashboard() {
   const { signOut } = useAuthActions();
@@ -239,11 +240,15 @@ export function DriverDashboard() {
               className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-3"
             >
               <Text className="text-xs text-slate-600">
-                Base: S/{service.basePrice.toFixed(2)} · Propina: S/
-                {service.tipAmount.toFixed(2)}
+                Tarifa lista: S/
+                {(service.catalogBasePrice ?? service.basePrice).toFixed(2)}
+                {service.discountRate !== undefined && service.discountRate > 0
+                  ? ` · Cliente paga S/${service.basePrice.toFixed(2)}`
+                  : ""}
               </Text>
               <Text className="mt-1 text-xs text-slate-700">
-                {service.origin.address} → {service.destination.address}
+                {service.origin.address} →{" "}
+                {formatServiceStopsLabel(service.destination, service.extraDestinations)}
               </Text>
               <View className="mt-2 flex-row items-center gap-2">
                 <TextInput
@@ -251,7 +256,7 @@ export function DriverDashboard() {
                   onChangeText={(value) =>
                     setOfferByService((prev) => ({ ...prev, [service._id]: value }))
                   }
-                  placeholder={`Oferta >= S/${service.basePrice.toFixed(0)}`}
+                  placeholder={`Oferta >= S/${(service.catalogBasePrice ?? service.basePrice).toFixed(0)}`}
                   placeholderTextColor="#94A3B8"
                   keyboardType="decimal-pad"
                   className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"

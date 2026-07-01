@@ -52,12 +52,26 @@ export const serviceOfferStatusValidator = v.union(
   v.literal("rejected"),
 );
 
+/** Tipo comercial del servicio: app (autoservicio) o premium (gestionado). */
+export const serviceTypeValidator = v.union(
+  v.literal("app"),
+  v.literal("premium"),
+);
+
+/** Canal por el que se registró la solicitud. */
+export const serviceRequestChannelValidator = v.union(
+  v.literal("mobile_app"),
+  v.literal("web_comercial"),
+  v.literal("phone"),
+);
+
 export const notificationTypeValidator = v.union(
   v.literal("offer_received"),
   v.literal("trip_confirmed_driver"),
   v.literal("trip_confirmed_client"),
   v.literal("driver_heading_pickup"),
   v.literal("driver_arrived_pickup"),
+  v.literal("advance_confirmed"),
 );
 
 export const checklistPhaseValidator = v.union(
@@ -76,6 +90,9 @@ export const locationValidator = v.object({
   address: v.string(),
   lat: v.number(),
   lng: v.number(),
+  department: v.optional(v.string()),
+  province: v.optional(v.string()),
+  district: v.optional(v.string()),
 });
 
 export default defineSchema({
@@ -151,10 +168,16 @@ export default defineSchema({
     driverId: v.optional(v.id("drivers")),
     origin: locationValidator,
     destination: locationValidator,
-    // Tarifa base mínima solicitada por el cliente (desde S/40).
+    extraDestinations: v.optional(v.array(locationValidator)),
+    // Índice de parada activa durante el viaje (0 = destino principal).
+    currentStopIndex: v.optional(v.number()),
+    // Tarifa base solicitada por el cliente (mín. S/80 = S/40/h × 2h).
     basePrice: v.number(),
-    // Propina opcional agregada por el cliente.
-    tipAmount: v.number(),
+    // Tarifa de lista antes de descuento festivo (si aplica promoción).
+    catalogBasePrice: v.optional(v.number()),
+    discountRate: v.optional(v.number()),
+    promotionId: v.optional(v.id("promotions")),
+    promotionName: v.optional(v.string()),
     // Tarifa ofertada por el chofer y aceptada por el cliente.
     offeredPrice: v.optional(v.number()),
     // Código de seguridad compartido (cliente/chofer) para iniciar viaje.
@@ -162,6 +185,12 @@ export default defineSchema({
     totalPrice: v.number(),
     // Comisión de plataforma (intermediación) descontada del saldo del chofer.
     driverCommission: v.number(),
+    // Adelanto del 25% sobre tarifa ofertada; el cliente lo paga al chofer antes de salir.
+    advanceAmount: v.optional(v.number()),
+    advanceConfirmedAt: v.optional(v.number()),
+    // Clasificación del viaje para operación y tablero admin.
+    serviceType: v.optional(serviceTypeValidator),
+    requestChannel: v.optional(serviceRequestChannelValidator),
     status: serviceStatusValidator,
     notes: v.optional(v.string()),
     requestedAt: v.number(),
@@ -176,7 +205,8 @@ export default defineSchema({
     .index("by_client", ["clientId"])
     .index("by_driver", ["driverId"])
     .index("by_status", ["status"])
-    .index("by_driver_status", ["driverId", "status"]),
+    .index("by_driver_status", ["driverId", "status"])
+    .index("by_service_type", ["serviceType"]),
 
   /**
    * Ofertas de choferes sobre servicios pendientes (flujo tipo inDriver).
@@ -284,4 +314,23 @@ export default defineSchema({
   })
     .index("by_service", ["serviceId"])
     .index("by_driver", ["driverId"]),
+
+  /**
+   * Promociones festivas por región (departamento / provincia / distrito).
+   */
+  promotions: defineTable({
+    name: v.string(),
+    festivityLabel: v.optional(v.string()),
+    department: v.string(),
+    province: v.optional(v.string()),
+    district: v.optional(v.string()),
+    discountRate: v.number(),
+    startsAt: v.number(),
+    endsAt: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    createdBy: v.id("users"),
+  })
+    .index("by_active", ["active"])
+    .index("by_department", ["department"]),
 });

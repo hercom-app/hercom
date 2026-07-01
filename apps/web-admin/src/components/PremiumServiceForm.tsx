@@ -1,40 +1,34 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
+import type { Id } from "@proyecto/backend/dataModel";
 import { RegionFields, inputClass } from "./RegionFields";
 
-export function RequestServiceForm() {
-  const createService = useMutation(api.services.createService);
+export function PremiumServiceForm() {
+  const users = useQuery(api.users.listAll, {});
+  const createPremiumService = useMutation(api.services.createPremiumServiceAsAdmin);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [department, setDepartment] = useState("");
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
-  const [basePriceInput, setBasePriceInput] = useState("80");
 
-  const basePrice = Number(basePriceInput);
-  const promoPreview = useQuery(
-    api.promotions.previewForRegion,
-    department !== "" && Number.isFinite(basePrice) && basePrice >= 80
-      ? {
-          department,
-          ...(province !== "" ? { province } : {}),
-          ...(district !== "" ? { district } : {}),
-          listPrice: basePrice,
-        }
-      : "skip",
-  );
+  const clients = (users ?? []).filter((user) => user.role === "client");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (department === "") {
+      setError("Selecciona el departamento del recojo.");
       return;
     }
     setSubmitting(true);
     setMessage(null);
+    setError(null);
     const form = new FormData(event.currentTarget);
     try {
-      await createService({
+      await createPremiumService({
+        clientId: String(form.get("clientId")) as Id<"users">,
         origin: {
           address: String(form.get("originAddress")),
           lat: 0,
@@ -49,19 +43,23 @@ export function RequestServiceForm() {
           lng: 0,
         },
         basePrice: Number(form.get("basePrice")),
-        requestChannel: "web_comercial" as const,
+        requestChannel:
+          String(form.get("requestChannel")) === "phone" ? "phone" : "web_comercial",
         ...(String(form.get("notes") ?? "").trim() !== ""
           ? { notes: String(form.get("notes") ?? "").trim() }
           : {}),
       });
-      setMessage("Solicitud creada. Espera ofertas de choferes y elige una.");
+      setMessage("Solicitud premium registrada.");
       event.currentTarget.reset();
       setDepartment("");
       setProvince("");
       setDistrict("");
-      setBasePriceInput("80");
-    } catch {
-      setMessage("No se pudo crear la solicitud.");
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "No se pudo registrar la solicitud premium.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -69,10 +67,30 @@ export function RequestServiceForm() {
 
   return (
     <section className="rounded-3xl bg-white p-6 shadow-lg">
-      <h2 className="mb-4 text-lg font-bold text-slate-900">
-        Solicitar un chofer premium
+      <h2 className="mb-1 text-lg font-bold text-slate-900">
+        Registrar viaje premium
       </h2>
+      <p className="mb-4 text-sm text-slate-500">
+        Para solicitudes recibidas por teléfono o gestionadas manualmente desde
+        operaciones. Quedan etiquetadas como premium en el tablero.
+      </p>
       <form onSubmit={handleSubmit} className="space-y-3">
+        <select
+          name="clientId"
+          required
+          className={inputClass}
+          defaultValue=""
+        >
+          <option value="" disabled>
+            Selecciona cliente
+          </option>
+          {clients.map((client) => (
+            <option key={client._id} value={client._id}>
+              {client.name ?? client.email ?? client._id}
+              {client.email !== undefined ? ` · ${client.email}` : ""}
+            </option>
+          ))}
+        </select>
         <RegionFields
           department={department}
           province={province}
@@ -81,6 +99,10 @@ export function RequestServiceForm() {
           onProvinceChange={setProvince}
           onDistrictChange={setDistrict}
         />
+        <select name="requestChannel" required className={inputClass} defaultValue="phone">
+          <option value="phone">Canal: Teléfono</option>
+          <option value="web_comercial">Canal: Web comercial (registro manual)</option>
+        </select>
         <input
           name="originAddress"
           required
@@ -99,23 +121,9 @@ export function RequestServiceForm() {
           min="80"
           step="0.01"
           required
-          value={basePriceInput}
-          onChange={(event) => setBasePriceInput(event.target.value)}
-          placeholder="Tarifa base solicitada (mínimo S/80)"
+          placeholder="Tarifa base (mínimo S/80)"
           className={inputClass}
         />
-        {promoPreview !== undefined && promoPreview !== null && (
-          <p className="rounded-xl bg-violet-50 px-3 py-2 text-xs text-violet-800">
-            Promoción activa: {promoPreview.promotionName} (
-            {(promoPreview.discountRate * 100).toFixed(0)}% off). Pagas S/
-            {promoPreview.basePrice.toFixed(2)} en lugar de S/
-            {promoPreview.catalogBasePrice.toFixed(2)}.
-          </p>
-        )}
-        <p className="text-xs text-slate-500">
-          Tarifa: S/40/hora, mínimo 2 h (S/80). Viaje premium por web comercial.
-          Descuentos festivos no reducen la ganancia del chofer.
-        </p>
         <textarea
           name="notes"
           placeholder="Notas (opcional)"
@@ -123,14 +131,13 @@ export function RequestServiceForm() {
         />
         <button
           type="submit"
-          disabled={submitting || department === ""}
-          className="rounded-2xl bg-hercom px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-hercom-dark disabled:opacity-60"
+          disabled={submitting || users === undefined}
+          className="rounded-2xl bg-violet-700 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-violet-800 disabled:opacity-60"
         >
-          {submitting ? "Enviando..." : "Solicitar servicio"}
+          {submitting ? "Registrando..." : "Registrar viaje premium"}
         </button>
-        {message !== null && (
-          <p className="text-sm text-slate-600">{message}</p>
-        )}
+        {message !== null && <p className="text-sm text-emerald-700">{message}</p>}
+        {error !== null && <p className="text-sm text-red-600">{error}</p>}
       </form>
     </section>
   );

@@ -146,6 +146,25 @@ npx eas-cli build --platform android --profile preview
 - Al terminar da un link de descarga del `.apk`
 - También queda disponible en: https://expo.dev/accounts/gipow/projects/choferes-reemplazo-driver
 
+### Lectura del resultado (ejemplo real)
+
+Build ejecutado:
+
+```text
+https://expo.dev/accounts/gipow/projects/choferes-reemplazo-driver/builds/c051f53f-edd1-4e93-bd75-7ef292f23181
+```
+
+Interpretación de las líneas clave del log:
+
+- `✔ Uploaded to EAS` -> el código se subió correctamente a Expo.
+- `✔ Computed project fingerprint` -> Expo validó el contenido del proyecto.
+- `✔ Build finished` -> la compilación en la nube terminó bien (APK generado).
+- `Open this link...` + QR -> ese link ya sirve para instalar en dispositivo real.
+- `Install and run ... on an emulator? ... yes` -> aquí la CLI intenta instalar localmente en emulador.
+- `adb executable doesn't seem to work` + `spawn adb ENOENT` -> no hay `adb` local (Android Studio/SDK), falla solo la instalación en emulador local, NO la build en la nube.
+
+Conclusión: el APK del build `c051f53f-edd1-4e93-bd75-7ef292f23181` es válido y descargable desde Expo.
+
 ### Resultado del build exitoso
 
 Al terminar correctamente, la CLI muestra:
@@ -197,6 +216,12 @@ spawn adb ENOENT
 este mensaje. Solo significa que no hay emulador local disponible, lo cual es
 normal si no tienes Android Studio. Para instalar la app usar el QR o el link
 de descarga directamente en el celular.
+
+Recomendación práctica:
+
+- Si no usarás emulador local, responde **No** cuando pregunte por instalar en emulator.
+- Así evitas ver el mensaje final `Error: build command failed` causado por `adb` local.
+- La build remota sigue estando bien siempre que antes aparezca `✔ Build finished`.
 
 ---
 
@@ -274,6 +299,15 @@ cd ..\..\apps\mobile
 npx eas-cli build --platform android --profile preview
 ```
 
+Atajo de ruta cuando estás en `packages/backend`:
+
+```powershell
+cd ..\..\apps\mobile
+```
+
+Si escribes `cd apps/mobile` desde `packages/backend`, fallará porque intentará:
+`packages/backend/apps/mobile` (esa ruta no existe).
+
 ---
 
 ## Variables de entorno por plataforma
@@ -283,6 +317,52 @@ npx eas-cli build --platform android --profile preview
 | Mobile (eas.json) | `EXPO_PUBLIC_CONVEX_URL` | `https://hip-mink-145.convex.cloud` |
 | Web comercial (Vercel) | `VITE_CONVEX_URL` | `https://hip-mink-145.convex.cloud` |
 | Web admin (Vercel) | `VITE_CONVEX_URL` | `https://hip-mink-145.convex.cloud` |
+
+---
+
+## Dónde ver logs de errores
+
+### 1) Logs de build (EAS)
+
+- Se muestran en la terminal y en el link `See logs: ...` que imprime EAS.
+- También puedes ver historial:
+
+```powershell
+cd apps/mobile
+npx eas-cli build:list --platform android --limit 10
+```
+
+### 2) Logs de backend (Convex)
+
+- Para ver errores de funciones (`query`, `mutation`, `action`):
+
+```powershell
+cd packages/backend
+npx convex logs --history 200
+```
+
+- Si quieres stream en vivo:
+
+```powershell
+npx convex logs
+```
+
+### 3) Logs de crash en Android (app ya instalada)
+
+- Si tienes Android SDK / adb:
+
+```powershell
+adb logcat
+```
+
+- Filtrado útil (PowerShell):
+
+```powershell
+adb logcat | findstr /I "AndroidRuntime ReactNativeJS FATAL EXCEPTION"
+```
+
+Nota: si no tienes `adb`, el crash local no se ve desde EAS; en ese caso usa
+Convex logs + prueba en modo desarrollo para capturar el error de JavaScript.
 
 ---
 

@@ -280,6 +280,18 @@ export const startTripWithCode = mutation({
     if (args.code.trim() !== service.securityCode) {
       throw new Error("Código de seguridad incorrecto.");
     }
+    const checklist = await ctx.db
+      .query("serviceVehicleChecklists")
+      .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+      .unique();
+    if (checklist === null) {
+      throw new Error("Debes completar el checklist de recojo antes de iniciar.");
+    }
+    if (!checklist.hasPropertyCard || !checklist.hasSoat) {
+      throw new Error(
+        "Checklist incompleto: confirma Tarjeta de Propiedad y SOAT antes de iniciar.",
+      );
+    }
 
     await ctx.db.patch(service._id, {
       status: "in_progress",

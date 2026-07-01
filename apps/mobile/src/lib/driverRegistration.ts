@@ -27,7 +27,12 @@ export async function loadPendingDriverRegistration(): Promise<PendingDriverRegi
   if (raw === null) {
     return null;
   }
-  return JSON.parse(raw) as PendingDriverRegistration;
+  try {
+    return JSON.parse(raw) as PendingDriverRegistration;
+  } catch {
+    await SecureStore.deleteItemAsync(PENDING_KEY);
+    return null;
+  }
 }
 
 export async function clearPendingDriverRegistration(): Promise<void> {

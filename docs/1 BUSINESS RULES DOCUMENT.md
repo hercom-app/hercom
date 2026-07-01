@@ -134,6 +134,12 @@ Hechos de negocio (fact types):
 | RN-045 | Notificacion chofer llego al punto | SI el chofer actualiza estado a `arrived_pickup`, ENTONCES el cliente DEBE ser notificado para compartir codigo de seguridad. | Operativa | Flujo de trabajo | Dinamica | Operaciones | Activa |
 | RN-046 | Codigo obligatorio para iniciar viaje | SI el estado es `arrived_pickup`, ENTONCES el cambio a `in_progress` SOLO DEBE ocurrir validando `securityCode` compartido cliente/chofer. | Operativa | Validacion | Fija | Seguridad + Operaciones | Activa |
 | RN-047 | Visibilidad interna de hitos en ruta | Los estados `in_progress` (sale con cliente) y `arrived_destination` (llega al destino) DEBEN verse en web interna para monitoreo operativo. | Operativa | Flujo de trabajo | Dinamica | Operaciones | Activa |
+| RN-048 | Solicitud con punto de recojo y destino | Todo servicio DEBE registrar `origin` (punto de recojo) y `destination` (punto de destino). | Estructural | Validacion | Fija | Operaciones + Producto | Activa |
+| RN-049 | Navegacion Waze hacia recojo | SI el chofer marca `heading_to_pickup`, ENTONCES la app de chofer DEBE abrir Waze con ruta al `origin` del servicio. | Operativa | Integracion externa | Dinamica | Operaciones | Activa |
+| RN-050 | Inicio de viaje con control deslizante | El cambio de `arrived_pickup` a `in_progress` DEBE ejecutarse con control de confirmacion tipo slide y NO con boton de toque simple. | Operativa | Validacion | Fija | Seguridad + Producto | Activa |
+| RN-051 | Navegacion Waze hacia destino al iniciar | SI el viaje pasa a `in_progress`, ENTONCES la app de chofer DEBE abrir Waze con ruta al `destination` del servicio. | Operativa | Integracion externa | Dinamica | Operaciones | Activa |
+| RN-052 | Checklist pre-viaje obligatorio | Antes de iniciar viaje (`arrived_pickup` -> `in_progress`), el chofer DEBE completar checklist de estado vehicular y documentos. | Operativa | Validacion | Fija | Operaciones + Cumplimiento | Activa |
+| RN-053 | Datos minimos de checklist | El checklist DEBE registrar como minimo: observaciones de abolladuras/estado, verificacion de `Tarjeta de Propiedad` y verificacion de `SOAT`. | Estructural | Validacion | Fija | Operaciones + Cumplimiento | Activa |
 
 ---
 
@@ -182,6 +188,29 @@ Hechos de negocio (fact types):
 - Un chofer NO DEBE ser asignado si su saldo no cubre la comision del servicio.
 - Un servicio NO DEBE cancelarse si ya esta `finished` o `cancelled`.
 - Un DNI NO DEBE repetirse en solicitudes activas de distintos usuarios.
+
+### 6.3 Flujo del servicio (explicacion simple de negocio)
+
+1. El cliente solicita un servicio indicando punto de recojo (`origin`) y punto de destino (`destination`).
+2. Los choferes disponibles envian ofertas de tarifa.
+3. El cliente elige una oferta y se confirma el chofer.
+4. El chofer sale a recoger al cliente.
+5. El chofer llega al punto de recojo y coordina con el cliente.
+6. Se valida el inicio del viaje (codigo de seguridad y, en flujo extendido, checklist + slide).
+7. El chofer traslada al cliente al destino.
+8. El chofer confirma llegada y finaliza servicio.
+9. El sistema descuenta comision, registra pago y actualiza estados/notificaciones.
+
+### 6.4 Flujo operativo extendido implementado (Waze + slide + checklist)
+
+1. Al pasar a `heading_to_pickup`, la app del chofer abre Waze hacia `origin`.
+2. Al llegar al cliente (`arrived_pickup`), el chofer completa checklist pre-viaje:
+   - estado del vehiculo (abolladuras u observaciones),
+   - verificacion de Tarjeta de Propiedad,
+   - verificacion de SOAT.
+3. Para iniciar viaje, el chofer usa un control deslizante (slide) para evitar toque accidental.
+4. Al iniciar (`in_progress`), la app abre Waze hacia `destination`.
+5. Estas reglas se encuentran implementadas en backend y app movil de chofer.
 
 ---
 
@@ -240,6 +269,34 @@ Caracteristica: Notificaciones operativas
 ```
 
 ```gherkin
+Caracteristica: Navegacion asistida con Waze
+  Escenario: Waze se abre al salir hacia recojo
+    Dado que el chofer tiene un servicio en estado "assigned"
+    Cuando el chofer marca estado "heading_to_pickup"
+    Entonces la app abre Waze usando las coordenadas de "origin"
+```
+
+```gherkin
+Caracteristica: Inicio de viaje seguro
+  Escenario: Chofer inicia viaje con slide
+    Dado que el servicio esta en estado "arrived_pickup"
+    Y el chofer completo el checklist pre-viaje
+    Cuando el chofer confirma el control deslizante de inicio
+    Entonces el servicio cambia a "in_progress"
+    Y la app abre Waze hacia "destination"
+```
+
+```gherkin
+Caracteristica: Checklist vehicular en recojo
+  Escenario: Registro obligatorio antes de iniciar viaje
+    Dado que el chofer llego al punto de recojo
+    Cuando intenta iniciar el viaje
+    Entonces debe registrar observacion de estado vehicular
+    Y confirmar Tarjeta de Propiedad
+    Y confirmar SOAT
+```
+
+```gherkin
 Caracteristica: Recarga de saldo
   Escenario: Chofer recarga su propio saldo
     Dado que el chofer esta autenticado
@@ -283,6 +340,10 @@ Caracteristica: Seguridad de acceso
 | RN-013, RN-014, RN-016, RN-041 a RN-043 | `packages/backend/convex/serviceOffers.ts` |
 | RN-020 a RN-024 | `packages/backend/convex/driverWallets.ts` + `apps/mobile/src/screens/DriverDashboard.tsx` |
 | RN-041 a RN-045 | `packages/backend/convex/notifications.ts` + paneles de cliente/chofer |
+| RN-048 | `packages/backend/convex/schema.ts` (`services.origin`, `services.destination`) + `packages/backend/convex/services.ts` (`createService`) |
+| RN-049, RN-051 | `apps/mobile/src/components/ServiceCard.tsx` (`openWazeNavigation`) |
+| RN-050 | `apps/mobile/src/components/ServiceCard.tsx` + `apps/mobile/src/components/SlideToConfirm.tsx` |
+| RN-052, RN-053 | `packages/backend/convex/schema.ts` (`serviceVehicleChecklists`), `packages/backend/convex/serviceChecklists.ts`, `packages/backend/convex/services.ts` (`startTripWithCode`) |
 | RN-030 | `packages/backend/convex/payments.ts` -> `markPaid` |
 | RN-031 | `packages/backend/convex/payouts.ts` -> `markPaid` |
 | RN-032 a RN-035 | `packages/backend/convex/driverApplications.ts` -> `submit` |
@@ -306,6 +367,8 @@ Recomendacion de mantenimiento:
   - `services.securityCode` -> RN-016, RN-046
   - `services.driverCommission` -> RN-009, RN-020
   - `notifications.type` -> RN-041, RN-042, RN-043, RN-044, RN-045
+  - `services.origin`, `services.destination` -> RN-048, RN-049, RN-051
+  - `serviceVehicleChecklists.*` (tabla propuesta) -> RN-052, RN-053
   - `serviceOffers.offeredPrice` -> RN-013, RN-015
   - `driverWallets.balance` -> RN-021, RN-023
   - `walletTransactions.type` -> RN-022, RN-023, RN-024
@@ -315,7 +378,63 @@ Recomendacion de mantenimiento:
 
 ---
 
-## 10. Gobernanza y cambio
+## 10. Mapa tecnico (tablas/campos y archivos involucrados)
+
+### 10.1 Tablas y campos actuales del flujo de servicio
+
+- `services`:
+  - identidad/relaciones: `clientId`, `driverId`
+  - ruta: `origin.address`, `origin.lat`, `origin.lng`, `destination.address`, `destination.lat`, `destination.lng`
+  - negocio precio: `basePrice`, `offeredPrice`, `tipAmount`, `totalPrice`, `driverCommission`
+  - seguridad/estado: `securityCode`, `status`
+  - tiempos: `requestedAt`, `assignedAt`, `headingToPickupAt`, `arrivedPickupAt`, `departedWithClientAt`, `arrivedDestinationAt`, `finishedAt`, `cancelledAt`
+- `serviceOffers`: `serviceId`, `driverId`, `offeredPrice`, `status`, `createdAt`, `respondedAt`
+- `notifications`: `userId`, `type`, `title`, `message`, `serviceId`, `readAt`, `createdAt`
+- `drivers`: `status`, `vehicle.plate`, `totalTrips`
+- `driverWallets` y `walletTransactions`: saldo, recargas y descuentos de comision
+- `payments`: `serviceId`, `clientId`, `amount`, `status`, `paidAt`
+
+### 10.2 Funciones y archivos actuales que participan
+
+- Backend Convex:
+  - `packages/backend/convex/services.ts`
+    - `createService()`: crea solicitud con recojo/destino
+    - `updateStatus()`: transiciones operativas del chofer
+    - `startTripWithCode()`: inicio con codigo de seguridad
+    - `cancelService()`: cancelacion por cliente/admin
+  - `packages/backend/convex/serviceOffers.ts`
+    - `submitMyOffer()`, `acceptOffer()`, `listForServiceAsClient()`, `listMine()`
+  - `packages/backend/convex/notifications.ts`
+    - `createNotification()` (helper), `listMine()`, `markAsRead()`, `markAllAsRead()`
+  - `packages/backend/convex/schema.ts`: contratos de tablas/validadores
+- Mobile:
+  - `apps/mobile/src/components/ServiceCard.tsx`: acciones operativas del chofer por estado
+  - `apps/mobile/src/screens/DriverDashboard.tsx`: viajes activos y panel operativo chofer
+  - `apps/mobile/src/screens/ClientDashboard.tsx`: solicitud y seguimiento del servicio
+- Web:
+  - `apps/web-admin/src/components/ServicesBoard.tsx`: monitoreo interno de estados
+  - `apps/web-comercial/src/components/MyServices.tsx`: seguimiento cliente
+  - `apps/web-comercial/src/components/NotificationsPanel.tsx`: notificaciones cliente
+
+### 10.3 Campos/artefactos del flujo extendido implementado
+
+- Tabla implementada: `serviceVehicleChecklists`
+  - `serviceId`, `driverId`
+  - `phase` (`pickup`)
+  - `hasVehicleDamage` + `damageNotes` (abolladuras/observaciones)
+  - `hasPropertyCard` (boolean)
+  - `hasSoat` (boolean)
+  - `checkedAt`, `updatedAt`
+- UI objetivo:
+  - control deslizante para iniciar viaje (reemplaza boton de toque)
+  - deep links a Waze para recojo y destino
+
+### 10.4 Documento tecnico complementario
+
+- Para el detalle end-to-end de implementacion (archivos frontend, metodos backend, tablas y flujo completo desde login hasta cierre), ver:
+  - `docs/3 FLUJO TECNICO LOGIN VIAJE CIERRE.md`
+
+## 11. Gobernanza y cambio
 
 - Owner funcional sugerido: Operaciones + Administracion.
 - Owner tecnico sugerido: Backend/Convex.

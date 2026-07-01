@@ -60,6 +60,10 @@ export const notificationTypeValidator = v.union(
   v.literal("driver_arrived_pickup"),
 );
 
+export const checklistPhaseValidator = v.union(
+  v.literal("pickup"),
+);
+
 export const sexValidator = v.union(v.literal("M"), v.literal("F"));
 
 export const driverApplicationStatusValidator = v.union(
@@ -263,4 +267,21 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_created", ["userId", "createdAt"]),
+
+  /**
+   * Checklist de vehiculo/documentos al recoger al cliente.
+   */
+  serviceVehicleChecklists: defineTable({
+    serviceId: v.id("services"),
+    driverId: v.id("drivers"),
+    phase: checklistPhaseValidator,
+    hasVehicleDamage: v.boolean(),
+    damageNotes: v.optional(v.string()),
+    hasPropertyCard: v.boolean(),
+    hasSoat: v.boolean(),
+    checkedAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_service", ["serviceId"])
+    .index("by_driver", ["driverId"]),
 });

@@ -11,6 +11,7 @@ import {
 } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import * as SecureStore from "expo-secure-store";
+import { AppErrorBoundary } from "./src/components/AppErrorBoundary";
 import { PendingRegistrationSubmit } from "./src/components/PendingRegistrationSubmit";
 import { SignInScreen } from "./src/screens/SignInScreen";
 import { DriverRegisterScreen } from "./src/screens/DriverRegisterScreen";
@@ -49,25 +50,27 @@ function UnauthenticatedFlow() {
 
 export default function App() {
   return (
-    <ConvexAuthProvider client={convex} storage={secureStorage}>
-      <SafeAreaProvider>
-        <SafeAreaView className="flex-1 bg-hercom">
-          <AuthLoading>
-            <View className="flex-1 items-center justify-center bg-hercom">
-              <ActivityIndicator color="#FFFFFF" />
-            </View>
-          </AuthLoading>
-          <Unauthenticated>
-            <UnauthenticatedFlow />
-          </Unauthenticated>
-          <Authenticated>
-            <PendingRegistrationSubmit>
-              <HomeScreen />
-            </PendingRegistrationSubmit>
-          </Authenticated>
-          <StatusBar style="light" />
-        </SafeAreaView>
-      </SafeAreaProvider>
-    </ConvexAuthProvider>
+    <AppErrorBoundary>
+      <ConvexAuthProvider client={convex} storage={secureStorage}>
+        <SafeAreaProvider>
+          <SafeAreaView className="flex-1 bg-hercom">
+            <AuthLoading>
+              <View className="flex-1 items-center justify-center bg-hercom">
+                <ActivityIndicator color="#FFFFFF" />
+              </View>
+            </AuthLoading>
+            <Unauthenticated>
+              <UnauthenticatedFlow />
+            </Unauthenticated>
+            <Authenticated>
+              <PendingRegistrationSubmit>
+                <HomeScreen />
+              </PendingRegistrationSubmit>
+            </Authenticated>
+            <StatusBar style="light" />
+          </SafeAreaView>
+        </SafeAreaProvider>
+      </ConvexAuthProvider>
+    </AppErrorBoundary>
   );
 }

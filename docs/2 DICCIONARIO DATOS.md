@@ -256,6 +256,23 @@ Indices:
 - `by_user` sobre `userId`
 - `by_user_created` sobre `userId, createdAt`
 
+## `serviceVehicleChecklists` (checklist de recojo antes de iniciar viaje)
+
+Campos:
+- `serviceId` (id `services`)
+- `driverId` (id `drivers`)
+- `phase` (`"pickup"`)
+- `hasVehicleDamage` (boolean)
+- `damageNotes` (optional string)
+- `hasPropertyCard` (boolean)
+- `hasSoat` (boolean)
+- `checkedAt` (number)
+- `updatedAt` (number)
+
+Indices:
+- `by_service` sobre `serviceId`
+- `by_driver` sobre `driverId`
+
 ## `payments` (pago del cliente por servicio)
 
 Campos:

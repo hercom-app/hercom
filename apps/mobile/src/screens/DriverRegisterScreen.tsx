@@ -121,6 +121,10 @@ export function DriverRegisterScreen({
       return;
     }
     const file = result.assets[0];
+    if (file === undefined) {
+      setFormError("No se pudo leer el archivo PDF seleccionado.");
+      return;
+    }
     setCulPdf({ uri: file.uri, name: file.name });
   }
 

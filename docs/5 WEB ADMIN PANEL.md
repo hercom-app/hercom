@@ -14,6 +14,12 @@ pnpm web:admin
 
 Abrir http://localhost:5174 · cuenta demo: `admin@demo.com` / `demo1234`
 
+## Producción (Vercel)
+
+Panel publicado en **https://admin.hercom.pe** (proyecto Vercel aparte de la landing).
+
+Guía paso a paso: [`docs/6 DEPLOY ADMIN VERCEL.md`](6%20DEPLOY%20ADMIN%20VERCEL.md)
+
 ---
 
 ## Navegación

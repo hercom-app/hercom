@@ -94,7 +94,8 @@ export async function createNotification(
       | "trip_confirmed_driver"
       | "trip_confirmed_client"
       | "driver_heading_pickup"
-      | "driver_arrived_pickup";
+      | "driver_arrived_pickup"
+      | "advance_confirmed";
     title: string;
     message: string;
     serviceId?: Id<"services">;

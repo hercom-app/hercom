@@ -50,6 +50,8 @@ npx convex run seed:seedDemo
 
 **Levantar el panel:** terminal 1 → `pnpm --filter @proyecto/backend dev`; terminal 2 → `pnpm web:admin`; abrir http://localhost:5174
 
+**Producción:** https://admin.hercom.pe (ver `docs/6 DEPLOY ADMIN VERCEL.md`).
+
 Ver filtros y secciones en `docs/5 WEB ADMIN PANEL.md`.
 
 ### Entrada

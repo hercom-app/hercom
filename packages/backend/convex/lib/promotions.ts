@@ -4,8 +4,8 @@ import { computePromotionalPricing } from "./pricing";
 
 type RegionFilter = {
   department: string;
-  province?: string;
-  district?: string;
+  province?: string | undefined;
+  district?: string | undefined;
 };
 
 function isWithinDateRange(

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { btnPrimaryClass, cardClass, inputClass, labelClass } from "../lib/adminUi";
-import { EyeIcon, EyeOffIcon } from "./icons/EyeIcons";
+import { btnPrimaryClass, cardClass } from "../lib/adminUi";
+import { FloatingField, FloatingPasswordField } from "./FloatingField";
 
 export function SignInForm() {
   const { signIn } = useAuthActions();
@@ -18,89 +18,67 @@ export function SignInForm() {
     try {
       await signIn("password", formData);
     } catch {
-      setError("Correo o contraseña incorrectos.");
+      setError("Usuario o contraseña incorrectos.");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-admin-surface">
-      <header className="border-b border-slate-200/80 bg-white shadow-header">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
-          <img
-            src="/hercom-logo.png"
-            alt="Hercom"
-            className="h-9 w-auto sm:h-10"
-          />
-          <span className="hidden h-5 w-px bg-slate-200 sm:block" aria-hidden />
-          <span className="hidden text-sm font-semibold text-slate-500 sm:inline">
-            Admin
-          </span>
-        </div>
-      </header>
+    <div className="flex min-h-dvh flex-col lg:flex-row">
+      <aside className="hidden items-center justify-center bg-hercom px-8 lg:flex lg:w-[42%]">
+        <img
+          src="/hercom-logo.png"
+          alt="Hercom"
+          className="h-28 w-auto brightness-0 invert xl:h-36"
+        />
+      </aside>
 
-      <main className="flex flex-1 items-center justify-center px-4 py-10 sm:px-6">
-        <div className={`w-full max-w-[400px] ${cardClass}`}>
-          <h1 className="font-display text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-            Acceso administrador
-          </h1>
+      <main className="flex flex-1 items-center justify-center bg-white px-4 py-10 sm:bg-admin-surface sm:px-8">
+        <div className="w-full max-w-[420px]">
+          <div className="mb-8 flex justify-center lg:mb-10">
+            <img
+              src="/hercom-logo.png"
+              alt="Hercom"
+              className="h-20 w-auto sm:h-24 lg:h-28"
+            />
+          </div>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            <div>
-              <label htmlFor="admin-email" className={labelClass}>
-                Correo
-              </label>
-              <input
+          <div className={`${cardClass} sm:shadow-card`}>
+            <h1 className="text-center font-display text-2xl font-semibold tracking-tight text-slate-900">
+              Acceso administrador
+            </h1>
+
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <FloatingField
                 id="admin-email"
                 name="email"
                 type="email"
-                required
+                label="Usuario"
                 autoComplete="username"
-                className={inputClass}
+                required
               />
-            </div>
 
-            <div>
-              <label htmlFor="admin-password" className={labelClass}>
-                Contraseña
-              </label>
-              <div className="relative">
-                <input
-                  id="admin-password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  autoComplete="current-password"
-                  className={`${inputClass} pr-11`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((previous) => !previous)}
-                  className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
-                  aria-label={
-                    showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
-                  }
-                >
-                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                </button>
-              </div>
-            </div>
+              <FloatingPasswordField
+                showPassword={showPassword}
+                onToggle={() => setShowPassword((previous) => !previous)}
+              />
 
-            {error !== null && (
-              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-                {error}
-              </p>
-            )}
+              {error !== null && (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {error}
+                </p>
+              )}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className={`${btnPrimaryClass} w-full py-3`}
-            >
-              {submitting ? "Entrando…" : "Entrar"}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={submitting}
+                className={`${btnPrimaryClass} w-full py-3`}
+              >
+                {submitting ? "Entrando…" : "Entrar"}
+              </button>
+            </form>
+          </div>
         </div>
       </main>
     </div>

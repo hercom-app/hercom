@@ -1,9 +1,9 @@
 # Propuestas de diseño — pantallas de login (web)
 
-Documento para **elegir** el estilo del login antes de implementarlo.  
-Aplica a **web admin** y **web comercial** (hoy el punto más débil de las webs).
+Documento para **elegir** el estilo del login antes de implementarlo.
 
-> **Estado:** propuestas · sin implementar (esperando tu elección).  
+> **Estado:** **Web admin** — propuesta **2** implementada (ver checklist abajo).  
+> **Web comercial** — sin cambios; pendiente hasta que indiques diseño.  
 > Referencia de marca general: [`guia-diseno.md`](guia-diseno.md)
 
 ---
@@ -205,10 +205,12 @@ Cada propuesta indica **admin** y **comercial**. Misma lógica visual en ambas w
 
 ## Checklist cuando elijas
 
-**Decisión (marzo 2026):** Web admin → **Propuesta 4** (barra superior + formulario). Copy mínimo. Icono Lucide eye.
+**Decisión login admin:** **Propuesta 2** — logo encima del formulario; panel azul en desktop; campo **Usuario**; labels flotantes; icono ojo. Tipografía: [`TIPOGRAFIA.md`](TIPOGRAFIA.md).
 
-- [x] Propuesta admin: **4**
-- [ ] Propuesta comercial: *(pendiente)*
+**Web comercial:** sin cambios de login (pendiente).
+
+- [x] Propuesta admin: **2**
+- [ ] Propuesta comercial: *(pendiente — no indicada aún)*
 - [x] Copy admin: **Opción A (mínima)**
 - [x] Icono: **lucide** (`eye` / `eye-off`)
 - [ ] ¿Foto en split? **no** (no aplica a propuesta 4)
@@ -229,8 +231,8 @@ Cada propuesta indica **admin** y **comercial**. Misma lógica visual en ambas w
 
 ## Próximo paso
 
-1. Elige propuesta(s) y copy en el checklist.  
-2. Con eso se implementa **solo el login** (admin y/o comercial), sin tocar tablas ni menús.  
-3. Icono ojo desde Lucide vía [icones.js.org](https://icones.js.org/collection/lucide?s=eye).
+1. **Admin:** login listo (propuesta 2). Ajustes finos solo si los pides.
+2. **Comercial:** cuando quieras, elige propuesta y copy en el checklist; hasta entonces no se toca.
+3. Icono ojo en admin: Lucide vía [icones.js.org](https://icones.js.org/collection/lucide?s=eye).
 
-Cuando decidas, escribe por ejemplo: *“Admin propuesta 1 + comercial propuesta 5 + lucide eye + copy mínimo”*.
+Ejemplo para comercial más adelante: *“Comercial propuesta 5 + lucide eye + copy mínimo”*.

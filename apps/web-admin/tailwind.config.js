@@ -4,16 +4,17 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: [
+        /** Títulos — Plus Jakarta Sans (libre). Ver docs/TIPOGRAFIA.md */
+        display: [
           "Plus Jakarta Sans",
           "system-ui",
           "-apple-system",
           "Segoe UI",
-          "Roboto",
           "sans-serif",
         ],
-        display: [
-          "Plus Jakarta Sans",
+        /** Cuerpo, labels, tablas — Inter */
+        sans: [
+          "Inter",
           "system-ui",
           "-apple-system",
           "Segoe UI",

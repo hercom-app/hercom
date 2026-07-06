@@ -14,9 +14,14 @@ pnpm web:admin
 
 Abrir http://localhost:5174 · cuenta demo: `admin@demo.com` / `demo1234`
 
-## Producción (Vercel)
+## Producción (Vercel + Convex)
 
-Panel publicado en **https://admin.hercom.pe** (proyecto Vercel aparte de la landing).
+| | |
+| --- | --- |
+| URL panel | https://admin.hercom.pe (temporal: https://hercom-web-admin.vercel.app) |
+| Convex prod | `https://wry-lapwing-809.convex.cloud` |
+| Convex dev (local) | `https://hip-mink-145.convex.cloud` |
+| Demo prod | `admin@demo.com` / `demo1234` (requiere `seed:seedDemo --prod` + `@convex-dev/auth --prod`) |
 
 Guía paso a paso: [`docs/6 DEPLOY ADMIN VERCEL.md`](6%20DEPLOY%20ADMIN%20VERCEL.md)
 

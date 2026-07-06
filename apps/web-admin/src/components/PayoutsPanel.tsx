@@ -1,35 +1,44 @@
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
+import { AdminCard, AdminEmpty, AdminLoading } from "./AdminLayout";
+import { btnPrimaryClass } from "../lib/adminUi";
 
 export function PayoutsPanel() {
   const pending = useQuery(api.payouts.listPending);
   const markPaid = useMutation(api.payouts.markPaid);
 
   if (pending === undefined) {
-    return <p className="text-sm text-slate-500">Cargando comisiones...</p>;
+    return (
+      <AdminCard>
+        <AdminLoading message="Cargando comisiones…" />
+      </AdminCard>
+    );
   }
 
   return (
-    <section className="rounded-3xl bg-white p-6 shadow-lg">
-      <h2 className="mb-4 text-lg font-bold text-slate-900">
-        Comisiones de choferes (pendientes)
+    <AdminCard>
+      <h2 className="mb-4 font-display text-lg font-bold tracking-tight text-slate-900">
+        Comisiones pendientes
       </h2>
       {pending.length === 0 ? (
-        <p className="text-sm text-slate-500">No hay comisiones pendientes.</p>
+        <AdminEmpty message="No hay comisiones pendientes." />
       ) : (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-slate-100">
           {pending.map((payout) => (
             <li
               key={payout._id}
-              className="flex items-center justify-between rounded-xl border border-slate-100 p-3"
+              className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
             >
-              <span className="text-sm text-slate-800">
-                Acumulado: ${payout.accumulatedAmount.toFixed(2)}
+              <span className="text-sm text-slate-700">
+                Acumulado:{" "}
+                <strong className="text-slate-900">
+                  S/{payout.accumulatedAmount.toFixed(2)}
+                </strong>
               </span>
               <button
                 type="button"
                 onClick={() => void markPaid({ payoutId: payout._id })}
-                className="rounded-lg bg-hercom px-3 py-1.5 text-xs font-bold uppercase text-white hover:bg-hercom-dark"
+                className={`${btnPrimaryClass} w-full sm:w-auto`}
               >
                 Liquidar
               </button>
@@ -37,6 +46,6 @@ export function PayoutsPanel() {
           ))}
         </ul>
       )}
-    </section>
+    </AdminCard>
   );
 }

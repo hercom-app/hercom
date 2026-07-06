@@ -3,14 +3,27 @@ import {
   getRequestChannelLabel,
   getServiceTypeMeta,
 } from "../lib/serviceLabels";
+import {
+  AdminCard,
+  AdminEmpty,
+  AdminLoading,
+  AdminTableWrap,
+} from "./AdminLayout";
+import {
+  rowClass,
+  tableClass,
+  tableHeadClass,
+  tdClass,
+  thClass,
+} from "../lib/adminUi";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "Pendiente",
   assigned: "Asignado",
-  heading_to_pickup: "Chofer yendo a recoger",
-  arrived_pickup: "Chofer llegó al punto",
-  in_progress: "Chofer salió con cliente",
-  arrived_destination: "Chofer llegó al destino",
+  heading_to_pickup: "Yendo a recoger",
+  arrived_pickup: "Llegó al punto",
+  in_progress: "En viaje",
+  arrived_destination: "Llegó al destino",
   en_route: "En camino",
   finished: "Finalizado",
   cancelled: "Cancelado",
@@ -27,38 +40,40 @@ export function ServicesBoard({
 }: ServicesBoardProps) {
   if (services === undefined) {
     return (
-      <section className="rounded-3xl bg-white p-6 shadow-lg">
-        <p className="text-sm text-slate-500">Cargando servicios...</p>
-      </section>
+      <AdminCard>
+        <AdminLoading message="Cargando servicios…" />
+      </AdminCard>
     );
   }
 
   return (
-    <section className="rounded-3xl bg-white p-6 shadow-lg">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-        <span className="text-xs text-slate-500">
+    <AdminCard>
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="font-display text-lg font-bold tracking-tight text-slate-900">
+          {title}
+        </h2>
+        <span className="text-xs font-medium text-slate-500">
           {services.length} {services.length === 1 ? "registro" : "registros"}
         </span>
       </div>
 
       {services.length === 0 ? (
-        <p className="text-sm text-slate-500">No hay servicios con estos filtros.</p>
+        <AdminEmpty message="No hay servicios con estos filtros." />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-500">
-                <th className="py-2 pr-4">Tipo</th>
-                <th className="py-2 pr-4">Canal</th>
-                <th className="py-2 pr-4">Región recojo</th>
-                <th className="py-2 pr-4">Promo</th>
-                <th className="py-2 pr-4">Ruta</th>
-                <th className="py-2 pr-4">Total</th>
-                <th className="py-2 pr-4">Comisión</th>
-                <th className="py-2 pr-4">Anticipo</th>
-                <th className="py-2 pr-4">Estado</th>
-                <th className="py-2">Código</th>
+        <AdminTableWrap>
+          <table className={`${tableClass} min-w-[960px]`}>
+            <thead className={tableHeadClass}>
+              <tr>
+                <th className={thClass}>Tipo</th>
+                <th className={`${thClass} hidden lg:table-cell`}>Canal</th>
+                <th className={`${thClass} hidden md:table-cell`}>Región</th>
+                <th className={`${thClass} hidden xl:table-cell`}>Promo</th>
+                <th className={thClass}>Ruta</th>
+                <th className={thClass}>Total</th>
+                <th className={`${thClass} hidden sm:table-cell`}>Comisión</th>
+                <th className={`${thClass} hidden lg:table-cell`}>Anticipo</th>
+                <th className={thClass}>Estado</th>
+                <th className={`${thClass} hidden md:table-cell`}>Código</th>
               </tr>
             </thead>
             <tbody>
@@ -75,31 +90,35 @@ export function ServicesBoard({
                   service.origin.district,
                 ].filter(Boolean);
                 return (
-                  <tr key={service._id} className="border-b border-slate-100">
-                    <td className="py-2 pr-4">
+                  <tr key={service._id} className={rowClass}>
+                    <td className={tdClass}>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${typeMeta.badgeClass}`}
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${typeMeta.badgeClass}`}
                       >
                         {typeMeta.label}
                       </span>
                     </td>
-                    <td className="py-2 pr-4 text-xs text-slate-600">
+                    <td className={`${tdClass} hidden text-xs lg:table-cell`}>
                       {getRequestChannelLabel(service)}
                     </td>
-                    <td className="py-2 pr-4 text-xs text-slate-600">
+                    <td className={`${tdClass} hidden text-xs md:table-cell`}>
                       {regionParts.length > 0 ? regionParts.join(" · ") : "—"}
                     </td>
-                    <td className="py-2 pr-4 text-xs text-slate-600">
+                    <td className={`${tdClass} hidden text-xs xl:table-cell`}>
                       {service.promotionName ?? "—"}
                     </td>
-                    <td className="py-2 pr-4 text-slate-800">
-                      {service.origin.address} → {service.destination.address}
+                    <td className={`${tdClass} max-w-[220px] whitespace-normal text-slate-900 sm:max-w-xs`}>
+                      <span className="line-clamp-2">
+                        {service.origin.address} → {service.destination.address}
+                      </span>
                     </td>
-                    <td className="py-2 pr-4">S/{service.totalPrice.toFixed(2)}</td>
-                    <td className="py-2 pr-4">
+                    <td className={`${tdClass} font-semibold text-slate-900`}>
+                      S/{service.totalPrice.toFixed(2)}
+                    </td>
+                    <td className={`${tdClass} hidden sm:table-cell`}>
                       S/{service.driverCommission.toFixed(2)}
                     </td>
-                    <td className="py-2 pr-4">
+                    <td className={`${tdClass} hidden lg:table-cell`}>
                       {advanceAmount !== null ? (
                         <>
                           S/{advanceAmount.toFixed(2)}
@@ -109,17 +128,21 @@ export function ServicesBoard({
                         "—"
                       )}
                     </td>
-                    <td className="py-2 pr-4">
-                      {STATUS_LABELS[service.status] ?? service.status}
+                    <td className={tdClass}>
+                      <span className="text-xs font-medium">
+                        {STATUS_LABELS[service.status] ?? service.status}
+                      </span>
                     </td>
-                    <td className="py-2">{service.securityCode ?? "—"}</td>
+                    <td className={`${tdClass} hidden md:table-cell`}>
+                      {service.securityCode ?? "—"}
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-        </div>
+        </AdminTableWrap>
       )}
-    </section>
+    </AdminCard>
   );
 }

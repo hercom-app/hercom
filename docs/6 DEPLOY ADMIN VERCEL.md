@@ -1,169 +1,236 @@
-# Cómo publicar el panel admin en admin.hercom.pe
+# Publicar el panel admin en producción
 
-Guía en lenguaje simple. No hace falta ser programador para seguirla.
+Guía completa (Hercom, julio 2026). Lenguaje simple + comandos exactos.
 
 ---
 
-## ¿Qué estamos haciendo?
+## Mapa de lo que hay en internet
 
-Tienes **dos cosas distintas** en internet:
-
-| Qué | Dónde vive hoy | Para qué sirve |
+| Qué | URL | Dónde vive |
 | --- | --- | --- |
-| **Landing** (página pública) | `www.hercom.pe` | Marketing, info de Hercom |
-| **Panel admin** (uso interno) | Solo en tu PC por ahora | Operaciones: cuentas, viajes, recargas… |
+| Landing pública | `www.hercom.pe` | Proyecto Vercel **aparte** (landing) |
+| Panel admin | `admin.hercom.pe` | Proyecto Vercel **`hercom-web-admin`** |
+| Backend (datos) | Convex producción | `https://wry-lapwing-809.convex.cloud` |
+| Desarrollo local | tu PC | Convex dev `https://hip-mink-145.convex.cloud` |
 
-Queremos que el panel admin quede en:
-
-**https://admin.hercom.pe**
-
-No se “sube una carpeta” a mano como en un FTP. Lo que haces es:
-
-1. Conectar tu proyecto de GitHub con **Vercel** (servicio que publica webs).
-2. Decirle a Vercel: “de este repo, publica solo la carpeta `apps/web-admin`”.
-3. Poner el dominio `admin.hercom.pe` apuntando a ese sitio.
-
-La landing (`www.hercom.pe`) **no se toca**.
+**Importante:** local y producción son **dos bases de datos distintas**. Lo que creas en dev no existe en prod hasta que lo ejecutes con `--prod`.
 
 ---
 
-## Antes de empezar — checklist
+## Checklist rápido (orden correcto)
 
-- [ ] El código está en **GitHub** (o GitLab).
-- [ ] Tienes cuenta en [vercel.com](https://vercel.com) (puedes entrar con GitHub).
-- [ ] Puedes entrar al panel donde administras el dominio **hercom.pe** (donde compraste o configuras el DNS).
-- [ ] Tienes la URL de tu backend Convex (algo como `https://hip-mink-145.convex.cloud`).
+- [x] Código en GitHub (`hercom-prjct/app-choferes-hercom`)
+- [x] `npx convex deploy` → backend en producción
+- [x] Proyecto Vercel con Root Directory `apps/web-admin`
+- [x] Variable `VITE_CONVEX_URL` = URL de **producción** Convex
+- [x] `npx @convex-dev/auth --prod` → claves JWT en producción
+- [x] `npx convex run seed:seedDemo --prod` → usuarios demo en producción
+- [x] Login OK en `https://hercom-web-admin.vercel.app`
+- [ ] Dominio `admin.hercom.pe` (DNS + Vercel Domains)
+- [ ] Actualizar `SITE_URL` a `https://admin.hercom.pe` (después del dominio)
 
 ---
 
-## Paso 1 — Subir el backend a producción (Convex)
+## Paso 1 — Backend en producción (Convex)
 
-El panel admin necesita hablar con la base de datos. Eso no va en Vercel; va en **Convex**.
-
-Abre PowerShell en la carpeta del proyecto y ejecuta:
+Desde `packages/backend`:
 
 ```powershell
 cd packages/backend
 npx convex deploy
 ```
 
-Cuando termine, anota la URL que te muestra (ejemplo: `https://hip-mink-145.convex.cloud`). La usarás en el paso 3.
+Cuando pregunte si subir a prod → **Yes**.
 
-> Si solo has usado `convex dev` en local, los usuarios admin de demo pueden no existir en producción. Necesitas una cuenta admin real ahí.
+| Entorno | Deployment | URL |
+| --- | --- | --- |
+| **Dev** (local, `convex dev`) | `hip-mink-145` | `https://hip-mink-145.convex.cloud` |
+| **Prod** (internet) | `wry-lapwing-809` | `https://wry-lapwing-809.convex.cloud` |
 
----
-
-## Paso 2 — Crear el sitio en Vercel
-
-### 2.1 Entrar y crear proyecto
-
-1. Ve a [vercel.com](https://vercel.com) e inicia sesión.
-2. Clic en **Add New… → Project**.
-3. Elige el repositorio de este proyecto (Hercom / app-choferes-hercom).
-4. Antes de darle Deploy, busca **Root Directory** (Directorio raíz):
-   - Clic en **Edit**
-   - Escribe o selecciona: **`apps/web-admin`**
-   - Confirma
-
-Eso le dice a Vercel: “no publiques todo el monorepo; solo la web del admin”.
-
-### 2.2 Variable de entorno (obligatoria)
-
-En la misma pantalla, busca **Environment Variables**:
-
-| Nombre | Valor |
-| --- | --- |
-| `VITE_CONVEX_URL` | La URL de Convex del paso 1 |
-
-Ejemplo: `https://hip-mink-145.convex.cloud`
-
-Marca **Production** (y Preview si quieres).
-
-### 2.3 Publicar
-
-Clic en **Deploy** y espera unos minutos.
-
-Si todo sale bien, Vercel te da una URL temporal, algo como:
-
-`https://algo-random.vercel.app`
-
-Ábrela en el navegador. Deberías ver la pantalla de login del admin Hercom.
-
-Prueba entrar con tu usuario admin de **producción**.
+En Vercel **siempre** usa la URL de **prod** (`wry-lapwing-809`), no la de dev.
 
 ---
 
-## Paso 3 — Conectar admin.hercom.pe
+## Paso 2 — Activar login en producción (Convex Auth)
 
-Ahora el panel ya está en internet, pero con una URL fea de Vercel. Le ponemos tu dominio.
+El deploy de Convex sube código, pero el **login** necesita claves JWT en prod. Sin esto, el seed crea usuarios pero el navegador responde *“Credenciales inválidas”*.
 
-### 3.1 En Vercel
+Desde `packages/backend`:
 
-1. Entra al proyecto que acabas de crear.
-2. **Settings → Domains**.
-3. Escribe: **`admin.hercom.pe`**
-4. Clic en **Add**.
+```powershell
+npx @convex-dev/auth --prod
+```
 
-Vercel te mostrará qué registro DNS debes crear. Suele ser un **CNAME**.
+Te preguntará la URL del sitio. Pon la URL de Vercel por ahora:
 
-### 3.2 En tu proveedor de dominio (donde está hercom.pe)
+```
+https://hercom-web-admin.vercel.app
+```
 
-Entra al panel DNS de `hercom.pe` y agrega un registro nuevo:
+Eso configura en producción:
 
-| Campo | Qué poner |
+- `SITE_URL`
+- `JWT_PRIVATE_KEY`
+- `JWKS`
+
+> **Nota:** la versión antigua del CLI (`0.0.87`) no tiene `--web-server-url`. Usa el comando interactivo de arriba o `npx @convex-dev/auth@latest --prod`.
+
+---
+
+## Paso 3 — Usuarios demo en producción
+
+Los usuarios `admin@demo.com` / `demo1234` existen en **dev** por defecto. En **prod** hay que crearlos:
+
+```powershell
+npx convex run seed:seedDemo --prod
+```
+
+Cuentas creadas (misma contraseña `demo1234`):
+
+| Rol | Email |
 | --- | --- |
-| **Tipo** | CNAME |
-| **Nombre / Host** | `admin` |
-| **Valor / Apunta a** | Lo que dice Vercel (normalmente `cname.vercel-dns.com`) |
+| Admin | `admin@demo.com` |
+| Chofer | `chofer@demo.com` |
+| Cliente | `cliente@demo.com` |
 
-Guarda. La propagación puede tardar desde 5 minutos hasta 1 hora.
+Idempotente: puedes correrlo varias veces.
 
-### 3.3 Comprobar
+---
 
-Cuando Vercel marque el dominio como **Valid**, abre:
+## Paso 4 — Proyecto en Vercel
+
+### Crear proyecto (separado de la landing)
+
+1. [vercel.com](https://vercel.com) → cuenta **hercom.desarrollo@gmail.com**
+2. **Add New → Project** → repo `hercom-prjct/app-choferes-hercom`
+3. **Root Directory:** `apps/web-admin` (solo el admin, no mobile ni web-comercial)
+4. Framework: **Vite** (detectado automático)
+5. **Environment Variables** antes del Deploy:
+
+| Key | Value |
+| --- | --- |
+| `VITE_CONVEX_URL` | `https://wry-lapwing-809.convex.cloud` |
+
+6. **Deploy**
+
+URL temporal actual: **https://hercom-web-admin.vercel.app**
+
+### Si agregaste la variable después del primer deploy
+
+Vite la embebe al compilar. Hay que **Redeploy**:
+
+Deployments → último deploy → **⋯ → Redeploy**
+
+---
+
+## Paso 5 — Dominio `admin.hercom.pe`
+
+### 5.1 En Vercel
+
+1. Proyecto **hercom-web-admin**
+2. **Settings → Domains**
+3. Agregar: **`admin.hercom.pe`**
+4. Vercel muestra el registro DNS que falta
+
+### 5.2 En el panel DNS de `hercom.pe`
+
+Crear registro:
+
+| Tipo | Nombre / Host | Valor |
+| --- | --- | --- |
+| **CNAME** | `admin` | Lo que indique Vercel (ej. `cname.vercel-dns.com`) |
+
+Esperar propagación (5 min – 1 h). Cuando Vercel marque **Valid**, abrir:
 
 **https://admin.hercom.pe**
 
-Deberías ver el mismo login que en la URL temporal de Vercel.
+### 5.3 Actualizar SITE_URL en Convex (después del dominio)
+
+Cuando `admin.hercom.pe` funcione, alinear Convex:
+
+```powershell
+cd packages/backend
+npx convex env set SITE_URL https://admin.hercom.pe --prod
+```
 
 ---
 
-## ¿Qué pasa cuando cambias código?
+## GitHub + Vercel (cuentas distintas)
 
-1. Haces cambios en `apps/web-admin`.
-2. Subes a GitHub (`git push`).
-3. Vercel **vuelve a publicar solo** automáticamente.
+| Servicio | Cuenta usada |
+| --- | --- |
+| GitHub repo | org `hercom-prjct` (antes `gggaaarl`) |
+| Vercel | `hercom.desarrollo@gmail.com` |
 
-No tienes que “subir la carpeta” otra vez a mano.
+No hace falta que el correo de GitHub coincida con Vercel. Lo importante:
+
+1. La cuenta de GitHub con acceso al repo esté conectada a Vercel
+2. En GitHub → Settings → Applications → **Vercel** → dar acceso al repo `app-choferes-hercom`
 
 ---
 
-## Problemas frecuentes (en criollo)
+## Deploys automáticos
 
-### “Falta VITE_CONVEX_URL” o pantalla en blanco
+Cada `git push` a `main` redeploya el admin si el proyecto Vercel apunta a esa rama.
 
-Olvidaste la variable del paso 2.2. Agrégala en Vercel → Settings → Environment Variables y dale **Redeploy**.
+Build local de prueba:
 
-### Entro pero dice “no tiene permisos de administrador”
+```powershell
+pnpm --filter @proyecto/web-admin build
+```
 
-Tu usuario existe en Convex pero **no tiene rol admin**. Hay que asignárselo en la base de datos de producción.
+Config en repo: `apps/web-admin/vercel.json`
 
-### Login funciona en local pero no en admin.hercom.pe
+---
 
-Casi seguro estás apuntando a otro Convex (dev vs producción). Revisa que `VITE_CONVEX_URL` sea la URL de **`convex deploy`**, no la de desarrollo local.
+## Problemas que ya resolvimos
 
-### El build falla en Vercel
+### “Credenciales inválidas” con seed OK
 
-Revisa que **Root Directory** sea exactamente `apps/web-admin` y que el repo tenga `pnpm-lock.yaml` en la raíz.
+**Causa:** producción sin claves JWT (`JWT_PRIVATE_KEY`, `JWKS`).
 
-### No aparece el logo
+**Solución:** `npx @convex-dev/auth --prod` + volver a correr `seed:seedDemo --prod`.
 
-Falta el archivo `hercom-logo.png` en `apps/web-admin/public/`. Agrégalo, sube a GitHub y espera el redeploy.
+### Login OK en local, no en Vercel
+
+**Causa:** `VITE_CONVEX_URL` apunta a dev (`hip-mink-145`) o falta redeploy.
+
+**Solución:** variable = `https://wry-lapwing-809.convex.cloud` + Redeploy.
+
+### Repo no aparece en Vercel
+
+**Causa:** app de Vercel en GitHub sin acceso al repo.
+
+**Solución:** GitHub → Applications → Vercel → Repository access → incluir `app-choferes-hercom`.
+
+### `cd packages/backend` falla
+
+Estás dentro de `packages/`. Usa `cd backend` o la ruta completa:
+
+```powershell
+cd C:\Users\Usuario\PROYECTOS\app-choferes-hercom\packages\backend
+```
+
+### `unknown option '--web-server-url'`
+
+Versión vieja del CLI. Usa `npx @convex-dev/auth --prod` (interactivo) o `@latest`.
+
+### “No tiene permisos de administrador”
+
+El usuario existe pero su rol no es `admin`. Cambiar rol desde el panel o en tabla `users` del dashboard Convex prod.
+
+---
+
+## Seguridad
+
+- No enlazar el admin desde la landing pública.
+- Cambiar contraseñas demo antes de operación real.
+- Opcional: restringir `admin.hercom.pe` por IP en Cloudflare.
 
 ---
 
 ## Resumen en una frase
 
-**Conectas GitHub con Vercel, le dices que publique `apps/web-admin`, pones la URL de Convex, y en DNS creas `admin` → Vercel.**
+**Convex prod + auth JWT + seed prod + Vercel (`apps/web-admin` + `VITE_CONVEX_URL`) + CNAME `admin` → Vercel.**
 
-La landing en `www.hercom.pe` sigue igual; solo agregas un subdominio nuevo para el equipo interno.
+Ver también: [`5 WEB ADMIN PANEL.md`](5%20WEB%20ADMIN%20PANEL.md) · [`0 RESUMEN SIMPLE.md`](0%20RESUMEN%20SIMPLE.md)

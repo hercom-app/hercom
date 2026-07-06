@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Doc } from "@proyecto/backend/dataModel";
 import { AdminRegionFilters } from "../components/AdminRegionFilters";
+import { AdminPage, AdminPageHeader } from "../components/AdminLayout";
 import { PaymentsPanel } from "../components/PaymentsPanel";
 import { PayoutsPanel } from "../components/PayoutsPanel";
 import { ServicesBoard } from "../components/ServicesBoard";
@@ -33,13 +34,11 @@ export function ServicesView() {
   const services = useQuery(api.services.listAllForAdmin, queryArgs);
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Servicios</h1>
-        <p className="text-sm text-slate-500">
-          Monitoreo de viajes y cierre de pagos/comisiones.
-        </p>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        title="Servicios"
+        description="Monitoreo de viajes y cierre de pagos y comisiones."
+      />
 
       <AdminRegionFilters value={region} onChange={setRegion}>
         <select
@@ -84,10 +83,10 @@ export function ServicesView() {
 
       <ServicesBoard services={services} />
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
         <PaymentsPanel />
         <PayoutsPanel />
       </div>
-    </div>
+    </AdminPage>
   );
 }

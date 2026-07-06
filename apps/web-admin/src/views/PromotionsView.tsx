@@ -2,7 +2,9 @@ import { useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import { AdminRegionFilters } from "../components/AdminRegionFilters";
+import { AdminCard, AdminEmpty, AdminLoading, AdminPage, AdminPageHeader } from "../components/AdminLayout";
 import { RegionFields, inputClass } from "../components/RegionFields";
+import { btnPrimaryClass } from "../lib/adminUi";
 import {
   EMPTY_REGION_FILTER,
   matchesPromotionRegion,
@@ -131,13 +133,11 @@ export function PromotionsView() {
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Promociones</h1>
-        <p className="text-sm text-slate-500">
-          Campañas festivas por región. Tope de descuento 25%.
-        </p>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        title="Promociones"
+        description="Campañas festivas por región. Tope de descuento 25%."
+      />
 
       <AdminRegionFilters value={listRegion} onChange={setListRegion}>
         <select
@@ -157,8 +157,10 @@ export function PromotionsView() {
         />
       </AdminRegionFilters>
 
-      <section className="rounded-3xl bg-white p-6 shadow-lg">
-        <h2 className="mb-4 text-lg font-bold text-slate-900">Nueva promoción</h2>
+      <AdminCard>
+        <h2 className="mb-4 font-display text-lg font-bold tracking-tight text-slate-900">
+          Nueva promoción
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input
             required
@@ -218,29 +220,29 @@ export function PromotionsView() {
           <button
             type="submit"
             disabled={submitting || department === ""}
-            className="rounded-2xl bg-violet-700 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-violet-800 disabled:opacity-60"
+            className={`${btnPrimaryClass} w-full sm:w-auto`}
           >
-            {submitting ? "Guardando..." : "Activar promoción"}
+            {submitting ? "Guardando…" : "Activar promoción"}
           </button>
           {message !== null && <p className="text-sm text-emerald-700">{message}</p>}
           {error !== null && <p className="text-sm text-red-600">{error}</p>}
         </form>
-      </section>
+      </AdminCard>
 
-      <section className="rounded-3xl bg-white p-6 shadow-lg">
-        <h2 className="mb-3 text-lg font-bold text-slate-900">
+      <AdminCard>
+        <h2 className="mb-3 font-display text-lg font-bold tracking-tight text-slate-900">
           Promociones registradas
         </h2>
         {filteredPromotions === undefined ? (
-          <p className="text-sm text-slate-500">Cargando...</p>
+          <AdminLoading message="Cargando promociones…" />
         ) : filteredPromotions.length === 0 ? (
-          <p className="text-sm text-slate-500">No hay promociones con estos filtros.</p>
+          <AdminEmpty message="No hay promociones con estos filtros." />
         ) : (
           <div className="space-y-2">
             {filteredPromotions.map((promotion) => (
               <div
                 key={promotion._id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
+                className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
@@ -287,7 +289,7 @@ export function PromotionsView() {
             ))}
           </div>
         )}
-      </section>
-    </div>
+      </AdminCard>
+    </AdminPage>
   );
 }

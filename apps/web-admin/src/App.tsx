@@ -10,11 +10,13 @@ import { api } from "@proyecto/backend";
 import { SignInForm } from "./components/SignInForm";
 import { AdminNav, type AdminSection } from "./components/AdminNav";
 import { HercomHeaderTitle } from "./components/HercomBrand";
+import { AdminCard } from "./components/AdminLayout";
 import { AccountsView } from "./views/AccountsView";
 import { TopUpsView } from "./views/TopUpsView";
 import { ServicesView } from "./views/ServicesView";
 import { PromotionsView } from "./views/PromotionsView";
 import { PremiumTripsView } from "./views/PremiumTripsView";
+import { btnSecondaryClass } from "./lib/adminUi";
 
 function Header({
   section,
@@ -25,13 +27,13 @@ function Header({
 }) {
   const { signOut } = useAuthActions();
   return (
-    <header className="bg-hercom shadow-md">
-      <div className="flex items-center justify-between px-6 py-4">
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white shadow-header">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <HercomHeaderTitle />
         <button
           type="button"
           onClick={() => void signOut()}
-          className="text-sm font-medium text-white/90 hover:text-white"
+          className={`${btnSecondaryClass} shrink-0 px-3 py-2 text-xs sm:text-sm`}
         >
           Cerrar sesión
         </button>
@@ -46,17 +48,21 @@ function Dashboard() {
   const [section, setSection] = useState<AdminSection>("services");
 
   if (me === undefined) {
-    return <p className="p-6 text-sm text-slate-500">Cargando...</p>;
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <p className="text-sm text-slate-500">Cargando panel…</p>
+      </div>
+    );
   }
 
   if (me === null || me.role !== "admin") {
     return (
-      <div className="mx-auto max-w-lg p-6">
-        <div className="rounded-3xl bg-white p-6 shadow-lg">
+      <div className="mx-auto max-w-lg px-4 py-8 sm:px-6">
+        <AdminCard>
           <p className="text-sm font-medium text-red-600">
             Tu cuenta no tiene permisos de administrador.
           </p>
-        </div>
+        </AdminCard>
       </div>
     );
   }
@@ -64,7 +70,7 @@ function Dashboard() {
   return (
     <>
       <Header section={section} onSectionChange={setSection} />
-      <main className="mx-auto max-w-6xl p-6">
+      <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         {section === "accounts" && <AccountsView />}
         {section === "topups" && <TopUpsView />}
         {section === "services" && <ServicesView />}
@@ -77,19 +83,17 @@ function Dashboard() {
 
 export default function App() {
   return (
-    <div className="h-full min-h-0 overflow-hidden bg-white">
+    <div className="min-h-dvh bg-admin-surface">
       <AuthLoading>
-        <div className="flex h-full min-h-0 items-center justify-center overflow-hidden bg-white">
-          <p className="text-sm text-slate-500">Cargando...</p>
+        <div className="flex min-h-dvh items-center justify-center bg-admin-surface">
+          <p className="text-sm text-slate-500">Cargando…</p>
         </div>
       </AuthLoading>
       <Unauthenticated>
-        <div className="h-full min-h-0 overflow-hidden">
-          <SignInForm />
-        </div>
+        <SignInForm />
       </Unauthenticated>
       <Authenticated>
-        <div className="flex h-full min-h-0 flex-col overflow-auto bg-slate-100">
+        <div className="min-h-dvh bg-admin-surface">
           <Dashboard />
         </div>
       </Authenticated>

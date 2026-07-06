@@ -4,6 +4,13 @@ import { api } from "@proyecto/backend";
 import type { Doc, Id } from "@proyecto/backend/dataModel";
 import { AdminRegionFilters } from "../components/AdminRegionFilters";
 import {
+  AdminCard,
+  AdminEmpty,
+  AdminLoading,
+  AdminPage,
+  AdminPageHeader,
+} from "../components/AdminLayout";
+import {
   EMPTY_REGION_FILTER,
   hasRegionFilter,
   inputClass,
@@ -78,14 +85,11 @@ export function TopUpsView() {
     filteredItems?.reduce((sum, item) => sum + item.amount, 0) ?? 0;
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Recargas</h1>
-        <p className="text-sm text-slate-500">
-          Recargas de billetera de choferes. La región filtra choferes con
-          servicios en esa zona.
-        </p>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        title="Recargas"
+        description="Recargas de billetera de choferes. La región filtra choferes con servicios en esa zona."
+      />
 
       <AdminRegionFilters value={region} onChange={setRegion}>
         <select
@@ -119,49 +123,52 @@ export function TopUpsView() {
         />
       </AdminRegionFilters>
 
-      <section className="rounded-3xl bg-white p-6 shadow-lg">
-        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="text-lg font-bold text-slate-900">{PERIOD_LABELS[period]}</h2>
-          <span className="text-xs text-slate-500">
+      <AdminCard>
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="font-display text-lg font-bold tracking-tight text-slate-900">
+            {PERIOD_LABELS[period]}
+          </h2>
+          <span className="text-xs font-medium text-slate-500">
             {filteredItems?.length ?? 0} movimientos
           </span>
         </div>
 
-        <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs text-slate-500">Total filtrado</p>
-          <p className="text-xl font-bold text-slate-900">
+        <div className="mb-5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Total filtrado
+          </p>
+          <p className="mt-1 font-display text-2xl font-bold tracking-tight text-slate-900">
             S/{filteredTotal.toFixed(2)}
           </p>
         </div>
 
         {filteredItems === undefined ? (
-          <p className="text-sm text-slate-500">Cargando recargas...</p>
+          <AdminLoading message="Cargando recargas…" />
         ) : filteredItems.length === 0 ? (
-          <p className="text-sm text-slate-500">No hay recargas con estos filtros.</p>
+          <AdminEmpty message="No hay recargas con estos filtros." />
         ) : (
-          <ul className="space-y-2">
+          <ul className="divide-y divide-slate-100">
             {filteredItems.map((tx) => (
-              <li
-                key={tx._id}
-                className="rounded-xl border border-slate-100 p-3 text-sm"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium text-slate-800">{tx.userName}</span>
-                  <span className="font-bold text-slate-900">
+              <li key={tx._id} className="py-3 first:pt-0 last:pb-0">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900">{tx.userName}</p>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                      <span>{tx.userEmail}</span>
+                      <span>Placa: {tx.plate}</span>
+                      <span className="capitalize">Estado: {tx.driverStatus}</span>
+                      <span>{formatDateTime(tx.createdAt)}</span>
+                    </div>
+                  </div>
+                  <p className="shrink-0 font-display text-lg font-bold text-emerald-700">
                     + S/{tx.amount.toFixed(2)}
-                  </span>
-                </div>
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-                  <span>{tx.userEmail}</span>
-                  <span>Placa: {tx.plate}</span>
-                  <span>Estado: {tx.driverStatus}</span>
-                  <span>{formatDateTime(tx.createdAt)}</span>
+                  </p>
                 </div>
               </li>
             ))}
           </ul>
         )}
-      </section>
-    </div>
+      </AdminCard>
+    </AdminPage>
   );
 }

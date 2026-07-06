@@ -1,5 +1,6 @@
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@proyecto/backend";
+import { btnPrimaryClass, labelClass } from "../lib/adminUi";
 
 export type DriverApplicationForAdmin = FunctionReturnType<
   typeof api.driverApplications.listForAdmin
@@ -44,9 +45,11 @@ export function DriverDossierPanel({
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-bold text-slate-900">Expediente del chofer</p>
+    <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <p className="font-display text-base font-bold text-slate-900">
+          Expediente del chofer
+        </p>
         <span
           className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
             application.status === "approved"
@@ -79,9 +82,7 @@ export function DriverDossierPanel({
       </div>
 
       <div className="mt-4">
-        <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
-          Fotos del brevete
-        </p>
+        <p className={labelClass}>Fotos del brevete</p>
         {application.licensePhotoUrls.length === 0 ? (
           <p className="text-sm text-slate-500">Sin fotos disponibles.</p>
         ) : (
@@ -106,15 +107,13 @@ export function DriverDossierPanel({
       </div>
 
       <div className="mt-4">
-        <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
-          CUL (Certificado Único de Licencia)
-        </p>
+        <p className={labelClass}>CUL (Certificado Único de Licencia)</p>
         {application.culPdfUrl !== null ? (
           <a
             href={application.culPdfUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex rounded-lg bg-hercom px-4 py-2 text-sm font-semibold text-white hover:bg-hercom-dark"
+            className={btnPrimaryClass}
           >
             Abrir PDF del CUL
           </a>
@@ -129,8 +128,8 @@ export function DriverDossierPanel({
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase text-slate-500">{label}</p>
-      <p className="text-sm text-slate-900">{value}</p>
+      <p className={labelClass}>{label}</p>
+      <p className="text-sm font-medium text-slate-900">{value}</p>
     </div>
   );
 }

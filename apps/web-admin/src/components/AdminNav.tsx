@@ -5,13 +5,14 @@ export type AdminSection =
   | "promotions"
   | "premium";
 
-const NAV_ITEMS: Array<{ id: AdminSection; label: string }> = [
-  { id: "accounts", label: "Cuentas" },
-  { id: "topups", label: "Recargas" },
-  { id: "services", label: "Servicios" },
-  { id: "promotions", label: "Promociones" },
-  { id: "premium", label: "Viajes premium" },
-];
+const NAV_ITEMS: Array<{ id: AdminSection; label: string; shortLabel: string }> =
+  [
+    { id: "accounts", label: "Cuentas", shortLabel: "Cuentas" },
+    { id: "topups", label: "Recargas", shortLabel: "Recargas" },
+    { id: "services", label: "Servicios", shortLabel: "Servicios" },
+    { id: "promotions", label: "Promociones", shortLabel: "Promos" },
+    { id: "premium", label: "Viajes premium", shortLabel: "Premium" },
+  ];
 
 type AdminNavProps = {
   active: AdminSection;
@@ -20,21 +21,27 @@ type AdminNavProps = {
 
 export function AdminNav({ active, onChange }: AdminNavProps) {
   return (
-    <nav className="flex flex-wrap gap-1 border-t border-white/20 px-6 py-2">
-      {NAV_ITEMS.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => onChange(item.id)}
-          className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
-            active === item.id
-              ? "bg-white text-hercom"
-              : "text-white/85 hover:bg-white/10 hover:text-white"
-          }`}
-        >
-          {item.label}
-        </button>
-      ))}
+    <nav className="border-t border-slate-100 bg-slate-50/80">
+      <div className="scrollbar-thin mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 py-2 sm:px-6 lg:px-8">
+        {NAV_ITEMS.map((item) => {
+          const isActive = active === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onChange(item.id)}
+              className={`shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition sm:px-4 ${
+                isActive
+                  ? "bg-white text-hercom shadow-sm ring-1 ring-slate-200/80"
+                  : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
+              }`}
+            >
+              <span className="sm:hidden">{item.shortLabel}</span>
+              <span className="hidden sm:inline">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
     </nav>
   );
 }

@@ -3,6 +3,8 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
 import { RegionFields, inputClass } from "./RegionFields";
+import { AdminCard } from "./AdminLayout";
+import { btnPrimaryClass } from "../lib/adminUi";
 
 export function PremiumServiceForm() {
   const users = useQuery(api.users.listAll, {});
@@ -66,11 +68,11 @@ export function PremiumServiceForm() {
   }
 
   return (
-    <section className="rounded-3xl bg-white p-6 shadow-lg">
-      <h2 className="mb-1 text-lg font-bold text-slate-900">
+    <AdminCard>
+      <h2 className="font-display text-lg font-bold tracking-tight text-slate-900">
         Registrar viaje premium
       </h2>
-      <p className="mb-4 text-sm text-slate-500">
+      <p className="mb-4 mt-1 text-sm leading-relaxed text-slate-500">
         Para solicitudes recibidas por teléfono o gestionadas manualmente desde
         operaciones. Quedan etiquetadas como premium en el tablero.
       </p>
@@ -132,13 +134,13 @@ export function PremiumServiceForm() {
         <button
           type="submit"
           disabled={submitting || users === undefined}
-          className="rounded-2xl bg-violet-700 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-violet-800 disabled:opacity-60"
+          className={`${btnPrimaryClass} w-full sm:w-auto`}
         >
-          {submitting ? "Registrando..." : "Registrar viaje premium"}
+          {submitting ? "Registrando…" : "Registrar viaje premium"}
         </button>
         {message !== null && <p className="text-sm text-emerald-700">{message}</p>}
         {error !== null && <p className="text-sm text-red-600">{error}</p>}
       </form>
-    </section>
+    </AdminCard>
   );
 }

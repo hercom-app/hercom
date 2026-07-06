@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { PremiumServiceForm } from "../components/PremiumServiceForm";
 import { ServicesBoard } from "../components/ServicesBoard";
 import { AdminRegionFilters } from "../components/AdminRegionFilters";
+import { AdminPage, AdminPageHeader } from "../components/AdminLayout";
 import {
   EMPTY_REGION_FILTER,
   regionToQueryArgs,
@@ -33,14 +34,11 @@ export function PremiumTripsView() {
   const services = useQuery(api.services.listAllForAdmin, queryArgs);
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Viajes premium</h1>
-        <p className="text-sm text-slate-500">
-          Registro manual por teléfono o web comercial y seguimiento de viajes
-          premium.
-        </p>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        title="Viajes premium"
+        description="Registro manual por teléfono o web comercial y seguimiento de viajes premium."
+      />
 
       <AdminRegionFilters value={region} onChange={setRegion}>
         <select
@@ -73,6 +71,6 @@ export function PremiumTripsView() {
       <PremiumServiceForm />
 
       <ServicesBoard services={services} title="Viajes premium registrados" />
-    </div>
+    </AdminPage>
   );
 }

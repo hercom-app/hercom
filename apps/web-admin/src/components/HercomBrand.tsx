@@ -1,36 +1,23 @@
-type HercomBrandProps = {
-  subtitle?: string;
-  logoWidth?: string;
-};
-
-/** Marca centrada Hercom (login y headers). Logo: /public/hercom-logo.png */
-export function HercomBrand({
-  subtitle = "Panel administrativo",
-  logoWidth = "w-52",
-}: HercomBrandProps) {
-  return (
-    <div className="text-center">
-      <img
-        src="/hercom-logo.png"
-        alt="Hercom"
-        className={`mx-auto ${logoWidth}`}
-      />
-      <h1 className="mt-6 text-3xl font-bold tracking-widest text-white">
-        HERCOM
-      </h1>
-      <p className="mt-2 text-base font-semibold uppercase tracking-wide text-white/90">
-        {subtitle}
-      </p>
-    </div>
-  );
-}
-
-/** Título compacto para header autenticado */
+/** Marca compacta para header autenticado */
 export function HercomHeaderTitle() {
   return (
-    <div className="flex items-center gap-3">
-      <img src="/hercom-logo.png" alt="" className="h-9 w-auto" aria-hidden />
-      <span className="text-lg font-bold tracking-wide text-white">HERCOM Admin</span>
+    <div className="flex min-w-0 items-center gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-hercom-muted">
+        <img
+          src="/hercom-logo.png"
+          alt=""
+          className="h-6 w-auto"
+          aria-hidden
+        />
+      </div>
+      <div className="min-w-0">
+        <p className="truncate font-display text-base font-bold tracking-tight text-slate-900 sm:text-lg">
+          Hercom Admin
+        </p>
+        <p className="hidden truncate text-xs text-slate-500 sm:block">
+          Panel de operaciones
+        </p>
+      </div>
     </div>
   );
 }

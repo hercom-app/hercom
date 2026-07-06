@@ -13,6 +13,23 @@ import {
   selectClass,
   type RegionFilter,
 } from "../lib/adminFilters";
+import {
+  AdminCard,
+  AdminEmpty,
+  AdminLoading,
+  AdminPage,
+  AdminPageHeader,
+  AdminTableWrap,
+} from "../components/AdminLayout";
+import {
+  btnGhostClass,
+  rowClass,
+  selectClass as uiSelectClass,
+  tableClass,
+  tableHeadClass,
+  tdClass,
+  thClass,
+} from "../lib/adminUi";
 
 const ROLE_LABELS: Record<string, string> = {
   client: "Cliente",
@@ -119,14 +136,11 @@ export function AccountsView() {
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Cuentas</h1>
-        <p className="text-sm text-slate-500">
-          Usuarios registrados. En choferes puedes abrir el expediente (DNI,
-          brevete, CUL) para evaluarlo.
-        </p>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        title="Cuentas"
+        description="Usuarios registrados. En choferes puedes abrir el expediente (DNI, brevete, CUL) para evaluarlo."
+      />
 
       <AdminRegionFilters value={region} onChange={setRegion}>
         <select
@@ -163,22 +177,22 @@ export function AccountsView() {
         />
       </AdminRegionFilters>
 
-      <section className="rounded-3xl bg-white p-6 shadow-lg">
+      <AdminCard>
         {filteredUsers === undefined ? (
-          <p className="text-sm text-slate-500">Cargando usuarios...</p>
+          <AdminLoading message="Cargando usuarios…" />
         ) : filteredUsers.length === 0 ? (
-          <p className="text-sm text-slate-500">No hay cuentas con estos filtros.</p>
+          <AdminEmpty message="No hay cuentas con estos filtros." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
-                  <th className="py-2 pr-4">Usuario</th>
-                  <th className="py-2 pr-4">Correo</th>
-                  <th className="py-2 pr-4">Teléfono</th>
-                  <th className="py-2 pr-4">Rol</th>
-                  <th className="py-2 pr-4">Expediente</th>
-                  <th className="py-2">Registro</th>
+          <AdminTableWrap>
+            <table className={tableClass}>
+              <thead className={tableHeadClass}>
+                <tr>
+                  <th className={thClass}>Usuario</th>
+                  <th className={thClass}>Correo</th>
+                  <th className={`${thClass} hidden md:table-cell`}>Teléfono</th>
+                  <th className={thClass}>Rol</th>
+                  <th className={thClass}>Expediente</th>
+                  <th className={`${thClass} hidden sm:table-cell`}>Registro</th>
                 </tr>
               </thead>
               <tbody>
@@ -188,17 +202,15 @@ export function AccountsView() {
                   const isExpanded = expandedUserId === user._id;
                   return (
                     <Fragment key={user._id}>
-                      <tr className="border-b border-slate-100">
-                        <td className="py-3 pr-4 font-medium text-slate-800">
+                      <tr className={rowClass}>
+                        <td className={`${tdClass} font-medium text-slate-900`}>
                           {user.name ?? "Sin nombre"}
                         </td>
-                        <td className="py-3 pr-4 text-slate-700">
-                          {user.email ?? "—"}
-                        </td>
-                        <td className="py-3 pr-4 text-slate-700">
+                        <td className={tdClass}>{user.email ?? "—"}</td>
+                        <td className={`${tdClass} hidden md:table-cell`}>
                           {user.phone ?? "—"}
                         </td>
-                        <td className="py-3 pr-4">
+                        <td className={tdClass}>
                           <select
                             value={user.role}
                             onChange={(event) =>
@@ -207,39 +219,39 @@ export function AccountsView() {
                                 event.target.value as Doc<"users">["role"],
                               )
                             }
-                            className="rounded-lg border border-slate-300 px-2 py-1 text-xs"
+                            className={`${uiSelectClass} !py-1.5 text-xs`}
                           >
                             <option value="client">{ROLE_LABELS.client}</option>
                             <option value="driver">{ROLE_LABELS.driver}</option>
                             <option value="admin">{ROLE_LABELS.admin}</option>
                           </select>
                         </td>
-                        <td className="py-3 pr-4">
+                        <td className={tdClass}>
                           {isDriver ? (
                             <button
                               type="button"
                               onClick={() =>
                                 setExpandedUserId(isExpanded ? null : user._id)
                               }
-                              className="text-xs font-semibold text-hercom hover:underline"
+                              className={btnGhostClass}
                             >
                               {isExpanded
-                                ? "Ocultar expediente"
+                                ? "Ocultar"
                                 : application !== undefined
-                                  ? "Ver brevete y CUL"
+                                  ? "Ver expediente"
                                   : "Sin expediente"}
                             </button>
                           ) : (
                             <span className="text-xs text-slate-400">—</span>
                           )}
                         </td>
-                        <td className="py-3 text-slate-500">
+                        <td className={`${tdClass} hidden text-slate-500 sm:table-cell`}>
                           {formatDate(user._creationTime)}
                         </td>
                       </tr>
                       {isDriver && isExpanded && (
                         <tr>
-                          <td colSpan={6} className="pb-4 pt-1">
+                          <td colSpan={6} className="px-0 pb-4 pt-1">
                             <DriverDossierPanel
                               application={application ?? null}
                               userName={user.name ?? user.email ?? "Chofer"}
@@ -252,9 +264,9 @@ export function AccountsView() {
                 })}
               </tbody>
             </table>
-          </div>
+          </AdminTableWrap>
         )}
-      </section>
-    </div>
+      </AdminCard>
+    </AdminPage>
   );
 }

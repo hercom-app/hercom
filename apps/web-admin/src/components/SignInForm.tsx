@@ -1,8 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
-
-const inputClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 outline-none transition focus:border-hercom focus:ring-1 focus:ring-hercom";
+import { btnPrimaryClass, inputClass, labelClass } from "../lib/adminUi";
 
 export function SignInForm() {
   const { signIn } = useAuthActions();
@@ -26,63 +24,109 @@ export function SignInForm() {
   }
 
   return (
-    <div className="flex h-full min-h-0 items-center justify-center overflow-hidden bg-white p-6">
-      <div className="flex w-full max-w-3xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
-        <div className="flex w-2/5 min-w-[220px] items-center justify-center border-r border-slate-100 bg-white px-8 py-10">
+    <div className="flex min-h-dvh flex-col lg:flex-row">
+      <aside className="relative flex flex-col justify-between bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-6 py-10 text-white sm:px-10 lg:w-[42%] lg:px-12 lg:py-14">
+        <div>
           <img
             src="/hercom-logo.png"
             alt="Hercom"
-            className="w-full max-w-[200px]"
+            className="h-10 w-auto brightness-0 invert sm:h-12"
           />
+          <p className="mt-8 font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+            Panel de operaciones
+          </p>
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-300 sm:text-base">
+            Supervisión de cuentas, viajes, recargas y cierre financiero para el
+            equipo Hercom.
+          </p>
         </div>
+        <p className="mt-10 text-xs text-slate-400 lg:mt-0">
+          Acceso restringido · Solo personal autorizado
+        </p>
+        <div
+          className="pointer-events-none absolute -right-16 top-1/3 h-56 w-56 rounded-full bg-hercom/20 blur-3xl"
+          aria-hidden
+        />
+      </aside>
 
-        <div className="flex flex-1 flex-col justify-center px-8 py-10">
-          <h2 className="mb-6 text-xl font-bold text-slate-900">
-            Acceso administrador
-          </h2>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              name="email"
-              type="email"
-              required
-              autoComplete="username"
-              placeholder="Correo"
-              className={inputClass}
+      <main className="flex flex-1 items-center justify-center px-4 py-10 sm:px-8">
+        <div className="w-full max-w-md">
+          <div className="mb-8 lg:hidden">
+            <img
+              src="/hercom-logo.png"
+              alt="Hercom"
+              className="mx-auto h-12 w-auto"
             />
-            <div className="relative">
-              <input
-                name="password"
-                type={showPassword ? "text" : "password"}
-                required
-                autoComplete="current-password"
-                placeholder="Contraseña"
-                className={`${inputClass} pr-12`}
-              />
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-card sm:p-8">
+            <h2 className="font-display text-2xl font-bold tracking-tight text-slate-900">
+              Acceso administrador
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Ingresa con tu cuenta corporativa Hercom.
+            </p>
+
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <div>
+                <label htmlFor="admin-email" className={labelClass}>
+                  Correo
+                </label>
+                <input
+                  id="admin-email"
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="username"
+                  placeholder="nombre@hercom.pe"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="admin-password" className={labelClass}>
+                  Contraseña
+                </label>
+                <div className="relative">
+                  <input
+                    id="admin-password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    className={`${inputClass} pr-16`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((previous) => !previous)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                    aria-label={
+                      showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                    }
+                  >
+                    {showPassword ? "Ocultar" : "Ver"}
+                  </button>
+                </div>
+              </div>
+
+              {error !== null && (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {error}
+                </p>
+              )}
+
               <button
-                type="button"
-                onClick={() => setShowPassword((previous) => !previous)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:text-slate-800"
-                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                type="submit"
+                disabled={submitting}
+                className={`${btnPrimaryClass} w-full py-3`}
               >
-                {showPassword ? "Ocultar" : "Ver"}
+                {submitting ? "Entrando…" : "Entrar al panel"}
               </button>
-            </div>
-
-            {error !== null && (
-              <p className="text-sm text-red-600">{error}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full rounded-xl bg-hercom py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-hercom-dark disabled:opacity-60"
-            >
-              {submitting ? "Entrando..." : "Entrar"}
-            </button>
-          </form>
+            </form>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

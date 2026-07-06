@@ -59,8 +59,7 @@ export function matchesPromotionRegion(
   return true;
 }
 
-export const selectClass =
-  "rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-hercom";
-
-export const inputClass =
-  "rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-hercom";
+export {
+  inputClass,
+  selectClass,
+} from "./adminUi";

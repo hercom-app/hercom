@@ -41,16 +41,26 @@ Guía rápida del viaje en Hercom. Solo pasos, sin detalle técnico.
 Acceso solo para cuentas con rol **administrador**. Es el panel interno de Hercom para supervisar y cerrar la operación del día.
 
 **Cuenta demo (local):** `admin@demo.com` / `demo1234`  
-Si no entra, crear o reparar cuentas demo:
+En **local** (dev):
 
 ```powershell
 cd packages/backend
 npx convex run seed:seedDemo
 ```
 
-**Levantar el panel:** terminal 1 → `pnpm --filter @proyecto/backend dev`; terminal 2 → `pnpm web:admin`; abrir http://localhost:5174
+En **producción** (Vercel / `admin.hercom.pe`):
 
-**Producción:** https://admin.hercom.pe (ver `docs/6 DEPLOY ADMIN VERCEL.md`).
+```powershell
+cd packages/backend
+npx convex run seed:seedDemo --prod
+```
+
+Antes del primer login en prod también hay que activar auth: `npx @convex-dev/auth --prod`.  
+Guía completa: `docs/6 DEPLOY ADMIN VERCEL.md`.
+
+**Levantar el panel en tu PC:** terminal 1 → `pnpm --filter @proyecto/backend dev`; terminal 2 → `pnpm web:admin`; abrir http://localhost:5174
+
+**Producción:** https://admin.hercom.pe (mientras tanto https://hercom-web-admin.vercel.app)
 
 Ver filtros y secciones en `docs/5 WEB ADMIN PANEL.md`.
 

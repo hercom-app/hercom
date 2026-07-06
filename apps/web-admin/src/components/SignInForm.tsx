@@ -25,22 +25,14 @@ export function SignInForm() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col lg:flex-row">
-      <aside className="hidden items-center justify-center bg-hercom px-8 lg:flex lg:w-[42%]">
-        <img
-          src="/hercom-logo.png"
-          alt="Hercom"
-          className="h-28 w-auto brightness-0 invert xl:h-36"
-        />
-      </aside>
-
+    <div className="flex min-h-dvh flex-col">
       <main className="flex flex-1 items-center justify-center bg-white px-4 py-10 sm:bg-admin-surface sm:px-8">
         <div className="w-full max-w-[420px]">
-          <div className="mb-8 flex justify-center lg:mb-10">
+          <div className="mb-8 flex justify-center sm:mb-10">
             <img
               src="/hercom-logo.png"
               alt="Hercom"
-              className="h-20 w-auto sm:h-24 lg:h-28"
+              className="h-40 w-auto sm:h-48 lg:h-56"
             />
           </div>
 

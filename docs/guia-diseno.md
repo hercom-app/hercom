@@ -24,35 +24,58 @@ sería análogo; en móvil **nunca** uses esos tags.
 
 | Token Tailwind | Hex | Uso |
 | --- | --- | --- |
-| `hercom` / `brand` (móvil) | `#007AFF` | Fondo login, botones primarios, barra de estado activa |
-| `hercom-dark` / `brand-dark` | `#0062CC` | Estado pressed / hover del botón azul |
-| `bg-white` | `#FFFFFF` | Tarjetas flotantes, contenedores principales |
-| `text-slate-900` | `#0F172A` | Títulos sobre tarjetas blancas |
-| `text-slate-600` / `700` | `#475569` | Texto secundario, subtítulos |
-| `text-white` | `#FFFFFF` | Texto sobre fondo azul Hercom |
-| `text-red-600` | `#DC2626` | Errores de formulario |
-| `bg-slate-700` | `#334155` | Acciones destructivas / desconectar (pendiente en dashboard) |
+| `hercom` / `brand` (móvil) | `#007AFF` | Primario institucional: login, CTAs, **Modo conductor/cliente**, FAB ayuda, estados activos |
+| `hercom-dark` / `brand-dark` | `#0062CC` | Pressed / hover del azul |
+| `bg-white` | `#FFFFFF` | Bottom sheet, drawer, chips flotantes, cards |
+| `text-slate-900` | `#0F172A` | Títulos sobre blanco |
+| `text-slate-500` / `600` | `#64748B` / `#475569` | Texto secundario |
+| `text-white` | `#FFFFFF` | Texto sobre azul Hercom |
+| `text-red-600` / `700` | `#DC2626` | Errores y emergencia (centros de salud) |
+| `bg-slate-100` | `#F1F5F9` | Fondo general / ítem activo del drawer |
 
 Definidos en:
 
 - Móvil: [`apps/mobile/tailwind.config.js`](../apps/mobile/tailwind.config.js)
 - Móvil (código): [`apps/mobile/src/constants/theme.ts`](../apps/mobile/src/constants/theme.ts)
 
-> **Nota:** Las tres apps usan la identidad Hercom unificada (`#007AFF`, logo en
-> `public/` o `assets/images/`, tarjetas `rounded-3xl`).
+> **Regla:** no usar verde lima / acentos de otras marcas (inDrive) para CTAs de Hercom.
+> El switch de modo del menú lateral usa **`bg-hercom` + texto blanco**.
 
-### Tipografía
+### Tipografía (móvil — jul 2026)
 
-| Rol | Clases Tailwind | Cuándo usar |
+| Rol | Fuente | Uso |
 | --- | --- | --- |
-| Marca / hero | `text-3xl font-bold tracking-widest` | “HERCOM” en login |
-| Subtítulo marca | `text-base font-semibold uppercase tracking-wide` | “Choferes para reemplazo” |
-| Título de tarjeta | `text-lg font-bold text-slate-900` | “Iniciar sesión” |
-| Cuerpo | `text-sm text-slate-600` | Descripciones |
-| Botón primario | `text-base font-bold uppercase tracking-wide text-white` | ENTAR / CONECTARSE |
-| Montos / KPI | `font-bold text-slate-900` | Ganancias (futuro dashboard) |
+| Familia base | **Poppins** (`Poppins_400Regular`) | Default en `Text` / `TextInput` vía `App.tsx` |
+| Medium / SemiBold / Bold | `Poppins_500` / `_600` / `_700` | Títulos, botones, labels |
 
-**Familia:** sans-serif del sistema (`system-ui` en web; default RN en móvil).
+Carga: `@expo-google-fonts/poppins` + `expo-font` en `apps/mobile/App.tsx`.
+
+| Rol UI | Clases típicas |
+| --- | --- |
+| Título bottom sheet | `text-lg font-bold text-slate-900` |
+| Subtítulo / helper | `text-sm text-slate-500` |
+| Label de campo | `text-xs font-semibold text-slate-600` |
+| CTA primario | `text-base font-bold text-white` sobre `bg-hercom` |
+| Ítem drawer | `text-[15px] font-medium text-slate-800` |
+
+**Web** sigue con Inter / Plus Jakarta según [`TIPOGRAFIA.md`](./TIPOGRAFIA.md) (admin/comercial).
+
+### Home móvil pasajero (rediseño jul 2026)
+
+Patrón **mapa + bottom sheet + FABs** (inspiración inDrive/Yango, marca Hercom):
+
+| Elemento | Descripción |
+| --- | --- |
+| Fondo | `MapView` a pantalla completa |
+| FAB izquierdo | Menú ☰ (círculo blanco) → `SideDrawer` |
+| Chip superior | «De dónde» + dirección de recojo |
+| FAB derecho | Ayuda `?` → soporte / 105 / salud |
+| Bottom sheet | `rounded-t-[28px] bg-white` · título *«¿Dónde necesitas un chofer de reemplazo?»* |
+| Switch de modo | Drawer inferior · **azul `#007AFF`**, texto blanco · sin copy meta de “mismo celular” |
+
+Copy a evitar (suena genérico / IA): hints tipo “Sugerencias en Perú…”, banners de “también conduces…”, textos explicativos de región.
+
+Región (dept/prov/dist) se infiere en silencio desde GPS o Places; **no se muestra picker** en la UI de solicitud.
 
 ### Espaciado y layout
 
@@ -71,7 +94,10 @@ Definidos en:
 | Tarjeta flotante principal | `rounded-3xl bg-white p-6 shadow-lg` | Esquinas muy redondeadas, emula contenedor del logo |
 | Tarjeta secundaria | `rounded-2xl` | Inputs, botones, tarjetas menores |
 | Input | `rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5` | Campo legible, fondo gris muy claro |
+| Bottom sheet | `rounded-t-[28px] bg-white` + sombra superior | Solicitud de viaje |
 
+> **Nota:** Las tres apps usan la identidad Hercom unificada (`#007AFF`, logo en
+> `public/` o `assets/images/`, tarjetas `rounded-3xl`).
 ### Botones
 
 | Tipo | Clases móvil | Clases web (referencia) |

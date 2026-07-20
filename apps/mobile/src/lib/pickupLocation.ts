@@ -1,3 +1,4 @@
+import { Linking, Platform } from "react-native";
 import * as Location from "expo-location";
 import { reverseGeocodeWithDevice } from "./deviceGeocoding";
 import {
@@ -7,6 +8,11 @@ import {
 } from "./googleGeocoding";
 
 export type PickupLocationResult = ReverseGeocodeResult;
+
+export type LocationAccessStatus = {
+  permissionGranted: boolean;
+  servicesEnabled: boolean;
+};
 
 async function reverseGeocodePickup(
   lat: number,
@@ -22,27 +28,71 @@ async function reverseGeocodePickup(
   return reverseGeocodeWithDevice(lat, lng);
 }
 
-export async function detectPickupLocation(): Promise<PickupLocationResult> {
-  const { status } = await Location.requestForegroundPermissionsAsync();
-  if (status !== "granted") {
+export async function getLocationAccessStatus(): Promise<LocationAccessStatus> {
+  const permission = await Location.getForegroundPermissionsAsync();
+  const servicesEnabled = await Location.hasServicesEnabledAsync();
+  return {
+    permissionGranted: permission.status === "granted",
+    servicesEnabled,
+  };
+}
+
+/**
+ * Pide permiso de ubicación en primer plano (diálogo nativo del sistema).
+ * Si el usuario denegó antes, indica abrir Ajustes.
+ */
+export async function ensureLocationAccess(): Promise<void> {
+  const current = await Location.getForegroundPermissionsAsync();
+
+  if (current.status === "undetermined") {
+    const requested = await Location.requestForegroundPermissionsAsync();
+    if (requested.status !== "granted") {
+      throw new Error(
+        "Necesitamos permiso de ubicación. Acepta el permiso cuando el celular lo solicite.",
+      );
+    }
+  } else if (current.status === "denied") {
     throw new Error(
-      "Activa el permiso de ubicación para detectar tu departamento, provincia y distrito.",
+      Platform.OS === "ios"
+        ? "Ubicación bloqueada. Ve a Ajustes → Expo Go → Ubicación y elige «Al usar la app»."
+        : "Ubicación bloqueada. Ve a Ajustes → Apps → Expo Go → Permisos → Ubicación → Permitir.",
     );
+  } else if (current.status !== "granted") {
+    const requested = await Location.requestForegroundPermissionsAsync();
+    if (requested.status !== "granted") {
+      throw new Error("Permiso de ubicación no concedido.");
+    }
   }
 
   const servicesEnabled = await Location.hasServicesEnabledAsync();
   if (!servicesEnabled) {
-    throw new Error("Activa el GPS del dispositivo e intenta de nuevo.");
+    throw new Error(
+      "Activa el GPS del celular (ubicación) en los ajustes rápidos o en Ajustes → Ubicación.",
+    );
   }
+}
+
+export async function openDeviceLocationSettings(): Promise<void> {
+  await Linking.openSettings();
+}
+
+export async function detectPickupLocation(): Promise<PickupLocationResult> {
+  await ensureLocationAccess();
 
   const position = await Location.getCurrentPositionAsync({
     accuracy: Location.Accuracy.Balanced,
   });
 
-  return reverseGeocodePickup(
+  const result = await reverseGeocodePickup(
     position.coords.latitude,
     position.coords.longitude,
   );
+
+  return {
+    ...result,
+    lat: position.coords.latitude,
+    lng: position.coords.longitude,
+  };
 }
 
 export function formatDetectedRegion(result: PickupLocationResult): string {

@@ -39,6 +39,52 @@ export async function clearPendingDriverRegistration(): Promise<void> {
   await SecureStore.deleteItemAsync(PENDING_KEY);
 }
 
+type SubmitDriverApplicationArgs = {
+  dni: string;
+  firstName: string;
+  firstLastName: string;
+  secondLastName: string;
+  sex: "M" | "F";
+  licenseNumber: string;
+  licenseCategory: string;
+  licensePhotoIds: Id<"_storage">[];
+  culPdfId: Id<"_storage">;
+};
+
+export async function submitDriverApplicationFromPending(
+  pending: PendingDriverRegistration,
+  generateUploadUrl: () => Promise<string>,
+  submitApplication: (args: SubmitDriverApplicationArgs) => Promise<unknown>,
+): Promise<void> {
+  const licensePhotoIds: Id<"_storage">[] = [];
+  for (const photo of pending.licensePhotoUris) {
+    const id = await uploadToConvex(
+      generateUploadUrl,
+      photo.uri,
+      photo.mimeType,
+    );
+    licensePhotoIds.push(id);
+  }
+
+  const culPdfId = await uploadToConvex(
+    generateUploadUrl,
+    pending.culPdfUri,
+    "application/pdf",
+  );
+
+  await submitApplication({
+    dni: pending.dni,
+    firstName: pending.firstName,
+    firstLastName: pending.firstLastName,
+    secondLastName: pending.secondLastName,
+    sex: pending.sex,
+    licenseNumber: pending.licenseNumber,
+    licenseCategory: pending.licenseCategory,
+    licensePhotoIds,
+    culPdfId,
+  });
+}
+
 export async function uploadToConvex(
   generateUploadUrl: () => Promise<string>,
   localUri: string,

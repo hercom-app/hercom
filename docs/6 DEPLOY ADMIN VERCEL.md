@@ -10,8 +10,8 @@ Guía completa (Hercom, julio 2026). Lenguaje simple + comandos exactos.
 | --- | --- | --- |
 | Landing pública | `www.hercom.pe` | Proyecto Vercel **aparte** (landing) |
 | Panel admin | `admin.hercom.pe` | Proyecto Vercel **`hercom-web-admin`** |
-| Backend (datos) | Convex producción | `https://wry-lapwing-809.convex.cloud` |
-| Desarrollo local | tu PC | Convex dev `https://hip-mink-145.convex.cloud` |
+| Backend (datos) | Convex producción | *(pendiente: `npx convex deploy`)* |
+| Desarrollo local | tu PC | Convex dev `https://perceptive-setter-262.convex.cloud` |
 
 **Importante:** local y producción son **dos bases de datos distintas**. Lo que creas en dev no existe en prod hasta que lo ejecutes con `--prod`.
 

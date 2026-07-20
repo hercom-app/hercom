@@ -10,7 +10,7 @@ Documenta todo lo que se configuró y los errores que se corrigieron.
 ```
 ┌─────────────────────────────────────────────────────┐
 │  CONVEX CLOUD  (backend, BD, auth, storage)          │
-│  → npx convex dev → URL: https://hip-mink-145.convex.cloud │
+│  → npx convex dev → URL: https://perceptive-setter-262.convex.cloud │
 └─────────────────────────────────────────────────────┘
         ▲                  ▲                  ▲
         │                  │                  │ EXPO_PUBLIC_CONVEX_URL
@@ -72,7 +72,9 @@ Al ejecutarlo por primera vez:
 - Elige **"choose an existing project"** → selecciona **hercom**
 - Crea un deployment de desarrollo y guarda las URLs en `.env.local`
 
-**URL del deployment activo:** `https://hip-mink-145.convex.cloud`
+**URL del deployment activo:** `https://perceptive-setter-262.convex.cloud`
+
+**Cuenta Convex:** team `hercom-app`, proyecto `hercom`
 
 > Este deployment vive en la nube de Convex. Aunque cierres la terminal o apagues
 > la laptop, el backend sigue activo. `convex dev` solo es necesario para subir
@@ -126,8 +128,8 @@ Abre el navegador en `expo.dev`. Se usó la cuenta de GitHub vinculada a Convex.
 npx eas-cli build:configure
 ```
 
-- Creó el proyecto `@gipow/choferes-reemplazo-driver` en EAS
-- Vinculó el proyecto local al ID `d08dad4f-69fd-49e7-8e1f-156f4c7ae1d6`
+- Creó el proyecto EAS en la cuenta de empresa (ver `npx eas-cli whoami`)
+- Vinculó el proyecto local; el `projectId` queda en `apps/mobile/app.json`
 - Escribió el `projectId` en `apps/mobile/app.json`
 - Plataforma configurada: **Android**
 
@@ -314,9 +316,9 @@ Si escribes `cd apps/mobile` desde `packages/backend`, fallará porque intentar�
 
 | Plataforma | Variable | Valor |
 |---|---|---|
-| Mobile (eas.json) | `EXPO_PUBLIC_CONVEX_URL` | `https://hip-mink-145.convex.cloud` |
-| Web comercial (Vercel) | `VITE_CONVEX_URL` | `https://hip-mink-145.convex.cloud` |
-| Web admin (Vercel) | `VITE_CONVEX_URL` | `https://hip-mink-145.convex.cloud` |
+| Mobile (eas.json) | `EXPO_PUBLIC_CONVEX_URL` | `https://perceptive-setter-262.convex.cloud` |
+| Web comercial (Vercel) | `VITE_CONVEX_URL` | `https://perceptive-setter-262.convex.cloud` |
+| Web admin (Vercel) | `VITE_CONVEX_URL` | URL de prod tras `npx convex deploy` |
 
 ---
 
@@ -380,7 +382,7 @@ Convex logs + prueba en modo desarrollo para capturar el error de JavaScript.
 
 - El login con **Google OAuth** necesita configuración extra para producción
   (redirect URIs en Google Cloud Console). Para demos usar **email/contraseña**.
-- El deployment actual (`hip-mink-145`) es de **desarrollo**. Para producción
+- El deployment actual (`perceptive-setter-262`) es de **desarrollo**. Para producción
   estable crear un deployment de producción con `npx convex deploy`.
 - Para iOS se necesita cuenta de Apple Developer (99 USD/año).
 - Para publicar en Google Play se necesita cuenta de desarrollador (25 USD, una vez).

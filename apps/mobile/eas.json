@@ -8,7 +8,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://hip-mink-145.convex.cloud"
+        "EXPO_PUBLIC_CONVEX_URL": "https://perceptive-setter-262.convex.cloud",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyBbjTrcUBbeNw84CP_0BDOWoTe99WiHJWQ"
       }
     },
     "preview": {
@@ -17,7 +18,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://hip-mink-145.convex.cloud"
+        "EXPO_PUBLIC_CONVEX_URL": "https://perceptive-setter-262.convex.cloud",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyBbjTrcUBbeNw84CP_0BDOWoTe99WiHJWQ"
       }
     },
     "production": {
@@ -26,7 +28,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://hip-mink-145.convex.cloud"
+        "EXPO_PUBLIC_CONVEX_URL": "https://perceptive-setter-262.convex.cloud",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyBbjTrcUBbeNw84CP_0BDOWoTe99WiHJWQ"
       }
     }
   },

@@ -10,13 +10,23 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.proyecto.choferes",
+      "config": {
+        "googleMapsApiKey": "AIzaSyBbjTrcUBbeNw84CP_0BDOWoTe99WiHJWQ"
+      },
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Hercom usa tu ubicación para detectar departamento, provincia y distrito del recojo.",
-        "LSApplicationQueriesSchemes": ["waze"]
+        "NSLocationWhenInUseUsageDescription": "Hercom pedirá acceso a tu ubicación cuando pulses «Usar mi ubicación actual» para completar el punto de recojo.",
+        "LSApplicationQueriesSchemes": [
+          "waze"
+        ]
       }
     },
     "android": {
       "package": "com.proyecto.choferes",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBbjTrcUBbeNw84CP_0BDOWoTe99WiHJWQ"
+        }
+      },
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -35,14 +45,16 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Hercom usa tu ubicación para detectar departamento, provincia y distrito del recojo."
+          "locationWhenInUsePermission": "Hercom pedirá acceso a tu ubicación cuando pulses «Usar mi ubicación actual» para completar el punto de recojo."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {
-        "projectId": "d08dad4f-69fd-49e7-8e1f-156f4c7ae1d6"
+        "projectId": "d19ae84f-d2a4-4dbc-a727-6c4935de3906"
       }
-    }
+    },
+    "owner": "hercom-worker"
   }
 }

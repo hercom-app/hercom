@@ -1,4 +1,10 @@
 import { resolvePeruRegionFromGoogleComponents } from "@proyecto/backend/peruLocations";
+import {
+  isGoogleMapsApiKeyConfigured,
+  requireGoogleMapsApiKey,
+} from "./googleMapsConfig";
+
+export { isGoogleMapsApiKeyConfigured } from "./googleMapsConfig";
 
 type GoogleAddressComponent = {
   long_name: string;
@@ -26,28 +32,6 @@ function getComponent(
     }
   }
   return undefined;
-}
-
-function getGoogleMapsApiKey(): string | undefined {
-  const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
-  if (apiKey === undefined || apiKey.trim() === "") {
-    return undefined;
-  }
-  return apiKey.trim();
-}
-
-export function isGoogleMapsApiKeyConfigured(): boolean {
-  return getGoogleMapsApiKey() !== undefined;
-}
-
-function requireGoogleMapsApiKey(): string {
-  const apiKey = getGoogleMapsApiKey();
-  if (apiKey === undefined) {
-    throw new Error(
-      "Falta EXPO_PUBLIC_GOOGLE_MAPS_API_KEY. Configúrala en apps/mobile/.env (Geocoding API).",
-    );
-  }
-  return apiKey;
 }
 
 export type ReverseGeocodeResult = {

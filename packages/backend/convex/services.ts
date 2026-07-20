@@ -199,6 +199,7 @@ export const listOpenForOffers = query({
   args: {},
   handler: async (ctx) => {
     await requireDriver(ctx);
+    // Incluye solicitudes propias: útil para QA con un solo equipo/cuenta.
     return await ctx.db
       .query("services")
       .withIndex("by_status", (q) => q.eq("status", "pending"))

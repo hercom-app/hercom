@@ -10,12 +10,13 @@ import {
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { useAction } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
 import { HercomLogo } from "../components/HercomLogo";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import {
   savePendingDriverRegistration,
+  submitDriverApplicationFromPending,
   type PendingDriverRegistration,
 } from "../lib/driverRegistration";
 
@@ -33,6 +34,9 @@ const LICENSE_CATEGORIES = [
 type DriverRegisterScreenProps = {
   onBack: () => void;
   onError?: (message: string) => void;
+  /** Usuario ya autenticado: envía sin volver a pasar por Google. */
+  submitAsAuthenticated?: boolean;
+  onSubmitSuccess?: () => void;
 };
 
 type LocalPhoto = { uri: string; mimeType: string };
@@ -40,8 +44,11 @@ type LocalPhoto = { uri: string; mimeType: string };
 export function DriverRegisterScreen({
   onBack,
   onError,
+  submitAsAuthenticated = false,
+  onSubmitSuccess,
 }: DriverRegisterScreenProps) {
-  const lookupDni = useAction(api.reniec.lookupDni);
+  const generateUploadUrl = useMutation(api.driverApplications.generateUploadUrl);
+  const submitApplication = useMutation(api.driverApplications.submit);
 
   const [dni, setDni] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -62,6 +69,7 @@ export function DriverRegisterScreen({
   );
 
   const [readyForGoogle, setReadyForGoogle] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -73,18 +81,20 @@ export function DriverRegisterScreen({
 
   async function handleValidateDni() {
     setFormError(null);
+    const trimmed = dni.trim();
+    if (!/^\d{8}$/.test(trimmed)) {
+      setFormError("El DNI debe tener exactamente 8 dígitos.");
+      return;
+    }
+
+    // DEMO: sin DECOLECTA_API_KEY / RENIEC. Nombres editables.
+    // TODO: restaurar api.reniec.lookupDni cuando la key esté en Convex empresa.
     setValidatingDni(true);
     try {
-      const result = await lookupDni({ dni: dni.trim() });
-      setFirstName(result.firstName);
-      setFirstLastName(result.firstLastName);
-      setSecondLastName(result.secondLastName);
+      setFirstName((prev) => (prev.trim() !== "" ? prev : "Chofer"));
+      setFirstLastName((prev) => (prev.trim() !== "" ? prev : "Demo"));
+      setSecondLastName((prev) => (prev.trim() !== "" ? prev : "Hercom"));
       setDniValidated(true);
-    } catch (e) {
-      const message =
-        e instanceof Error ? e.message : "No se pudo validar el DNI.";
-      setFormError(message);
-      onError?.(message);
     } finally {
       setValidatingDni(false);
     }
@@ -169,6 +179,29 @@ export function DriverRegisterScreen({
     };
 
     await savePendingDriverRegistration(pending);
+
+    if (submitAsAuthenticated) {
+      setSubmitting(true);
+      try {
+        await submitDriverApplicationFromPending(
+          pending,
+          () => generateUploadUrl({}),
+          (args) => submitApplication(args),
+        );
+        onSubmitSuccess?.();
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "No se pudo enviar la solicitud de chofer.";
+        setFormError(message);
+        onError?.(message);
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     setReadyForGoogle(true);
   }
 
@@ -191,12 +224,13 @@ export function DriverRegisterScreen({
           Registro de chofer
         </Text>
         <Text className="mt-1 text-center text-sm text-white/80">
-          Validamos tu identidad con RENIEC y revisamos tus documentos.
+          Demo: Validar no consulta RENIEC. Completa nombres a mano o usa Modo
+          conductor en el menú.
         </Text>
       </View>
 
       <View className="rounded-3xl bg-white p-5 shadow-lg">
-        {/* DNI + RENIEC */}
+        {/* DNI — validación formal pendiente (Decolecta) */}
         <Text className="mb-2 text-sm font-semibold text-slate-700">DNI</Text>
         <View className="mb-3 flex-row gap-2">
           <TextInput
@@ -221,19 +255,31 @@ export function DriverRegisterScreen({
         </View>
 
         {dniValidated && (
-          <View className="mb-4 rounded-2xl bg-green-50 px-4 py-3">
-            <Text className="text-xs font-semibold uppercase text-green-700">
-              Datos RENIEC
+          <View className="mb-4 gap-2 rounded-2xl bg-amber-50 px-4 py-3">
+            <Text className="text-xs font-semibold uppercase text-amber-800">
+              Demo · sin RENIEC — edita tus datos
             </Text>
-            <Text className="mt-1 text-sm text-slate-800">
-              Nombres: {firstName}
-            </Text>
-            <Text className="text-sm text-slate-800">
-              Ap. paterno: {firstLastName}
-            </Text>
-            <Text className="text-sm text-slate-800">
-              Ap. materno: {secondLastName}
-            </Text>
+            <TextInput
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="Nombres"
+              placeholderTextColor="#94A3B8"
+              className={inputClass}
+            />
+            <TextInput
+              value={firstLastName}
+              onChangeText={setFirstLastName}
+              placeholder="Apellido paterno"
+              placeholderTextColor="#94A3B8"
+              className={inputClass}
+            />
+            <TextInput
+              value={secondLastName}
+              onChangeText={setSecondLastName}
+              placeholder="Apellido materno"
+              placeholderTextColor="#94A3B8"
+              className={inputClass}
+            />
           </View>
         )}
 
@@ -340,14 +386,29 @@ export function DriverRegisterScreen({
           </View>
         )}
 
-        {!readyForGoogle ? (
+        {!readyForGoogle && !submitAsAuthenticated ? (
           <TouchableOpacity
             onPress={() => void handlePrepareSubmit()}
-            className="rounded-2xl bg-hercom py-3.5"
+            disabled={submitting}
+            className="rounded-2xl bg-hercom py-3.5 disabled:opacity-60"
           >
             <Text className="text-center text-base font-bold text-white">
               Continuar
             </Text>
+          </TouchableOpacity>
+        ) : submitAsAuthenticated ? (
+          <TouchableOpacity
+            onPress={() => void handlePrepareSubmit()}
+            disabled={submitting}
+            className="rounded-2xl bg-hercom py-3.5 disabled:opacity-60"
+          >
+            {submitting ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text className="text-center text-base font-bold text-white">
+                Activar perfil de chofer
+              </Text>
+            )}
           </TouchableOpacity>
         ) : (
           <View>

@@ -115,7 +115,8 @@ export const submit = mutation({
     });
     await ensureWallet(ctx, driverId);
 
-    await ctx.db.patch(user._id, { name: fullName, role: "driver" });
+    await ctx.db.patch(user._id, { name: fullName });
+    // Mantener rol "client" si ya lo era: pasajero y chofer en la misma cuenta.
 
     return applicationId;
   },

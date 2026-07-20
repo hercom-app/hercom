@@ -7,15 +7,20 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@proyecto/backend";
 import { AvailabilityToggle } from "../components/AvailabilityToggle";
+import { HamburgerButton } from "../components/HamburgerButton";
+import { HelpFab } from "../components/HelpFab";
 import { ServiceCard } from "../components/ServiceCard";
+import { SideDrawer } from "../components/SideDrawer";
+import { useAppMode } from "../contexts/AppModeContext";
 import { formatServiceStopsLabel } from "../lib/wazeNavigation";
 
 export function DriverDashboard() {
-  const { signOut } = useAuthActions();
+  const insets = useSafeAreaInsets();
+  const { userName } = useAppMode();
   const topUpMine = useMutation(api.driverWallets.topUpMine);
   const submitMyOffer = useMutation(api.serviceOffers.submitMyOffer);
   const markAllNotificationsAsRead = useMutation(api.notifications.markAllAsRead);
@@ -40,6 +45,7 @@ export function DriverDashboard() {
     api.notifications.listMine,
     driver === undefined || driver === null ? "skip" : { limit: 8 },
   );
+  const [menuOpen, setMenuOpen] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpSubmitting, setTopUpSubmitting] = useState(false);
   const [topUpMessage, setTopUpMessage] = useState<string | null>(null);
@@ -100,17 +106,17 @@ export function DriverDashboard() {
   }
 
   return (
-    <View className="flex-1 bg-slate-100 px-4 pt-4">
-      <View className="mb-4 flex-row items-center justify-between">
-        <View>
-          <Text className="text-2xl font-bold text-slate-900">Mis viajes</Text>
+    <View className="flex-1 bg-slate-100" style={{ paddingTop: insets.top + 8 }}>
+      <View className="mb-4 flex-row items-center gap-3 px-4">
+        <HamburgerButton onPress={() => setMenuOpen(true)} />
+        <View className="flex-1">
+          <Text className="text-xl font-bold text-slate-900">Mis viajes</Text>
           <Text className="text-sm text-slate-500">Chofer · atiende servicios</Text>
         </View>
-        <TouchableOpacity onPress={() => void signOut()}>
-          <Text className="text-sm font-semibold text-slate-500">Salir</Text>
-        </TouchableOpacity>
+        <HelpFab />
       </View>
 
+      <View className="flex-1 px-4">
       <AvailabilityToggle status={driver.status} />
 
       <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
@@ -309,6 +315,15 @@ export function DriverDashboard() {
           </Text>
         }
         showsVerticalScrollIndicator={false}
+      />
+      </View>
+
+      <SideDrawer
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        userName={userName}
+        unreadCount={unreadNotifications}
+        activeItem="viajes"
       />
     </View>
   );

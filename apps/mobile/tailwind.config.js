@@ -14,6 +14,12 @@ module.exports = {
           dark: "#0062CC",
         },
       },
+      fontFamily: {
+        sans: ["Poppins_400Regular"],
+        medium: ["Poppins_500Medium"],
+        semibold: ["Poppins_600SemiBold"],
+        bold: ["Poppins_700Bold"],
+      },
       borderRadius: {
         card: "1.5rem",
       },

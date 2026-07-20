@@ -1,0 +1,11 @@
+# Accesos rápidos deploy / local
+
+## Expo (tú lo ejecutas)
+
+```powershell
+pnpm --filter @proyecto/mobile start -- --tunnel --clear
+```
+
+## Checklist env + pendientes
+
+Ver **[`0 PENDIENTES Y ENV EMPRESA.md`](./0%20PENDIENTES%20Y%20ENV%20EMPRESA.md)**.

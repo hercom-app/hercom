@@ -37,6 +37,12 @@ cd packages/backend
 npx convex env set DECOLECTA_API_KEY tu_api_key_de_decolecta
 ```
 
+> **Estado jul 2026 (cuentas empresa):** si `DECOLECTA_API_KEY` no está en Convex,
+> el botón **Validar** en la app **no consulta RENIEC** (modo demo: nombres a mano).
+> Además, **Modo conductor** puede crear un perfil chofer mínimo sin documentos
+> (`drivers.ensureDemoDriverProfile`). Restaurar esto antes de producción — ver
+> [`0 PENDIENTES Y ENV EMPRESA.md`](./0%20PENDIENTES%20Y%20ENV%20EMPRESA.md).
+
 Endpoint usado por el backend:
 
 ```

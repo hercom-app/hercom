@@ -182,6 +182,7 @@ Guías detalladas:
 - Login con Google (Gmail): [`docs/convex-google-auth.md`](docs/convex-google-auth.md)
 - SMS, WhatsApp y otros métodos: [`docs/opciones-autenticacion.md`](docs/opciones-autenticacion.md)
 - Demo en celular (QR): [`docs/demo-expo.md`](docs/demo-expo.md)
+- Google Maps / Places / Waze: [`docs/google-maps-y-waze.md`](docs/google-maps-y-waze.md)
 - Plan de arquitectura: [`PLAN.md`](PLAN.md)
 
 ## Scripts útiles

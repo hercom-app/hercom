@@ -101,3 +101,38 @@ export const setStatus = mutation({
     return driver._id;
   },
 });
+
+/**
+ * DEMO / QA: crea perfil de chofer mínimo sin RENIEC ni documentos.
+ * TODO: quitar o restringir a admin cuando vuelva la validación formal.
+ */
+export const ensureDemoDriverProfile = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    const existing = await ctx.db
+      .query("drivers")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .unique();
+    if (existing !== null) {
+      return existing._id;
+    }
+
+    const driverId = await ctx.db.insert("drivers", {
+      userId: user._id,
+      status: "offline",
+      vehicle: {
+        make: "Demo",
+        model: "Demo",
+        plate: "DEMO",
+        year: new Date().getFullYear(),
+      },
+      licenseNumber: "DEMO",
+      licenseExpiry: Date.now() + 365 * 24 * 60 * 60 * 1000,
+      rating: 5,
+      totalTrips: 0,
+    });
+    await ensureWallet(ctx, driverId);
+    return driverId;
+  },
+});

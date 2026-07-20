@@ -2,12 +2,12 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
-import type { Id } from "@proyecto/backend/dataModel";
 import {
   clearPendingDriverRegistration,
   loadPendingDriverRegistration,
-  uploadToConvex,
+  submitDriverApplicationFromPending,
 } from "../lib/driverRegistration";
+import { saveAppMode } from "../lib/appMode";
 
 /** Tras Google OAuth, sube archivos y envía la solicitud de chofer pendiente. */
 export function PendingRegistrationSubmit({
@@ -31,35 +31,14 @@ export function PendingRegistrationSubmit({
       }
 
       try {
-        const licensePhotoIds: Id<"_storage">[] = [];
-        for (const photo of pending.licensePhotoUris) {
-          const id = await uploadToConvex(
-            () => generateUploadUrl({}),
-            photo.uri,
-            photo.mimeType,
-          );
-          licensePhotoIds.push(id);
-        }
-
-        const culPdfId = await uploadToConvex(
+        await submitDriverApplicationFromPending(
+          pending,
           () => generateUploadUrl({}),
-          pending.culPdfUri,
-          "application/pdf",
+          (args) => submitApplication(args),
         );
 
-        await submitApplication({
-          dni: pending.dni,
-          firstName: pending.firstName,
-          firstLastName: pending.firstLastName,
-          secondLastName: pending.secondLastName,
-          sex: pending.sex,
-          licenseNumber: pending.licenseNumber,
-          licenseCategory: pending.licenseCategory,
-          licensePhotoIds,
-          culPdfId,
-        });
-
         await clearPendingDriverRegistration();
+        await saveAppMode("driver");
       } catch (e) {
         const message =
           e instanceof Error

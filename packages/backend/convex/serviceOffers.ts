@@ -36,6 +36,7 @@ export const submitMyOffer = mutation({
     if (service === null) {
       throw new Error("Servicio no encontrado.");
     }
+    // Demo/QA: se permite ofertar en solicitud propia (un solo equipo).
     if (service.status !== "pending") {
       throw new Error("Solo puedes ofertar servicios pendientes.");
     }

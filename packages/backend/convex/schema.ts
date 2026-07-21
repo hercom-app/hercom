@@ -134,6 +134,14 @@ export default defineSchema({
     licenseExpiry: v.number(),
     rating: v.number(),
     totalTrips: v.number(),
+    // Datos de cobro (anticipo 25% del cliente → chofer).
+    fullName: v.optional(v.string()),
+    dni: v.optional(v.string()),
+    yape: v.optional(v.string()),
+    plin: v.optional(v.string()),
+    bankAccount1: v.optional(v.string()),
+    bankAccount2: v.optional(v.string()),
+    bankAccount3: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_status", ["status"]),

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { locationValidator, serviceRequestChannelValidator, serviceStatusValidator, serviceTypeValidator } from "./schema";
@@ -10,6 +10,7 @@ import {
   HOURLY_SERVICE_RATE_PEN,
   MIN_SERVICE_HOURS,
   MIN_SERVICE_PRICE_PEN,
+  PENDING_SERVICE_TTL_MS,
 } from "./lib/constants";
 import { applyPromotionToListPrice } from "./lib/promotions";
 import {
@@ -194,17 +195,69 @@ export const assignDriver = mutation({
 
 /**
  * Servicios abiertos para que choferes disponibles puedan ofertar tarifa.
+ * Solo muestra pending dentro del TTL (ver PENDING_SERVICE_TTL_MS).
  */
 export const listOpenForOffers = query({
   args: {},
   handler: async (ctx) => {
     await requireDriver(ctx);
+    const cutoff = Date.now() - PENDING_SERVICE_TTL_MS;
     // Incluye solicitudes propias: útil para QA con un solo equipo/cuenta.
-    return await ctx.db
+    const pending = await ctx.db
       .query("services")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
       .order("desc")
       .collect();
+    return pending.filter((service) => service.requestedAt >= cutoff);
+  },
+});
+
+/**
+ * Cancela solicitudes pending más viejas que el TTL.
+ * Invocado por cron cada 15 min.
+ */
+export const expireStalePending = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - PENDING_SERVICE_TTL_MS;
+    const pending = await ctx.db
+      .query("services")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .collect();
+    let expired = 0;
+    const now = Date.now();
+    for (const service of pending) {
+      if (service.requestedAt < cutoff) {
+        await ctx.db.patch(service._id, {
+          status: "cancelled",
+          cancelledAt: now,
+        });
+        expired += 1;
+      }
+    }
+    return { expired };
+  },
+});
+
+/**
+ * DEMO: borra todos los servicios y sus ofertas (limpia historial para demo).
+ * Uso: `npx convex run services:purgeAllForDemo`
+ */
+export const purgeAllForDemo = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const offers = await ctx.db.query("serviceOffers").collect();
+    for (const offer of offers) {
+      await ctx.db.delete(offer._id);
+    }
+    const services = await ctx.db.query("services").collect();
+    for (const service of services) {
+      await ctx.db.delete(service._id);
+    }
+    return {
+      deletedOffers: offers.length,
+      deletedServices: services.length,
+    };
   },
 });
 

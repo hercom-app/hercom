@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as crons from "../crons.js";
 import type * as data_peruLocations from "../data/peruLocations.js";
 import type * as driverApplications from "../driverApplications.js";
 import type * as driverWallets from "../driverWallets.js";
@@ -39,6 +40,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  crons: typeof crons;
   "data/peruLocations": typeof data_peruLocations;
   driverApplications: typeof driverApplications;
   driverWallets: typeof driverWallets;

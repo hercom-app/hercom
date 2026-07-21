@@ -56,12 +56,27 @@ const STATUS_LABELS: Record<Doc<"services">["status"], string> = {
   cancelled: "Cancelado",
 };
 
+function PayoutLine({ label, value }: { label: string; value: string }) {
+  return (
+    <Text className="text-xs text-slate-700">
+      <Text className="font-semibold text-slate-800">{label}: </Text>
+      {value}
+    </Text>
+  );
+}
+
 function ClientServiceCard({ service }: { service: Doc<"services"> }) {
   const cancelService = useMutation(api.services.cancelService);
   const acceptOffer = useMutation(api.serviceOffers.acceptOffer);
   const offers = useQuery(
     api.serviceOffers.listForServiceAsClient,
     service.status === "pending" ? { serviceId: service._id } : "skip",
+  );
+  const driverPayout = useQuery(
+    api.drivers.getPayoutForClientService,
+    service.status === "assigned" && service.driverId !== undefined
+      ? { serviceId: service._id }
+      : "skip",
   );
   const [cancelling, setCancelling] = useState(false);
   const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
@@ -139,8 +154,57 @@ function ClientServiceCard({ service }: { service: Doc<"services"> }) {
             Anticipo al chofer: S/{advanceAmount.toFixed(2)} (25% de la tarifa)
           </Text>
           <Text className="mt-1 text-xs text-amber-800">
-            Entrégalo al chofer antes de que salga a recogerte.
+            Transfiérelo con estos datos antes de que salga a recogerte.
           </Text>
+          {driverPayout === undefined ? (
+            <Text className="mt-2 text-xs text-amber-700">
+              Cargando datos del chofer…
+            </Text>
+          ) : driverPayout === null ? (
+            <Text className="mt-2 text-xs text-amber-700">
+              Sin datos del chofer aún.
+            </Text>
+          ) : (
+            <View className="mt-2 gap-1 rounded-lg border border-amber-200 bg-white/70 p-2">
+              <PayoutLine label="Nombres" value={driverPayout.fullName} />
+              <PayoutLine
+                label="DNI"
+                value={driverPayout.dni !== "" ? driverPayout.dni : "Pendiente"}
+              />
+              <PayoutLine
+                label="Yape"
+                value={driverPayout.yape !== "" ? driverPayout.yape : "—"}
+              />
+              <PayoutLine
+                label="Plin"
+                value={driverPayout.plin !== "" ? driverPayout.plin : "—"}
+              />
+              <PayoutLine
+                label="Cuenta banco 1"
+                value={
+                  driverPayout.bankAccount1 !== ""
+                    ? driverPayout.bankAccount1
+                    : "—"
+                }
+              />
+              <PayoutLine
+                label="Cuenta banco 2"
+                value={
+                  driverPayout.bankAccount2 !== ""
+                    ? driverPayout.bankAccount2
+                    : "—"
+                }
+              />
+              <PayoutLine
+                label="Cuenta banco 3"
+                value={
+                  driverPayout.bankAccount3 !== ""
+                    ? driverPayout.bankAccount3
+                    : "—"
+                }
+              />
+            </View>
+          )}
           {advanceConfirmed && (
             <Text className="mt-2 text-xs font-semibold text-emerald-700">
               ✓ El chofer confirmó que recibió el anticipo
@@ -178,7 +242,10 @@ function ClientServiceCard({ service }: { service: Doc<"services"> }) {
                   className="mb-2 rounded-lg border border-slate-200 bg-white p-2"
                 >
                   <Text className="text-xs text-slate-700">
-                    Placa {offer.driverPlate} · Rating {offer.driverRating.toFixed(1)}★
+                    {offer.driverName} · {offer.driverRating.toFixed(1)}★
+                    {offer.driverTrips > 0
+                      ? ` · ${offer.driverTrips} servicios`
+                      : ""}
                   </Text>
                   <Text className="mt-0.5 text-sm font-semibold text-slate-900">
                     Tarifa ofertada: S/{offer.offeredPrice.toFixed(2)}
@@ -503,18 +570,22 @@ export function ClientDashboard() {
           contentContainerClassName="px-4 pb-6"
         >
           <Text className="mb-1 text-lg font-bold text-slate-900">
-            ¿Dónde necesitas un chofer de reemplazo?
+            {menuSection === "notificaciones"
+              ? "Notificaciones"
+              : "¿Dónde necesitas un chofer para reemplazo?"}
           </Text>
-          <Text className="mb-4 text-sm text-slate-500">
-            Tarifa base S/{HOURLY_SERVICE_RATE}/h · mínimo {MIN_SERVICE_HOURS}h =
-            S/{MIN_SERVICE_PRICE}
-          </Text>
+          {menuSection !== "notificaciones" && (
+            <Text className="mb-4 text-sm text-slate-500">
+              Tarifa base S/{HOURLY_SERVICE_RATE}/h · mínimo {MIN_SERVICE_HOURS}h =
+              S/{MIN_SERVICE_PRICE}
+            </Text>
+          )}
 
-          {(menuSection === "notificaciones" || unreadNotifications > 0) && (
+          {menuSection === "notificaciones" ? (
             <View className="mb-4 rounded-2xl border border-slate-100 bg-slate-50 p-3">
               <View className="mb-2 flex-row items-center justify-between">
                 <Text className="text-sm font-semibold text-slate-900">
-                  Notificaciones ({unreadNotifications})
+                  {unreadNotifications} sin leer
                 </Text>
                 <TouchableOpacity onPress={() => void markAllNotificationsAsRead()}>
                   <Text className="text-xs font-semibold text-slate-500">
@@ -525,20 +596,23 @@ export function ClientDashboard() {
               {(notifications ?? []).length === 0 ? (
                 <Text className="text-xs text-slate-500">Sin notificaciones.</Text>
               ) : (
-                (notifications ?? []).slice(0, 3).map((notification) => (
-                  <View key={notification._id} className="mb-2">
+                (notifications ?? []).map((notification) => (
+                  <View
+                    key={notification._id}
+                    className="mb-2 rounded-xl border border-slate-200 bg-white p-3"
+                  >
                     <Text className="text-xs font-semibold text-slate-800">
                       {notification.title}
                     </Text>
-                    <Text className="text-xs text-slate-600">
+                    <Text className="mt-1 text-xs text-slate-600">
                       {notification.message}
                     </Text>
                   </View>
                 ))
               )}
             </View>
-          )}
-
+          ) : (
+            <>
           <View className="gap-3">
             <View>
               <Text className="mb-1.5 text-xs font-semibold text-slate-600">
@@ -786,6 +860,8 @@ export function ClientDashboard() {
               <ClientServiceCard key={service._id} service={service} />
             ))
           )}
+            </>
+          )}
         </ScrollView>
       </View>
 
@@ -794,12 +870,9 @@ export function ClientDashboard() {
         onClose={() => setMenuOpen(false)}
         userName={userName}
         unreadCount={unreadNotifications}
-        activeItem={menuSection === "historial" ? "historial" : "ciudad"}
+        activeItem={menuSection}
         onSelectItem={(key) => {
           setMenuSection(key);
-          if (key === "historial") {
-            // scroll stays in sheet; Mis servicios is already listed
-          }
         }}
       />
     </View>

@@ -43,11 +43,11 @@ const CLIENT_ITEMS: MenuItem[] = [
 ];
 
 const DRIVER_ITEMS: MenuItem[] = [
-  { key: "viajes", label: "Mis viajes", icon: "🚗", active: true },
+  { key: "servicios", label: "Servicios", icon: "🚗", active: true },
   { key: "ofertas", label: "Solicitudes abiertas", icon: "📋" },
-  { key: "saldo", label: "Saldo de app", icon: "💳" },
+  { key: "saldo", label: "Recargar saldo", icon: "💳" },
   { key: "notificaciones", label: "Notificaciones", icon: "🔔" },
-  { key: "configuracion", label: "Configuración", icon: "⚙️" },
+  { key: "configuracion", label: "Datos de cobro", icon: "⚙️" },
   { key: "ayuda", label: "Ayuda", icon: "ℹ️" },
 ];
 
@@ -133,25 +133,34 @@ export function SideDrawer({
           className="h-full bg-white"
         >
           <View className="flex-1">
-            <TouchableOpacity
-              activeOpacity={0.8}
-              className="mb-2 flex-row items-center gap-3 px-5 py-4"
-            >
-              <View className="h-14 w-14 items-center justify-center rounded-full bg-hercom">
-                <Text className="text-2xl text-white">
-                  {(userName.trim()[0] ?? "H").toUpperCase()}
-                </Text>
-              </View>
-              <View className="flex-1">
-                <Text className="text-lg font-semibold text-slate-900">
-                  {userName.trim() !== "" ? userName : "Usuario Hercom"}
-                </Text>
-                <Text className="mt-0.5 text-xs text-slate-500">
-                  {mode === "driver" ? "Chofer" : "Pasajero"} · Hercom
-                </Text>
-              </View>
-              <Text className="text-lg text-slate-400">›</Text>
-            </TouchableOpacity>
+            <View className="mb-2 flex-row items-center gap-2 px-4 py-3">
+              <TouchableOpacity
+                activeOpacity={0.8}
+                className="flex-1 flex-row items-center gap-3 py-1"
+              >
+                <View className="h-14 w-14 items-center justify-center rounded-full bg-hercom">
+                  <Text className="text-2xl text-white">
+                    {(userName.trim()[0] ?? "H").toUpperCase()}
+                  </Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="text-lg font-semibold text-slate-900">
+                    {userName.trim() !== "" ? userName : "Usuario Hercom"}
+                  </Text>
+                  <Text className="mt-0.5 text-xs text-slate-500">
+                    {mode === "driver" ? "Chofer" : "Pasajero"} · Hercom
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onClose}
+                accessibilityLabel="Cerrar menú"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                className="h-10 w-10 items-center justify-center rounded-full bg-slate-100"
+              >
+                <Text className="text-xl font-medium text-slate-600">✕</Text>
+              </TouchableOpacity>
+            </View>
 
             <ScrollView
               className="flex-1"

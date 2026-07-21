@@ -1,4 +1,5 @@
-import { Text, TouchableOpacity, View } from "react-native";
+import { useRef, useState } from "react";
+import { PanResponder, Text, View } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
 
@@ -6,30 +7,82 @@ type DriverStatus = "available" | "busy" | "offline";
 
 const STATUS_LABELS: Record<DriverStatus, string> = {
   available: "Disponible",
-  busy: "Ocupado",
+  busy: "En servicio",
   offline: "Desconectado",
 };
 
+/** Alto total del riel (track). */
+const TRACK_H = 56;
+/** Margen interno entre riel y control (thumb). */
+const INSET = 4;
+/** Diámetro del control = alto del riel menos márgenes (encaja exacto). */
+const THUMB = TRACK_H - INSET * 2;
+
+/**
+ * Deslizador tipo Yango: hay que arrastrar el control para cambiar
+ * disponible ↔ desconectado (evita toques accidentales).
+ *
+ * Anatomía (React Native, no HTML):
+ * - track (riel): View horizontal redondeada de fondo
+ * - thumb (control / perilla): View circular que el usuario arrastra
+ */
 export function AvailabilityToggle({ status }: { status: DriverStatus }) {
   const setStatus = useMutation(api.drivers.setStatus);
+  const [trackWidth, setTrackWidth] = useState(0);
+  const [thumbX, setThumbX] = useState(0);
+  const maxXRef = useRef(0);
+  const statusRef = useRef(status);
+  statusRef.current = status;
+  maxXRef.current = Math.max(0, trackWidth - THUMB - INSET * 2);
 
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => statusRef.current !== "busy",
+      onMoveShouldSetPanResponder: () => statusRef.current !== "busy",
+      onPanResponderMove: (_, gesture) => {
+        const next = Math.min(maxXRef.current, Math.max(0, gesture.dx));
+        setThumbX(next);
+      },
+      onPanResponderRelease: (_, gesture) => {
+        const next = Math.min(maxXRef.current, Math.max(0, gesture.dx));
+        const threshold = maxXRef.current * 0.72;
+        const current = statusRef.current;
+        if (next >= threshold && maxXRef.current > 0 && current !== "busy") {
+          const target: DriverStatus =
+            current === "available" ? "offline" : "available";
+          setThumbX(0);
+          void setStatus({ status: target });
+          return;
+        }
+        setThumbX(0);
+      },
+    }),
+  ).current;
+
+  const busy = status === "busy";
   const isAvailable = status === "available";
-  const next: DriverStatus = isAvailable ? "offline" : "available";
+  const slideLabel = busy
+    ? "En servicio — no puedes cambiar el estado"
+    : isAvailable
+      ? "Desliza para desconectarte"
+      : "Desliza para ponerte disponible";
 
   return (
     <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
       <View className="mb-3 flex-row items-center justify-between">
-        <Text className="text-base font-semibold text-slate-800">
-          Estado
-        </Text>
+        <Text className="text-base font-semibold text-slate-800">Estado</Text>
         <View
           className={`rounded-full px-3 py-1 ${
-            isAvailable ? "bg-green-100" : "bg-slate-200"
+            isAvailable ? "bg-green-100" : busy ? "bg-amber-100" : "bg-slate-200"
           }`}
         >
           <Text
             className={`text-xs font-semibold ${
-              isAvailable ? "text-green-700" : "text-slate-600"
+              isAvailable
+                ? "text-green-700"
+                : busy
+                  ? "text-amber-800"
+                  : "text-slate-600"
             }`}
           >
             {STATUS_LABELS[status]}
@@ -37,21 +90,49 @@ export function AvailabilityToggle({ status }: { status: DriverStatus }) {
         </View>
       </View>
 
-      <TouchableOpacity
-        onPress={() => void setStatus({ status: next })}
-        disabled={status === "busy"}
-        className={`rounded-xl py-3 ${
-          status === "busy" ? "bg-slate-300" : "bg-hercom active:bg-hercom-dark"
+      {/* track = riel */}
+      <View
+        onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
+        className={`overflow-hidden rounded-full ${
+          busy ? "bg-slate-300" : isAvailable ? "bg-green-600" : "bg-hercom"
         }`}
+        style={{ height: TRACK_H, position: "relative" }}
       >
-        <Text className="text-center text-base font-semibold text-white">
-          {status === "busy"
-            ? "En servicio"
-            : isAvailable
-              ? "Ponerme desconectado"
-              : "Ponerme disponible"}
+        <Text
+          pointerEvents="none"
+          className="absolute left-0 right-0 text-center text-sm font-semibold text-white/95"
+          style={{
+            top: 0,
+            height: TRACK_H,
+            lineHeight: TRACK_H,
+            paddingLeft: THUMB + INSET,
+            paddingRight: INSET,
+          }}
+        >
+          {slideLabel}
         </Text>
-      </TouchableOpacity>
+
+        {/* thumb = control / perilla */}
+        {!busy && (
+          <View
+            {...pan.panHandlers}
+            className="absolute items-center justify-center rounded-full bg-white"
+            style={{
+              width: THUMB,
+              height: THUMB,
+              left: INSET + thumbX,
+              top: INSET,
+              elevation: 3,
+              shadowColor: "#0F172A",
+              shadowOpacity: 0.2,
+              shadowRadius: 3,
+              shadowOffset: { width: 0, height: 1 },
+            }}
+          >
+            <Text className="text-base font-bold text-slate-600">››</Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 }

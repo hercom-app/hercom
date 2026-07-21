@@ -39,6 +39,12 @@ export function computePlatformCommission(totalPrice: number): number {
  */
 export const CLIENT_ADVANCE_RATE = PLATFORM_COMMISSION_RATE;
 
+/**
+ * Tiempo máximo que una solicitud `pending` permanece abierta para ofertar.
+ * Pasado ese lapso se cancela automáticamente.
+ */
+export const PENDING_SERVICE_TTL_MS = 2 * 60 * 60 * 1000;
+
 export function computeClientAdvance(offeredPrice: number): number {
   return computePlatformCommission(offeredPrice);
 }

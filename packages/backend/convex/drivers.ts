@@ -122,17 +122,91 @@ export const ensureDemoDriverProfile = mutation({
       userId: user._id,
       status: "offline",
       vehicle: {
-        make: "Demo",
-        model: "Demo",
-        plate: "DEMO",
+        make: "N/A",
+        model: "N/A",
+        plate: "N/A",
         year: new Date().getFullYear(),
       },
-      licenseNumber: "DEMO",
+      licenseNumber: "PENDIENTE",
       licenseExpiry: Date.now() + 365 * 24 * 60 * 60 * 1000,
       rating: 5,
       totalTrips: 0,
+      fullName: user.name?.trim() || "Chofer Hercom",
     });
     await ensureWallet(ctx, driverId);
     return driverId;
+  },
+});
+
+/**
+ * Actualiza datos de cobro del chofer (anticipo del cliente).
+ */
+export const updateMyPayoutProfile = mutation({
+  args: {
+    fullName: v.string(),
+    dni: v.string(),
+    yape: v.optional(v.string()),
+    plin: v.optional(v.string()),
+    bankAccount1: v.optional(v.string()),
+    bankAccount2: v.optional(v.string()),
+    bankAccount3: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { driver } = await requireDriver(ctx);
+    const fullName = args.fullName.trim();
+    const dni = args.dni.trim();
+    if (fullName.length < 3) {
+      throw new Error("Ingresa tus nombres completos.");
+    }
+    if (!/^\d{8}$/.test(dni)) {
+      throw new Error("El DNI debe tener 8 dígitos.");
+    }
+    const optional = (value: string | undefined) => {
+      const trimmed = value?.trim() ?? "";
+      return trimmed === "" ? undefined : trimmed;
+    };
+    await ctx.db.patch(driver._id, {
+      fullName,
+      dni,
+      yape: optional(args.yape),
+      plin: optional(args.plin),
+      bankAccount1: optional(args.bankAccount1),
+      bankAccount2: optional(args.bankAccount2),
+      bankAccount3: optional(args.bankAccount3),
+    });
+    return driver._id;
+  },
+});
+
+/**
+ * Cliente: datos de cobro del chofer asignado a un servicio (para el anticipo).
+ */
+export const getPayoutForClientService = query({
+  args: {
+    serviceId: v.id("services"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null || service.clientId !== user._id) {
+      return null;
+    }
+    if (service.driverId === undefined) {
+      return null;
+    }
+    const driver = await ctx.db.get(service.driverId);
+    if (driver === null) {
+      return null;
+    }
+    const driverUser = await ctx.db.get(driver.userId);
+    return {
+      fullName: driver.fullName?.trim() || driverUser?.name?.trim() || "Chofer",
+      dni: driver.dni?.trim() || "",
+      yape: driver.yape?.trim() || "",
+      plin: driver.plin?.trim() || "",
+      bankAccount1: driver.bankAccount1?.trim() || "",
+      bankAccount2: driver.bankAccount2?.trim() || "",
+      bankAccount3: driver.bankAccount3?.trim() || "",
+    };
   },
 });

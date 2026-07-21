@@ -98,18 +98,20 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
     <>
       <TouchableOpacity
         onPress={() => setMenuOpen(true)}
-        accessibilityLabel="Ayuda y emergencia"
+        accessibilityLabel="SOS — ayuda y emergencia"
         activeOpacity={0.85}
-        className="h-12 w-12 items-center justify-center rounded-full bg-white"
+        className="h-12 min-w-12 items-center justify-center rounded-full bg-red-600 px-2.5"
         style={{
           shadowColor: "#0F172A",
-          shadowOpacity: 0.12,
+          shadowOpacity: 0.18,
           shadowRadius: 8,
           shadowOffset: { width: 0, height: 2 },
           elevation: 4,
         }}
       >
-        <Text className="text-lg font-bold text-hercom">?</Text>
+        <Text className="text-[11px] font-extrabold tracking-wide text-white">
+          SOS
+        </Text>
       </TouchableOpacity>
 
       <Modal

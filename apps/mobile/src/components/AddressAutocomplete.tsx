@@ -128,8 +128,12 @@ export function AddressAutocomplete({
   }, [canSearch, gpsCenter, isFocused, region, value]);
 
   async function handleSelectSuggestion(suggestion: PlaceSuggestion) {
-    setLoading(true);
+    // Cierra la lista de inmediato (si no, al rellenar el texto se vuelve a buscar).
+    setIsFocused(false);
+    setSuggestions([]);
     setSearchError(null);
+    setLoading(true);
+    requestIdRef.current += 1;
     try {
       const place = await fetchPlaceDetails(
         suggestion.placeId,
@@ -144,7 +148,6 @@ export function AddressAutocomplete({
       }
       onChangeText(place.address);
       onPlaceSelected(place);
-      setSuggestions([]);
       sessionTokenRef.current = createPlacesSessionToken();
     } catch (error) {
       setSearchError(

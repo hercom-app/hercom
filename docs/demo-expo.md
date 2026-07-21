@@ -93,18 +93,84 @@ Esto ejecuta `expo start` y muestra un **código QR** en la terminal.
 La app se descarga al teléfono en segundos y se recarga sola al guardar cambios
 (hot reload).
 
-## Si el QR no conecta (redes corporativas, Wi-Fi distintas)
+## Si el QR no conecta (PC sin Wi‑Fi, redes distintas, datos del celular)
 
-Usa el **modo túnel**, que funciona aunque el teléfono y la PC estén en redes
-diferentes:
+Necesitas **túnel**. Hay dos planes.
+
+### Plan A — túnel de Expo (`@expo/ngrok`) · demos habituales
+
+Expo usa ngrok por detrás. Si falta el paquete o el túnel compartido falla, verás
+algo como:
+
+`CommandError: TypeError: Cannot read properties of undefined (reading 'body')`
+
+**1. Liberar el puerto 8081** (si quedó un Metro/Expo anterior):
 
 ```powershell
-cd C:\Users\jorge\Documents\proyecto
-pnpm --filter @proyecto/mobile start -- --tunnel
+netstat -ano | findstr ":8081"
+taskkill /PID <pid> /F
+netstat -ano | findstr ":8081"
 ```
 
-La primera vez puede pedir instalar `@expo/ngrok`; acepta. El túnel es algo más
-lento pero es lo más confiable para una demo fuera de tu red local.
+(El comando es `taskkill` con dos **l**. Si el segundo `netstat` no imprime nada, el puerto está libre.)
+
+**2. Instalar el helper de ngrok de Expo** (una vez por máquina / si faltaba):
+
+```powershell
+pnpm --filter @proyecto/mobile exec npx expo install @expo/ngrok
+```
+
+**3. Arrancar con túnel:**
+
+```powershell
+pnpm --filter @proyecto/mobile start -- --tunnel --clear
+```
+
+Éxito = `Tunnel connected` / `Tunnel ready` + QR y URL tipo:
+
+`exp://….exp.direct`
+
+No cierres esa terminal mientras demuestras.
+
+> Esto usa el **túnel compartido de Expo** (no tu cuenta ngrok). Puede fallar otro día por saturación del servicio; si pasa, usa Plan B.
+
+### Plan B — tu propio ngrok · cuando el Plan A falla o es inestable
+
+**1.** Cuenta gratis en https://dashboard.ngrok.com → copia el **authtoken**.
+
+**2.** Instalar CLI (una vez):
+
+```powershell
+winget install ngrok.ngrok
+```
+
+**3.** Autenticar (una vez):
+
+```powershell
+ngrok config add-authtoken PEGA_TU_TOKEN_AQUI
+```
+
+**4.** Terminal 1 — Expo **sin** `--tunnel`:
+
+```powershell
+pnpm --filter @proyecto/mobile start -- --clear
+```
+
+**5.** Terminal 2 — túnel propio:
+
+```powershell
+ngrok http 8081
+```
+
+Copia el host `https://xxxx.ngrok-free.app`.
+
+**6.** En Expo Go, abrir manualmente:
+
+```text
+exp://xxxx.ngrok-free.app:80
+```
+
+(sin `https://`; usa el host que te dio ngrok.)
 
 ## Resumen de terminales para la demo
 

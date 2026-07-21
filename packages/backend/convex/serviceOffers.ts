@@ -19,7 +19,7 @@ function generateSecurityCode(): string {
 }
 
 /**
- * Chofer envía o actualiza oferta para un servicio pendiente.
+ * Chofer envía oferta para un servicio pendiente (una sola vez por servicio).
  */
 export const submitMyOffer = mutation({
   args: {
@@ -75,20 +75,7 @@ export const submitMyOffer = mutation({
       .unique();
 
     if (existing !== null) {
-      if (existing.status !== "pending") {
-        throw new Error("Ya no puedes modificar una oferta respondida.");
-      }
-      await ctx.db.patch(existing._id, {
-        offeredPrice,
-      });
-      await createNotification(ctx, {
-        userId: service.clientId,
-        type: "offer_received",
-        title: "Oferta actualizada",
-        message: `Un chofer actualizó su oferta a S/${offeredPrice.toFixed(2)}.`,
-        serviceId: service._id,
-      });
-      return existing._id;
+      throw new Error("Ya enviaste una oferta para esta solicitud.");
     }
 
     const offerId = await ctx.db.insert("serviceOffers", {
@@ -106,6 +93,27 @@ export const submitMyOffer = mutation({
       serviceId: service._id,
     });
     return offerId;
+  },
+});
+
+/**
+ * Ofertas pending del chofer autenticado (para no re-ofertar y mostrar monto).
+ */
+export const listMinePending = query({
+  args: {},
+  handler: async (ctx) => {
+    const { driver } = await requireDriver(ctx);
+    const offers = await ctx.db
+      .query("serviceOffers")
+      .withIndex("by_driver", (q) => q.eq("driverId", driver._id))
+      .collect();
+    return offers
+      .filter((offer) => offer.status === "pending")
+      .map((offer) => ({
+        serviceId: offer.serviceId,
+        offeredPrice: offer.offeredPrice,
+        createdAt: offer.createdAt,
+      }));
   },
 });
 
@@ -133,11 +141,15 @@ export const listForServiceAsClient = query({
     const offersWithDriver = await Promise.all(
       offers.map(async (offer) => {
         const driver = await ctx.db.get(offer.driverId);
+        const driverUser =
+          driver !== null ? await ctx.db.get(driver.userId) : null;
+        const driverName = driverUser?.name?.trim() || "Chofer Hercom";
         return {
           ...offer,
           driverStatus: driver?.status ?? "offline",
-          driverPlate: driver?.vehicle.plate ?? "N/A",
+          driverName,
           driverRating: driver?.rating ?? 0,
+          driverTrips: driver?.totalTrips ?? 0,
         };
       }),
     );

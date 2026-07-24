@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { Linking, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
-import type { Doc } from "@proyecto/backend/dataModel";
+import type { Doc, Id } from "@proyecto/backend/dataModel";
 import { SlideToConfirm } from "./SlideToConfirm";
 import { formatServiceStopsLabel, openWazeNavigation } from "../lib/wazeNavigation";
 
@@ -20,13 +20,13 @@ const STATUS_LABELS: Record<Doc<"services">["status"], string> = {
   cancelled: "Cancelado",
 };
 
-export function ServiceCard({ service }: { service: Doc<"services"> }) {
+type Props = {
+  service: Doc<"services">;
+  onOpenChecklist?: (serviceId: Id<"services">) => void;
+};
+
+export function ServiceCard({ service, onOpenChecklist }: Props) {
   const [securityCodeInput, setSecurityCodeInput] = useState("");
-  const [hasVehicleDamage, setHasVehicleDamage] = useState(false);
-  const [damageNotes, setDamageNotes] = useState("");
-  const [hasPropertyCard, setHasPropertyCard] = useState(false);
-  const [hasSoat, setHasSoat] = useState(false);
-  const [checklistSubmitting, setChecklistSubmitting] = useState(false);
   const [tripStarting, setTripStarting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [advanceConfirming, setAdvanceConfirming] = useState(false);
@@ -36,16 +36,20 @@ export function ServiceCard({ service }: { service: Doc<"services"> }) {
   const confirmAdvanceReceived = useMutation(api.services.confirmAdvanceReceived);
   const startTripWithCode = useMutation(api.services.startTripWithCode);
   const arriveAtCurrentStop = useMutation(api.services.arriveAtCurrentStop);
-  const upsertPickupChecklist = useMutation(api.serviceChecklists.upsertPickupChecklist);
-  const pickupChecklist = useQuery(
-    api.serviceChecklists.getForMyService,
-    { serviceId: service._id },
-  );
+  const pickupChecklist = useQuery(api.serviceChecklists.getForMyService, {
+    serviceId: service._id,
+  });
+
   const canStartTrip = securityCodeInput.trim().length > 0;
   const checklistComplete =
-    hasPropertyCard &&
-    hasSoat &&
-    (!hasVehicleDamage || damageNotes.trim().length > 0);
+    pickupChecklist !== null &&
+    pickupChecklist !== undefined &&
+    pickupChecklist.hasPropertyCard &&
+    pickupChecklist.hasSoat &&
+    pickupChecklist.hasTechnicalInspection === true &&
+    (!pickupChecklist.hasVehicleDamage ||
+      (pickupChecklist.damageNotes ?? "").trim().length > 0);
+
   const advanceAmount =
     service.advanceAmount ??
     (service.offeredPrice !== undefined
@@ -59,16 +63,6 @@ export function ServiceCard({ service }: { service: Doc<"services"> }) {
   const currentStopIndex = service.currentStopIndex ?? 0;
   const currentStop = serviceStops[Math.min(currentStopIndex, serviceStops.length - 1)]!;
   const totalStops = serviceStops.length;
-
-  useEffect(() => {
-    if (pickupChecklist === null || pickupChecklist === undefined) {
-      return;
-    }
-    setHasVehicleDamage(pickupChecklist.hasVehicleDamage);
-    setDamageNotes(pickupChecklist.damageNotes ?? "");
-    setHasPropertyCard(pickupChecklist.hasPropertyCard);
-    setHasSoat(pickupChecklist.hasSoat);
-  }, [pickupChecklist?._id]);
 
   async function handleConfirmAdvance() {
     setActionError(null);
@@ -109,30 +103,12 @@ export function ServiceCard({ service }: { service: Doc<"services"> }) {
     }
   }
 
-  async function handleSaveChecklist() {
-    setActionError(null);
-    setChecklistSubmitting(true);
-    try {
-      await upsertPickupChecklist({
-        serviceId: service._id,
-        hasVehicleDamage,
-        ...(hasVehicleDamage ? { damageNotes } : {}),
-        hasPropertyCard,
-        hasSoat,
-      });
-    } catch (error) {
-      setActionError(
-        error instanceof Error ? error.message : "No se pudo guardar el checklist.",
-      );
-    } finally {
-      setChecklistSubmitting(false);
-    }
-  }
-
   async function handleSlideStartTrip() {
     if (!canStartTrip || !checklistComplete) {
       setActionError(
-        "Completa checklist + código de seguridad antes de iniciar el viaje.",
+        checklistComplete
+          ? "Ingresa el código de seguridad del cliente."
+          : "Completá el checklist antes de iniciar.",
       );
       setSlideResetCounter((prev) => prev + 1);
       return;
@@ -140,13 +116,6 @@ export function ServiceCard({ service }: { service: Doc<"services"> }) {
     setActionError(null);
     setTripStarting(true);
     try {
-      await upsertPickupChecklist({
-        serviceId: service._id,
-        hasVehicleDamage,
-        ...(hasVehicleDamage ? { damageNotes } : {}),
-        hasPropertyCard,
-        hasSoat,
-      });
       await startTripWithCode({
         serviceId: service._id,
         code: securityCodeInput,
@@ -219,11 +188,11 @@ export function ServiceCard({ service }: { service: Doc<"services"> }) {
         <View className="gap-2">
           <View className="rounded-xl bg-amber-50 p-3">
             <Text className="text-xs font-semibold text-amber-900">
-              Anticipo requerido: S/{advanceAmount.toFixed(2)} (25% de la tarifa)
+              Anticipo requerido: S/{advanceAmount.toFixed(2)}
             </Text>
             <Text className="mt-1 text-xs text-amber-800">
-              El cliente debe pagarte antes de que salgas. Confirma en el sistema
-              cuando lo recibas.
+              El cliente debe pagarte antes de que salgas. Confirma cuando lo
+              recibas.
             </Text>
             {advanceConfirmed && (
               <Text className="mt-2 text-xs font-semibold text-emerald-700">
@@ -241,7 +210,7 @@ export function ServiceCard({ service }: { service: Doc<"services"> }) {
               <Text className="text-center text-sm font-semibold text-white">
                 {advanceConfirming
                   ? "Confirmando..."
-                  : "Confirmo que recibí el anticipo (25%)"}
+                  : "Confirmo que recibí el anticipo"}
               </Text>
             </TouchableOpacity>
           )}
@@ -275,43 +244,24 @@ export function ServiceCard({ service }: { service: Doc<"services"> }) {
 
       {service.status === "arrived_pickup" && (
         <View className="gap-2">
-          <View className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <Text className="mb-2 text-xs font-semibold uppercase text-slate-600">
-              Checklist de recojo
+          <TouchableOpacity
+            onPress={() => onOpenChecklist?.(service._id)}
+            className="rounded-xl bg-brand py-3 active:bg-brand-dark"
+          >
+            <Text className="text-center text-sm font-bold text-white">
+              Abrir checklist
             </Text>
-            <ChecklistToggle
-              label="Se detectan abolladuras/observaciones"
-              value={hasVehicleDamage}
-              onPress={() => setHasVehicleDamage((prev) => !prev)}
-            />
-            {hasVehicleDamage && (
-              <TextInput
-                value={damageNotes}
-                onChangeText={setDamageNotes}
-                placeholder="Detalle del estado del vehiculo"
-                className="mt-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
-              />
-            )}
-            <ChecklistToggle
-              label="Tarjeta de propiedad verificada"
-              value={hasPropertyCard}
-              onPress={() => setHasPropertyCard((prev) => !prev)}
-            />
-            <ChecklistToggle
-              label="SOAT verificado"
-              value={hasSoat}
-              onPress={() => setHasSoat((prev) => !prev)}
-            />
-            <TouchableOpacity
-              onPress={() => void handleSaveChecklist()}
-              disabled={checklistSubmitting}
-              className="mt-2 rounded-xl border border-slate-300 bg-white py-2 disabled:opacity-60"
-            >
-              <Text className="text-center text-xs font-semibold text-slate-700">
-                {checklistSubmitting ? "Guardando..." : "Guardar checklist"}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
+
+          {checklistComplete ? (
+            <Text className="text-center text-xs font-semibold text-emerald-700">
+              ✓ Checklist listo
+            </Text>
+          ) : (
+            <Text className="text-center text-xs text-slate-500">
+              Completá el checklist para poder iniciar
+            </Text>
+          )}
 
           <TextInput
             value={securityCodeInput}
@@ -322,7 +272,7 @@ export function ServiceCard({ service }: { service: Doc<"services"> }) {
             maxLength={6}
           />
           <SlideToConfirm
-            label="Desliza para iniciar viaje (abre Waze)"
+            label="Desliza para iniciar viaje"
             onSlideComplete={handleSlideStartTrip}
             disabled={!canStartTrip || !checklistComplete}
             loading={tripStarting}
@@ -371,31 +321,5 @@ export function ServiceCard({ service }: { service: Doc<"services"> }) {
         <Text className="mt-2 text-xs font-semibold text-red-600">{actionError}</Text>
       )}
     </View>
-  );
-}
-
-function ChecklistToggle({
-  label,
-  value,
-  onPress,
-}: {
-  label: string;
-  value: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      className={`mt-2 rounded-xl border px-3 py-2 ${
-        value
-          ? "border-emerald-300 bg-emerald-50"
-          : "border-slate-300 bg-white"
-      }`}
-    >
-      <Text className={`text-xs font-semibold ${value ? "text-emerald-700" : "text-slate-700"}`}>
-        {value ? "✓ " : "○ "}
-        {label}
-      </Text>
-    </TouchableOpacity>
   );
 }

@@ -6,45 +6,118 @@ export type NearbyHealthPlace = {
   address: string;
   lat: number;
   lng: number;
+  distanceMeters: number;
+  openNow: boolean | null;
 };
 
-type PlacesNearbyResponse = {
-  places?: Array<{
-    id?: string;
-    displayName?: { text?: string };
-    formattedAddress?: string;
-    location?: { latitude?: number; longitude?: number };
-  }>;
+export type NearbyHealthLists = {
+  hospitals: NearbyHealthPlace[];
+  clinics: NearbyHealthPlace[];
+};
+
+type PlaceRaw = {
+  id?: string;
+  displayName?: { text?: string };
+  formattedAddress?: string;
+  location?: { latitude?: number; longitude?: number };
+  currentOpeningHours?: { openNow?: boolean };
+};
+
+type PlacesResponse = {
+  places?: PlaceRaw[];
   error?: { message?: string };
 };
 
 const SEARCH_NEARBY_URL = "https://places.googleapis.com/v1/places:searchNearby";
 const SEARCH_TEXT_URL = "https://places.googleapis.com/v1/places:searchText";
 const FIELD_MASK =
-  "places.id,places.displayName,places.formattedAddress,places.location";
+  "places.id,places.displayName,places.formattedAddress,places.location,places.currentOpeningHours";
+
+const RADIUS_M = 20_000;
+
+/** Ruido que no sirve para emergencia. */
+const NAME_BLOCKLIST = [
+  /casa de reposo/i,
+  /asilo/i,
+  /residencia\s+geriatr/i,
+  /puesto de salud/i,
+  /posta\b/i,
+  /carnet de sanidad/i,
+  /gerencia de salud/i,
+  /direcci[oó]n de salud/i,
+  /laboratorio/i,
+  /farmacia/i,
+  /veterinar/i,
+];
+
+function haversineMeters(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const R = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function isBlockedName(name: string): boolean {
+  return NAME_BLOCKLIST.some((re) => re.test(name));
+}
 
 function mapPlaces(
-  places: PlacesNearbyResponse["places"],
+  places: PlaceRaw[] | undefined,
+  originLat: number,
+  originLng: number,
 ): NearbyHealthPlace[] {
   const results: NearbyHealthPlace[] = [];
   for (const place of places ?? []) {
+    const name = place.displayName?.text;
+    const lat = place.location?.latitude;
+    const lng = place.location?.longitude;
     if (
       place.id === undefined ||
-      place.displayName?.text === undefined ||
-      place.location?.latitude === undefined ||
-      place.location.longitude === undefined
+      name === undefined ||
+      lat === undefined ||
+      lng === undefined ||
+      isBlockedName(name)
     ) {
       continue;
     }
     results.push({
       placeId: place.id,
-      name: place.displayName.text,
-      address: place.formattedAddress ?? place.displayName.text,
-      lat: place.location.latitude,
-      lng: place.location.longitude,
+      name,
+      address: place.formattedAddress ?? name,
+      lat,
+      lng,
+      distanceMeters: haversineMeters(originLat, originLng, lat, lng),
+      openNow: place.currentOpeningHours?.openNow ?? null,
     });
   }
   return results;
+}
+
+function sortForEmergency(a: NearbyHealthPlace, b: NearbyHealthPlace): number {
+  const openScore = (p: NearbyHealthPlace) =>
+    p.openNow === true ? 0 : p.openNow === null ? 1 : 2;
+  const byOpen = openScore(a) - openScore(b);
+  if (byOpen !== 0) return byOpen;
+  return a.distanceMeters - b.distanceMeters;
+}
+
+function dedupe(places: NearbyHealthPlace[]): NearbyHealthPlace[] {
+  const byId = new Map<string, NearbyHealthPlace>();
+  for (const place of places) {
+    if (!byId.has(place.placeId)) {
+      byId.set(place.placeId, place);
+    }
+  }
+  return Array.from(byId.values()).sort(sortForEmergency);
 }
 
 async function searchNearbyHospitals(
@@ -61,34 +134,35 @@ async function searchNearbyHospitals(
     },
     body: JSON.stringify({
       includedTypes: ["hospital"],
-      maxResultCount: 8,
+      maxResultCount: 20,
       rankPreference: "DISTANCE",
       languageCode: "es",
       regionCode: "PE",
       locationRestriction: {
         circle: {
           center: { latitude: lat, longitude: lng },
-          radius: 12_000,
+          radius: RADIUS_M,
         },
       },
     }),
   });
 
   if (!response.ok) {
-    const data = (await response.json()) as PlacesNearbyResponse;
+    const data = (await response.json()) as PlacesResponse;
     throw new Error(
       data.error?.message ?? `Nearby Search falló (${response.status}).`,
     );
   }
 
-  const data = (await response.json()) as PlacesNearbyResponse;
-  return mapPlaces(data.places);
+  const data = (await response.json()) as PlacesResponse;
+  return mapPlaces(data.places, lat, lng);
 }
 
-/** Complementa con clínicas / centros de salud por texto (Perú). */
-async function searchTextClinics(
+/** Misma idea que buscar “hospital” o “clínica” en Google Maps. */
+async function searchTextKeyword(
   lat: number,
   lng: number,
+  textQuery: string,
 ): Promise<NearbyHealthPlace[]> {
   const apiKey = requireGoogleMapsApiKey();
   const response = await fetch(SEARCH_TEXT_URL, {
@@ -99,14 +173,14 @@ async function searchTextClinics(
       "X-Goog-FieldMask": FIELD_MASK,
     },
     body: JSON.stringify({
-      textQuery: "clínica OR hospital OR centro de salud",
+      textQuery,
       languageCode: "es",
       regionCode: "PE",
-      maxResultCount: 8,
+      maxResultCount: 20,
       locationBias: {
         circle: {
           center: { latitude: lat, longitude: lng },
-          radius: 12_000,
+          radius: RADIUS_M,
         },
       },
     }),
@@ -116,29 +190,33 @@ async function searchTextClinics(
     return [];
   }
 
-  const data = (await response.json()) as PlacesNearbyResponse;
-  return mapPlaces(data.places);
+  const data = (await response.json()) as PlacesResponse;
+  return mapPlaces(data.places, lat, lng);
 }
 
 /**
- * Busca hospitales/clínicas cerca de lat/lng.
- * Combina Nearby (tipo hospital) + Text Search (clínica / centro de salud).
+ * Dos búsquedas estilo Maps: “hospital” y “clínica”.
+ * Listas separadas para mostrar en la misma ventana.
  */
 export async function fetchNearbyHealthCenters(
   lat: number,
   lng: number,
-): Promise<NearbyHealthPlace[]> {
-  const [hospitals, clinics] = await Promise.all([
+): Promise<NearbyHealthLists> {
+  const [nearbyHospitals, textHospitals, textClinics] = await Promise.all([
     searchNearbyHospitals(lat, lng),
-    searchTextClinics(lat, lng),
+    searchTextKeyword(lat, lng, "hospital"),
+    searchTextKeyword(lat, lng, "clínica"),
   ]);
 
-  const byId = new Map<string, NearbyHealthPlace>();
-  for (const place of [...hospitals, ...clinics]) {
-    if (!byId.has(place.placeId)) {
-      byId.set(place.placeId, place);
-    }
-  }
+  return {
+    hospitals: dedupe([...nearbyHospitals, ...textHospitals]).slice(0, 7),
+    clinics: dedupe(textClinics).slice(0, 7),
+  };
+}
 
-  return Array.from(byId.values()).slice(0, 8);
+export function formatDistanceKm(meters: number): string {
+  if (meters < 1000) {
+    return `${Math.round(meters)} m`;
+  }
+  return `${(meters / 1000).toFixed(1)} km`;
 }

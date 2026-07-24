@@ -6,6 +6,8 @@ backend único de Convex compartido por tres aplicaciones.
 > **Guía de vistas y flujo del negocio:** [`docs/flujo-vistas.md`](docs/flujo-vistas.md)
 > (orientada a alguien ajeno al código).
 >
+> **Setup en PC provisional (Windows):** [`docs/setup-pc.md`](docs/setup-pc.md)
+>
 > **Guía de diseño (elementos UI, CSS/Tailwind, marca Hercom):**
 > [`docs/guia-diseno.md`](docs/guia-diseno.md)
 >
@@ -164,18 +166,25 @@ Puerto: **http://localhost:5174**
 - Cuenta de [Convex](https://convex.dev)
 - **Expo Go** con **SDK 54** (App Store / Play Store)
 
-## Puesta en marcha
+## Puesta en marcha (rápida)
 
-```bash
+```powershell
+npm install -g pnpm
 pnpm install
-pnpm --filter @proyecto/backend dev    # Terminal 1 — dejar abierta
-pnpm mobile                            # Terminal 2 — QR para Expo Go
-pnpm web:comercial                     # http://localhost:5173
-pnpm web:admin                         # http://localhost:5174
+pnpm backend:dev          # Terminal 1 — login Convex, elegir proyecto hercom, dejar abierta
+# Pegar la URL https://….convex.cloud en:
+#   apps/web-admin/.env.local  → VITE_CONVEX_URL=…
+#   apps/mobile/.env           → EXPO_PUBLIC_CONVEX_URL=…
+pnpm web:admin            # http://localhost:5174
+pnpm mobile               # QR Expo Go
 ```
+
+**PC nueva / provisional (Windows):** si `npm` no se reconoce o PowerShell bloquea scripts, seguí
+[`docs/setup-pc.md`](docs/setup-pc.md) — checklist corto con esos fallos.
 
 Guías detalladas:
 
+- Setup PC provisional: [`docs/setup-pc.md`](docs/setup-pc.md)
 - Flujo de vistas y negocio: [`docs/flujo-vistas.md`](docs/flujo-vistas.md)
 - Guía de diseño (UI, CSS, Hercom): [`docs/guia-diseno.md`](docs/guia-diseno.md)
 - Conexión Convex + Expo: [`docs/conectar-convex-expo.md`](docs/conectar-convex-expo.md)
@@ -190,7 +199,6 @@ Guías detalladas:
 | Script | Descripción |
 | --- | --- |
 | `pnpm backend:dev` | Arranca `convex dev` |
-| `pnpm web:comercial` | Web de clientes |
 | `pnpm web:admin` | Panel administrativo |
 | `pnpm mobile` | App Expo de choferes |
 

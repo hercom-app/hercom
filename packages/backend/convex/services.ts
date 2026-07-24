@@ -240,7 +240,7 @@ export const expireStalePending = internalMutation({
 });
 
 /**
- * DEMO: borra todos los servicios y sus ofertas (limpia historial para demo).
+ * DEMO: borra todos los servicios y ofertas, y libera choferes "busy".
  * Uso: `npx convex run services:purgeAllForDemo`
  */
 export const purgeAllForDemo = internalMutation({
@@ -254,9 +254,21 @@ export const purgeAllForDemo = internalMutation({
     for (const service of services) {
       await ctx.db.delete(service._id);
     }
+
+    // Al borrar viajes a mano, el chofer puede quedar "busy" sin servicio.
+    const drivers = await ctx.db.query("drivers").collect();
+    let releasedDrivers = 0;
+    for (const driver of drivers) {
+      if (driver.status === "busy") {
+        await ctx.db.patch(driver._id, { status: "available" });
+        releasedDrivers += 1;
+      }
+    }
+
     return {
       deletedOffers: offers.length,
       deletedServices: services.length,
+      releasedDrivers,
     };
   },
 });
@@ -466,9 +478,13 @@ export const startTripWithCode = mutation({
     if (checklist === null) {
       throw new Error("Debes completar el checklist de recojo antes de iniciar.");
     }
-    if (!checklist.hasPropertyCard || !checklist.hasSoat) {
+    if (
+      !checklist.hasPropertyCard ||
+      !checklist.hasSoat ||
+      checklist.hasTechnicalInspection !== true
+    ) {
       throw new Error(
-        "Checklist incompleto: confirma Tarjeta de Propiedad y SOAT antes de iniciar.",
+        "Checklist incompleto: confirma Tarjeta de Propiedad, SOAT y Revisión técnica.",
       );
     }
 

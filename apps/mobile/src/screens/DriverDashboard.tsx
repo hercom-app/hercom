@@ -20,6 +20,8 @@ import { SideDrawer } from "../components/SideDrawer";
 import { useAppMode } from "../contexts/AppModeContext";
 import { canCoverOfferCommission } from "../lib/offerWallet";
 import { formatServiceStopsLabel } from "../lib/wazeNavigation";
+import type { Id } from "@proyecto/backend/dataModel";
+import { ChecklistRecojoScreen } from "./ChecklistRecojoScreen";
 
 export function DriverDashboard() {
   const insets = useSafeAreaInsets();
@@ -27,6 +29,8 @@ export function DriverDashboard() {
   const topUpMine = useMutation(api.driverWallets.topUpMine);
   const submitMyOffer = useMutation(api.serviceOffers.submitMyOffer);
   const markAllNotificationsAsRead = useMutation(api.notifications.markAllAsRead);
+  const [checklistServiceId, setChecklistServiceId] =
+    useState<Id<"services"> | null>(null);
   const driver = useQuery(api.drivers.getMyDriverProfile);
   const wallet = useQuery(
     api.driverWallets.getMine,
@@ -72,6 +76,15 @@ export function DriverDashboard() {
 
   if (driver === null) {
     return null;
+  }
+
+  if (checklistServiceId !== null) {
+    return (
+      <ChecklistRecojoScreen
+        serviceId={checklistServiceId}
+        onBack={() => setChecklistServiceId(null)}
+      />
+    );
   }
 
   const activeServices = (services ?? []).filter(
@@ -434,7 +447,12 @@ export function DriverDashboard() {
               <FlatList
                 data={activeServices}
                 keyExtractor={(item) => item._id}
-                renderItem={({ item }) => <ServiceCard service={item} />}
+                renderItem={({ item }) => (
+                  <ServiceCard
+                    service={item}
+                    onOpenChecklist={setChecklistServiceId}
+                  />
+                )}
                 ListEmptyComponent={
                   <Text className="mt-8 text-center text-sm text-slate-500">
                     No tienes servicios activos por ahora.

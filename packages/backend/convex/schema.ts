@@ -308,6 +308,7 @@ export default defineSchema({
 
   /**
    * Checklist de vehiculo/documentos al recoger al cliente.
+   * damageMarks: puntos 0–1 sobre canvas (anterior / posterior / lateral).
    */
   serviceVehicleChecklists: defineTable({
     serviceId: v.id("services"),
@@ -315,8 +316,28 @@ export default defineSchema({
     phase: checklistPhaseValidator,
     hasVehicleDamage: v.boolean(),
     damageNotes: v.optional(v.string()),
+    damageMarks: v.optional(
+      v.array(
+        v.object({
+          view: v.union(
+            v.literal("front"),
+            v.literal("rear"),
+            v.literal("side"),
+            v.literal("diagram"),
+          ),
+          x: v.number(),
+          y: v.number(),
+        }),
+      ),
+    ),
     hasPropertyCard: v.boolean(),
     hasSoat: v.boolean(),
+    hasTechnicalInspection: v.optional(v.boolean()),
+    vehicleMake: v.optional(v.string()),
+    vehicleModel: v.optional(v.string()),
+    vehicleYear: v.optional(v.number()),
+    hasInsurance: v.optional(v.boolean()),
+    insuranceNotes: v.optional(v.string()),
     checkedAt: v.number(),
     updatedAt: v.number(),
   })

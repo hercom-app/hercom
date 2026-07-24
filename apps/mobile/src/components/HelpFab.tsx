@@ -12,6 +12,8 @@ import {
 import { HELP_CONTACTS } from "../constants/helpContacts";
 import {
   fetchNearbyHealthCenters,
+  formatDistanceKm,
+  type NearbyHealthLists,
   type NearbyHealthPlace,
 } from "../lib/nearbyHealthCenters";
 import { openWazeNavigation } from "../lib/wazeNavigation";
@@ -22,13 +24,15 @@ type HelpFabProps = {
   fallbackCenter?: { lat: number; lng: number };
 };
 
+const EMPTY_LISTS: NearbyHealthLists = { hospitals: [], clinics: [] };
+
 /** Botón flotante derecho de ayuda + menú de emergencia. */
 export function HelpFab({ fallbackCenter }: HelpFabProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [healthOpen, setHealthOpen] = useState(false);
   const [healthLoading, setHealthLoading] = useState(false);
   const [healthError, setHealthError] = useState<string | null>(null);
-  const [places, setPlaces] = useState<NearbyHealthPlace[]>([]);
+  const [lists, setLists] = useState<NearbyHealthLists>(EMPTY_LISTS);
 
   async function handleCallPolice() {
     setMenuOpen(false);
@@ -54,7 +58,7 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
     setHealthOpen(true);
     setHealthLoading(true);
     setHealthError(null);
-    setPlaces([]);
+    setLists(EMPTY_LISTS);
     try {
       let lat = fallbackCenter?.lat;
       let lng = fallbackCenter?.lng;
@@ -65,20 +69,20 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
       } catch {
         if (lat === undefined || lng === undefined) {
           throw new Error(
-            "Activa el GPS o define un origen para buscar centros de salud cerca.",
+            "Activa el GPS o define un origen para buscar cerca.",
           );
         }
       }
       const results = await fetchNearbyHealthCenters(lat!, lng!);
-      setPlaces(results);
-      if (results.length === 0) {
+      setLists(results);
+      if (results.hospitals.length === 0 && results.clinics.length === 0) {
         setHealthError("No se encontraron hospitales o clínicas cerca.");
       }
     } catch (error) {
       setHealthError(
         error instanceof Error
           ? error.message
-          : "No se pudieron cargar centros de salud.",
+          : "No se pudieron cargar hospitales o clínicas.",
       );
     } finally {
       setHealthLoading(false);
@@ -94,11 +98,14 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
     });
   }
 
+  const hasResults =
+    lists.hospitals.length > 0 || lists.clinics.length > 0;
+
   return (
     <>
       <TouchableOpacity
         onPress={() => setMenuOpen(true)}
-        accessibilityLabel="SOS — ayuda y emergencia"
+        accessibilityLabel="Ayuda y emergencia"
         activeOpacity={0.85}
         className="h-12 min-w-12 items-center justify-center rounded-full bg-red-600 px-2.5"
         style={{
@@ -109,8 +116,8 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
           elevation: 4,
         }}
       >
-        <Text className="text-[11px] font-extrabold tracking-wide text-white">
-          SOS
+        <Text className="text-[10px] font-extrabold tracking-wide text-white">
+          AYUDA
         </Text>
       </TouchableOpacity>
 
@@ -165,10 +172,10 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
               className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4"
             >
               <Text className="text-base font-semibold text-red-700">
-                Ir al centro de salud más cercano
+                Ir a hospital o clínica cercana
               </Text>
               <Text className="mt-0.5 text-xs text-red-600/80">
-                Lista hospitales/clínicas cerca y abre Waze
+                Busca hospitales y clínicas cerca
               </Text>
             </TouchableOpacity>
 
@@ -191,10 +198,10 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
         onRequestClose={() => setHealthOpen(false)}
       >
         <View className="flex-1 justify-end bg-black/40">
-          <View className="max-h-[70%] rounded-t-3xl bg-white px-5 pb-8 pt-4">
+          <View className="max-h-[75%] rounded-t-3xl bg-white px-5 pb-8 pt-4">
             <View className="mb-3 flex-row items-center justify-between">
               <Text className="text-lg font-bold text-red-700">
-                Centros de salud cercanos
+                Hospitales y clínicas
               </Text>
               <TouchableOpacity onPress={() => setHealthOpen(false)}>
                 <Text className="text-sm font-semibold text-slate-500">
@@ -218,30 +225,93 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
               </Text>
             )}
 
-            {!healthLoading && places.length > 0 && (
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {places.map((place) => (
-                  <TouchableOpacity
-                    key={place.placeId}
-                    onPress={() => void handleSelectPlace(place)}
-                    className="mb-2 rounded-2xl border border-red-100 bg-red-50/50 px-4 py-3"
-                  >
-                    <Text className="text-sm font-semibold text-slate-900">
-                      {place.name}
-                    </Text>
-                    <Text className="mt-0.5 text-xs text-slate-600">
-                      {place.address}
-                    </Text>
-                    <Text className="mt-1 text-xs font-semibold text-red-700">
-                      Abrir en Waze →
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+            {!healthLoading && hasResults && (
+              <View style={{ maxHeight: "100%" }}>
+                {lists.hospitals.length > 0 && (
+                  <PlaceSection
+                    title="Hospitales"
+                    places={lists.hospitals}
+                    onSelect={handleSelectPlace}
+                  />
+                )}
+                {lists.clinics.length > 0 && (
+                  <PlaceSection
+                    title="Clínicas"
+                    places={lists.clinics}
+                    onSelect={handleSelectPlace}
+                  />
+                )}
+              </View>
             )}
           </View>
         </View>
       </Modal>
     </>
+  );
+}
+
+function PlaceSection({
+  title,
+  places,
+  onSelect,
+}: {
+  title: string;
+  places: NearbyHealthPlace[];
+  onSelect: (place: NearbyHealthPlace) => void;
+}) {
+  const canScroll = places.length > 2;
+
+  return (
+    <View className="mb-3">
+      <Text className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+        {title} · {places.length}
+      </Text>
+      <View className="overflow-hidden rounded-2xl border border-slate-100">
+        <ScrollView
+          style={{ maxHeight: 220 }}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator
+          keyboardShouldPersistTaps="handled"
+        >
+          {places.map((place) => (
+            <TouchableOpacity
+              key={place.placeId}
+              onPress={() => void onSelect(place)}
+              className="mb-2 rounded-2xl border border-red-100 bg-red-50/50 px-4 py-3"
+            >
+              <Text className="text-sm font-semibold text-slate-900">
+                {place.name}
+              </Text>
+              <Text className="mt-0.5 text-xs text-slate-600">{place.address}</Text>
+              <View className="mt-1.5 flex-row flex-wrap items-center gap-2">
+                <Text className="text-xs font-semibold text-slate-700">
+                  {formatDistanceKm(place.distanceMeters)}
+                </Text>
+                {place.openNow === true && (
+                  <Text className="text-xs font-semibold text-emerald-700">
+                    Abierto ahora
+                  </Text>
+                )}
+                {place.openNow === false && (
+                  <Text className="text-xs font-semibold text-amber-700">
+                    Cerrado ahora
+                  </Text>
+                )}
+                <Text className="text-xs font-semibold text-red-700">
+                  Abrir en Waze →
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {canScroll && (
+          <View className="items-center border-t border-slate-100 bg-white py-2.5">
+            <View className="h-2 w-2 rounded-full bg-slate-400" />
+            <View className="mt-1 h-1.5 w-1.5 rounded-full bg-slate-300" />
+          </View>
+        )}
+      </View>
+    </View>
   );
 }

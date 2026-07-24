@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
@@ -27,11 +28,13 @@ import type { SelectedPlace } from "../lib/googlePlaces";
 import {
   applyPickupLocationResult,
   detectPickupLocation,
+  ensureLocationAccess,
   openDeviceLocationSettings,
 } from "../lib/pickupLocation";
 import { formatServiceStopsLabel } from "../lib/wazeNavigation";
 import { useAppMode } from "../contexts/AppModeContext";
 import { HERCOM_COLORS } from "../constants/theme";
+import * as Location from "expo-location";
 
 const HOURLY_SERVICE_RATE = 40;
 const MIN_SERVICE_HOURS = 2;
@@ -325,6 +328,11 @@ export function ClientDashboard() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showRegionPicker, setShowRegionPicker] = useState(false);
+  const [userCoords, setUserCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [showsBlueDot, setShowsBlueDot] = useState(false);
   const unreadNotifications = (notifications ?? []).filter(
     (notification) => notification.readAt === undefined,
   ).length;
@@ -346,7 +354,40 @@ export function ClientDashboard() {
           latitudeDelta: 0.03,
           longitudeDelta: 0.03,
         }
-      : LIMA_REGION;
+      : userCoords !== null
+        ? {
+            latitude: userCoords.lat,
+            longitude: userCoords.lng,
+            latitudeDelta: 0.03,
+            longitudeDelta: 0.03,
+          }
+        : LIMA_REGION;
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        await ensureLocationAccess();
+        if (cancelled) return;
+        setShowsBlueDot(true);
+        const position = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        if (cancelled) return;
+        setUserCoords({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      } catch {
+        if (!cancelled) {
+          setShowsBlueDot(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function applySelectedPlace(
     place: SelectedPlace,
@@ -492,9 +533,11 @@ export function ClientDashboard() {
     <View className="flex-1 bg-slate-100">
       <MapView
         style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+        provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
         region={mapRegion}
-        showsUserLocation
+        showsUserLocation={showsBlueDot}
         showsMyLocationButton={false}
+        userLocationAnnotationTitle="Tu ubicación"
       >
         {originLat !== null && originLng !== null && (
           <Marker
@@ -572,7 +615,7 @@ export function ClientDashboard() {
           <Text className="mb-1 text-lg font-bold text-slate-900">
             {menuSection === "notificaciones"
               ? "Notificaciones"
-              : "¿Dónde necesitas un chofer para reemplazo?"}
+              : "¿Dónde necesitas un chofer para remplazo?"}
           </Text>
           {menuSection !== "notificaciones" && (
             <Text className="mb-4 text-sm text-slate-500">

@@ -35,7 +35,7 @@ type SideDrawerProps = {
 
 const CLIENT_ITEMS: MenuItem[] = [
   { key: "ciudad", label: "Ciudad", icon: "🚗", active: true },
-  { key: "historial", label: "Historial de solicitudes", icon: "🕐" },
+  { key: "historial", label: "Mis servicios", icon: "🕐" },
   { key: "notificaciones", label: "Notificaciones", icon: "🔔" },
   { key: "seguridad", label: "Seguridad", icon: "🛡️" },
   { key: "configuracion", label: "Configuración", icon: "⚙️" },

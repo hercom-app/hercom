@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   ScrollView,
   Text,
@@ -19,9 +20,15 @@ import { ServiceCard } from "../components/ServiceCard";
 import { SideDrawer } from "../components/SideDrawer";
 import { useAppMode } from "../contexts/AppModeContext";
 import { canCoverOfferCommission } from "../lib/offerWallet";
+import {
+  convexErrorMessage,
+  isInsufficientBalanceError,
+} from "../lib/convexErrorMessage";
 import { formatServiceStopsLabel } from "../lib/wazeNavigation";
 import type { Id } from "@proyecto/backend/dataModel";
 import { ChecklistRecojoScreen } from "./ChecklistRecojoScreen";
+
+const MIN_OFFER_PRICE = 80;
 
 export function DriverDashboard() {
   const insets = useSafeAreaInsets();
@@ -323,6 +330,8 @@ export function DriverDashboard() {
                       {(openServices ?? []).map((service) => {
                         const minPrice =
                           service.catalogBasePrice ?? service.basePrice;
+                        const floorPrice = Math.max(MIN_OFFER_PRICE, minPrice);
+                        const defaultOffer = String(floorPrice);
                         const alreadyOffered = myOfferByService[service._id];
                         const canAfford = canCoverOfferCommission(
                           walletBalance,
@@ -359,15 +368,32 @@ export function DriverDashboard() {
                             ) : (
                               <View className="mt-2 flex-row items-center gap-2">
                                 <TextInput
-                                  value={offerByService[service._id] ?? ""}
+                                  value={
+                                    offerByService[service._id] ?? defaultOffer
+                                  }
                                   onChangeText={(value) =>
                                     setOfferByService((prev) => ({
                                       ...prev,
                                       [service._id]: value,
                                     }))
                                   }
+                                  onBlur={() => {
+                                    const raw =
+                                      offerByService[service._id] ??
+                                      defaultOffer;
+                                    const parsed = Number(raw);
+                                    if (
+                                      !Number.isFinite(parsed) ||
+                                      parsed < floorPrice
+                                    ) {
+                                      setOfferByService((prev) => ({
+                                        ...prev,
+                                        [service._id]: defaultOffer,
+                                      }));
+                                    }
+                                  }}
                                   editable={canAfford && isAvailable}
-                                  placeholder={`Oferta >= S/${minPrice.toFixed(0)}`}
+                                  placeholder={`Oferta >= S/${floorPrice.toFixed(0)}`}
                                   placeholderTextColor="#94A3B8"
                                   keyboardType="decimal-pad"
                                   className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
@@ -378,21 +404,68 @@ export function DriverDashboard() {
                                       return;
                                     }
                                     const offeredPrice = Number(
-                                      offerByService[service._id] ?? "0",
+                                      offerByService[service._id] ??
+                                        defaultOffer,
                                     );
+                                    if (
+                                      !Number.isFinite(offeredPrice) ||
+                                      offeredPrice < floorPrice
+                                    ) {
+                                      setOfferByService((prev) => ({
+                                        ...prev,
+                                        [service._id]: defaultOffer,
+                                      }));
+                                      setOfferError(
+                                        `La oferta mínima es S/${floorPrice.toFixed(0)}.`,
+                                      );
+                                      return;
+                                    }
                                     setOfferingServiceId(service._id);
                                     setOfferError(null);
                                     void submitMyOffer({
                                       serviceId: service._id,
                                       offeredPrice,
                                     })
-                                      .catch((error) =>
-                                        setOfferError(
-                                          error instanceof Error
-                                            ? error.message
-                                            : "No se pudo enviar la oferta.",
-                                        ),
-                                      )
+                                      .then((result) => {
+                                        if (result.ok) {
+                                          return;
+                                        }
+                                        setOfferError(result.message);
+                                        if (
+                                          isInsufficientBalanceError(
+                                            result.message,
+                                          )
+                                        ) {
+                                          Alert.alert(
+                                            "Saldo insuficiente",
+                                            result.message,
+                                            [
+                                              {
+                                                text: "Recargar",
+                                                onPress: () =>
+                                                  setMenuSection("saldo"),
+                                              },
+                                              { text: "OK" },
+                                            ],
+                                          );
+                                          return;
+                                        }
+                                        Alert.alert(
+                                          "No se pudo ofertar",
+                                          result.message,
+                                        );
+                                      })
+                                      .catch((error) => {
+                                        const message = convexErrorMessage(
+                                          error,
+                                          "No se pudo enviar la oferta.",
+                                        );
+                                        setOfferError(message);
+                                        Alert.alert(
+                                          "No se pudo ofertar",
+                                          message,
+                                        );
+                                      })
                                       .finally(() => setOfferingServiceId(null));
                                   }}
                                   disabled={

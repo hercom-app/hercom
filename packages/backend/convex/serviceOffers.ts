@@ -20,6 +20,8 @@ function generateSecurityCode(): string {
 
 /**
  * Chofer envía oferta para un servicio pendiente (una sola vez por servicio).
+ * Errores de negocio (saldo, disponibilidad, etc.) se devuelven como `{ ok: false }`
+ * para mostrar alerta en la app sin aparecer como fallo Convex.
  */
 export const submitMyOffer = mutation({
   args: {
@@ -29,27 +31,37 @@ export const submitMyOffer = mutation({
   handler: async (ctx, args) => {
     const { driver } = await requireDriver(ctx);
     if (driver.status !== "available") {
-      throw new Error("Debes estar disponible para ofertar.");
+      return {
+        ok: false as const,
+        message: "Debes estar disponible para ofertar.",
+      };
     }
 
     const service = await ctx.db.get(args.serviceId);
     if (service === null) {
-      throw new Error("Servicio no encontrado.");
+      return { ok: false as const, message: "Servicio no encontrado." };
     }
     // Demo/QA: se permite ofertar en solicitud propia (un solo equipo).
     if (service.status !== "pending") {
-      throw new Error("Solo puedes ofertar servicios pendientes.");
+      return {
+        ok: false as const,
+        message: "Solo puedes ofertar servicios pendientes.",
+      };
     }
     if (service.driverId !== undefined) {
-      throw new Error("Este servicio ya tiene chofer asignado.");
+      return {
+        ok: false as const,
+        message: "Este servicio ya tiene chofer asignado.",
+      };
     }
 
     const offeredPrice = normalizeMoney(args.offeredPrice);
     const minOffer = getMinimumOfferPrice(service);
     if (offeredPrice < minOffer) {
-      throw new Error(
-        `La oferta debe ser mayor o igual a la tarifa de lista S/${minOffer.toFixed(2)}.`,
-      );
+      return {
+        ok: false as const,
+        message: `La oferta debe ser mayor o igual a la tarifa de lista S/${minOffer.toFixed(2)}.`,
+      };
     }
 
     const projectedCommission = computePlatformCommissionForService(
@@ -62,9 +74,11 @@ export const submitMyOffer = mutation({
       projectedCommission,
     );
     if (!enoughBalance) {
-      throw new Error(
-        "Saldo insuficiente para cubrir la comisión de esta oferta. Recarga primero.",
-      );
+      return {
+        ok: false as const,
+        message:
+          "Saldo insuficiente para cubrir la comisión de esta oferta. Recarga primero.",
+      };
     }
 
     const existing = await ctx.db
@@ -75,7 +89,10 @@ export const submitMyOffer = mutation({
       .unique();
 
     if (existing !== null) {
-      throw new Error("Ya enviaste una oferta para esta solicitud.");
+      return {
+        ok: false as const,
+        message: "Ya enviaste una oferta para esta solicitud.",
+      };
     }
 
     const offerId = await ctx.db.insert("serviceOffers", {
@@ -92,7 +109,7 @@ export const submitMyOffer = mutation({
       message: `Recibiste una oferta de S/${offeredPrice.toFixed(2)} para tu viaje.`,
       serviceId: service._id,
     });
-    return offerId;
+    return { ok: true as const, offerId };
   },
 });
 

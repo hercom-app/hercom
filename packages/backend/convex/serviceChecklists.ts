@@ -82,18 +82,24 @@ export const upsertPickupChecklist = mutation({
       .unique();
 
     const now = Date.now();
+    const damageNotes = (args.damageNotes ?? "").trim();
+    const vehicleMake = args.vehicleMake?.trim();
+    const vehicleModel = args.vehicleModel?.trim();
+    const insuranceNotes = (args.insuranceNotes ?? "").trim();
     const payload = {
       hasVehicleDamage: hasDamage,
-      damageNotes: (args.damageNotes ?? "").trim() || undefined,
-      damageMarks: marks,
+      ...(damageNotes ? { damageNotes } : {}),
+      ...(marks.length > 0 ? { damageMarks: marks } : {}),
       hasPropertyCard: args.hasPropertyCard,
       hasSoat: args.hasSoat,
       hasTechnicalInspection: args.hasTechnicalInspection,
-      vehicleMake: args.vehicleMake?.trim() || undefined,
-      vehicleModel: args.vehicleModel?.trim() || undefined,
-      vehicleYear: args.vehicleYear,
+      ...(vehicleMake ? { vehicleMake } : {}),
+      ...(vehicleModel ? { vehicleModel } : {}),
+      ...(args.vehicleYear !== undefined
+        ? { vehicleYear: args.vehicleYear }
+        : {}),
       hasInsurance: args.hasInsurance ?? false,
-      insuranceNotes: (args.insuranceNotes ?? "").trim() || undefined,
+      ...(insuranceNotes ? { insuranceNotes } : {}),
       updatedAt: now,
     };
 

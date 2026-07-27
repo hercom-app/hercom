@@ -19,10 +19,15 @@ build/
 *.mobileprovision
 *.orig.*
 
-# Env
-.env
-.env.local
+# Env — apps client envs ARE tracked (temp PCs / team decision).
+# Backend Convex CLI secrets stay local only.
+packages/backend/.env
+packages/backend/.env.local
 .env.*.local
+!.env.example
+!apps/mobile/.env
+!apps/web-admin/.env.local
+!apps/web-comercial/.env.local
 
 # Logs
 *.log

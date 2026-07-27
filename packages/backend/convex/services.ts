@@ -612,11 +612,31 @@ export const listForClient = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx);
-    return await ctx.db
+    const services = await ctx.db
       .query("services")
       .withIndex("by_client", (q) => q.eq("clientId", user._id))
       .order("desc")
       .collect();
+
+    return await Promise.all(
+      services.map(async (service) => {
+        let driverName: string | undefined;
+        if (service.driverId !== undefined) {
+          const driver = await ctx.db.get(service.driverId);
+          if (driver !== null) {
+            const driverUser = await ctx.db.get(driver.userId);
+            driverName =
+              driver.fullName?.trim() ||
+              driverUser?.name?.trim() ||
+              "Chofer";
+          }
+        }
+        return {
+          ...service,
+          driverName,
+        };
+      }),
+    );
   },
 });
 

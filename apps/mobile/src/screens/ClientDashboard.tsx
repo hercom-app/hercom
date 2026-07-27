@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
+  Keyboard,
   Platform,
+  Pressable,
   ScrollView,
   Text,
   TextInput,
@@ -17,6 +20,7 @@ import type { Doc } from "@proyecto/backend/dataModel";
 import { AddressAutocomplete } from "../components/AddressAutocomplete";
 import { HamburgerButton } from "../components/HamburgerButton";
 import { HelpFab } from "../components/HelpFab";
+import { HercomLogo } from "../components/HercomLogo";
 import { SideDrawer } from "../components/SideDrawer";
 import {
   addressDraftFromText,
@@ -40,12 +44,19 @@ const HOURLY_SERVICE_RATE = 40;
 const MIN_SERVICE_HOURS = 2;
 const MIN_SERVICE_PRICE = HOURLY_SERVICE_RATE * MIN_SERVICE_HOURS;
 const CLIENT_ADVANCE_RATE = 0.25;
+const SERVICE_HOUR_OPTIONS = [2, 3, 4, 5, 6, 8] as const;
 const LIMA_REGION = {
   latitude: -12.0464,
   longitude: -77.0428,
   latitudeDelta: 0.045,
   longitudeDelta: 0.045,
 };
+
+const RISK_MESSAGES = [
+  "EVITA LA MULTA DE 5500 SOLES.",
+  "EN EL PERU HAY 8000 ACCIDENTES AL AÑO POR MANEJAR EN ESTADO DE EBRIEDAD, 4000 DE ELLOS TERMINAN EN MUERTES.",
+  "EVITA IR A LA CARCEL",
+] as const;
 
 const STATUS_LABELS: Record<Doc<"services">["status"], string> = {
   pending: "Pendiente",
@@ -68,7 +79,11 @@ function PayoutLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ClientServiceCard({ service }: { service: Doc<"services"> }) {
+function ClientServiceCard({
+  service,
+}: {
+  service: Doc<"services"> & { driverName?: string };
+}) {
   const cancelService = useMutation(api.services.cancelService);
   const acceptOffer = useMutation(api.serviceOffers.acceptOffer);
   const offers = useQuery(
@@ -85,6 +100,7 @@ function ClientServiceCard({ service }: { service: Doc<"services"> }) {
   const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
   const [offerError, setOfferError] = useState<string | null>(null);
 
+  const agreedPrice = service.offeredPrice ?? service.totalPrice;
   const advanceAmount =
     service.advanceAmount ??
     (service.offeredPrice !== undefined
@@ -109,7 +125,7 @@ function ClientServiceCard({ service }: { service: Doc<"services"> }) {
   }
 
   return (
-    <View className="mb-3 rounded-2xl bg-white p-4 shadow-sm">
+    <View className="mb-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
       <View className="mb-2 flex-row items-center justify-between">
         <View className="flex-row items-center gap-2">
           <Text className="text-xs font-semibold uppercase text-hercom">
@@ -122,25 +138,20 @@ function ClientServiceCard({ service }: { service: Doc<"services"> }) {
           )}
         </View>
         <Text className="text-sm font-bold text-slate-900">
-          S/{service.totalPrice.toFixed(2)}
+          {service.offeredPrice !== undefined
+            ? `S/${agreedPrice.toFixed(2)}`
+            : "Sin acordar"}
         </Text>
       </View>
-      <Text className="mb-1 text-xs text-slate-500">
-        Tarifa base: S/{service.basePrice.toFixed(2)}
-        {service.catalogBasePrice !== undefined &&
-        service.catalogBasePrice > service.basePrice ? (
-          <Text className="text-violet-700">
-            {" "}
-            (lista S/{service.catalogBasePrice.toFixed(2)}
-            {service.discountRate !== undefined
-              ? ` · -${(service.discountRate * 100).toFixed(0)}%`
-              : ""}
-            )
-          </Text>
-        ) : null}
+      <Text className="mb-1 text-xs text-slate-600">
         {service.offeredPrice !== undefined
-          ? ` · Acordada: S/${service.offeredPrice.toFixed(2)}`
-          : ""}
+          ? `Tarifa acordada: S/${service.offeredPrice.toFixed(2)}`
+          : "Esperando acuerdo de tarifa"}
+      </Text>
+      <Text className="mb-1 text-xs font-medium text-slate-800">
+        {service.driverName !== undefined
+          ? `Chofer: ${service.driverName}`
+          : "Sin chofer asignado"}
       </Text>
       {service.promotionName !== undefined && (
         <Text className="mb-1 text-xs font-semibold text-violet-700">
@@ -300,7 +311,23 @@ function ClientServiceCard({ service }: { service: Doc<"services"> }) {
   );
 }
 
-/** Panel cliente: mapa + bottom sheet (estilo inDrive / Yango). */
+function fitMapRegion(
+  origin: { lat: number; lng: number },
+  destination: { lat: number; lng: number },
+) {
+  const midLat = (origin.lat + destination.lat) / 2;
+  const midLng = (origin.lng + destination.lng) / 2;
+  const latDelta = Math.max(Math.abs(origin.lat - destination.lat) * 1.8, 0.04);
+  const lngDelta = Math.max(Math.abs(origin.lng - destination.lng) * 1.8, 0.04);
+  return {
+    latitude: midLat,
+    longitude: midLng,
+    latitudeDelta: latDelta,
+    longitudeDelta: lngDelta,
+  };
+}
+
+/** Panel cliente: flujo Yango (motivos → mapa → horas/tarifa). */
 export function ClientDashboard() {
   const insets = useSafeAreaInsets();
   const { userName } = useAppMode();
@@ -311,14 +338,23 @@ export function ClientDashboard() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSection, setMenuSection] = useState("ciudad");
+  const [flowStep, setFlowStep] = useState<"compose" | "confirm">("compose");
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  /** null = landing; al abrir búsqueda no se enfoca un TextInput que luego pierda el foco por el layout. */
+  const [addressSearchField, setAddressSearchField] = useState<
+    null | "origin" | "destination" | number
+  >(null);
+  const addressSearchActive = addressSearchField !== null;
+  const sheetScrollRef = useRef<ScrollView>(null);
   const [origin, setOrigin] = useState("");
   const [originLat, setOriginLat] = useState<number | null>(null);
   const [originLng, setOriginLng] = useState<number | null>(null);
   const [originPlaceId, setOriginPlaceId] = useState<string | null>(null);
-  const [detectedRegionLabel, setDetectedRegionLabel] = useState("");
-  const [destination, setDestination] = useState<AddressDraft>(createEmptyAddressDraft());
+  const [destination, setDestination] = useState<AddressDraft>(
+    createEmptyAddressDraft(),
+  );
   const [extraDestinations, setExtraDestinations] = useState<AddressDraft[]>([]);
-  const [basePrice, setBasePrice] = useState("");
+  const [serviceHours, setServiceHours] = useState<number>(MIN_SERVICE_HOURS);
   const [department, setDepartment] = useState("");
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
@@ -327,16 +363,16 @@ export function ClientDashboard() {
   const [locationLoading, setLocationLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showRegionPicker, setShowRegionPicker] = useState(false);
   const [userCoords, setUserCoords] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
   const [showsBlueDot, setShowsBlueDot] = useState(false);
+
   const unreadNotifications = (notifications ?? []).filter(
     (notification) => notification.readAt === undefined,
   ).length;
-  const requestedBasePrice = Number(basePrice);
+  const listPrice = serviceHours * HOURLY_SERVICE_RATE;
   const addressRegion = {
     department,
     ...(province !== "" ? { province } : {}),
@@ -346,14 +382,24 @@ export function ClientDashboard() {
     originLat !== null && originLng !== null
       ? { lat: originLat, lng: originLng }
       : undefined;
-  const mapRegion =
-    originLat !== null && originLng !== null
-      ? {
-          latitude: originLat,
-          longitude: originLng,
-          latitudeDelta: 0.03,
-          longitudeDelta: 0.03,
-        }
+
+  const canContinue =
+    origin.trim() !== "" &&
+    originLat !== null &&
+    originLng !== null &&
+    destination.address.trim() !== "" &&
+    destination.lat !== null &&
+    destination.lng !== null;
+
+  const confirmMapRegion =
+    originLat !== null &&
+    originLng !== null &&
+    destination.lat !== null &&
+    destination.lng !== null
+      ? fitMapRegion(
+          { lat: originLat, lng: originLng },
+          { lat: destination.lat, lng: destination.lng },
+        )
       : userCoords !== null
         ? {
             latitude: userCoords.lat,
@@ -362,6 +408,21 @@ export function ClientDashboard() {
             longitudeDelta: 0.03,
           }
         : LIMA_REGION;
+
+  const windowHeight = Dimensions.get("window").height;
+  const composeExpandedHeight = Math.max(520, windowHeight * 0.92);
+
+  const promoPreview = useQuery(
+    api.promotions.previewForRegion,
+    department !== "" && listPrice >= MIN_SERVICE_PRICE
+      ? {
+          department,
+          ...(province !== "" ? { province } : {}),
+          ...(district !== "" ? { district } : {}),
+          listPrice,
+        }
+      : "skip",
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -386,6 +447,23 @@ export function ClientDashboard() {
     })();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const onShow = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const onHide = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      onShow.remove();
+      onHide.remove();
     };
   }, []);
 
@@ -418,19 +496,16 @@ export function ClientDashboard() {
       ),
     );
   }
-  const promoPreview = useQuery(
-    api.promotions.previewForRegion,
-    department !== "" &&
-      Number.isFinite(requestedBasePrice) &&
-      requestedBasePrice >= MIN_SERVICE_PRICE
-      ? {
-          department,
-          ...(province !== "" ? { province } : {}),
-          ...(district !== "" ? { district } : {}),
-          listPrice: requestedBasePrice,
-        }
-      : "skip",
-  );
+
+  function openAddressSearch(field: "origin" | "destination" | number) {
+    setError(null);
+    setAddressSearchField(field);
+  }
+
+  function closeAddressSearch() {
+    Keyboard.dismiss();
+    setAddressSearchField(null);
+  }
 
   async function handleUseMyLocationForOrigin() {
     setLocationLoading(true);
@@ -444,22 +519,23 @@ export function ClientDashboard() {
         setDepartment,
         setProvince,
         setDistrict,
-        setDetectedRegionLabel,
+        setDetectedRegionLabel: () => {
+          /* región se guarda en department/province/district */
+        },
       });
       setOriginPlaceId(null);
-      setShowRegionPicker(false);
     } catch (locationError) {
-      const message =
+      const msg =
         locationError instanceof Error
           ? locationError.message
           : "No se pudo obtener tu ubicación.";
-      setError(message);
+      setError(msg);
       if (
-        message.includes("bloqueada") ||
-        message.includes("GPS") ||
-        message.includes("permiso")
+        msg.includes("bloqueada") ||
+        msg.includes("GPS") ||
+        msg.includes("permiso")
       ) {
-        Alert.alert("Ubicación necesaria", message, [
+        Alert.alert("Ubicación necesaria", msg, [
           { text: "Cancelar", style: "cancel" },
           {
             text: "Abrir ajustes",
@@ -472,16 +548,43 @@ export function ClientDashboard() {
     }
   }
 
+  function handleContinueToConfirm() {
+    if (!canContinue) {
+      setError(
+        "Completa origen y destino eligiendo una sugerencia de dirección.",
+      );
+      return;
+    }
+    setError(null);
+    setMessage(null);
+    setAddressSearchField(null);
+    setFlowStep("confirm");
+  }
+
+  function resetComposeForm() {
+    setOrigin("");
+    setOriginLat(null);
+    setOriginLng(null);
+    setOriginPlaceId(null);
+    setDestination(createEmptyAddressDraft());
+    setExtraDestinations([]);
+    setServiceHours(MIN_SERVICE_HOURS);
+    setDepartment("");
+    setProvince("");
+    setDistrict("");
+    setNotes("");
+    setFlowStep("compose");
+  }
+
   async function handleSubmit() {
     if (
       origin.trim() === "" ||
       destination.address.trim() === "" ||
       department === "" ||
-      !Number.isFinite(requestedBasePrice) ||
-      requestedBasePrice < MIN_SERVICE_PRICE
+      listPrice < MIN_SERVICE_PRICE
     ) {
       setError(
-        `Completa origen, destino y tarifa mínima S/${MIN_SERVICE_PRICE}. Usa ubicación o elige una sugerencia de dirección.`,
+        `Completa origen, destino y al menos ${MIN_SERVICE_HOURS}h (S/${MIN_SERVICE_PRICE}).`,
       );
       return;
     }
@@ -506,22 +609,12 @@ export function ClientDashboard() {
         ...(cleanedExtraDestinations.length > 0
           ? { extraDestinations: cleanedExtraDestinations }
           : {}),
-        basePrice: requestedBasePrice,
+        basePrice: listPrice,
         ...(notes.trim() !== "" ? { notes: notes.trim() } : {}),
       });
-      setOrigin("");
-      setOriginLat(null);
-      setOriginLng(null);
-      setOriginPlaceId(null);
-      setDetectedRegionLabel("");
-      setDestination(createEmptyAddressDraft());
-      setExtraDestinations([]);
-      setBasePrice("");
-      setDepartment("");
-      setProvince("");
-      setDistrict("");
-      setNotes("");
+      resetComposeForm();
       setMessage("Solicitud enviada. Espera ofertas y elige un chofer.");
+      setMenuSection("historial");
     } catch {
       setError("No se pudo crear la solicitud.");
     } finally {
@@ -529,15 +622,485 @@ export function ClientDashboard() {
     }
   }
 
+  const drawer = (
+    <SideDrawer
+      visible={menuOpen}
+      onClose={() => setMenuOpen(false)}
+      userName={userName}
+      unreadCount={unreadNotifications}
+      activeItem={menuSection}
+      onSelectItem={(key) => {
+        setMenuSection(key);
+        if (key === "ciudad") {
+          setFlowStep("compose");
+        }
+      }}
+    />
+  );
+
+  if (menuSection === "historial" || menuSection === "notificaciones") {
+    return (
+      <View className="flex-1 bg-slate-100">
+        <View
+          style={{ paddingTop: insets.top + 8, paddingBottom: 12 }}
+          className="flex-row items-center gap-3 border-b border-slate-200 bg-white px-4"
+        >
+          <HamburgerButton onPress={() => setMenuOpen(true)} />
+          <Text className="flex-1 text-lg font-bold text-slate-900">
+            {menuSection === "notificaciones"
+              ? "Notificaciones"
+              : "Mis servicios"}
+          </Text>
+        </View>
+
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingTop: 16,
+            paddingBottom: insets.bottom + 24,
+          }}
+          showsVerticalScrollIndicator={false}
+        >
+          {message !== null && menuSection === "historial" && (
+            <Text className="mb-3 text-center text-sm text-green-700">
+              {message}
+            </Text>
+          )}
+          {menuSection === "notificaciones" ? (
+            <View className="rounded-2xl border border-slate-100 bg-white p-3">
+              <View className="mb-2 flex-row items-center justify-between">
+                <Text className="text-sm font-semibold text-slate-900">
+                  {unreadNotifications} sin leer
+                </Text>
+                <TouchableOpacity
+                  onPress={() => void markAllNotificationsAsRead()}
+                >
+                  <Text className="text-xs font-semibold text-slate-500">
+                    Marcar leídas
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {(notifications ?? []).length === 0 ? (
+                <Text className="text-xs text-slate-500">
+                  Sin notificaciones.
+                </Text>
+              ) : (
+                (notifications ?? []).map((notification) => (
+                  <View
+                    key={notification._id}
+                    className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-3"
+                  >
+                    <Text className="text-xs font-semibold text-slate-800">
+                      {notification.title}
+                    </Text>
+                    <Text className="mt-1 text-xs text-slate-600">
+                      {notification.message}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </View>
+          ) : services === undefined ? (
+            <ActivityIndicator color="#007AFF" />
+          ) : services.length === 0 ? (
+            <Text className="text-center text-sm text-slate-500">
+              Aún no tienes solicitudes.
+            </Text>
+          ) : (
+            services.map((service) => (
+              <ClientServiceCard key={service._id} service={service} />
+            ))
+          )}
+        </ScrollView>
+        {drawer}
+      </View>
+    );
+  }
+
+  // ——— Paso 1: landing motivos + direcciones ———
+  if (flowStep === "compose") {
+    const addressFieldButton = (
+      label: string,
+      value: string,
+      placeholder: string,
+      onPress: () => void,
+    ) => (
+      <View>
+        <Text className="mb-1.5 text-xs font-semibold text-slate-600">
+          {label}
+        </Text>
+        <Pressable
+          onPress={onPress}
+          disabled={submitting}
+          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 active:bg-slate-100"
+        >
+          <Text
+            className={`text-base ${
+              value.trim() !== "" ? "text-slate-900" : "text-slate-400"
+            }`}
+            numberOfLines={2}
+          >
+            {value.trim() !== "" ? value : placeholder}
+          </Text>
+        </Pressable>
+      </View>
+    );
+
+    return (
+      <View className="flex-1 bg-slate-100">
+        <View
+          style={{ paddingTop: insets.top + 8 }}
+          className="z-10 flex-row items-center justify-between px-4 pb-2"
+        >
+          <HamburgerButton onPress={() => setMenuOpen(true)} />
+          <View className="h-12 justify-center">
+            <HercomLogo width={44} />
+          </View>
+        </View>
+
+        {!addressSearchActive ? (
+          <ScrollView
+            className="flex-1"
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingBottom: insets.bottom + 28,
+            }}
+          >
+            <Text className="mb-5 text-2xl font-bold text-slate-900">
+              ¿Dónde necesitas un chofer de reemplazo?
+            </Text>
+
+            <View className="mb-5 items-center">
+              <View className="mb-4 h-28 w-28 items-center justify-center rounded-full border-[5px] border-white bg-red-600">
+                <Text className="text-2xl font-black tracking-[3px] text-white">
+                  STOP
+                </Text>
+              </View>
+              <View className="w-full gap-3">
+                {RISK_MESSAGES.map((message) => (
+                  <Text
+                    key={message}
+                    className="text-center text-sm font-semibold leading-5 text-slate-800"
+                  >
+                    {message}
+                  </Text>
+                ))}
+              </View>
+            </View>
+
+            <View className="gap-3 rounded-3xl bg-white p-4 shadow-sm">
+              {addressFieldButton(
+                "Punto de recojo",
+                origin,
+                "¿De dónde te recogemos?",
+                () => openAddressSearch("origin"),
+              )}
+              <TouchableOpacity
+                onPress={() => void handleUseMyLocationForOrigin()}
+                disabled={locationLoading || submitting}
+                className="flex-row items-center justify-center rounded-2xl border border-sky-300 bg-sky-50 py-3 disabled:opacity-60"
+              >
+                {locationLoading ? (
+                  <ActivityIndicator color="#0369A1" />
+                ) : (
+                  <Text className="text-sm font-semibold text-sky-900">
+                    Usar mi ubicación actual
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              {addressFieldButton(
+                "Destino",
+                destination.address,
+                "¿A dónde vas?",
+                () => openAddressSearch("destination"),
+              )}
+
+              {extraDestinations.map((stop, index) => (
+                <View
+                  key={`extra-landing-${index}`}
+                  className="flex-row items-start gap-2"
+                >
+                  <View className="flex-1">
+                    {addressFieldButton(
+                      `Parada ${index + 2}`,
+                      stop.address,
+                      `Parada ${index + 2} (opcional)`,
+                      () => openAddressSearch(index),
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setExtraDestinations((previous) =>
+                        previous.filter((_, itemIndex) => itemIndex !== index),
+                      );
+                    }}
+                    className="mt-6 rounded-xl border border-red-200 px-3 py-3"
+                  >
+                    <Text className="text-sm font-semibold text-red-600">✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              <TouchableOpacity
+                onPress={() =>
+                  setExtraDestinations((previous) => [
+                    ...previous,
+                    createEmptyAddressDraft(),
+                  ])
+                }
+                disabled={submitting}
+                className="rounded-2xl border border-dashed border-slate-300 py-2.5 disabled:opacity-60"
+              >
+                <Text className="text-center text-sm font-semibold text-slate-600">
+                  + Agregar parada
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleContinueToConfirm}
+                disabled={!canContinue || submitting}
+                className="items-center rounded-2xl bg-hercom py-3.5 active:opacity-90 disabled:opacity-50"
+              >
+                <Text className="text-base font-bold text-white">Continuar</Text>
+              </TouchableOpacity>
+            </View>
+
+            {error !== null && (
+              <Text className="mt-3 text-center text-sm text-red-600">
+                {error}
+              </Text>
+            )}
+          </ScrollView>
+        ) : (
+          <View className="flex-1 justify-end">
+            <View
+              className="mx-2 overflow-hidden rounded-t-[28px] bg-white"
+              style={{
+                height: composeExpandedHeight,
+                shadowColor: "#0F172A",
+                shadowOpacity: 0.16,
+                shadowRadius: 18,
+                shadowOffset: { width: 0, height: -4 },
+                elevation: 14,
+              }}
+            >
+              <View className="flex-row items-center justify-between px-4 pb-1 pt-3">
+                <View className="w-10" />
+                <View className="h-1 w-10 rounded-full bg-slate-300" />
+                <TouchableOpacity
+                  onPress={closeAddressSearch}
+                  className="h-10 w-10 items-center justify-center"
+                  hitSlop={8}
+                >
+                  <Text className="text-lg font-semibold text-slate-500">✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                ref={sheetScrollRef}
+                className="flex-1"
+                keyboardShouldPersistTaps="always"
+                keyboardDismissMode="none"
+                nestedScrollEnabled
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingHorizontal: 16,
+                  paddingBottom:
+                    (keyboardHeight > 0 ? keyboardHeight : insets.bottom) + 28,
+                }}
+              >
+                <Text className="mb-3 text-lg font-bold text-slate-900">
+                  Busca tu dirección
+                </Text>
+
+                <View className="mb-3">
+                  <Text className="mb-1.5 text-xs font-semibold text-slate-600">
+                    Punto de recojo
+                  </Text>
+                  <AddressAutocomplete
+                    value={origin}
+                    onChangeText={(value) => {
+                      setOrigin(value);
+                      if (originPlaceId !== null) {
+                        setOriginLat(null);
+                        setOriginLng(null);
+                        setOriginPlaceId(null);
+                      }
+                    }}
+                    onPlaceSelected={(place) => {
+                      applySelectedPlace(place, {
+                        setAddress: setOrigin,
+                        setLat: setOriginLat,
+                        setLng: setOriginLng,
+                        setPlaceId: setOriginPlaceId,
+                      });
+                      setDepartment(place.department ?? department);
+                      if (place.province !== undefined) {
+                        setProvince(place.province);
+                      }
+                      if (place.district !== undefined) {
+                        setDistrict(place.district);
+                      }
+                    }}
+                    onPlaceCleared={() => {
+                      setOriginLat(null);
+                      setOriginLng(null);
+                      setOriginPlaceId(null);
+                    }}
+                    expandedList
+                    keepActiveOnBlur
+                    autoFocus={addressSearchField === "origin"}
+                    placeholder="¿De dónde te recogemos?"
+                    region={addressRegion}
+                    gpsCenter={gpsBias}
+                    disabled={submitting || locationLoading}
+                    selectedPlaceId={originPlaceId}
+                  />
+                </View>
+
+                <View className="mb-3">
+                  <Text className="mb-1.5 text-xs font-semibold text-slate-600">
+                    Destino
+                  </Text>
+                  <AddressAutocomplete
+                    value={destination.address}
+                    onChangeText={(value) => {
+                      updateDestinationDraft(null, () =>
+                        addressDraftFromText(value),
+                      );
+                    }}
+                    onPlaceSelected={(place) => {
+                      updateDestinationDraft(null, () => ({
+                        address: place.address,
+                        lat: place.lat,
+                        lng: place.lng,
+                        placeId: place.placeId,
+                      }));
+                      if (department === "") {
+                        setDepartment(place.department ?? "");
+                      }
+                      if (place.province !== undefined && province === "") {
+                        setProvince(place.province);
+                      }
+                      if (place.district !== undefined && district === "") {
+                        setDistrict(place.district);
+                      }
+                    }}
+                    onPlaceCleared={() => {
+                      updateDestinationDraft(null, (current) => ({
+                        ...current,
+                        lat: null,
+                        lng: null,
+                        placeId: null,
+                      }));
+                    }}
+                    expandedList
+                    keepActiveOnBlur
+                    autoFocus={addressSearchField === "destination"}
+                    placeholder="¿A dónde vas?"
+                    region={addressRegion}
+                    gpsCenter={gpsBias}
+                    disabled={submitting}
+                    selectedPlaceId={destination.placeId}
+                  />
+                </View>
+
+                {extraDestinations.map((stop, index) => (
+                  <View
+                    key={`extra-search-${index}`}
+                    className="mb-3 flex-row items-start gap-2"
+                  >
+                    <View className="flex-1">
+                      <AddressAutocomplete
+                        value={stop.address}
+                        onChangeText={(value) => {
+                          updateDestinationDraft(index, () =>
+                            addressDraftFromText(value),
+                          );
+                        }}
+                        onPlaceSelected={(place) => {
+                          updateDestinationDraft(index, () => ({
+                            address: place.address,
+                            lat: place.lat,
+                            lng: place.lng,
+                            placeId: place.placeId,
+                          }));
+                        }}
+                        onPlaceCleared={() => {
+                          updateDestinationDraft(index, (current) => ({
+                            ...current,
+                            lat: null,
+                            lng: null,
+                            placeId: null,
+                          }));
+                        }}
+                        expandedList
+                        keepActiveOnBlur
+                        autoFocus={addressSearchField === index}
+                        placeholder={`Parada ${index + 2} (opcional)`}
+                        region={addressRegion}
+                        gpsCenter={gpsBias}
+                        disabled={submitting}
+                        selectedPlaceId={stop.placeId}
+                      />
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setExtraDestinations((previous) =>
+                          previous.filter(
+                            (_, itemIndex) => itemIndex !== index,
+                          ),
+                        );
+                        if (addressSearchField === index) {
+                          setAddressSearchField("destination");
+                        }
+                      }}
+                      className="rounded-xl border border-red-200 px-3 py-3"
+                    >
+                      <Text className="text-sm font-semibold text-red-600">
+                        ✕
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+
+                {canContinue && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      closeAddressSearch();
+                      handleContinueToConfirm();
+                    }}
+                    disabled={submitting}
+                    className="mt-2 items-center rounded-2xl bg-hercom py-3.5 active:opacity-90 disabled:opacity-50"
+                  >
+                    <Text className="text-base font-bold text-white">
+                      Continuar
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </ScrollView>
+            </View>
+          </View>
+        )}
+        {drawer}
+      </View>
+    );
+  }
+
+  // ——— Paso 2:
+  // ——— Paso 2: mapa + horas / tarifa ———
   return (
     <View className="flex-1 bg-slate-100">
       <MapView
         style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
         provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
-        region={mapRegion}
+        region={confirmMapRegion}
         showsUserLocation={showsBlueDot}
         showsMyLocationButton={false}
-        userLocationAnnotationTitle="Tu ubicación"
       >
         {originLat !== null && originLng !== null && (
           <Marker
@@ -562,25 +1125,24 @@ export function ClientDashboard() {
         style={{ paddingTop: insets.top + 8 }}
         className="absolute left-0 right-0 top-0 z-10 px-4"
       >
-        <View className="flex-row items-start gap-3">
-          <HamburgerButton onPress={() => setMenuOpen(true)} />
-          <View
-            className="min-h-12 flex-1 justify-center rounded-2xl bg-white px-4 py-2.5"
+        <View className="flex-row items-center gap-3">
+          <TouchableOpacity
+            onPress={() => {
+              setFlowStep("compose");
+              setError(null);
+            }}
+            className="h-12 w-12 items-center justify-center rounded-full bg-white"
             style={{
               shadowColor: "#0F172A",
-              shadowOpacity: 0.1,
+              shadowOpacity: 0.12,
               shadowRadius: 8,
               shadowOffset: { width: 0, height: 2 },
               elevation: 3,
             }}
           >
-            <Text className="text-[11px] font-medium text-slate-500">
-              De dónde
-            </Text>
-            <Text className="text-sm font-semibold text-slate-900" numberOfLines={1}>
-              {origin.trim() !== "" ? origin : "Define tu punto de recojo"}
-            </Text>
-          </View>
+            <Text className="text-xl text-slate-800">←</Text>
+          </TouchableOpacity>
+          <View className="flex-1" />
           <HelpFab
             fallbackCenter={
               originLat !== null && originLng !== null
@@ -594,7 +1156,7 @@ export function ClientDashboard() {
       <View
         className="absolute bottom-0 left-0 right-0 z-20 overflow-hidden rounded-t-[28px] bg-white"
         style={{
-          maxHeight: "62%",
+          maxHeight: "58%",
           paddingBottom: insets.bottom + 8,
           shadowColor: "#0F172A",
           shadowOpacity: 0.14,
@@ -610,314 +1172,135 @@ export function ClientDashboard() {
         <ScrollView
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerClassName="px-4 pb-6"
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingBottom: 20,
+          }}
         >
-          <Text className="mb-1 text-lg font-bold text-slate-900">
-            {menuSection === "notificaciones"
-              ? "Notificaciones"
-              : "¿Dónde necesitas un chofer para remplazo?"}
+          <Text className="mb-3 text-lg font-bold text-slate-900">
+            Confirma tu servicio
           </Text>
-          {menuSection !== "notificaciones" && (
-            <Text className="mb-4 text-sm text-slate-500">
-              Tarifa base S/{HOURLY_SERVICE_RATE}/h · mínimo {MIN_SERVICE_HOURS}h =
-              S/{MIN_SERVICE_PRICE}
+
+          <View className="mb-4 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+            <Text className="text-[11px] font-semibold uppercase text-slate-500">
+              De
             </Text>
-          )}
-
-          {menuSection === "notificaciones" ? (
-            <View className="mb-4 rounded-2xl border border-slate-100 bg-slate-50 p-3">
-              <View className="mb-2 flex-row items-center justify-between">
-                <Text className="text-sm font-semibold text-slate-900">
-                  {unreadNotifications} sin leer
-                </Text>
-                <TouchableOpacity onPress={() => void markAllNotificationsAsRead()}>
-                  <Text className="text-xs font-semibold text-slate-500">
-                    Marcar leídas
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              {(notifications ?? []).length === 0 ? (
-                <Text className="text-xs text-slate-500">Sin notificaciones.</Text>
-              ) : (
-                (notifications ?? []).map((notification) => (
-                  <View
-                    key={notification._id}
-                    className="mb-2 rounded-xl border border-slate-200 bg-white p-3"
-                  >
-                    <Text className="text-xs font-semibold text-slate-800">
-                      {notification.title}
-                    </Text>
-                    <Text className="mt-1 text-xs text-slate-600">
-                      {notification.message}
-                    </Text>
-                  </View>
-                ))
+            <Text className="mt-0.5 text-sm font-medium text-slate-900" numberOfLines={2}>
+              {origin}
+            </Text>
+            <View className="my-2 h-px bg-slate-200" />
+            <Text className="text-[11px] font-semibold uppercase text-slate-500">
+              A
+            </Text>
+            <Text className="mt-0.5 text-sm font-medium text-slate-900" numberOfLines={2}>
+              {formatServiceStopsLabel(
+                toServiceLocation(destination),
+                extraDestinations.map((stop) => toServiceLocation(stop)),
               )}
-            </View>
-          ) : (
-            <>
-          <View className="gap-3">
-            <View>
-              <Text className="mb-1.5 text-xs font-semibold text-slate-600">
-                Punto de recojo
-              </Text>
-              <AddressAutocomplete
-                value={origin}
-                onChangeText={(value) => {
-                  setOrigin(value);
-                  if (originPlaceId !== null) {
-                    setOriginLat(null);
-                    setOriginLng(null);
-                    setOriginPlaceId(null);
-                  }
-                }}
-                onPlaceSelected={(place) => {
-                  applySelectedPlace(place, {
-                    setAddress: setOrigin,
-                    setLat: setOriginLat,
-                    setLng: setOriginLng,
-                    setPlaceId: setOriginPlaceId,
-                  });
-                  setDepartment(place.department ?? department);
-                  if (place.province !== undefined) {
-                    setProvince(place.province);
-                  }
-                  if (place.district !== undefined) {
-                    setDistrict(place.district);
-                  }
-                  setDetectedRegionLabel(
-                    [place.department, place.province, place.district]
-                      .filter(
-                        (part): part is string =>
-                          part !== undefined && part !== "",
-                      )
-                      .join(" · "),
-                  );
-                  setShowRegionPicker(false);
-                }}
-                onPlaceCleared={() => {
-                  setOriginLat(null);
-                  setOriginLng(null);
-                  setOriginPlaceId(null);
-                }}
-                placeholder="Buscar dirección de origen"
-                region={addressRegion}
-                gpsCenter={gpsBias}
-                disabled={submitting || locationLoading}
-                selectedPlaceId={originPlaceId}
-              />
-              <TouchableOpacity
-                onPress={() => void handleUseMyLocationForOrigin()}
-                disabled={locationLoading || submitting}
-                className="mt-2 flex-row items-center justify-center rounded-2xl border border-sky-300 bg-sky-50 py-3 disabled:opacity-60"
-              >
-                {locationLoading ? (
-                  <ActivityIndicator color="#0369A1" />
-                ) : (
-                  <Text className="text-sm font-semibold text-sky-900">
-                    📍 Usar mi ubicación actual
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            <View>
-              <Text className="mb-1.5 text-xs font-semibold text-slate-600">
-                Destino
-              </Text>
-              <AddressAutocomplete
-                value={destination.address}
-                onChangeText={(value) => {
-                  updateDestinationDraft(null, () => addressDraftFromText(value));
-                }}
-                onPlaceSelected={(place) => {
-                  updateDestinationDraft(null, () => ({
-                    address: place.address,
-                    lat: place.lat,
-                    lng: place.lng,
-                    placeId: place.placeId,
-                  }));
-                  if (department === "") {
-                    setDepartment(place.department ?? "");
-                  }
-                  if (place.province !== undefined && province === "") {
-                    setProvince(place.province);
-                  }
-                  if (place.district !== undefined && district === "") {
-                    setDistrict(place.district);
-                  }
-                  if (detectedRegionLabel === "") {
-                    setDetectedRegionLabel(
-                      [place.department, place.province, place.district]
-                        .filter(
-                          (part): part is string =>
-                            part !== undefined && part !== "",
-                        )
-                        .join(" · "),
-                    );
-                  }
-                }}
-                onPlaceCleared={() => {
-                  updateDestinationDraft(null, (current) => ({
-                    ...current,
-                    lat: null,
-                    lng: null,
-                    placeId: null,
-                  }));
-                }}
-                placeholder="¿A dónde vas?"
-                region={addressRegion}
-                gpsCenter={gpsBias}
-                disabled={submitting}
-                selectedPlaceId={destination.placeId}
-              />
-            </View>
-
-            {extraDestinations.map((stop, index) => (
-              <View
-                key={`extra-destination-${index}`}
-                className="flex-row items-start gap-2"
-              >
-                <View className="flex-1">
-                  <AddressAutocomplete
-                    value={stop.address}
-                    onChangeText={(value) => {
-                      updateDestinationDraft(index, () =>
-                        addressDraftFromText(value),
-                      );
-                    }}
-                    onPlaceSelected={(place) => {
-                      updateDestinationDraft(index, () => ({
-                        address: place.address,
-                        lat: place.lat,
-                        lng: place.lng,
-                        placeId: place.placeId,
-                      }));
-                    }}
-                    onPlaceCleared={() => {
-                      updateDestinationDraft(index, (current) => ({
-                        ...current,
-                        lat: null,
-                        lng: null,
-                        placeId: null,
-                      }));
-                    }}
-                    placeholder={`Parada ${index + 2} (opcional)`}
-                    region={addressRegion}
-                    gpsCenter={gpsBias}
-                    disabled={submitting}
-                    selectedPlaceId={stop.placeId}
-                  />
-                </View>
-                <TouchableOpacity
-                  onPress={() => {
-                    setExtraDestinations((previous) =>
-                      previous.filter((_, itemIndex) => itemIndex !== index),
-                    );
-                  }}
-                  className="rounded-xl border border-red-200 px-3 py-3"
-                >
-                  <Text className="text-sm font-semibold text-red-600">✕</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-
-            <TouchableOpacity
-              onPress={() =>
-                setExtraDestinations((previous) => [
-                  ...previous,
-                  createEmptyAddressDraft(),
-                ])
-              }
-              disabled={submitting}
-              className="rounded-2xl border border-dashed border-slate-300 py-2.5 disabled:opacity-60"
-            >
-              <Text className="text-center text-sm font-semibold text-slate-600">
-                + Agregar parada
-              </Text>
-            </TouchableOpacity>
-
-            <TextInput
-              value={basePrice}
-              onChangeText={setBasePrice}
-              placeholder={`Tu oferta (mín. S/${MIN_SERVICE_PRICE})`}
-              placeholderTextColor="#94A3B8"
-              keyboardType="decimal-pad"
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
-            />
-            {promoPreview !== undefined && promoPreview !== null && (
-              <View className="rounded-xl bg-emerald-50 px-3 py-2">
-                <Text className="text-xs font-semibold text-emerald-800">
-                  Promo: {promoPreview.promotionName} (
-                  {(promoPreview.discountRate * 100).toFixed(0)}% off)
-                </Text>
-                <Text className="mt-1 text-xs text-emerald-700">
-                  Pagas S/{promoPreview.basePrice.toFixed(2)} (lista S/
-                  {promoPreview.catalogBasePrice.toFixed(2)}).
-                </Text>
-              </View>
-            )}
-            <TextInput
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="Notas (opcional)"
-              placeholderTextColor="#94A3B8"
-              multiline
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
-            />
-            <TouchableOpacity
-              onPress={() => void handleSubmit()}
-              disabled={submitting}
-              className="items-center rounded-2xl bg-hercom py-3.5 active:opacity-90 disabled:opacity-60"
-            >
-              {submitting ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text className="text-base font-bold text-white">
-                  Solicitar servicio
-                </Text>
-              )}
-            </TouchableOpacity>
+            </Text>
           </View>
 
-          {message !== null && (
-            <Text className="mt-3 text-center text-sm text-green-700">
-              {message}
+          <Text className="mb-2 text-xs font-semibold text-slate-600">
+            ¿Cuánto tiempo necesitas?
+          </Text>
+          <Text className="mb-3 text-xs text-slate-500">
+            Tarifa S/{HOURLY_SERVICE_RATE}/h · mínimo {MIN_SERVICE_HOURS}h = S/
+            {MIN_SERVICE_PRICE}
+          </Text>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="mb-4"
+            contentContainerStyle={{ gap: 8 }}
+          >
+            {SERVICE_HOUR_OPTIONS.map((hours) => {
+              const selected = serviceHours === hours;
+              return (
+                <TouchableOpacity
+                  key={hours}
+                  onPress={() => setServiceHours(hours)}
+                  className={`rounded-2xl border px-4 py-3 ${
+                    selected
+                      ? "border-hercom bg-hercom"
+                      : "border-slate-200 bg-white"
+                  }`}
+                >
+                  <Text
+                    className={`text-center text-sm font-bold ${
+                      selected ? "text-white" : "text-slate-900"
+                    }`}
+                  >
+                    {hours}h
+                  </Text>
+                  <Text
+                    className={`mt-0.5 text-center text-[11px] ${
+                      selected ? "text-white/90" : "text-slate-500"
+                    }`}
+                  >
+                    S/{hours * HOURLY_SERVICE_RATE}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          <View className="mb-3 flex-row items-end justify-between rounded-2xl bg-slate-900 px-4 py-3">
+            <View>
+              <Text className="text-xs font-medium text-slate-300">
+                Tarifa estimada
+              </Text>
+              <Text className="text-2xl font-bold text-white">
+                S/{listPrice.toFixed(0)}
+              </Text>
+            </View>
+            <Text className="pb-1 text-xs text-slate-400">
+              {serviceHours}h × S/{HOURLY_SERVICE_RATE}
             </Text>
+          </View>
+
+          {promoPreview !== undefined && promoPreview !== null && (
+            <View className="mb-3 rounded-xl bg-emerald-50 px-3 py-2">
+              <Text className="text-xs font-semibold text-emerald-800">
+                Promo: {promoPreview.promotionName} (
+                {(promoPreview.discountRate * 100).toFixed(0)}% off)
+              </Text>
+              <Text className="mt-1 text-xs text-emerald-700">
+                Pagas S/{promoPreview.basePrice.toFixed(2)} (lista S/
+                {promoPreview.catalogBasePrice.toFixed(2)}).
+              </Text>
+            </View>
           )}
+
+          <TextInput
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Notas (opcional)"
+            placeholderTextColor="#94A3B8"
+            multiline
+            className="mb-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
+          />
+
+          <TouchableOpacity
+            onPress={() => void handleSubmit()}
+            disabled={submitting}
+            className="items-center rounded-2xl bg-hercom py-3.5 active:opacity-90 disabled:opacity-60"
+          >
+            {submitting ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text className="text-base font-bold text-white">
+                Solicitar servicio · S/{listPrice.toFixed(0)}
+              </Text>
+            )}
+          </TouchableOpacity>
+
           {error !== null && (
             <Text className="mt-3 text-center text-sm text-red-600">{error}</Text>
           )}
-
-          <Text className="mb-3 mt-6 text-base font-bold text-slate-900">
-            Mis servicios
-          </Text>
-          {services === undefined ? (
-            <ActivityIndicator color="#007AFF" />
-          ) : services.length === 0 ? (
-            <Text className="text-center text-sm text-slate-500">
-              Aún no tienes solicitudes.
-            </Text>
-          ) : (
-            services.map((service) => (
-              <ClientServiceCard key={service._id} service={service} />
-            ))
-          )}
-            </>
-          )}
         </ScrollView>
       </View>
-
-      <SideDrawer
-        visible={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        userName={userName}
-        unreadCount={unreadNotifications}
-        activeItem={menuSection}
-        onSelectItem={(key) => {
-          setMenuSection(key);
-        }}
-      />
+      {drawer}
     </View>
   );
 }

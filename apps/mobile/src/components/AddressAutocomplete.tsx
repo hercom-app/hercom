@@ -29,12 +29,19 @@ type AddressAutocompleteProps = {
   gpsCenter?: { lat: number; lng: number };
   disabled?: boolean;
   selectedPlaceId?: string | null;
+  /** Lista más alta (modo búsqueda expandida). */
+  expandedList?: boolean;
+  autoFocus?: boolean;
+  /**
+   * Si true, el blur del teclado NO cierra sugerencias.
+   * Útil cuando el padre controla el sheet (evitar cierre por salto de layout).
+   */
+  keepActiveOnBlur?: boolean;
 };
 
 const DEBOUNCE_MS = 320;
-const MAX_VISIBLE_SUGGESTIONS = 5;
-/** Altura aproximada de cada fila (título + subtítulo + padding). */
-const SUGGESTION_ROW_HEIGHT = 62;
+const LIST_MAX_HEIGHT = 280;
+const LIST_MAX_HEIGHT_EXPANDED = 420;
 
 export function AddressAutocomplete({
   value,
@@ -46,30 +53,59 @@ export function AddressAutocomplete({
   gpsCenter,
   disabled = false,
   selectedPlaceId = null,
+  expandedList = false,
+  autoFocus = false,
+  keepActiveOnBlur = false,
 }: AddressAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [isFocused, setIsFocused] = useState(false);
+  const [searchActive, setSearchActive] = useState(autoFocus);
+  /** Tras elegir una sugerencia, no volver a buscar hasta que el usuario edite. */
+  const suppressSearchRef = useRef(false);
   const sessionTokenRef = useRef(createPlacesSessionToken());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const interactingWithListRef = useRef(false);
   const requestIdRef = useRef(0);
+  const inputRef = useRef<TextInput>(null);
   const placesEnabled = isGooglePlacesConfigured();
   const canSearch = placesEnabled;
+
+  const showSuggestions =
+    searchActive &&
+    !suppressSearchRef.current &&
+    suggestions.length > 0 &&
+    !disabled;
 
   useEffect(() => {
     return () => {
       if (debounceRef.current !== null) {
         clearTimeout(debounceRef.current);
       }
+      if (blurTimeoutRef.current !== null) {
+        clearTimeout(blurTimeoutRef.current);
+      }
     };
   }, []);
 
   useEffect(() => {
-    if (!isFocused || !canSearch) {
-      setSuggestions([]);
-      setLoading(false);
-      setSearchError(null);
+    if (!autoFocus || disabled) {
+      return;
+    }
+    setSearchActive(true);
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [autoFocus, disabled]);
+
+  useEffect(() => {
+    if (!searchActive || !canSearch || suppressSearchRef.current || disabled) {
+      if (!searchActive) {
+        setSuggestions([]);
+        setLoading(false);
+      }
       return;
     }
 
@@ -125,13 +161,33 @@ export function AddressAutocomplete({
         }
       })();
     }, DEBOUNCE_MS);
-  }, [canSearch, gpsCenter, isFocused, region, value]);
 
-  async function handleSelectSuggestion(suggestion: PlaceSuggestion) {
-    // Cierra la lista de inmediato (si no, al rellenar el texto se vuelve a buscar).
-    setIsFocused(false);
+    return () => {
+      if (debounceRef.current !== null) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [canSearch, disabled, gpsCenter, region, searchActive, value]);
+
+  function clearBlurTimeout() {
+    if (blurTimeoutRef.current !== null) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
+  }
+
+  function endSearch() {
+    setSearchActive(false);
     setSuggestions([]);
     setSearchError(null);
+    interactingWithListRef.current = false;
+  }
+
+  async function handleSelectSuggestion(suggestion: PlaceSuggestion) {
+    clearBlurTimeout();
+    interactingWithListRef.current = false;
+    suppressSearchRef.current = true;
+    endSearch();
     setLoading(true);
     requestIdRef.current += 1;
     try {
@@ -150,6 +206,8 @@ export function AddressAutocomplete({
       onPlaceSelected(place);
       sessionTokenRef.current = createPlacesSessionToken();
     } catch (error) {
+      suppressSearchRef.current = false;
+      setSearchActive(true);
       setSearchError(
         error instanceof Error
           ? error.message
@@ -161,28 +219,40 @@ export function AddressAutocomplete({
   }
 
   function handleChangeText(nextValue: string) {
+    suppressSearchRef.current = false;
+    setSearchActive(true);
     onChangeText(nextValue);
     if (selectedPlaceId !== null && onPlaceCleared !== undefined) {
       onPlaceCleared();
     }
   }
 
-  const showSuggestions = isFocused && suggestions.length > 0 && !disabled;
-
   return (
-    <View className="relative z-20">
+    <View>
       <TextInput
+        ref={inputRef}
         value={value}
         onChangeText={handleChangeText}
         placeholder={placeholder}
         placeholderTextColor="#94A3B8"
         editable={!disabled}
-        onFocus={() => setIsFocused(true)}
+        autoFocus={autoFocus}
+        onFocus={() => {
+          clearBlurTimeout();
+          suppressSearchRef.current = false;
+          setSearchActive(true);
+        }}
         onBlur={() => {
-          setTimeout(() => {
-            setIsFocused(false);
-            setSuggestions([]);
-          }, 180);
+          if (keepActiveOnBlur) {
+            return;
+          }
+          clearBlurTimeout();
+          blurTimeoutRef.current = setTimeout(() => {
+            if (interactingWithListRef.current) {
+              return;
+            }
+            endSearch();
+          }, 220);
         }}
         className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
       />
@@ -193,30 +263,43 @@ export function AddressAutocomplete({
         </Text>
       )}
 
-      {loading && (
+      {loading && searchActive && (
         <View className="mt-2 flex-row items-center gap-2">
           <ActivityIndicator color="#0369A1" size="small" />
           <Text className="text-xs text-slate-500">Buscando direcciones...</Text>
         </View>
       )}
 
-      {searchError !== null && !loading && (
+      {searchError !== null && !loading && searchActive && (
         <Text className="mt-1 text-xs text-amber-700">{searchError}</Text>
       )}
 
       {showSuggestions && (
-        <View className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+        <View
+          className="mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white"
+          onTouchStart={() => {
+            interactingWithListRef.current = true;
+            clearBlurTimeout();
+          }}
+        >
           <ScrollView
             style={{
-              maxHeight: MAX_VISIBLE_SUGGESTIONS * SUGGESTION_ROW_HEIGHT,
+              maxHeight: expandedList
+                ? LIST_MAX_HEIGHT_EXPANDED
+                : LIST_MAX_HEIGHT,
             }}
             nestedScrollEnabled
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={suggestions.length > MAX_VISIBLE_SUGGESTIONS}
+            keyboardShouldPersistTaps="always"
+            showsVerticalScrollIndicator
+            bounces
           >
             {suggestions.map((suggestion) => (
               <Pressable
                 key={suggestion.placeId}
+                onPressIn={() => {
+                  interactingWithListRef.current = true;
+                  clearBlurTimeout();
+                }}
                 onPress={() => void handleSelectSuggestion(suggestion)}
                 className="border-b border-slate-100 px-4 py-3 active:bg-slate-50"
               >

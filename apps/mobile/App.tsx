@@ -1,5 +1,5 @@
 import "./global.css";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ActivityIndicator, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -22,7 +22,6 @@ import { AppErrorBoundary } from "./src/components/AppErrorBoundary";
 import { PendingRegistrationSubmit } from "./src/components/PendingRegistrationSubmit";
 import { AppModeProvider } from "./src/contexts/AppModeContext";
 import { SignInScreen } from "./src/screens/SignInScreen";
-import { DriverRegisterScreen } from "./src/screens/DriverRegisterScreen";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { POPPINS } from "./src/constants/theme";
 
@@ -40,22 +39,6 @@ const secureStorage = {
   setItem: SecureStore.setItemAsync,
   removeItem: SecureStore.deleteItemAsync,
 };
-
-type GuestScreen = "signIn" | "driverRegister";
-
-function UnauthenticatedFlow() {
-  const [screen, setScreen] = useState<GuestScreen>("signIn");
-
-  if (screen === "driverRegister") {
-    return (
-      <DriverRegisterScreen onBack={() => setScreen("signIn")} />
-    );
-  }
-
-  return (
-    <SignInScreen onDriverRegister={() => setScreen("driverRegister")} />
-  );
-}
 
 function applyPoppinsDefaults() {
   const textDefaults = Text as unknown as {
@@ -107,7 +90,7 @@ export default function App() {
               </View>
             </AuthLoading>
             <Unauthenticated>
-              <UnauthenticatedFlow />
+              <SignInScreen />
             </Unauthenticated>
             <Authenticated>
               <PendingRegistrationSubmit>

@@ -19,8 +19,24 @@ type GoogleSignInButtonProps = {
 };
 
 function getRedirectTo(): string {
-  // Expo Go: exp://…; build nativo: choferes:// (scheme en app.json).
   return Linking.createURL("/");
+}
+
+/** Marca Google (cuatro colores) en un cuadrado pequeño. */
+function GoogleGlyph() {
+  return (
+    <View className="mr-3 h-6 w-6 overflow-hidden rounded-full bg-white">
+      <View className="flex-1 flex-row flex-wrap">
+        <View className="h-3 w-3 bg-[#EA4335]" />
+        <View className="h-3 w-3 bg-[#FBBC05]" />
+        <View className="h-3 w-3 bg-[#34A853]" />
+        <View className="h-3 w-3 bg-[#4285F4]" />
+      </View>
+      <View className="absolute inset-0 items-center justify-center">
+        <Text className="text-[13px] font-bold text-slate-800">G</Text>
+      </View>
+    </View>
+  );
 }
 
 /** OAuth con Google en React Native (abre navegador in-app y completa el código). */
@@ -79,15 +95,21 @@ export function GoogleSignInButton({
     <TouchableOpacity
       onPress={() => void handlePress()}
       disabled={disabled || submitting}
-      className="flex-row items-center justify-center rounded-2xl border border-slate-200 bg-white py-3.5 active:bg-slate-50 disabled:opacity-60"
+      activeOpacity={0.85}
+      className="flex-row items-center justify-center rounded-2xl border border-slate-200 bg-white py-4 active:bg-slate-50 disabled:opacity-60"
+      style={{
+        shadowColor: "#0F172A",
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 2,
+      }}
     >
       {submitting ? (
         <ActivityIndicator color="#007AFF" />
       ) : (
         <>
-          <View className="mr-2 h-5 w-5 items-center justify-center rounded-full bg-slate-100">
-            <Text className="text-xs font-bold text-slate-700">G</Text>
-          </View>
+          <GoogleGlyph />
           <Text className="text-base font-semibold text-slate-800">{label}</Text>
         </>
       )}

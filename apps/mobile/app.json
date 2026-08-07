@@ -1,12 +1,18 @@
 {
   "expo": {
-    "name": "Choferes Reemplazo",
+    "name": "Hercom",
     "slug": "choferes-reemplazo-driver",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "choferes",
+    "icon": "./assets/images/icon.png",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#007AFF"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.proyecto.choferes",
@@ -23,6 +29,10 @@
     "android": {
       "package": "com.proyecto.choferes",
       "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#007AFF"
+      },
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBbjTrcUBbeNw84CP_0BDOWoTe99WiHJWQ"

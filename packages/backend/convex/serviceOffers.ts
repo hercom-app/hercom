@@ -161,12 +161,22 @@ export const listForServiceAsClient = query({
         const driverUser =
           driver !== null ? await ctx.db.get(driver.userId) : null;
         const driverName = driverUser?.name?.trim() || "Chofer Hercom";
+        const vehicle = driver?.vehicle;
+        const vehicleLabel =
+          vehicle !== undefined
+            ? [vehicle.make, vehicle.model, vehicle.year]
+                .filter((part) => String(part).trim() !== "" && part !== "N/A")
+                .join(" ")
+            : "";
         return {
           ...offer,
           driverStatus: driver?.status ?? "offline",
-          driverName,
+          driverName: driver?.fullName?.trim() || driverName,
           driverRating: driver?.rating ?? 0,
           driverTrips: driver?.totalTrips ?? 0,
+          driverPlate: vehicle?.plate !== "N/A" ? (vehicle?.plate ?? "") : "",
+          driverVehicle: vehicleLabel,
+          driverColor: vehicle?.color?.trim() ?? "",
         };
       }),
     );

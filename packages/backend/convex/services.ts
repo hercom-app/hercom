@@ -631,12 +631,156 @@ export const listForClient = query({
               "Chofer";
           }
         }
+        const rating =
+          service.status === "finished"
+            ? await ctx.db
+                .query("serviceRatings")
+                .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+                .unique()
+            : null;
+
         return {
           ...service,
           driverName,
+          clientRating: rating?.score,
         };
       }),
     );
+  },
+});
+
+/**
+ * Cliente edita origen y/o destino solo mientras el viaje está en curso.
+ */
+export const updateTripLocations = mutation({
+  args: {
+    serviceId: v.id("services"),
+    origin: v.optional(locationValidator),
+    destination: v.optional(locationValidator),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null) {
+      throw new Error("Servicio no encontrado.");
+    }
+    if (service.clientId !== user._id) {
+      throw new Error("No autorizado para editar este viaje.");
+    }
+    if (service.status !== "in_progress") {
+      throw new Error(
+        "Solo puedes editar partida o destino mientras el viaje está en curso.",
+      );
+    }
+    if (args.origin === undefined && args.destination === undefined) {
+      throw new Error("Indica el nuevo punto de partida o destino.");
+    }
+
+    const origin =
+      args.origin !== undefined ? normalizeLocation(args.origin) : undefined;
+    const destination =
+      args.destination !== undefined
+        ? normalizeLocation(args.destination)
+        : undefined;
+
+    await ctx.db.patch(service._id, {
+      ...(origin !== undefined ? { origin } : {}),
+      ...(destination !== undefined ? { destination } : {}),
+    });
+
+    if (service.driverId !== undefined) {
+      const driver = await ctx.db.get(service.driverId);
+      if (driver !== null) {
+        const parts: string[] = [];
+        if (origin !== undefined) {
+          parts.push(`partida: ${origin.address}`);
+        }
+        if (destination !== undefined) {
+          parts.push(`destino: ${destination.address}`);
+        }
+        await createNotification(ctx, {
+          userId: driver.userId,
+          type: "trip_route_updated",
+          title: "El cliente actualizó la ruta",
+          message: `Nueva ruta — ${parts.join(" · ")}.`,
+          serviceId: service._id,
+        });
+      }
+    }
+
+    return service._id;
+  },
+});
+
+/**
+ * Ganancias del chofer: viajes finalizados, comisión (descuento) y neto.
+ */
+export const listEarningsForDriver = query({
+  args: {},
+  handler: async (ctx) => {
+    const { driver } = await requireDriver(ctx);
+    const services = await ctx.db
+      .query("services")
+      .withIndex("by_driver", (q) => q.eq("driverId", driver._id))
+      .collect();
+
+    const trips = services
+      .filter(
+        (service) =>
+          service.status === "finished" && service.finishedAt !== undefined,
+      )
+      .map((service) => {
+        const fare = normalizeMoney(service.offeredPrice ?? service.totalPrice);
+        const commission = normalizeMoney(service.driverCommission);
+        return {
+          serviceId: service._id,
+          finishedAt: service.finishedAt as number,
+          origin: service.origin.address,
+          destination: service.destination.address,
+          fare,
+          commission,
+          net: normalizeMoney(fare - commission),
+        };
+      })
+      .sort((a, b) => b.finishedAt - a.finishedAt);
+
+    const todayKey = limaDateKey(Date.now());
+    const todayTrips = trips.filter(
+      (trip) => limaDateKey(trip.finishedAt) === todayKey,
+    );
+    const weekKeys = limaWeekKeys(7);
+    const weekTrips = trips.filter((trip) =>
+      weekKeys.includes(limaDateKey(trip.finishedAt)),
+    );
+    const byDay = weekKeys.map((dayKey) => {
+      const dayTrips = weekTrips.filter(
+        (trip) => limaDateKey(trip.finishedAt) === dayKey,
+      );
+      return {
+        dayKey,
+        trips: dayTrips.length,
+        fare: sumMoney(dayTrips.map((trip) => trip.fare)),
+        commission: sumMoney(dayTrips.map((trip) => trip.commission)),
+        net: sumMoney(dayTrips.map((trip) => trip.net)),
+      };
+    });
+
+    return {
+      today: {
+        dayKey: todayKey,
+        trips: todayTrips,
+        fare: sumMoney(todayTrips.map((trip) => trip.fare)),
+        commission: sumMoney(todayTrips.map((trip) => trip.commission)),
+        net: sumMoney(todayTrips.map((trip) => trip.net)),
+      },
+      week: {
+        days: byDay,
+        trips: weekTrips.length,
+        fare: sumMoney(weekTrips.map((trip) => trip.fare)),
+        commission: sumMoney(weekTrips.map((trip) => trip.commission)),
+        net: sumMoney(weekTrips.map((trip) => trip.net)),
+      },
+    };
   },
 });
 
@@ -746,6 +890,41 @@ async function createPaymentForService(
 
 function normalizeMoney(amount: number): number {
   return Math.round(amount * 100) / 100;
+}
+
+function sumMoney(amounts: number[]): number {
+  return normalizeMoney(amounts.reduce((sum, amount) => sum + amount, 0));
+}
+
+function limaDateKey(timestamp: number): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Lima",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(timestamp));
+}
+
+function limaWeekKeys(days: number): string[] {
+  const keys: string[] = [];
+  const now = Date.now();
+  for (let offset = 0; offset < days; offset += 1) {
+    keys.push(limaDateKey(now - offset * 24 * 60 * 60 * 1000));
+  }
+  return keys;
+}
+
+function normalizeLocation(location: LocationInput): LocationInput {
+  return {
+    address: location.address.trim(),
+    lat: location.lat,
+    lng: location.lng,
+    ...(location.department !== undefined
+      ? { department: location.department }
+      : {}),
+    ...(location.province !== undefined ? { province: location.province } : {}),
+    ...(location.district !== undefined ? { district: location.district } : {}),
+  };
 }
 
 type LocationInput = {

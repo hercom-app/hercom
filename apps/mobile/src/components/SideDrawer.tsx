@@ -46,6 +46,7 @@ const DRIVER_ITEMS: MenuItem[] = [
   { key: "servicios", label: "Servicios", icon: "🚗", active: true },
   { key: "ofertas", label: "Solicitudes abiertas", icon: "📋" },
   { key: "saldo", label: "Recargar saldo", icon: "💳" },
+  { key: "ganancias", label: "Ganancias", icon: "📈" },
   { key: "notificaciones", label: "Notificaciones", icon: "🔔" },
   { key: "configuracion", label: "Datos de cobro", icon: "⚙️" },
   { key: "ayuda", label: "Ayuda", icon: "ℹ️" },

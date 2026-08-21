@@ -14,6 +14,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import { AvailabilityToggle } from "../components/AvailabilityToggle";
 import { DriverPayoutConfig } from "../components/DriverPayoutConfig";
+import { DriverEarningsView } from "../components/DriverEarningsView";
 import { HamburgerButton } from "../components/HamburgerButton";
 import { HelpFab } from "../components/HelpFab";
 import { ServiceCard } from "../components/ServiceCard";
@@ -128,13 +129,15 @@ export function DriverDashboard() {
   const title =
     menuSection === "saldo"
       ? "Recargar saldo"
-      : menuSection === "notificaciones"
-        ? "Notificaciones"
-        : menuSection === "configuracion"
-          ? "Datos de cobro"
-          : menuSection === "ofertas"
-            ? "Solicitudes abiertas"
-            : "Servicios";
+      : menuSection === "ganancias"
+        ? "Ganancias"
+        : menuSection === "notificaciones"
+          ? "Notificaciones"
+          : menuSection === "configuracion"
+            ? "Datos de cobro"
+            : menuSection === "ofertas"
+              ? "Solicitudes abiertas"
+              : "Servicios";
 
   async function handleTopUp() {
     const amount = Number(topUpAmount);
@@ -173,7 +176,9 @@ export function DriverDashboard() {
       </View>
 
       <View className="flex-1 px-4">
-        {menuSection === "saldo" ? (
+        {menuSection === "ganancias" ? (
+          <DriverEarningsView />
+        ) : menuSection === "saldo" ? (
           <ScrollView showsVerticalScrollIndicator={false}>
             <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
               <Text className="text-xs font-semibold uppercase text-slate-500">
@@ -549,6 +554,7 @@ export function DriverDashboard() {
             key === "servicios" ||
             key === "ofertas" ||
             key === "saldo" ||
+            key === "ganancias" ||
             key === "notificaciones" ||
             key === "configuracion"
           ) {

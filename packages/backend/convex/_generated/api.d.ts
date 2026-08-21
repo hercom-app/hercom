@@ -29,6 +29,7 @@ import type * as reniec from "../reniec.js";
 import type * as seed from "../seed.js";
 import type * as serviceChecklists from "../serviceChecklists.js";
 import type * as serviceOffers from "../serviceOffers.js";
+import type * as serviceRatings from "../serviceRatings.js";
 import type * as services from "../services.js";
 import type * as users from "../users.js";
 
@@ -60,6 +61,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   serviceChecklists: typeof serviceChecklists;
   serviceOffers: typeof serviceOffers;
+  serviceRatings: typeof serviceRatings;
   services: typeof services;
   users: typeof users;
 }>;

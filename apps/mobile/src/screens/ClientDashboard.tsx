@@ -18,9 +18,13 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Doc } from "@proyecto/backend/dataModel";
 import { AddressAutocomplete } from "../components/AddressAutocomplete";
+import { AdvancePayoutModal } from "../components/AdvancePayoutModal";
+import { DriverOfferModal, type DriverOfferInfo } from "../components/DriverOfferModal";
+import { EditTripLocationsModal } from "../components/EditTripLocationsModal";
 import { HamburgerButton } from "../components/HamburgerButton";
 import { HelpFab } from "../components/HelpFab";
 import { HercomLogo } from "../components/HercomLogo";
+import { RateServiceStars } from "../components/RateServiceStars";
 import { SideDrawer } from "../components/SideDrawer";
 import {
   addressDraftFromText,
@@ -63,29 +67,22 @@ const STATUS_LABELS: Record<Doc<"services">["status"], string> = {
   assigned: "Asignado",
   heading_to_pickup: "Yendo a recoger",
   arrived_pickup: "Chofer en punto de partida",
-  in_progress: "En viaje",
+  in_progress: "En curso",
   arrived_destination: "Llegada al destino",
   en_route: "En camino",
   finished: "Finalizado",
   cancelled: "Cancelado",
 };
 
-function PayoutLine({ label, value }: { label: string; value: string }) {
-  return (
-    <Text className="text-xs text-slate-700">
-      <Text className="font-semibold text-slate-800">{label}: </Text>
-      {value}
-    </Text>
-  );
-}
-
 function ClientServiceCard({
   service,
 }: {
-  service: Doc<"services"> & { driverName?: string };
+  service: Doc<"services"> & { driverName?: string; clientRating?: number };
 }) {
   const cancelService = useMutation(api.services.cancelService);
   const acceptOffer = useMutation(api.serviceOffers.acceptOffer);
+  const updateTripLocations = useMutation(api.services.updateTripLocations);
+  const rateService = useMutation(api.serviceRatings.rateService);
   const offers = useQuery(
     api.serviceOffers.listForServiceAsClient,
     service.status === "pending" ? { serviceId: service._id } : "skip",
@@ -99,6 +96,13 @@ function ClientServiceCard({
   const [cancelling, setCancelling] = useState(false);
   const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
   const [offerError, setOfferError] = useState<string | null>(null);
+  const [selectedOffer, setSelectedOffer] = useState<DriverOfferInfo | null>(null);
+  const [payoutOpen, setPayoutOpen] = useState(false);
+  const [editRouteOpen, setEditRouteOpen] = useState(false);
+  const [savingRoute, setSavingRoute] = useState(false);
+  const [routeError, setRouteError] = useState<string | null>(null);
+  const [ratingError, setRatingError] = useState<string | null>(null);
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
 
   const agreedPrice = service.offeredPrice ?? service.totalPrice;
   const advanceAmount =
@@ -107,6 +111,7 @@ function ClientServiceCard({
       ? Math.round(service.offeredPrice * CLIENT_ADVANCE_RATE * 100) / 100
       : 0);
   const advanceConfirmed = service.advanceConfirmedAt !== undefined;
+  const inProgress = service.status === "in_progress";
 
   const canCancel =
     service.status === "pending" ||
@@ -124,103 +129,94 @@ function ClientServiceCard({
     }
   }
 
+  async function handleAcceptOffer() {
+    if (selectedOffer === null) return;
+    setAcceptingOfferId(selectedOffer._id);
+    setOfferError(null);
+    try {
+      await acceptOffer({
+        serviceId: service._id,
+        offerId: selectedOffer._id,
+      });
+      setSelectedOffer(null);
+    } catch (error) {
+      setOfferError(
+        error instanceof Error ? error.message : "No se pudo aceptar la oferta.",
+      );
+    } finally {
+      setAcceptingOfferId(null);
+    }
+  }
+
   return (
     <View className="mb-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
       <View className="mb-2 flex-row items-center justify-between">
         <View className="flex-row items-center gap-2">
-          <Text className="text-xs font-semibold uppercase text-hercom">
+          <Text className="text-sm font-semibold uppercase text-hercom">
             {STATUS_LABELS[service.status]}
           </Text>
           {(service.serviceType ?? "app") === "app" && (
-            <Text className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-800">
+            <Text className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800">
               App
             </Text>
           )}
         </View>
-        <Text className="text-sm font-bold text-slate-900">
+        <Text className="text-base font-bold text-slate-900">
           {service.offeredPrice !== undefined
             ? `S/${agreedPrice.toFixed(2)}`
             : "Sin acordar"}
         </Text>
       </View>
-      <Text className="mb-1 text-xs text-slate-600">
+      <Text className="mb-1 text-base text-slate-600">
         {service.offeredPrice !== undefined
           ? `Tarifa acordada: S/${service.offeredPrice.toFixed(2)}`
           : "Esperando acuerdo de tarifa"}
       </Text>
-      <Text className="mb-1 text-xs font-medium text-slate-800">
+      <Text className="mb-1 text-base font-medium text-slate-800">
         {service.driverName !== undefined
           ? `Chofer: ${service.driverName}`
           : "Sin chofer asignado"}
       </Text>
       {service.promotionName !== undefined && (
-        <Text className="mb-1 text-xs font-semibold text-violet-700">
+        <Text className="mb-1 text-base font-semibold text-violet-700">
           Promo: {service.promotionName}
         </Text>
       )}
-      <Text className="text-sm text-slate-700">
+      <Text className="text-base text-slate-700">
         {service.origin.address} →{" "}
         {formatServiceStopsLabel(service.destination, service.extraDestinations)}
       </Text>
+      {inProgress && (
+        <TouchableOpacity
+          onPress={() => {
+            setRouteError(null);
+            setEditRouteOpen(true);
+          }}
+          className="mt-3 rounded-xl border border-hercom py-3"
+        >
+          <Text className="text-center text-base font-semibold text-hercom">
+            Editar partida o destino
+          </Text>
+        </TouchableOpacity>
+      )}
       {service.status === "assigned" && service.offeredPrice !== undefined && (
-        <View className="mt-2 rounded-xl bg-amber-50 p-3">
-          <Text className="text-xs font-semibold text-amber-900">
-            Anticipo al chofer: S/{advanceAmount.toFixed(2)} (25% de la tarifa)
+        <View className="mt-3 rounded-xl bg-amber-50 p-4">
+          <Text className="text-lg font-bold text-amber-900">
+            Anticipo: S/{advanceAmount.toFixed(2)}
           </Text>
-          <Text className="mt-1 text-xs text-amber-800">
-            Transfiérelo con estos datos antes de que salga a recogerte.
+          <Text className="mt-1 text-base text-amber-800">
+            Transfiere el 25% de la tarifa al chofer antes de que salga.
           </Text>
-          {driverPayout === undefined ? (
-            <Text className="mt-2 text-xs text-amber-700">
-              Cargando datos del chofer…
+          <TouchableOpacity
+            onPress={() => setPayoutOpen(true)}
+            className="mt-3 rounded-xl bg-white py-3"
+          >
+            <Text className="text-center text-base font-bold text-hercom">
+              Ver datos para transferir
             </Text>
-          ) : driverPayout === null ? (
-            <Text className="mt-2 text-xs text-amber-700">
-              Sin datos del chofer aún.
-            </Text>
-          ) : (
-            <View className="mt-2 gap-1 rounded-lg border border-amber-200 bg-white/70 p-2">
-              <PayoutLine label="Nombres" value={driverPayout.fullName} />
-              <PayoutLine
-                label="DNI"
-                value={driverPayout.dni !== "" ? driverPayout.dni : "Pendiente"}
-              />
-              <PayoutLine
-                label="Yape"
-                value={driverPayout.yape !== "" ? driverPayout.yape : "—"}
-              />
-              <PayoutLine
-                label="Plin"
-                value={driverPayout.plin !== "" ? driverPayout.plin : "—"}
-              />
-              <PayoutLine
-                label="Cuenta banco 1"
-                value={
-                  driverPayout.bankAccount1 !== ""
-                    ? driverPayout.bankAccount1
-                    : "—"
-                }
-              />
-              <PayoutLine
-                label="Cuenta banco 2"
-                value={
-                  driverPayout.bankAccount2 !== ""
-                    ? driverPayout.bankAccount2
-                    : "—"
-                }
-              />
-              <PayoutLine
-                label="Cuenta banco 3"
-                value={
-                  driverPayout.bankAccount3 !== ""
-                    ? driverPayout.bankAccount3
-                    : "—"
-                }
-              />
-            </View>
-          )}
+          </TouchableOpacity>
           {advanceConfirmed && (
-            <Text className="mt-2 text-xs font-semibold text-emerald-700">
+            <Text className="mt-3 text-base font-semibold text-emerald-700">
               ✓ El chofer confirmó que recibió el anticipo
             </Text>
           )}
@@ -229,8 +225,8 @@ function ClientServiceCard({
       {service.securityCode !== undefined &&
         service.status !== "finished" &&
         service.status !== "cancelled" && (
-          <View className="mt-2 rounded-xl bg-indigo-50 p-3">
-            <Text className="text-xs text-indigo-700">
+          <View className="mt-3 rounded-xl bg-indigo-50 p-4">
+            <Text className="text-base text-indigo-700">
               Código de seguridad para iniciar viaje:{" "}
               <Text className="font-bold text-indigo-900">{service.securityCode}</Text>
             </Text>
@@ -238,75 +234,133 @@ function ClientServiceCard({
         )}
       {service.status === "pending" && (
         <View className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <Text className="mb-2 text-xs font-semibold text-slate-600">
+          <Text className="mb-2 text-base font-semibold text-slate-600">
             Ofertas de choferes
           </Text>
           {offers === undefined ? (
-            <Text className="text-xs text-slate-500">Cargando ofertas...</Text>
+            <Text className="text-base text-slate-500">Cargando ofertas...</Text>
           ) : offers.length === 0 ? (
-            <Text className="text-xs text-slate-500">
+            <Text className="text-base text-slate-500">
               Aún no hay ofertas para este servicio.
             </Text>
           ) : (
             offers
               .filter((offer) => offer.status === "pending")
               .map((offer) => (
-                <View
+                <TouchableOpacity
                   key={offer._id}
-                  className="mb-2 rounded-lg border border-slate-200 bg-white p-2"
+                  onPress={() => {
+                    setOfferError(null);
+                    setSelectedOffer({
+                      _id: offer._id,
+                      offeredPrice: offer.offeredPrice,
+                      driverName: offer.driverName,
+                      driverRating: offer.driverRating,
+                      driverTrips: offer.driverTrips,
+                      driverPlate: offer.driverPlate,
+                      driverVehicle: offer.driverVehicle,
+                      driverColor: offer.driverColor,
+                    });
+                  }}
+                  className="mb-2 rounded-lg border border-slate-200 bg-white p-3"
                 >
-                  <Text className="text-xs text-slate-700">
+                  <Text className="text-base font-semibold text-slate-800">
                     {offer.driverName} · {offer.driverRating.toFixed(1)}★
                     {offer.driverTrips > 0
-                      ? ` · ${offer.driverTrips} servicios`
+                      ? ` · ${offer.driverTrips} viajes`
                       : ""}
                   </Text>
-                  <Text className="mt-0.5 text-sm font-semibold text-slate-900">
-                    Tarifa ofertada: S/{offer.offeredPrice.toFixed(2)}
+                  <Text className="mt-1 text-lg font-bold text-slate-900">
+                    S/{offer.offeredPrice.toFixed(2)}
                   </Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setAcceptingOfferId(offer._id);
-                      setOfferError(null);
-                      void acceptOffer({
-                        serviceId: service._id,
-                        offerId: offer._id,
-                      })
-                        .catch((error) =>
-                          setOfferError(
-                            error instanceof Error
-                              ? error.message
-                              : "No se pudo aceptar la oferta.",
-                          ),
-                        )
-                        .finally(() => setAcceptingOfferId(null));
-                    }}
-                    disabled={acceptingOfferId === offer._id}
-                    className="mt-2 rounded-lg bg-hercom py-1.5 disabled:opacity-60"
-                  >
-                    <Text className="text-center text-xs font-bold uppercase text-white">
-                      {acceptingOfferId === offer._id ? "Aceptando..." : "Elegir chofer"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                  <Text className="mt-1 text-base font-semibold text-hercom">
+                    Ver chofer
+                  </Text>
+                </TouchableOpacity>
               ))
           )}
-          {offerError !== null && (
-            <Text className="mt-1 text-xs font-medium text-red-600">{offerError}</Text>
+          {offerError !== null && selectedOffer === null && (
+            <Text className="mt-1 text-base font-medium text-red-600">{offerError}</Text>
           )}
         </View>
+      )}
+      {service.status === "finished" && service.clientRating === undefined && (
+        <RateServiceStars
+          submitting={ratingSubmitting}
+          error={ratingError}
+          onSubmit={(score, comment) => {
+            setRatingSubmitting(true);
+            setRatingError(null);
+            void rateService({
+              serviceId: service._id,
+              score,
+              ...(comment.trim() !== "" ? { comment: comment.trim() } : {}),
+            })
+              .catch((error) =>
+                setRatingError(
+                  error instanceof Error
+                    ? error.message
+                    : "No se pudo enviar la valoración.",
+                ),
+              )
+              .finally(() => setRatingSubmitting(false));
+          }}
+        />
+      )}
+      {service.status === "finished" && service.clientRating !== undefined && (
+        <Text className="mt-3 text-base font-semibold text-amber-700">
+          Valoraste este viaje con {service.clientRating}★
+        </Text>
       )}
       {canCancel && (
         <TouchableOpacity
           onPress={() => void handleCancel()}
           disabled={cancelling}
-          className="mt-3 rounded-xl border border-red-200 py-2 disabled:opacity-60"
+          className="mt-3 rounded-xl border border-red-200 py-3 disabled:opacity-60"
         >
-          <Text className="text-center text-sm font-semibold text-red-600">
+          <Text className="text-center text-base font-semibold text-red-600">
             {cancelling ? "Cancelando..." : "Cancelar solicitud"}
           </Text>
         </TouchableOpacity>
       )}
+      <DriverOfferModal
+        visible={selectedOffer !== null}
+        offer={selectedOffer}
+        accepting={acceptingOfferId === selectedOffer?._id}
+        error={offerError}
+        onClose={() => setSelectedOffer(null)}
+        onAccept={() => void handleAcceptOffer()}
+      />
+      <AdvancePayoutModal
+        visible={payoutOpen}
+        onClose={() => setPayoutOpen(false)}
+        payout={driverPayout ?? null}
+      />
+      <EditTripLocationsModal
+        visible={editRouteOpen}
+        origin={service.origin}
+        destination={service.destination}
+        saving={savingRoute}
+        error={routeError}
+        onClose={() => setEditRouteOpen(false)}
+        onSave={(next) => {
+          setSavingRoute(true);
+          setRouteError(null);
+          void updateTripLocations({
+            serviceId: service._id,
+            ...next,
+          })
+            .then(() => setEditRouteOpen(false))
+            .catch((error) =>
+              setRouteError(
+                error instanceof Error
+                  ? error.message
+                  : "No se pudo actualizar la ruta.",
+              ),
+            )
+            .finally(() => setSavingRoute(false));
+        }}
+      />
     </View>
   );
 }

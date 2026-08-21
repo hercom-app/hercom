@@ -72,6 +72,7 @@ export const notificationTypeValidator = v.union(
   v.literal("driver_heading_pickup"),
   v.literal("driver_arrived_pickup"),
   v.literal("advance_confirmed"),
+  v.literal("trip_route_updated"),
 );
 
 export const checklistPhaseValidator = v.union(
@@ -343,6 +344,21 @@ export default defineSchema({
   })
     .index("by_service", ["serviceId"])
     .index("by_driver", ["driverId"]),
+
+  /**
+   * Valoración del cliente al chofer al finalizar el viaje (1–5 estrellas).
+   */
+  serviceRatings: defineTable({
+    serviceId: v.id("services"),
+    clientId: v.id("users"),
+    driverId: v.id("drivers"),
+    score: v.number(),
+    comment: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_service", ["serviceId"])
+    .index("by_driver", ["driverId"])
+    .index("by_client", ["clientId"]),
 
   /**
    * Promociones festivas por región (departamento / provincia / distrito).

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -45,7 +44,6 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedOk, setSavedOk] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     if (checklist === null || checklist === undefined) return;
@@ -63,36 +61,10 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
     setInsuranceNotes(checklist.insuranceNotes ?? "");
   }, [checklist?._id]);
 
-  useEffect(() => {
-    const showEvent =
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent =
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const onShow = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardHeight(event.endCoordinates.height);
-    });
-    const onHide = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
-    });
-    return () => {
-      onShow.remove();
-      onHide.remove();
-    };
-  }, []);
-
   const docsOk = hasPropertyCard && hasSoat && hasTechnicalInspection;
   const hasMarks = damageMarks.length > 0;
   const notesOk = !hasMarks || damageNotes.trim().length > 0;
   const canSave = docsOk && notesOk;
-
-  function scrollFieldIntoView() {
-    setTimeout(
-      () => {
-        scrollRef.current?.scrollToEnd({ animated: true });
-      },
-      Platform.OS === "ios" ? 80 : 160,
-    );
-  }
 
   async function handleSave() {
     if (!canSave) {
@@ -146,7 +118,8 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
     <KeyboardAvoidingView
       className="flex-1 bg-slate-100"
       style={{ flex: 1, paddingTop: insets.top }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
     >
       <View className="flex-row items-center border-b border-slate-200 bg-white px-4 py-3">
         <TouchableOpacity onPress={onBack} className="mr-3 py-1 pr-2">
@@ -162,10 +135,10 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={{
           padding: 16,
-          paddingBottom:
-            (keyboardHeight > 0 ? keyboardHeight : insets.bottom) + 48,
+          paddingBottom: insets.bottom + 48,
         }}
       >
         <Section title="1. Documentos">
@@ -192,14 +165,12 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
             value={vehicleMake}
             onChangeText={setVehicleMake}
             placeholder="Ej. Toyota"
-            onFocus={scrollFieldIntoView}
           />
           <Field
             label="Modelo"
             value={vehicleModel}
             onChangeText={setVehicleModel}
             placeholder="Ej. Corolla"
-            onFocus={scrollFieldIntoView}
           />
           <Field
             label="Año"
@@ -207,7 +178,6 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
             onChangeText={setVehicleYear}
             placeholder="Ej. 2019"
             keyboardType="number-pad"
-            onFocus={scrollFieldIntoView}
           />
         </Section>
 
@@ -225,8 +195,7 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
                 : "Estado general del vehículo"
             }
             multiline
-            onFocus={scrollFieldIntoView}
-            className="min-h-[88px] rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+            className="min-h-[88px] rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900"
             textAlignVertical="top"
           />
         </Section>
@@ -242,8 +211,7 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
               value={insuranceNotes}
               onChangeText={setInsuranceNotes}
               placeholder="Póliza o nota"
-              onFocus={scrollFieldIntoView}
-              className="mt-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+              className="mt-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900"
             />
           )}
         </Section>
@@ -344,25 +312,22 @@ function Field({
   onChangeText,
   placeholder,
   keyboardType,
-  onFocus,
 }: {
   label: string;
   value: string;
   onChangeText: (t: string) => void;
   placeholder?: string;
   keyboardType?: "default" | "number-pad";
-  onFocus?: () => void;
 }) {
   return (
     <View className="mb-2">
-      <Text className="mb-1 text-xs font-semibold text-slate-600">{label}</Text>
+      <Text className="mb-1 text-base font-semibold text-slate-600">{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
         keyboardType={keyboardType}
-        onFocus={onFocus}
-        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900"
       />
     </View>
   );

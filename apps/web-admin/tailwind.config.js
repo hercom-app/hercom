@@ -22,6 +22,14 @@ export default {
           "sans-serif",
         ],
       },
+      fontSize: {
+        xs: ["0.875rem", { lineHeight: "1.35rem" }],
+        sm: ["1.0625rem", { lineHeight: "1.55rem" }],
+        base: ["1.125rem", { lineHeight: "1.7rem" }],
+        lg: ["1.25rem", { lineHeight: "1.8rem" }],
+        xl: ["1.375rem", { lineHeight: "1.95rem" }],
+        "2xl": ["1.625rem", { lineHeight: "2.15rem" }],
+      },
       colors: {
         hercom: {
           DEFAULT: "#007AFF",

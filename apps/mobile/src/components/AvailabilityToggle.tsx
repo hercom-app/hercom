@@ -73,15 +73,19 @@ export function AvailabilityToggle({ status }: { status: DriverStatus }) {
         <Text className="text-base font-semibold text-slate-800">Estado</Text>
         <View
           className={`rounded-full px-3 py-1 ${
-            isAvailable ? "bg-green-100" : busy ? "bg-amber-100" : "bg-slate-200"
+            isAvailable
+              ? "bg-success-soft"
+              : busy
+                ? "bg-warning-soft"
+                : "bg-slate-200"
           }`}
         >
           <Text
             className={`text-xs font-semibold ${
               isAvailable
-                ? "text-green-700"
+                ? "text-success"
                 : busy
-                  ? "text-amber-800"
+                  ? "text-warning"
                   : "text-slate-600"
             }`}
           >
@@ -94,7 +98,7 @@ export function AvailabilityToggle({ status }: { status: DriverStatus }) {
       <View
         onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
         className={`overflow-hidden rounded-full ${
-          busy ? "bg-slate-300" : isAvailable ? "bg-green-600" : "bg-hercom"
+          busy ? "bg-slate-300" : isAvailable ? "bg-success" : "bg-hercom"
         }`}
         style={{ height: TRACK_H, position: "relative" }}
       >

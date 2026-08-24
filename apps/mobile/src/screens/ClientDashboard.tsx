@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -26,6 +26,7 @@ import { HelpFab } from "../components/HelpFab";
 import { HercomLogo } from "../components/HercomLogo";
 import { RateServiceStars } from "../components/RateServiceStars";
 import { SideDrawer } from "../components/SideDrawer";
+import { LiveTripMapModal } from "../components/LiveTripMapModal";
 import {
   addressDraftFromText,
   createEmptyAddressDraft,
@@ -42,6 +43,7 @@ import {
 import { formatServiceStopsLabel } from "../lib/wazeNavigation";
 import { useAppMode } from "../contexts/AppModeContext";
 import { HERCOM_COLORS } from "../constants/theme";
+import { useAndroidBackHandler } from "../hooks/useAndroidBackHandler";
 import * as Location from "expo-location";
 
 const HOURLY_SERVICE_RATE = 40;
@@ -103,6 +105,7 @@ function ClientServiceCard({
   const [routeError, setRouteError] = useState<string | null>(null);
   const [ratingError, setRatingError] = useState<string | null>(null);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [liveMapOpen, setLiveMapOpen] = useState(false);
 
   const agreedPrice = service.offeredPrice ?? service.totalPrice;
   const advanceAmount =
@@ -112,6 +115,12 @@ function ClientServiceCard({
       : 0);
   const advanceConfirmed = service.advanceConfirmedAt !== undefined;
   const inProgress = service.status === "in_progress";
+  const canShowLive =
+    service.status === "heading_to_pickup" ||
+    service.status === "arrived_pickup" ||
+    service.status === "in_progress" ||
+    service.status === "en_route" ||
+    service.status === "arrived_destination";
 
   const canCancel =
     service.status === "pending" ||
@@ -156,7 +165,7 @@ function ClientServiceCard({
             {STATUS_LABELS[service.status]}
           </Text>
           {(service.serviceType ?? "app") === "app" && (
-            <Text className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800">
+            <Text className="rounded-full bg-hercom-soft px-2 py-0.5 text-xs font-semibold text-hercom-dark">
               App
             </Text>
           )}
@@ -178,7 +187,7 @@ function ClientServiceCard({
           : "Sin chofer asignado"}
       </Text>
       {service.promotionName !== undefined && (
-        <Text className="mb-1 text-base font-semibold text-violet-700">
+        <Text className="mb-1 text-base font-semibold text-hercom-dark">
           Promo: {service.promotionName}
         </Text>
       )}
@@ -186,6 +195,16 @@ function ClientServiceCard({
         {service.origin.address} →{" "}
         {formatServiceStopsLabel(service.destination, service.extraDestinations)}
       </Text>
+      {canShowLive && (
+        <TouchableOpacity
+          onPress={() => setLiveMapOpen(true)}
+          className="mt-3 rounded-xl bg-hercom py-3"
+        >
+          <Text className="text-center text-base font-bold text-white">
+            Ver chofer en vivo · Compartir viaje
+          </Text>
+        </TouchableOpacity>
+      )}
       {inProgress && (
         <TouchableOpacity
           onPress={() => {
@@ -200,11 +219,11 @@ function ClientServiceCard({
         </TouchableOpacity>
       )}
       {service.status === "assigned" && service.offeredPrice !== undefined && (
-        <View className="mt-3 rounded-xl bg-amber-50 p-4">
-          <Text className="text-lg font-bold text-amber-900">
+        <View className="mt-3 rounded-xl bg-surface-muted p-4">
+          <Text className="text-lg font-bold text-slate-900">
             Anticipo: S/{advanceAmount.toFixed(2)}
           </Text>
-          <Text className="mt-1 text-base text-amber-800">
+          <Text className="mt-1 text-base text-slate-600">
             Transfiere el 25% de la tarifa al chofer antes de que salga.
           </Text>
           <TouchableOpacity
@@ -216,7 +235,7 @@ function ClientServiceCard({
             </Text>
           </TouchableOpacity>
           {advanceConfirmed && (
-            <Text className="mt-3 text-base font-semibold text-emerald-700">
+            <Text className="mt-3 text-base font-semibold text-success">
               ✓ El chofer confirmó que recibió el anticipo
             </Text>
           )}
@@ -225,10 +244,10 @@ function ClientServiceCard({
       {service.securityCode !== undefined &&
         service.status !== "finished" &&
         service.status !== "cancelled" && (
-          <View className="mt-3 rounded-xl bg-indigo-50 p-4">
-            <Text className="text-base text-indigo-700">
+          <View className="mt-3 rounded-xl bg-hercom-soft p-4">
+            <Text className="text-base text-hercom-dark">
               Código de seguridad para iniciar viaje:{" "}
-              <Text className="font-bold text-indigo-900">{service.securityCode}</Text>
+              <Text className="font-bold text-slate-900">{service.securityCode}</Text>
             </Text>
           </View>
         )}
@@ -308,7 +327,7 @@ function ClientServiceCard({
         />
       )}
       {service.status === "finished" && service.clientRating !== undefined && (
-        <Text className="mt-3 text-base font-semibold text-amber-700">
+        <Text className="mt-3 text-base font-semibold text-slate-700">
           Valoraste este viaje con {service.clientRating}★
         </Text>
       )}
@@ -360,6 +379,12 @@ function ClientServiceCard({
             )
             .finally(() => setSavingRoute(false));
         }}
+      />
+      <LiveTripMapModal
+        visible={liveMapOpen}
+        serviceId={service._id}
+        onClose={() => setLiveMapOpen(false)}
+        title="Chofer en vivo"
       />
     </View>
   );
@@ -561,6 +586,31 @@ export function ClientDashboard() {
     setAddressSearchField(null);
   }
 
+  const handleAndroidBack = useCallback(() => {
+    if (menuOpen) {
+      setMenuOpen(false);
+      return true;
+    }
+    if (addressSearchField !== null) {
+      Keyboard.dismiss();
+      setAddressSearchField(null);
+      return true;
+    }
+    if (flowStep === "confirm") {
+      setFlowStep("compose");
+      setError(null);
+      return true;
+    }
+    if (menuSection !== "ciudad") {
+      setMenuSection("ciudad");
+      setFlowStep("compose");
+      return true;
+    }
+    return false;
+  }, [menuOpen, addressSearchField, flowStep, menuSection]);
+
+  useAndroidBackHandler(handleAndroidBack);
+
   async function handleUseMyLocationForOrigin() {
     setLocationLoading(true);
     setError(null);
@@ -717,7 +767,7 @@ export function ClientDashboard() {
           showsVerticalScrollIndicator={false}
         >
           {message !== null && menuSection === "historial" && (
-            <Text className="mb-3 text-center text-sm text-green-700">
+            <Text className="mb-3 text-center text-sm text-success">
               {message}
             </Text>
           )}
@@ -824,7 +874,7 @@ export function ClientDashboard() {
             }}
           >
             <Text className="mb-5 text-2xl font-bold text-slate-900">
-              ¿Dónde necesitas un chofer de reemplazo?
+              ¿Dónde necesitas un chofer de remplazo?
             </Text>
 
             <View className="mb-5 items-center">
@@ -855,12 +905,12 @@ export function ClientDashboard() {
               <TouchableOpacity
                 onPress={() => void handleUseMyLocationForOrigin()}
                 disabled={locationLoading || submitting}
-                className="flex-row items-center justify-center rounded-2xl border border-sky-300 bg-sky-50 py-3 disabled:opacity-60"
+                className="flex-row items-center justify-center rounded-2xl border border-hercom/30 bg-hercom-soft py-3 disabled:opacity-60"
               >
                 {locationLoading ? (
-                  <ActivityIndicator color="#0369A1" />
+                  <ActivityIndicator color={HERCOM_COLORS.primary} />
                 ) : (
-                  <Text className="text-sm font-semibold text-sky-900">
+                  <Text className="text-sm font-semibold text-hercom-dark">
                     Usar mi ubicación actual
                   </Text>
                 )}
@@ -1145,16 +1195,26 @@ export function ClientDashboard() {
     );
   }
 
-  // ——— Paso 2:
   // ——— Paso 2: mapa + horas / tarifa ———
   return (
-    <View className="flex-1 bg-slate-100">
+    <View className="flex-1 bg-canvas">
       <MapView
+        key={`map-${originLat}-${originLng}-${destination.lat}-${destination.lng}`}
         style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
         provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
-        region={confirmMapRegion}
+        initialRegion={confirmMapRegion}
+        mapType="standard"
         showsUserLocation={showsBlueDot}
         showsMyLocationButton={false}
+        loadingEnabled
+        loadingIndicatorColor={HERCOM_COLORS.primary}
+        loadingBackgroundColor={HERCOM_COLORS.mapFallback}
+        mapPadding={{
+          top: insets.top + 56,
+          right: 16,
+          bottom: Math.round(windowHeight * 0.42),
+          left: 16,
+        }}
       >
         {originLat !== null && originLng !== null && (
           <Marker
@@ -1236,22 +1296,46 @@ export function ClientDashboard() {
           </Text>
 
           <View className="mb-4 rounded-2xl border border-slate-100 bg-slate-50 p-3">
-            <Text className="text-[11px] font-semibold uppercase text-slate-500">
-              De
-            </Text>
-            <Text className="mt-0.5 text-sm font-medium text-slate-900" numberOfLines={2}>
-              {origin}
-            </Text>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                setFlowStep("compose");
+                setError(null);
+                setAddressSearchField("origin");
+              }}
+            >
+              <Text className="text-[11px] font-semibold uppercase text-slate-500">
+                De · tocar para editar
+              </Text>
+              <Text
+                className="mt-0.5 text-sm font-medium text-slate-900"
+                numberOfLines={2}
+              >
+                {origin}
+              </Text>
+            </TouchableOpacity>
             <View className="my-2 h-px bg-slate-200" />
-            <Text className="text-[11px] font-semibold uppercase text-slate-500">
-              A
-            </Text>
-            <Text className="mt-0.5 text-sm font-medium text-slate-900" numberOfLines={2}>
-              {formatServiceStopsLabel(
-                toServiceLocation(destination),
-                extraDestinations.map((stop) => toServiceLocation(stop)),
-              )}
-            </Text>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                setFlowStep("compose");
+                setError(null);
+                setAddressSearchField("destination");
+              }}
+            >
+              <Text className="text-[11px] font-semibold uppercase text-slate-500">
+                A · tocar para editar
+              </Text>
+              <Text
+                className="mt-0.5 text-sm font-medium text-slate-900"
+                numberOfLines={2}
+              >
+                {formatServiceStopsLabel(
+                  toServiceLocation(destination),
+                  extraDestinations.map((stop) => toServiceLocation(stop)),
+                )}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <Text className="mb-2 text-xs font-semibold text-slate-600">
@@ -1314,12 +1398,12 @@ export function ClientDashboard() {
           </View>
 
           {promoPreview !== undefined && promoPreview !== null && (
-            <View className="mb-3 rounded-xl bg-emerald-50 px-3 py-2">
-              <Text className="text-xs font-semibold text-emerald-800">
+            <View className="mb-3 rounded-xl bg-hercom-soft px-3 py-2">
+              <Text className="text-xs font-semibold text-hercom-dark">
                 Promo: {promoPreview.promotionName} (
                 {(promoPreview.discountRate * 100).toFixed(0)}% off)
               </Text>
-              <Text className="mt-1 text-xs text-emerald-700">
+              <Text className="mt-1 text-xs text-slate-600">
                 Pagas S/{promoPreview.basePrice.toFixed(2)} (lista S/
                 {promoPreview.catalogBasePrice.toFixed(2)}).
               </Text>

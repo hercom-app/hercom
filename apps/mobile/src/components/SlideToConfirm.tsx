@@ -90,12 +90,12 @@ export function SlideToConfirm({
     <View
       onLayout={handleTrackLayout}
       className={`h-14 w-full rounded-full px-1 ${
-        disabled ? "bg-slate-200" : "bg-emerald-100"
+        disabled ? "bg-slate-200" : "bg-hercom-soft"
       }`}
       style={{ justifyContent: "center" }}
     >
       <View className="absolute left-0 right-0 items-center">
-        <Text className={`text-sm font-semibold ${disabled ? "text-slate-500" : "text-emerald-800"}`}>
+        <Text className={`text-sm font-semibold ${disabled ? "text-slate-500" : "text-hercom-dark"}`}>
           {loading ? "Procesando..." : label}
         </Text>
       </View>
@@ -107,7 +107,7 @@ export function SlideToConfirm({
           height: KNOB_SIZE,
           borderRadius: KNOB_SIZE / 2,
           marginLeft: TRACK_PADDING,
-          backgroundColor: disabled ? "#94A3B8" : "#059669",
+          backgroundColor: disabled ? "#94A3B8" : "#007AFF",
           alignItems: "center",
           justifyContent: "center",
         }}

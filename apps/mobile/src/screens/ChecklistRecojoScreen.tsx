@@ -220,7 +220,7 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
           <Text className="mb-2 text-xs font-semibold text-red-600">{error}</Text>
         )}
         {savedOk && (
-          <Text className="mb-2 text-xs font-semibold text-emerald-700">
+          <Text className="mb-2 text-xs font-semibold text-success">
             Checklist guardado. Volvé a Servicios para iniciar el viaje.
           </Text>
         )}
@@ -290,13 +290,13 @@ function DocToggle({
       onPress={onPress}
       className={`mb-2 rounded-xl border px-3 py-3 ${
         value
-          ? "border-emerald-300 bg-emerald-50"
+          ? "border-hercom/40 bg-hercom-soft"
           : "border-slate-300 bg-slate-50"
       }`}
     >
       <Text
         className={`text-sm font-semibold ${
-          value ? "text-emerald-800" : "text-slate-700"
+          value ? "text-hercom-dark" : "text-slate-700"
         }`}
       >
         {value ? "✓ " : "○ "}

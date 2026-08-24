@@ -1,10 +1,10 @@
-/** Textos legales orientados a marketplace de chofer de reemplazo (Perú). */
+/** Textos legales orientados a marketplace de chofer de remplazo (Perú). */
 
 export const TERMS_OF_USE = {
   title: "Términos de Uso",
   body: `Última actualización: agosto 2026.
 
-Estos Términos regulan el uso de la aplicación Hercom, plataforma que conecta a personas que necesitan un chofer de reemplazo (pasajeros / titulares del vehículo) con conductores independientes disponibles para conducir el vehículo del usuario.
+Estos Términos regulan el uso de la aplicación Hercom, plataforma que conecta a personas que necesitan un chofer de remplazo (pasajeros / titulares del vehículo) con conductores independientes disponibles para conducir el vehículo del usuario.
 
 1. Naturaleza del servicio
 Hercom no es una empresa de transporte público ni de taxi. Actúa como intermediario tecnológico. El servicio de conducción lo presta el chofer a título independiente. El vehículo lo aporta el pasajero o titular.
@@ -32,7 +32,7 @@ export const PRIVACY_POLICY = {
   title: "Política de Privacidad",
   body: `Última actualización: agosto 2026.
 
-Esta Política describe cómo Hercom trata datos personales en el marco de su app de chofer de reemplazo en Perú.
+Esta Política describe cómo Hercom trata datos personales en el marco de su app de chofer de remplazo en Perú.
 
 1. Responsable
 Hercom opera la aplicación y trata los datos necesarios para prestar el servicio de intermediación.

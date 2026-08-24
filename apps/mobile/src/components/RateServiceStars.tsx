@@ -16,7 +16,7 @@ export function RateServiceStars({
   const [comment, setComment] = useState("");
 
   return (
-    <View className="mt-3 rounded-2xl bg-amber-50 p-4">
+    <View className="mt-3 rounded-2xl bg-surface-muted p-4">
       <Text className="mb-2 text-lg font-bold text-slate-900">
         ¿Cómo estuvo el servicio?
       </Text>
@@ -32,7 +32,7 @@ export function RateServiceStars({
           >
             <Text
               className={`text-2xl ${
-                value <= score ? "text-amber-500" : "text-slate-300"
+                value <= score ? "text-hercom" : "text-slate-300"
               }`}
             >
               ★
@@ -44,7 +44,7 @@ export function RateServiceStars({
         value={comment}
         onChangeText={setComment}
         placeholder="Comentario (opcional)"
-        className="mb-3 min-h-[56px] rounded-xl border border-amber-200 bg-white px-3 py-3 text-base text-slate-900"
+        className="mb-3 min-h-[56px] rounded-xl border border-slate-200 bg-white px-3 py-3 text-base text-slate-900"
         textAlignVertical="top"
         multiline
       />

@@ -114,6 +114,8 @@ export default defineSchema({
     phoneVerificationTime: v.optional(v.number()),
     isAnonymous: v.optional(v.boolean()),
     role: userRoleValidator,
+    /** Token Expo Push para notificaciones del sistema. */
+    expoPushToken: v.optional(v.string()),
   })
     .index("email", ["email"])
     .index("phone", ["phone"]),
@@ -378,4 +380,28 @@ export default defineSchema({
   })
     .index("by_active", ["active"])
     .index("by_department", ["department"]),
+
+  /**
+   * Ubicación en vivo + rastro del chofer para «compartir viaje».
+   * Un documento por servicio; el shareToken permite ver sin ser el cliente.
+   */
+  serviceTracking: defineTable({
+    serviceId: v.id("services"),
+    shareToken: v.string(),
+    lat: v.optional(v.number()),
+    lng: v.optional(v.number()),
+    heading: v.optional(v.number()),
+    speed: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+    trail: v.array(
+      v.object({
+        lat: v.number(),
+        lng: v.number(),
+        t: v.number(),
+      }),
+    ),
+    createdAt: v.number(),
+  })
+    .index("by_service", ["serviceId"])
+    .index("by_share_token", ["shareToken"]),
 });

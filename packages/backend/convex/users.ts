@@ -34,6 +34,27 @@ export const updateProfile = mutation({
 });
 
 /**
+ * Guarda el token Expo Push del dispositivo para avisos del sistema.
+ */
+export const saveExpoPushToken = mutation({
+  args: {
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const token = args.token.trim();
+    if (token === "") {
+      throw new Error("Token de notificaciones inválido.");
+    }
+    if (user.expoPushToken === token) {
+      return user._id;
+    }
+    await ctx.db.patch(user._id, { expoPushToken: token });
+    return user._id;
+  },
+});
+
+/**
  * Asigna un rol a un usuario. Solo administradores.
  */
 export const setRole = mutation({

@@ -181,7 +181,7 @@ export function DriverPayoutConfig({
           )}
         </TouchableOpacity>
         {message !== null && (
-          <Text className="mt-2 text-center text-xs font-medium text-green-700">
+          <Text className="mt-2 text-center text-xs font-medium text-success">
             {message}
           </Text>
         )}

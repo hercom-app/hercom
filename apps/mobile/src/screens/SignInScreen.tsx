@@ -25,7 +25,7 @@ export function SignInScreen() {
       <View className="flex-1 items-center justify-center">
         <HercomLogo width={220} />
         <Text className="mt-6 text-center text-base text-white/90">
-          Chofer para reemplazo
+          Chofer para remplazo
         </Text>
       </View>
 

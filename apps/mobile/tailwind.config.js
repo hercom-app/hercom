@@ -8,10 +8,25 @@ module.exports = {
         hercom: {
           DEFAULT: "#007AFF",
           dark: "#0062CC",
+          soft: "#E8F2FF",
         },
         brand: {
           DEFAULT: "#007AFF",
           dark: "#0062CC",
+          soft: "#E8F2FF",
+        },
+        canvas: "#F4F6F8",
+        surface: {
+          DEFAULT: "#FFFFFF",
+          muted: "#F1F5F9",
+        },
+        success: {
+          DEFAULT: "#15803D",
+          soft: "#DCFCE7",
+        },
+        warning: {
+          DEFAULT: "#B45309",
+          soft: "#FEF3C7",
         },
       },
       fontFamily: {

@@ -30,6 +30,7 @@ import type * as seed from "../seed.js";
 import type * as serviceChecklists from "../serviceChecklists.js";
 import type * as serviceOffers from "../serviceOffers.js";
 import type * as serviceRatings from "../serviceRatings.js";
+import type * as serviceTracking from "../serviceTracking.js";
 import type * as services from "../services.js";
 import type * as users from "../users.js";
 
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   serviceChecklists: typeof serviceChecklists;
   serviceOffers: typeof serviceOffers;
   serviceRatings: typeof serviceRatings;
+  serviceTracking: typeof serviceTracking;
   services: typeof services;
   users: typeof users;
 }>;

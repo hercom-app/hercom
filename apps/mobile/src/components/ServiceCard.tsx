@@ -23,9 +23,14 @@ const STATUS_LABELS: Record<Doc<"services">["status"], string> = {
 type Props = {
   service: Doc<"services">;
   onOpenChecklist?: (serviceId: Id<"services">) => void;
+  onOpenLiveMap?: (serviceId: Id<"services">) => void;
 };
 
-export function ServiceCard({ service, onOpenChecklist }: Props) {
+export function ServiceCard({
+  service,
+  onOpenChecklist,
+  onOpenLiveMap,
+}: Props) {
   const [securityCodeInput, setSecurityCodeInput] = useState("");
   const [tripStarting, setTripStarting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -63,6 +68,12 @@ export function ServiceCard({ service, onOpenChecklist }: Props) {
   const currentStopIndex = service.currentStopIndex ?? 0;
   const currentStop = serviceStops[Math.min(currentStopIndex, serviceStops.length - 1)]!;
   const totalStops = serviceStops.length;
+  const canShowLive =
+    service.status === "heading_to_pickup" ||
+    service.status === "arrived_pickup" ||
+    service.status === "in_progress" ||
+    service.status === "en_route" ||
+    service.status === "arrived_destination";
 
   async function handleConfirmAdvance() {
     setActionError(null);
@@ -152,7 +163,9 @@ export function ServiceCard({ service, onOpenChecklist }: Props) {
           {STATUS_LABELS[service.status]}
         </Text>
         <Text className="text-sm font-bold text-slate-900">
-          Comisión app S/{service.driverCommission.toFixed(2)}
+          {service.offeredPrice !== undefined
+            ? `Tarifa S/${service.offeredPrice.toFixed(2)}`
+            : `Tarifa S/${service.totalPrice.toFixed(2)}`}
         </Text>
       </View>
 
@@ -170,32 +183,43 @@ export function ServiceCard({ service, onOpenChecklist }: Props) {
         {formatServiceStopsLabel(service.destination, service.extraDestinations)}
       </Text>
       {(service.status === "in_progress" || service.status === "en_route") && (
-        <Text className="mb-3 text-xs font-semibold text-blue-700">
+        <Text className="mb-3 text-xs font-semibold text-hercom-dark">
           Navegando parada {currentStopIndex + 1} de {totalStops}: {currentStop.address}
         </Text>
       )}
 
+      {canShowLive && onOpenLiveMap !== undefined && (
+        <TouchableOpacity
+          onPress={() => onOpenLiveMap(service._id)}
+          className="mb-3 rounded-xl border border-hercom/40 bg-hercom-soft py-2.5"
+        >
+          <Text className="text-center text-sm font-bold text-hercom-dark">
+            Ver / compartir ubicación en vivo
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {service.securityCode !== undefined && service.status !== "finished" && (
-        <View className="mb-3 rounded-xl bg-indigo-50 p-3">
-          <Text className="text-xs text-indigo-700">
+        <View className="mb-3 rounded-xl bg-hercom-soft p-3">
+          <Text className="text-xs text-hercom-dark">
             Código de seguridad:{" "}
-            <Text className="font-bold text-indigo-900">{service.securityCode}</Text>
+            <Text className="font-bold text-slate-900">{service.securityCode}</Text>
           </Text>
         </View>
       )}
 
       {service.status === "assigned" && (
         <View className="gap-2">
-          <View className="rounded-xl bg-amber-50 p-3">
-            <Text className="text-xs font-semibold text-amber-900">
+          <View className="rounded-xl bg-surface-muted p-3">
+            <Text className="text-xs font-semibold text-slate-900">
               Anticipo requerido: S/{advanceAmount.toFixed(2)}
             </Text>
-            <Text className="mt-1 text-xs text-amber-800">
+            <Text className="mt-1 text-xs text-slate-600">
               El cliente debe pagarte antes de que salgas. Confirma cuando lo
               recibas.
             </Text>
             {advanceConfirmed && (
-              <Text className="mt-2 text-xs font-semibold text-emerald-700">
+              <Text className="mt-2 text-xs font-semibold text-success">
                 ✓ Anticipo confirmado
               </Text>
             )}
@@ -205,7 +229,7 @@ export function ServiceCard({ service, onOpenChecklist }: Props) {
             <TouchableOpacity
               onPress={() => void handleConfirmAdvance()}
               disabled={advanceConfirming}
-              className="rounded-xl bg-emerald-600 py-2 active:bg-emerald-700 disabled:opacity-60"
+              className="rounded-xl bg-hercom py-2 active:opacity-90 disabled:opacity-60"
             >
               <Text className="text-center text-sm font-semibold text-white">
                 {advanceConfirming
@@ -234,7 +258,7 @@ export function ServiceCard({ service, onOpenChecklist }: Props) {
       {service.status === "heading_to_pickup" && (
         <TouchableOpacity
           onPress={() => void handleArrivedPickup()}
-          className="rounded-xl bg-amber-600 py-2 active:bg-amber-700"
+          className="rounded-xl bg-hercom py-2 active:opacity-90"
         >
           <Text className="text-center text-sm font-semibold text-white">
             Llegué al punto de partida
@@ -254,7 +278,7 @@ export function ServiceCard({ service, onOpenChecklist }: Props) {
           </TouchableOpacity>
 
           {checklistComplete ? (
-            <Text className="text-center text-xs font-semibold text-emerald-700">
+            <Text className="text-center text-xs font-semibold text-success">
               ✓ Checklist listo
             </Text>
           ) : (
@@ -285,15 +309,15 @@ export function ServiceCard({ service, onOpenChecklist }: Props) {
         <View className="gap-2">
           <TouchableOpacity
             onPress={() => void openWazeNavigation(currentStop)}
-            className="rounded-xl border border-blue-300 bg-blue-50 py-2"
+            className="rounded-xl border border-hercom/30 bg-hercom-soft py-2"
           >
-            <Text className="text-center text-sm font-semibold text-blue-800">
+            <Text className="text-center text-sm font-semibold text-hercom-dark">
               Abrir Waze a parada {currentStopIndex + 1}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => void handleArriveAtCurrentStop()}
-            className="rounded-xl bg-blue-600 py-2 active:bg-blue-700"
+            className="rounded-xl bg-hercom py-2 active:opacity-90"
           >
             <Text className="text-center text-sm font-semibold text-white">
               {currentStopIndex < totalStops - 1
@@ -309,7 +333,7 @@ export function ServiceCard({ service, onOpenChecklist }: Props) {
           onPress={() =>
             void updateStatus({ serviceId: service._id, status: "finished" })
           }
-          className="rounded-xl bg-green-600 py-2 active:bg-green-700"
+          className="rounded-xl bg-hercom py-2 active:opacity-90"
         >
           <Text className="text-center text-sm font-semibold text-white">
             Finalizar viaje

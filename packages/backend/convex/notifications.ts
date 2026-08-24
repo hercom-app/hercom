@@ -1,7 +1,13 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import {
+  internalAction,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { requireUser } from "./lib/auth";
 
 /**
@@ -85,6 +91,57 @@ export const markAllAsRead = mutation({
   },
 });
 
+export const getExpoPushToken = internalQuery({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    return user?.expoPushToken ?? null;
+  },
+});
+
+/**
+ * Envía push al dispositivo vía Expo Push API.
+ */
+export const dispatchPush = internalAction({
+  args: {
+    userId: v.id("users"),
+    title: v.string(),
+    message: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const token = await ctx.runQuery(internal.notifications.getExpoPushToken, {
+      userId: args.userId,
+    });
+    if (token === null || token.trim() === "") {
+      return;
+    }
+    try {
+      await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Accept-Encoding": "gzip, deflate",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: token,
+          sound: "default",
+          title: args.title,
+          body: args.message,
+          channelId: "default",
+        }),
+      });
+    } catch (error) {
+      console.warn(
+        "No se pudo enviar push Expo:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  },
+});
+
 export async function createNotification(
   ctx: MutationCtx,
   args: {
@@ -102,7 +159,7 @@ export async function createNotification(
     serviceId?: Id<"services">;
   },
 ): Promise<Id<"notifications">> {
-  return await ctx.db.insert("notifications", {
+  const notificationId = await ctx.db.insert("notifications", {
     userId: args.userId,
     type: args.type,
     title: args.title,
@@ -110,4 +167,10 @@ export async function createNotification(
     ...(args.serviceId !== undefined ? { serviceId: args.serviceId } : {}),
     createdAt: Date.now(),
   });
+  await ctx.scheduler.runAfter(0, internal.notifications.dispatchPush, {
+    userId: args.userId,
+    title: args.title,
+    message: args.message,
+  });
+  return notificationId;
 }

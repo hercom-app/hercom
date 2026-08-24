@@ -288,12 +288,12 @@ function PlaceSection({
                   {formatDistanceKm(place.distanceMeters)}
                 </Text>
                 {place.openNow === true && (
-                  <Text className="text-xs font-semibold text-emerald-700">
+                  <Text className="text-xs font-semibold text-success">
                     Abierto ahora
                   </Text>
                 )}
                 {place.openNow === false && (
-                  <Text className="text-xs font-semibold text-amber-700">
+                  <Text className="text-xs font-semibold text-warning">
                     Cerrado ahora
                   </Text>
                 )}

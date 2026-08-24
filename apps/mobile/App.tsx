@@ -19,6 +19,8 @@ import {
   Poppins_700Bold,
 } from "@expo-google-fonts/poppins";
 import { AppErrorBoundary } from "./src/components/AppErrorBoundary";
+import { LiveShareLinkListener } from "./src/components/LiveShareLinkListener";
+import { NotificationBridge } from "./src/components/NotificationBridge";
 import { PendingRegistrationSubmit } from "./src/components/PendingRegistrationSubmit";
 import { AppModeProvider } from "./src/contexts/AppModeContext";
 import { SignInScreen } from "./src/screens/SignInScreen";
@@ -84,6 +86,7 @@ export default function App() {
       <ConvexAuthProvider client={convex} storage={secureStorage}>
         <SafeAreaProvider>
           <SafeAreaView className="flex-1 bg-slate-100" edges={["left", "right"]}>
+            <LiveShareLinkListener />
             <AuthLoading>
               <View className="flex-1 items-center justify-center bg-hercom">
                 <ActivityIndicator color="#FFFFFF" />
@@ -95,6 +98,7 @@ export default function App() {
             <Authenticated>
               <PendingRegistrationSubmit>
                 <AppModeProvider>
+                  <NotificationBridge />
                   <HomeScreen />
                 </AppModeProvider>
               </PendingRegistrationSubmit>

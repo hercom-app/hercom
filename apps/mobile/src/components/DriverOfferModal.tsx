@@ -56,7 +56,7 @@ export function DriverOfferModal({
           <Text className="mb-1 text-2xl font-bold text-slate-900">
             {offer.driverName}
           </Text>
-          <Text className="mb-4 text-lg text-amber-700">
+          <Text className="mb-4 text-lg text-slate-600">
             {offer.driverRating.toFixed(1)} ★
             {offer.driverTrips > 0
               ? ` · ${offer.driverTrips} ${offer.driverTrips === 1 ? "viaje" : "viajes"}`
@@ -71,7 +71,7 @@ export function DriverOfferModal({
           {offer.driverPlate !== undefined && offer.driverPlate !== "" && (
             <Info label="Placa" value={offer.driverPlate} />
           )}
-          <View className="mt-2 rounded-2xl bg-sky-50 p-4">
+          <View className="mt-2 rounded-2xl bg-hercom-soft p-4">
             <Text className="text-base font-semibold text-slate-600">
               Tarifa ofertada
             </Text>

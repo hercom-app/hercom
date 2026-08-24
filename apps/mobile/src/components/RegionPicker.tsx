@@ -66,7 +66,7 @@ export function RegionPicker({
         Región del recojo (para promociones)
       </Text>
       {detectedRegionLabel !== undefined && detectedRegionLabel !== "" && (
-        <Text className="rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+        <Text className="rounded-xl bg-success-soft px-3 py-2 text-xs text-success">
           Detectado por GPS: {detectedRegionLabel}. Puedes ajustarlo manualmente.
         </Text>
       )}

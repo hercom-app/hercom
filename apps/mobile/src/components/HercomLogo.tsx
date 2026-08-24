@@ -18,7 +18,7 @@ export function HercomLogo({ width = 240 }: HercomLogoProps) {
         source={require("../../assets/images/hercom-logo.png")}
         style={{ width, height }}
         resizeMode="contain"
-        accessibilityLabel="Hercom, choferes para reemplazo"
+        accessibilityLabel="Hercom, choferes para remplazo"
       />
     </View>
   );

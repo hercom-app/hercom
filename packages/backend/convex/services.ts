@@ -24,6 +24,7 @@ import {
 } from "./driverWallets";
 import { createNotification } from "./notifications";
 import { getCurrentStop, getServiceStops } from "./lib/serviceStops";
+import { ensureServiceTracking } from "./serviceTracking";
 
 /**
  * Crea una solicitud de servicio (cliente autenticado).
@@ -382,11 +383,12 @@ export const updateStatus = mutation({
         status: "heading_to_pickup",
         headingToPickupAt: Date.now(),
       });
+      await ensureServiceTracking(ctx, service._id);
       await createNotification(ctx, {
         userId: service.clientId,
         type: "driver_heading_pickup",
         title: "Tu chofer salió a recogerte",
-        message: "El chofer va en camino al punto de partida.",
+        message: "El chofer va en camino al punto de partida. Puedes ver su ubicación en vivo.",
         serviceId: service._id,
       });
       return service._id;
@@ -493,6 +495,7 @@ export const startTripWithCode = mutation({
       departedWithClientAt: Date.now(),
       currentStopIndex: 0,
     });
+    await ensureServiceTracking(ctx, service._id);
     return {
       serviceId: service._id,
       navigationTarget: getCurrentStop({

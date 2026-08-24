@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +20,7 @@ import { HelpFab } from "../components/HelpFab";
 import { ServiceCard } from "../components/ServiceCard";
 import { SideDrawer } from "../components/SideDrawer";
 import { useAppMode } from "../contexts/AppModeContext";
+import { useAndroidBackHandler } from "../hooks/useAndroidBackHandler";
 import { canCoverOfferCommission } from "../lib/offerWallet";
 import {
   convexErrorMessage,
@@ -28,6 +29,8 @@ import {
 import { formatServiceStopsLabel } from "../lib/wazeNavigation";
 import type { Id } from "@proyecto/backend/dataModel";
 import { ChecklistRecojoScreen } from "./ChecklistRecojoScreen";
+import { useDriverLiveTracking } from "../hooks/useDriverLiveTracking";
+import { LiveTripMapModal } from "../components/LiveTripMapModal";
 
 const MIN_OFFER_PRICE = 80;
 
@@ -73,6 +76,31 @@ export function DriverDashboard() {
   const [offerByService, setOfferByService] = useState<Record<string, string>>({});
   const [offeringServiceId, setOfferingServiceId] = useState<string | null>(null);
   const [offerError, setOfferError] = useState<string | null>(null);
+  const [liveMapServiceId, setLiveMapServiceId] =
+    useState<Id<"services"> | null>(null);
+
+  const handleAndroidBack = useCallback(() => {
+    if (liveMapServiceId !== null) {
+      setLiveMapServiceId(null);
+      return true;
+    }
+    if (menuOpen) {
+      setMenuOpen(false);
+      return true;
+    }
+    if (checklistServiceId !== null) {
+      setChecklistServiceId(null);
+      return true;
+    }
+    if (menuSection !== "servicios") {
+      setMenuSection("servicios");
+      return true;
+    }
+    return false;
+  }, [liveMapServiceId, menuOpen, checklistServiceId, menuSection]);
+
+  useAndroidBackHandler(handleAndroidBack);
+  useDriverLiveTracking(services);
 
   if (driver === undefined) {
     return (
@@ -237,7 +265,7 @@ export function DriverDashboard() {
                   </TouchableOpacity>
                 </View>
                 {topUpMessage !== null && (
-                  <Text className="mt-2 text-xs font-medium text-green-700">
+                  <Text className="mt-2 text-xs font-medium text-success">
                     {topUpMessage}
                   </Text>
                 )}
@@ -256,7 +284,7 @@ export function DriverDashboard() {
                   {(walletTransactions ?? []).map((tx) => (
                     <View key={tx._id} className="flex-row justify-between py-0.5">
                       <Text className="text-xs text-slate-600">
-                        {tx.type === "top_up" ? "Recarga" : "Comisión app"}
+                        {tx.type === "top_up" ? "Recarga" : "Comisión"}
                       </Text>
                       <Text className="text-xs font-semibold text-slate-700">
                         {tx.type === "commission_debit" ? "- " : "+ "}S/
@@ -529,6 +557,7 @@ export function DriverDashboard() {
                   <ServiceCard
                     service={item}
                     onOpenChecklist={setChecklistServiceId}
+                    onOpenLiveMap={setLiveMapServiceId}
                   />
                 )}
                 ListEmptyComponent={
@@ -561,6 +590,13 @@ export function DriverDashboard() {
             setMenuSection(key);
           }
         }}
+      />
+
+      <LiveTripMapModal
+        visible={liveMapServiceId !== null}
+        serviceId={liveMapServiceId ?? undefined}
+        onClose={() => setLiveMapServiceId(null)}
+        title="Mi ubicación en vivo"
       />
     </View>
   );

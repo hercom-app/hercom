@@ -258,20 +258,20 @@ export function AddressAutocomplete({
       />
 
       {!placesEnabled && (
-        <Text className="mt-1 text-[11px] text-amber-700">
+        <Text className="mt-1 text-[11px] text-warning">
           Sin API key de Google: puedes escribir la dirección manualmente.
         </Text>
       )}
 
       {loading && searchActive && (
         <View className="mt-2 flex-row items-center gap-2">
-          <ActivityIndicator color="#0369A1" size="small" />
+          <ActivityIndicator color="#007AFF" size="small" />
           <Text className="text-xs text-slate-500">Buscando direcciones...</Text>
         </View>
       )}
 
       {searchError !== null && !loading && searchActive && (
-        <Text className="mt-1 text-xs text-amber-700">{searchError}</Text>
+        <Text className="mt-1 text-xs text-warning">{searchError}</Text>
       )}
 
       {showSuggestions && (

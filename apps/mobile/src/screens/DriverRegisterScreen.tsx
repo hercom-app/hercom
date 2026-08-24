@@ -255,8 +255,8 @@ export function DriverRegisterScreen({
         </View>
 
         {dniValidated && (
-          <View className="mb-4 gap-2 rounded-2xl bg-amber-50 px-4 py-3">
-            <Text className="text-xs font-semibold uppercase text-amber-800">
+          <View className="mb-4 gap-2 rounded-2xl bg-surface-muted px-4 py-3">
+            <Text className="text-xs font-semibold uppercase text-slate-600">
               Demo · sin RENIEC — edita tus datos
             </Text>
             <TextInput
@@ -305,7 +305,7 @@ export function DriverRegisterScreen({
               onPress={() => setLicenseCategory(cat)}
               className={`rounded-xl border px-3 py-2 ${
                 licenseCategory === cat
-                  ? "border-hercom bg-blue-50"
+                  ? "border-hercom bg-hercom-soft"
                   : "border-slate-200 bg-slate-50"
               }`}
             >
@@ -329,7 +329,7 @@ export function DriverRegisterScreen({
               onPress={() => setSex(value)}
               className={`flex-1 rounded-2xl border py-3 ${
                 sex === value
-                  ? "border-hercom bg-blue-50"
+                  ? "border-hercom bg-hercom-soft"
                   : "border-slate-200 bg-slate-50"
               }`}
             >

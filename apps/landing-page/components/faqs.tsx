@@ -44,6 +44,8 @@ export function Faqs() {
   ];
 
   return (
+    // NextUI Accordion triggers an overly complex union in strict TS builds.
+    // @ts-expect-error — known NextUI + TypeScript limitation
     <Accordion variant="bordered">
       {data.map((item, index) => (
         <AccordionItem

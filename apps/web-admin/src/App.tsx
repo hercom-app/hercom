@@ -16,6 +16,7 @@ import { TopUpsView } from "./views/TopUpsView";
 import { ServicesView } from "./views/ServicesView";
 import { PromotionsView } from "./views/PromotionsView";
 import { PremiumTripsView } from "./views/PremiumTripsView";
+import { IncomeView } from "./views/IncomeView";
 import { btnSecondaryClass } from "./lib/adminUi";
 
 function Header({
@@ -74,6 +75,7 @@ function Dashboard() {
         {section === "accounts" && <AccountsView />}
         {section === "topups" && <TopUpsView />}
         {section === "services" && <ServicesView />}
+        {section === "income" && <IncomeView />}
         {section === "promotions" && <PromotionsView />}
         {section === "premium" && <PremiumTripsView />}
       </main>

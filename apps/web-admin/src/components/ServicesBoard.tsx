@@ -1,4 +1,4 @@
-import type { Doc } from "@proyecto/backend/dataModel";
+import type { Doc, Id } from "@proyecto/backend/dataModel";
 import {
   getRequestChannelLabel,
   getServiceTypeMeta,
@@ -32,11 +32,15 @@ const STATUS_LABELS: Record<string, string> = {
 type ServicesBoardProps = {
   services: Doc<"services">[] | undefined;
   title?: string;
+  selectedId?: Id<"services"> | null;
+  onSelect?: (serviceId: Id<"services">) => void;
 };
 
 export function ServicesBoard({
   services,
   title = "Servicios",
+  selectedId,
+  onSelect,
 }: ServicesBoardProps) {
   if (services === undefined) {
     return (
@@ -74,6 +78,7 @@ export function ServicesBoard({
                 <th className={`${thClass} hidden lg:table-cell`}>Anticipo</th>
                 <th className={thClass}>Estado</th>
                 <th className={`${thClass} hidden md:table-cell`}>Código</th>
+                {onSelect !== undefined && <th className={thClass}>Mapa</th>}
               </tr>
             </thead>
             <tbody>
@@ -90,7 +95,12 @@ export function ServicesBoard({
                   service.origin.district,
                 ].filter(Boolean);
                 return (
-                  <tr key={service._id} className={rowClass}>
+                  <tr
+                    key={service._id}
+                    className={`${rowClass} ${
+                      selectedId === service._id ? "bg-sky-50/80" : ""
+                    }`}
+                  >
                     <td className={tdClass}>
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${typeMeta.badgeClass}`}
@@ -136,6 +146,17 @@ export function ServicesBoard({
                     <td className={`${tdClass} hidden md:table-cell`}>
                       {service.securityCode ?? "—"}
                     </td>
+                    {onSelect !== undefined && (
+                      <td className={tdClass}>
+                        <button
+                          type="button"
+                          onClick={() => onSelect(service._id)}
+                          className="text-xs font-semibold text-hercom hover:underline"
+                        >
+                          Ver mapa
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 );
               })}

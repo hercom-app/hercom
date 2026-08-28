@@ -2,6 +2,7 @@ export type AdminSection =
   | "accounts"
   | "topups"
   | "services"
+  | "income"
   | "promotions"
   | "premium";
 
@@ -10,6 +11,7 @@ const NAV_ITEMS: Array<{ id: AdminSection; label: string; shortLabel: string }> 
     { id: "accounts", label: "Cuentas", shortLabel: "Cuentas" },
     { id: "topups", label: "Recargas", shortLabel: "Recargas" },
     { id: "services", label: "Servicios", shortLabel: "Servicios" },
+    { id: "income", label: "Ingresos", shortLabel: "Ingresos" },
     { id: "promotions", label: "Promociones", shortLabel: "Promos" },
     { id: "premium", label: "Viajes premium", shortLabel: "Premium" },
   ];

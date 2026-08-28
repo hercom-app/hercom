@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { requireDriver, requireUser } from "./lib/auth";
+import { requireDriver, requireRole, requireUser } from "./lib/auth";
 
 const MAX_TRAIL_POINTS = 400;
 const MIN_UPDATE_INTERVAL_MS = 3000;
@@ -267,5 +267,84 @@ export const getByShareToken = query({
       trail: tracking.trail,
       ended: service.status === "finished",
     };
+  },
+});
+
+/**
+ * Vista en vivo para operaciones (web admin).
+ */
+export const getForAdmin = query({
+  args: {
+    serviceId: v.id("services"),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, "admin");
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null) {
+      return null;
+    }
+    const tracking = await ctx.db
+      .query("serviceTracking")
+      .withIndex("by_service", (q) => q.eq("serviceId", args.serviceId))
+      .unique();
+    let driverName: string | undefined;
+    if (service.driverId !== undefined) {
+      const driver = await ctx.db.get(service.driverId);
+      if (driver !== null) {
+        const driverUser = await ctx.db.get(driver.userId);
+        driverName =
+          driver.fullName?.trim() || driverUser?.name?.trim() || "Chofer";
+      }
+    }
+    return {
+      serviceId: service._id,
+      status: service.status,
+      isLive: LIVE_STATUSES.has(service.status),
+      origin: service.origin,
+      destination: service.destination,
+      extraDestinations: service.extraDestinations ?? [],
+      shareToken: tracking?.shareToken ?? null,
+      lat: tracking?.lat ?? null,
+      lng: tracking?.lng ?? null,
+      heading: tracking?.heading ?? null,
+      speed: tracking?.speed ?? null,
+      updatedAt: tracking?.updatedAt ?? null,
+      trail: tracking?.trail ?? [],
+      driverName,
+      totalPrice: service.totalPrice,
+      securityCode: service.securityCode ?? null,
+    };
+  },
+});
+
+/**
+ * Servicios actualmente en ruta, para el tablero operativo.
+ */
+export const listLiveForAdmin = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireRole(ctx, "admin");
+    const services = await ctx.db.query("services").order("desc").collect();
+    const live = services.filter((service) => LIVE_STATUSES.has(service.status));
+    return await Promise.all(
+      live.map(async (service) => {
+        const tracking = await ctx.db
+          .query("serviceTracking")
+          .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+          .unique();
+        return {
+          serviceId: service._id,
+          status: service.status,
+          originAddress: service.origin.address,
+          destinationAddress: service.destination.address,
+          totalPrice: service.totalPrice,
+          shareToken: tracking?.shareToken ?? null,
+          lat: tracking?.lat ?? null,
+          lng: tracking?.lng ?? null,
+          updatedAt: tracking?.updatedAt ?? null,
+          hasGps: tracking?.lat !== undefined && tracking?.lng !== undefined,
+        };
+      }),
+    );
   },
 });

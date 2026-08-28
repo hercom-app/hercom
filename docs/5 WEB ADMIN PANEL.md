@@ -35,7 +35,8 @@ Menú superior con cinco secciones (una vista por pestaña):
 | --- | --- |
 | **Cuentas** | Usuarios registrados y cambio de rol |
 | **Recargas** | Recargas de billetera de choferes |
-| **Servicios** | Tablero de viajes + pagos y comisiones pendientes |
+| **Servicios** | Tablero de viajes, mapa en vivo y cierre de pagos |
+| **Ingresos** | Totales por fecha (Lima) y estado del servicio |
 | **Promociones** | Alta y listado de campañas festivas |
 | **Viajes premium** | Registro manual (teléfono/web) + listado premium |
 

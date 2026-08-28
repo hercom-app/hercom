@@ -30,8 +30,13 @@ type LiveTripViewerProps = {
 
 export function LiveTripViewer({ shareToken }: LiveTripViewerProps) {
   const normalizedToken = shareToken.trim().toLowerCase();
+  const convexReady = isConvexConfigured();
+  const live = useQuery(
+    api.serviceTracking.getByShareToken,
+    convexReady ? { shareToken: normalizedToken } : "skip",
+  );
 
-  if (!isConvexConfigured()) {
+  if (!convexReady) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
         <p className="text-lg font-semibold text-slate-800">
@@ -43,10 +48,6 @@ export function LiveTripViewer({ shareToken }: LiveTripViewerProps) {
       </div>
     );
   }
-
-  const live = useQuery(api.serviceTracking.getByShareToken, {
-    shareToken: normalizedToken,
-  });
 
   const mapData = useMemo(() => {
     if (live === undefined || live === null) {

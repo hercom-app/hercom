@@ -26,6 +26,7 @@ import type * as payments from "../payments.js";
 import type * as payouts from "../payouts.js";
 import type * as promotions from "../promotions.js";
 import type * as reniec from "../reniec.js";
+import type * as reports from "../reports.js";
 import type * as seed from "../seed.js";
 import type * as serviceChecklists from "../serviceChecklists.js";
 import type * as serviceOffers from "../serviceOffers.js";
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   payouts: typeof payouts;
   promotions: typeof promotions;
   reniec: typeof reniec;
+  reports: typeof reports;
   seed: typeof seed;
   serviceChecklists: typeof serviceChecklists;
   serviceOffers: typeof serviceOffers;

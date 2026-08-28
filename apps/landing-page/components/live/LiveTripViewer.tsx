@@ -127,7 +127,7 @@ export function LiveTripViewer({ shareToken }: LiveTripViewerProps) {
         )}
       </header>
 
-      <div className="relative min-h-[50vh] flex-1">
+      <div className="relative h-[70vh] w-full min-h-[360px]">
         <LiveTripMap
           origin={mapData.origin}
           destination={mapData.destination}

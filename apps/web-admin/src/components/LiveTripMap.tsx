@@ -47,6 +47,7 @@ function FitBounds({
   const map = useMap();
 
   useEffect(() => {
+    map.invalidateSize();
     if (points.length >= 2) {
       const bounds = L.latLngBounds(
         points.map((point) => [point.lat, point.lng]),
@@ -90,6 +91,7 @@ export function LiveTripMap({
       center={[center.lat, center.lng]}
       zoom={zoom}
       className="h-full w-full rounded-lg"
+      style={{ height: "100%", width: "100%" }}
       scrollWheelZoom
     >
       <TileLayer

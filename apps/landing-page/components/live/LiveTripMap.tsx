@@ -86,7 +86,7 @@ export function LiveTripMap({
       center={[center.lat, center.lng]}
       zoom={zoom}
       className="h-full w-full"
-      style={{ height: "100%", width: "100%", minHeight: 360 }}
+      style={{ height: "100%", width: "100%", position: "absolute", inset: 0 }}
       scrollWheelZoom
     >
       <TileLayer

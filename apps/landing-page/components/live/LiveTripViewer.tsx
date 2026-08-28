@@ -112,8 +112,8 @@ export function LiveTripViewer({ shareToken }: LiveTripViewerProps) {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="border-b border-slate-200 bg-white px-4 py-4">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <p className="text-xs font-semibold uppercase tracking-wide text-primary">
           Hercom · Viaje en vivo
         </p>
@@ -127,7 +127,7 @@ export function LiveTripViewer({ shareToken }: LiveTripViewerProps) {
         )}
       </header>
 
-      <div className="relative h-[70vh] w-full min-h-[360px]">
+      <div className="relative min-h-0 flex-1">
         <LiveTripMap
           origin={mapData.origin}
           destination={mapData.destination}
@@ -138,7 +138,7 @@ export function LiveTripViewer({ shareToken }: LiveTripViewerProps) {
         />
       </div>
 
-      <footer className="border-t border-slate-200 bg-white px-4 py-4">
+      <footer className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {!live.isLive && (
           <p className="mb-2 text-center text-sm font-semibold text-slate-600">
             {live.status === "finished"

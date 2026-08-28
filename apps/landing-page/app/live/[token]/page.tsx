@@ -18,7 +18,7 @@ type LiveTripPageProps = {
 
 export default function LiveTripPage({ params }: LiveTripPageProps) {
   return (
-    <main className="flex min-h-screen flex-col bg-slate-50">
+    <main className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-slate-50">
       <LiveTripViewer shareToken={params.token} />
     </main>
   );

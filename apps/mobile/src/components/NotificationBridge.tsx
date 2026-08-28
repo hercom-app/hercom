@@ -3,20 +3,37 @@ import { Platform } from "react-native";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import * as Device from "expo-device";
-import * as Notifications from "expo-notifications";
-import Constants from "expo-constants";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+/** Push remoto no está en Expo Go (SDK 53+). Hace falta development build. */
+const isExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+type NotificationsModule = typeof import("expo-notifications");
+
+function getNotifications(): NotificationsModule | null {
+  if (isExpoGo) {
+    return null;
+  }
+  // Carga perezosa: en Expo Go el import estático rompe el arranque.
+  return require("expo-notifications") as NotificationsModule;
+}
+
+const Notifications = getNotifications();
+
+if (Notifications !== null) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 async function ensureAndroidChannel() {
-  if (Platform.OS !== "android") {
+  if (Platform.OS !== "android" || Notifications === null) {
     return;
   }
   await Notifications.setNotificationChannelAsync("default", {
@@ -28,7 +45,7 @@ async function ensureAndroidChannel() {
 }
 
 async function registerExpoPushToken(): Promise<string | null> {
-  if (!Device.isDevice) {
+  if (Notifications === null || !Device.isDevice) {
     return null;
   }
   await ensureAndroidChannel();
@@ -73,6 +90,7 @@ async function registerExpoPushToken(): Promise<string | null> {
 /**
  * Registra el token Expo Push y dispara notificación local al llegar
  * avisos nuevos de Convex (ofertas, aceptación, etc.).
+ * En Expo Go solo actualiza la lista in-app (sin push remoto).
  */
 export function NotificationBridge() {
   const notifications = useQuery(api.notifications.listMine, { limit: 20 });
@@ -81,6 +99,9 @@ export function NotificationBridge() {
   const primedRef = useRef(false);
 
   useEffect(() => {
+    if (Notifications === null) {
+      return;
+    }
     let cancelled = false;
     void (async () => {
       try {
@@ -102,7 +123,7 @@ export function NotificationBridge() {
   }, [saveExpoPushToken]);
 
   useEffect(() => {
-    if (notifications === undefined) {
+    if (notifications === undefined || Notifications === null) {
       return;
     }
     if (!primedRef.current) {
@@ -128,6 +149,8 @@ export function NotificationBridge() {
           ...(Platform.OS === "android" ? { channelId: "default" } : {}),
         },
         trigger: null,
+      }).catch(() => {
+        /* Expo Go / permisos: ignorar */
       });
     }
   }, [notifications]);

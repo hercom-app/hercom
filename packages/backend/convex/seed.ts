@@ -96,6 +96,125 @@ export const seedDemo = internalMutation({
   },
 });
 
+export const DEMO_LIVE_SHARE_TOKEN = "demoviaje001";
+
+/**
+ * Viaje en curso con GPS para demo a gerencia (web comercial /live y admin).
+ * Idempotente. Ejecutar: npx convex run seed:seedLiveDemo
+ */
+export const seedLiveDemo = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const driverUser = await ensureUser(
+      ctx,
+      DEMO_DRIVER.email,
+      DEMO_DRIVER.name,
+      "driver",
+    );
+    const client = await ensureUser(
+      ctx,
+      DEMO_CLIENT.email,
+      DEMO_CLIENT.name,
+      "client",
+    );
+    const driver = await ensureDriver(ctx, driverUser._id);
+    await ensureDemoWalletBalance(ctx, driver._id);
+
+    const origin = {
+      address: "Av. Javier Prado Oeste 460, San Isidro",
+      lat: -12.0931,
+      lng: -77.0431,
+      department: "Lima",
+      province: "Lima",
+      district: "San Isidro",
+    };
+    const destination = {
+      address: "Aeropuerto Internacional Jorge Chávez",
+      lat: -12.0219,
+      lng: -77.1143,
+      department: "Callao",
+      province: "Callao",
+      district: "Callao",
+    };
+
+    const existingTracking = await ctx.db
+      .query("serviceTracking")
+      .withIndex("by_share_token", (q) =>
+        q.eq("shareToken", DEMO_LIVE_SHARE_TOKEN),
+      )
+      .unique();
+
+    const now = Date.now();
+    const trail = [
+      { lat: -12.0931, lng: -77.0431, t: now - 180000 },
+      { lat: -12.072, lng: -77.062, t: now - 120000 },
+      { lat: -12.051, lng: -77.085, t: now - 60000 },
+      { lat: -12.038, lng: -77.098, t: now },
+    ];
+    const last = trail[trail.length - 1]!;
+
+    let serviceId: Id<"services">;
+    if (existingTracking !== null) {
+      serviceId = existingTracking.serviceId;
+      await ctx.db.patch(serviceId, {
+        status: "in_progress",
+        origin,
+        destination,
+        driverId: driver._id,
+        departedWithClientAt: now - 180000,
+      });
+      await ctx.db.patch(existingTracking._id, {
+        lat: last.lat,
+        lng: last.lng,
+        updatedAt: now,
+        trail,
+      });
+    } else {
+      const offeredPrice = 80;
+      serviceId = await ctx.db.insert("services", {
+        clientId: client._id,
+        driverId: driver._id,
+        origin,
+        destination,
+        basePrice: offeredPrice,
+        offeredPrice,
+        totalPrice: offeredPrice,
+        driverCommission: computePlatformCommission(offeredPrice),
+        advanceAmount: 20,
+        advanceConfirmedAt: now - 240000,
+        serviceType: "app",
+        requestChannel: "mobile_app",
+        securityCode: "1234",
+        status: "in_progress",
+        notes: "Viaje demo en vivo (seedLiveDemo)",
+        requestedAt: now - 360000,
+        assignedAt: now - 300000,
+        headingToPickupAt: now - 240000,
+        arrivedPickupAt: now - 200000,
+        departedWithClientAt: now - 180000,
+      });
+      await ctx.db.insert("serviceTracking", {
+        serviceId,
+        shareToken: DEMO_LIVE_SHARE_TOKEN,
+        lat: last.lat,
+        lng: last.lng,
+        trail,
+        updatedAt: now,
+        createdAt: now - 240000,
+      });
+    }
+
+    await ctx.db.patch(driver._id, { status: "busy" });
+
+    return {
+      message: "Viaje en vivo listo para demo.",
+      shareToken: DEMO_LIVE_SHARE_TOKEN,
+      liveUrl: `/live/${DEMO_LIVE_SHARE_TOKEN}`,
+      serviceId,
+    };
+  },
+});
+
 /**
  * Busca un usuario por email; si no existe crea la cuenta (con contraseña real)
  * usando Convex Auth. Devuelve el documento de usuario.

@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
-import { api } from "@proyecto/backend";
+import { getByShareToken } from "@/lib/convexApi";
 import { computeMapBounds, liveStatusLabel } from "@/lib/liveTrip";
 import { isConvexConfigured } from "@/lib/convex";
 
@@ -32,7 +32,7 @@ export function LiveTripViewer({ shareToken }: LiveTripViewerProps) {
   const normalizedToken = shareToken.trim().toLowerCase();
   const convexReady = isConvexConfigured();
   const live = useQuery(
-    api.serviceTracking.getByShareToken,
+    getByShareToken,
     convexReady ? { shareToken: normalizedToken } : "skip",
   );
 

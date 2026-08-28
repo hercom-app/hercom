@@ -23,7 +23,6 @@
     "@nextui-org/system": "2.2.6",
     "@nextui-org/tabs": "^2.2.6",
     "@nextui-org/theme": "2.2.11",
-    "@proyecto/backend": "workspace:*",
     "@react-aria/ssr": "3.9.4",
     "@react-aria/visually-hidden": "3.8.12",
     "@react-three/drei": "^9.119.0",

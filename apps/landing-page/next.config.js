@@ -6,7 +6,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  transpilePackages: ["@proyecto/backend"],
 };
 
 module.exports = nextConfig;

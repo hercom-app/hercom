@@ -26,7 +26,9 @@ El chofer marca que sale a recoger (`heading_to_pickup`). La app abre Waze al pu
 
 Al llegar (`arrived_pickup`), el cliente recibe otro aviso. El chofer completa checklist: observaciones del vehículo, Tarjeta de Propiedad y SOAT. Luego ingresa el código que le da el cliente y confirma con slide (no es un botón simple, para evitar toques accidentales). Si el código y el checklist están bien, el viaje pasa a `in_progress` y Waze abre ruta al destino.
 
-En camino, el chofer marca llegada al destino (`arrived_destination`) y después finaliza (`finished`). Esos dos últimos pasos no disparan notificación al cliente; el admin los ve en el tablero interno.
+En camino, el chofer marca llegada a cada parada con `arriveAtCurrentStop` (origen → paradas extra → destino). Al último punto queda en `arrived_destination` y después finaliza (`finished`). Esos dos últimos pasos no disparan notificación al cliente; el admin los ve en el tablero interno.
+
+Desde que el chofer sale a recoger (`heading_to_pickup`) hasta que termina, la app publica **GPS en vivo** (`serviceTracking`). El cliente (o el chofer) puede **compartir el viaje** con un link. Hoy el link es `choferes://live/{token}` (solo con app instalada). El objetivo acordado es publicarlo también en la **web comercial** como `https://www.hercom.pe/live/{token}` usando la query pública `getByShareToken`.
 
 ---
 
@@ -35,6 +37,19 @@ En camino, el chofer marca llegada al destino (`arrived_destination`) y después
 Al finalizar, la app descuenta del wallet del chofer la comisión (25% sobre la tarifa ofertada). Queda un movimiento `commission_debit` y el chofer vuelve a `available`.
 
 En paralelo se crea un registro de pago del cliente en `payments` con estado `pending` por el **saldo restante** (`totalPrice - advanceAmount`), ya que el 25% se pagó en efectivo al chofer al inicio. Hoy no hay pasarela: el cobro del saldo y el marcado como pagado lo hace admin en web. La recarga del chofer también es manual/demo por ahora.
+
+---
+
+## Valoración del chofer (cliente)
+
+Cuando el servicio está en `finished`:
+
+1. En la app del cliente aparece el bloque **“Valorar viaje”** (estrellas 1–5 y comentario opcional).
+2. El cliente envía la valoración una sola vez (`serviceRatings.rateService`).
+3. El sistema guarda la calificación y **recalcula el promedio** (`drivers.rating`) del chofer.
+4. Si ya valoró, solo ve el mensaje “Valoraste este viaje con X★”.
+
+Reglas clave: solo el cliente dueño del servicio; solo viajes finalizados; una valoración por servicio.
 
 ---
 

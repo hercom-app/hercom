@@ -14,6 +14,7 @@ import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
 import { HERCOM_COLORS } from "../constants/theme";
+import { buildLiveShareMessage, buildLiveShareUrl } from "../lib/liveShareUrl";
 
 type LiveTripMapModalProps = {
   visible: boolean;
@@ -132,13 +133,11 @@ export function LiveTripMapModal({
     if (token === null || token === undefined) {
       return;
     }
-    const deepLink = `choferes://live/${token}`;
-    const message =
-      `Sigue el viaje Hercom en vivo:\n${deepLink}\n\n` +
-      `Si tienes la app, ábrela con ese enlace. Código: ${token}`;
+    const webUrl = buildLiveShareUrl(token);
+    const message = buildLiveShareMessage(token);
     await Share.share(
       Platform.OS === "ios"
-        ? { message, url: deepLink }
+        ? { message, url: webUrl }
         : { message },
     );
   }

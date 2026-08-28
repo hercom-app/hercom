@@ -275,6 +275,87 @@ export const purgeAllForDemo = internalMutation({
 });
 
 /**
+ * DEMO: deja solo el servicio más reciente (el que acabas de pedir) y borra el resto.
+ * Uso: `npx convex run services:keepLatestForDemo`
+ */
+export const keepLatestForDemo = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const services = await ctx.db.query("services").collect();
+    if (services.length === 0) {
+      return { kept: null, deletedServices: 0 };
+    }
+    services.sort((a, b) => b.requestedAt - a.requestedAt);
+    const keep = services[0]!;
+    const toDelete = services.slice(1);
+    const deleteIds = new Set(toDelete.map((service) => service._id));
+
+    const relatedTables = [
+      "serviceOffers",
+      "serviceTracking",
+      "payments",
+      "serviceRatings",
+      "serviceVehicleChecklists",
+    ] as const;
+    for (const table of relatedTables) {
+      const rows = await ctx.db.query(table).collect();
+      for (const row of rows) {
+        if (deleteIds.has(row.serviceId)) {
+          await ctx.db.delete(row._id);
+        }
+      }
+    }
+
+    const notifications = await ctx.db.query("notifications").collect();
+    for (const notification of notifications) {
+      if (
+        notification.serviceId !== undefined &&
+        deleteIds.has(notification.serviceId)
+      ) {
+        await ctx.db.delete(notification._id);
+      }
+    }
+
+    const walletTx = await ctx.db.query("walletTransactions").collect();
+    for (const tx of walletTx) {
+      if (tx.serviceId !== undefined && deleteIds.has(tx.serviceId)) {
+        await ctx.db.delete(tx._id);
+      }
+    }
+
+    for (const service of toDelete) {
+      await ctx.db.delete(service._id);
+    }
+
+    const keepDriverId = keep.driverId;
+    const drivers = await ctx.db.query("drivers").collect();
+    let releasedDrivers = 0;
+    for (const driver of drivers) {
+      if (driver.status !== "busy") {
+        continue;
+      }
+      if (keepDriverId !== undefined && driver._id === keepDriverId) {
+        continue;
+      }
+      await ctx.db.patch(driver._id, { status: "available" });
+      releasedDrivers += 1;
+    }
+
+    return {
+      kept: {
+        serviceId: keep._id,
+        status: keep.status,
+        origin: keep.origin.address,
+        destination: keep.destination.address,
+        requestedAt: keep.requestedAt,
+      },
+      deletedServices: toDelete.length,
+      releasedDrivers,
+    };
+  },
+});
+
+/**
  * Transiciones de estado permitidas por parte del chofer.
  * Nota: `en_route` se conserva por compatibilidad con datos legacy.
  */

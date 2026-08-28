@@ -9,7 +9,8 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://perceptive-setter-262.convex.cloud",
-        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyBbjTrcUBbeNw84CP_0BDOWoTe99WiHJWQ"
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyBbjTrcUBbeNw84CP_0BDOWoTe99WiHJWQ",
+        "EXPO_PUBLIC_LIVE_SHARE_BASE_URL": "https://hercom-landing.vercel.app"
       }
     },
     "preview": {
@@ -19,7 +20,8 @@
       },
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://perceptive-setter-262.convex.cloud",
-        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyBbjTrcUBbeNw84CP_0BDOWoTe99WiHJWQ"
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyBbjTrcUBbeNw84CP_0BDOWoTe99WiHJWQ",
+        "EXPO_PUBLIC_LIVE_SHARE_BASE_URL": "https://hercom-landing.vercel.app"
       }
     },
     "production": {
@@ -29,7 +31,8 @@
       },
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://perceptive-setter-262.convex.cloud",
-        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyBbjTrcUBbeNw84CP_0BDOWoTe99WiHJWQ"
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyBbjTrcUBbeNw84CP_0BDOWoTe99WiHJWQ",
+        "EXPO_PUBLIC_LIVE_SHARE_BASE_URL": "https://hercom-landing.vercel.app"
       }
     }
   },

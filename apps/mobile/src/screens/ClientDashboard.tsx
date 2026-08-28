@@ -418,13 +418,14 @@ export function ClientDashboard() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSection, setMenuSection] = useState("ciudad");
   const [flowStep, setFlowStep] = useState<"compose" | "confirm">("compose");
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   /** null = landing; al abrir búsqueda no se enfoca un TextInput que luego pierda el foco por el layout. */
   const [addressSearchField, setAddressSearchField] = useState<
     null | "origin" | "destination" | number
   >(null);
   const addressSearchActive = addressSearchField !== null;
   const sheetScrollRef = useRef<ScrollView>(null);
+  const addressSearchFieldRef = useRef(addressSearchField);
+  addressSearchFieldRef.current = addressSearchField;
   const [origin, setOrigin] = useState("");
   const [originLat, setOriginLat] = useState<number | null>(null);
   const [originLng, setOriginLng] = useState<number | null>(null);
@@ -488,8 +489,47 @@ export function ClientDashboard() {
           }
         : LIMA_REGION;
 
-  const windowHeight = Dimensions.get("window").height;
-  const composeExpandedHeight = Math.max(520, windowHeight * 0.92);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const screenHeight = Dimensions.get("screen").height;
+  /**
+   * Sin teclado: ~52% pantalla.
+   * Con teclado: llena el hueco encima del teclado; el padre usa
+   * paddingBottom = keyboardHeight (un solo offset, sin doble salto).
+   */
+  const addressSheetHeight =
+    keyboardHeight > 0
+      ? Math.round(
+          Math.max(280, screenHeight - keyboardHeight - insets.top - 72),
+        )
+      : Math.round(Math.min(520, Math.max(360, screenHeight * 0.52)));
+  /** Preview: altura fija razonable (mapa visible arriba). */
+  const confirmSheetHeight = Math.round(
+    Math.min(440, Math.max(320, screenHeight * 0.42)),
+  );
+
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const onShow = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+      // Origen queda arriba; destino/paradas: scroll para no quedar bajo el teclado.
+      const field = addressSearchFieldRef.current;
+      if (field !== null && field !== "origin") {
+        requestAnimationFrame(() => {
+          sheetScrollRef.current?.scrollTo({ y: 120, animated: true });
+        });
+      }
+    });
+    const onHide = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, []);
 
   const promoPreview = useQuery(
     api.promotions.previewForRegion,
@@ -529,23 +569,6 @@ export function ClientDashboard() {
     };
   }, []);
 
-  useEffect(() => {
-    const showEvent =
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent =
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const onShow = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardHeight(event.endCoordinates.height);
-    });
-    const onHide = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
-    });
-    return () => {
-      onShow.remove();
-      onHide.remove();
-    };
-  }, []);
-
   function applySelectedPlace(
     place: SelectedPlace,
     setters: {
@@ -579,11 +602,6 @@ export function ClientDashboard() {
   function openAddressSearch(field: "origin" | "destination" | number) {
     setError(null);
     setAddressSearchField(field);
-  }
-
-  function closeAddressSearch() {
-    Keyboard.dismiss();
-    setAddressSearchField(null);
   }
 
   const handleAndroidBack = useCallback(() => {
@@ -662,7 +680,31 @@ export function ClientDashboard() {
     setError(null);
     setMessage(null);
     setAddressSearchField(null);
-    setFlowStep("confirm");
+    setKeyboardHeight(0);
+
+    const goConfirm = () => setFlowStep("confirm");
+
+    // Esperar a que el teclado baje: si montamos confirm con el teclado abierto,
+    // el sheet queda “subido” (pan/resize a medias).
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      hideSub.remove();
+      goConfirm();
+    };
+    const hideSub = Keyboard.addListener(hideEvent, finish);
+    Keyboard.dismiss();
+    // Si no había teclado, keyboardDidHide no dispara.
+    setTimeout(finish, Platform.OS === "ios" ? 320 : 180);
+  }
+
+  function closeAddressSearch() {
+    Keyboard.dismiss();
+    setKeyboardHeight(0);
+    setAddressSearchField(null);
   }
 
   function resetComposeForm() {
@@ -980,11 +1022,14 @@ export function ClientDashboard() {
             )}
           </ScrollView>
         ) : (
-          <View className="flex-1 justify-end">
+          <View
+            className="flex-1 justify-end"
+            style={{ paddingBottom: keyboardHeight }}
+          >
             <View
               className="mx-2 overflow-hidden rounded-t-[28px] bg-white"
               style={{
-                height: composeExpandedHeight,
+                height: addressSheetHeight,
                 shadowColor: "#0F172A",
                 shadowOpacity: 0.16,
                 shadowRadius: 18,
@@ -1013,8 +1058,7 @@ export function ClientDashboard() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{
                   paddingHorizontal: 16,
-                  paddingBottom:
-                    (keyboardHeight > 0 ? keyboardHeight : insets.bottom) + 28,
+                  paddingBottom: insets.bottom + 24,
                 }}
               >
                 <Text className="mb-3 text-lg font-bold text-slate-900">
@@ -1174,10 +1218,7 @@ export function ClientDashboard() {
 
                 {canContinue && (
                   <TouchableOpacity
-                    onPress={() => {
-                      closeAddressSearch();
-                      handleContinueToConfirm();
-                    }}
+                    onPress={handleContinueToConfirm}
                     disabled={submitting}
                     className="mt-2 items-center rounded-2xl bg-hercom py-3.5 active:opacity-90 disabled:opacity-50"
                   >
@@ -1212,7 +1253,7 @@ export function ClientDashboard() {
         mapPadding={{
           top: insets.top + 56,
           right: 16,
-          bottom: Math.round(windowHeight * 0.42),
+          bottom: confirmSheetHeight + 12,
           left: 16,
         }}
       >
@@ -1270,7 +1311,7 @@ export function ClientDashboard() {
       <View
         className="absolute bottom-0 left-0 right-0 z-20 overflow-hidden rounded-t-[28px] bg-white"
         style={{
-          maxHeight: "58%",
+          height: confirmSheetHeight,
           paddingBottom: insets.bottom + 8,
           shadowColor: "#0F172A",
           shadowOpacity: 0.14,

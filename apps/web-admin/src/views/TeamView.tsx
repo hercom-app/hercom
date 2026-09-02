@@ -18,7 +18,7 @@ import {
 } from "../lib/adminUi";
 import { DEFAULT_COUNTRY_CODE } from "../lib/adminFilters";
 
-type DistrictDraft = {
+export type DistrictDraft = {
   countryCode: string;
   department: string;
   province: string;
@@ -36,7 +36,7 @@ function districtKey(item: DistrictDraft): string {
   return `${item.countryCode}|${item.department}|${item.province}|${item.district}`;
 }
 
-function DistrictPicker({
+export function DistrictPicker({
   districts,
   onChange,
 }: {
@@ -146,22 +146,18 @@ function DistrictPicker({
   );
 }
 
-export function TeamView() {
-  const admins = useQuery(api.users.listAdmins);
+export function CreateAdminUserForm({
+  onCreated,
+}: {
+  onCreated?: () => void;
+}) {
   const createAdmin = useMutation(api.users.createAdminUser);
-  const updateDistricts = useMutation(api.users.updateAdminDistricts);
-  const setPassword = useMutation(api.users.setAdminPassword);
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPasswordState] = useState("");
   const [districts, setDistricts] = useState<DistrictDraft[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  const [editingId, setEditingId] = useState<Id<"users"> | null>(null);
-  const [editingDistricts, setEditingDistricts] = useState<DistrictDraft[]>([]);
-  const [newPassword, setNewPassword] = useState("");
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -178,16 +174,81 @@ export function TeamView() {
       setEmail("");
       setPasswordState("");
       setDistricts([]);
+      onCreated?.();
     } catch (createError) {
       setError(
         createError instanceof Error
           ? createError.message
-          : "No se pudo crear el admin.",
+          : "No se pudo crear el usuario.",
       );
     } finally {
       setSaving(false);
     }
   }
+
+  return (
+    <form onSubmit={handleCreate} className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className={labelClass}>Nombre</span>
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className={inputClass}
+            required
+          />
+        </label>
+        <label className="block">
+          <span className={labelClass}>Correo</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className={inputClass}
+            required
+          />
+        </label>
+      </div>
+      <label className="block max-w-md">
+        <span className={labelClass}>Clave (mín. 8 caracteres)</span>
+        <input
+          type="password"
+          value={password}
+          onChange={(event) => setPasswordState(event.target.value)}
+          className={inputClass}
+          minLength={8}
+          required
+        />
+      </label>
+      <div>
+        <p className={labelClass}>Distritos asignados</p>
+        <DistrictPicker districts={districts} onChange={setDistricts} />
+      </div>
+      {error !== null && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+      <button
+        type="submit"
+        disabled={saving || districts.length === 0}
+        className={btnPrimaryClass}
+      >
+        {saving ? "Creando…" : "Crear usuario"}
+      </button>
+    </form>
+  );
+}
+
+export function TeamView() {
+  const admins = useQuery(api.users.listAdmins);
+  const updateDistricts = useMutation(api.users.updateAdminDistricts);
+  const setPassword = useMutation(api.users.setAdminPassword);
+  const [error, setError] = useState<string | null>(null);
+
+  const [editingId, setEditingId] = useState<Id<"users"> | null>(null);
+  const [editingDistricts, setEditingDistricts] = useState<DistrictDraft[]>([]);
+  const [newPassword, setNewPassword] = useState("");
 
   async function handleSaveDistricts(userId: Id<"users">) {
     setError(null);
@@ -226,60 +287,18 @@ export function TeamView() {
 
       <AdminCard>
         <h3 className="text-base font-semibold text-zinc-900">Nuevo admin</h3>
-        <form onSubmit={handleCreate} className="mt-4 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className={labelClass}>Nombre</span>
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                className={inputClass}
-                required
-              />
-            </label>
-            <label className="block">
-              <span className={labelClass}>Correo</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className={inputClass}
-                required
-              />
-            </label>
-          </div>
-          <label className="block max-w-md">
-            <span className={labelClass}>Clave (mín. 8 caracteres)</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPasswordState(event.target.value)}
-              className={inputClass}
-              minLength={8}
-              required
-            />
-          </label>
-          <div>
-            <p className={labelClass}>Distritos asignados</p>
-            <DistrictPicker districts={districts} onChange={setDistricts} />
-          </div>
-          {error !== null && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={saving || districts.length === 0}
-            className={btnPrimaryClass}
-          >
-            {saving ? "Creando…" : "Crear admin"}
-          </button>
-        </form>
+        <div className="mt-4">
+          <CreateAdminUserForm />
+        </div>
       </AdminCard>
 
       <AdminCard>
         <h3 className="text-base font-semibold text-zinc-900">Admins creados</h3>
+        {error !== null && (
+          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </p>
+        )}
         {admins === undefined ? (
           <AdminLoading message="Cargando equipo…" />
         ) : admins.length === 0 ? (

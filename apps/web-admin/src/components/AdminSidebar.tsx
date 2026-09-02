@@ -19,20 +19,6 @@ function NavIcon({ children }: { children: ReactNode }) {
 
 const NAV_ITEMS: NavItem[] = [
   {
-    id: "accounts",
-    label: "Cuentas de usuario",
-    description: "Clientes y cuentas registradas",
-    icon: (
-      <NavIcon>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <circle cx="9" cy="8" r="3" />
-          <path d="M3 19c0-3 2.5-5 6-5s6 2 6 5" strokeLinecap="round" />
-          <path d="M16 11h5M18.5 8.5v5" strokeLinecap="round" />
-        </svg>
-      </NavIcon>
-    ),
-  },
-  {
     id: "drivers",
     label: "Choferes",
     description: "Perfiles y solicitudes",
@@ -72,18 +58,6 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    id: "income",
-    label: "Ingresos",
-    description: "Reportes financieros",
-    icon: (
-      <NavIcon>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <path d="M4 19V5M4 19h16M8 15v-3M12 15V9M16 15V11" strokeLinecap="round" />
-        </svg>
-      </NavIcon>
-    ),
-  },
-  {
     id: "topups",
     label: "Recargas",
     description: "Billeteras chofer",
@@ -109,27 +83,28 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    id: "premium",
-    label: "Premium",
-    description: "Viajes gestionados",
+    id: "accounts",
+    label: "Cuentas de usuario",
+    description: "Admins y cuentas internas",
     icon: (
       <NavIcon>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <path d="M12 4l2 6h6l-5 4 2 6-5-3.5L7 20l2-6-5-4h6L12 4z" />
+          <circle cx="9" cy="8" r="3" />
+          <path d="M3 19c0-3 2.5-5 6-5s6 2 6 5" strokeLinecap="round" />
+          <path d="M16 11h5M18.5 8.5v5" strokeLinecap="round" />
         </svg>
       </NavIcon>
     ),
   },
   {
-    id: "team",
-    label: "Equipo",
-    description: "Admins y distritos",
+    id: "clients",
+    label: "Clientes",
+    description: "Usuarios de la app",
     icon: (
       <NavIcon>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <circle cx="8" cy="8" r="3" />
-          <circle cx="16" cy="9" r="2.5" />
-          <path d="M3 19c0-2.8 2.2-5 5-5s5 2.2 5 5M14 19c0-2.2 1.8-4 4-4 1.5 0 2.8.8 3.5 2" strokeLinecap="round" />
+          <circle cx="12" cy="8" r="3" />
+          <path d="M5 19c0-3.3 3.1-6 7-6s7 2.7 7 6" strokeLinecap="round" />
         </svg>
       </NavIcon>
     ),
@@ -137,10 +112,9 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const SCOPED_ADMIN_SECTIONS: AdminSection[] = [
-  "accounts",
   "drivers",
   "services",
-  "income",
+  "clients",
 ];
 
 export const SECTION_META: Record<

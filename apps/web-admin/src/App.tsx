@@ -15,21 +15,13 @@ import { DriversView } from "./views/DriversView";
 import { TopUpsView } from "./views/TopUpsView";
 import { ServicesView } from "./views/ServicesView";
 import { PromotionsView } from "./views/PromotionsView";
-import { PremiumTripsView } from "./views/PremiumTripsView";
-import { IncomeView } from "./views/IncomeView";
 import { MarketsView } from "./views/MarketsView";
-import { TeamView } from "./views/TeamView";
 
-const SCOPED_SECTIONS: AdminSection[] = [
-  "accounts",
-  "drivers",
-  "services",
-  "income",
-];
+const SCOPED_SECTIONS: AdminSection[] = ["drivers", "services", "clients"];
 
 function Dashboard() {
   const me = useQuery(api.users.getAdminContext);
-  const [section, setSection] = useState<AdminSection>("accounts");
+  const [section, setSection] = useState<AdminSection>("drivers");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const isStaff =
@@ -43,7 +35,7 @@ function Dashboard() {
       return;
     }
     if (!isFullAdmin && !SCOPED_SECTIONS.includes(section)) {
-      setSection("accounts");
+      setSection("drivers");
     }
   }, [isFullAdmin, isStaff, section]);
 
@@ -122,12 +114,6 @@ function Dashboard() {
         </header>
 
         <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          {section === "accounts" && (
-            <AccountsView
-              isFullAdmin={isFullAdmin}
-              districtScopes={me.districtScopes}
-            />
-          )}
           {section === "drivers" && (
             <DriversView
               isFullAdmin={isFullAdmin}
@@ -141,16 +127,22 @@ function Dashboard() {
               districtScopes={me.districtScopes}
             />
           )}
-          {section === "income" && (
-            <IncomeView
-              isFullAdmin={isFullAdmin}
-              districtScopes={me.districtScopes}
-            />
-          )}
           {isFullAdmin && section === "topups" && <TopUpsView />}
           {isFullAdmin && section === "promotions" && <PromotionsView />}
-          {isFullAdmin && section === "premium" && <PremiumTripsView />}
-          {isFullAdmin && section === "team" && <TeamView />}
+          {isFullAdmin && section === "accounts" && (
+            <AccountsView
+              isFullAdmin={isFullAdmin}
+              districtScopes={me.districtScopes}
+              audience="staff"
+            />
+          )}
+          {section === "clients" && (
+            <AccountsView
+              isFullAdmin={isFullAdmin}
+              districtScopes={me.districtScopes}
+              audience="clients"
+            />
+          )}
         </main>
       </div>
     </div>

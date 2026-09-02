@@ -21,6 +21,9 @@ import {
   AdminTableWrap,
 } from "../components/AdminLayout";
 import {
+  btnPrimaryClass,
+  btnSecondaryClass,
+  filterPanelClass,
   rowClass,
   selectClass as uiSelectClass,
   tableClass,
@@ -29,6 +32,7 @@ import {
   thClass,
 } from "../lib/adminUi";
 import type { DistrictScopeOption } from "../components/AdminRegionFilters";
+import { CreateAdminUserForm } from "./TeamView";
 
 const ROLE_LABELS: Record<string, string> = {
   client: "Cliente",
@@ -43,26 +47,38 @@ function formatDate(timestamp: number): string {
   }).format(new Date(timestamp));
 }
 
+type StaffRoleFilter = "" | "admin" | "superadmin";
+
 type AccountsViewProps = {
   isFullAdmin: boolean;
   districtScopes: DistrictScopeOption[];
+  audience?: "staff" | "clients";
 };
 
 export function AccountsView({
   isFullAdmin,
   districtScopes,
+  audience = "staff",
 }: AccountsViewProps) {
+  const isClients = audience === "clients";
   const [region, setRegion] = useState<RegionFilter>(EMPTY_REGION_FILTER);
-  const [roleFilter, setRoleFilter] = useState<"" | "client" | "admin" | "superadmin">("");
+  const [roleFilter, setRoleFilter] = useState<StaffRoleFilter>("");
   const [search, setSearch] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
 
   const users = useQuery(
     api.users.listAll,
-    roleFilter !== "" ? { role: roleFilter } : {},
+    isClients
+      ? { role: "client" }
+      : roleFilter !== ""
+        ? { role: roleFilter }
+        : {},
   );
   const regionalServices = useQuery(
     api.services.listAllForAdmin,
-    hasRegionFilter(region) ? regionToQueryArgs(region) : "skip",
+    isClients && hasRegionFilter(region)
+      ? regionToQueryArgs(region)
+      : "skip",
   );
   const setRole = useMutation(api.users.setRole);
 
@@ -71,21 +87,26 @@ export function AccountsView({
       return undefined;
     }
 
-    let result = users.filter(
-      (user) =>
-        user.role !== "driver" &&
-        matchesTextSearch(search, [user.name, user.email, user.phone]),
+    let result = users.filter((user) =>
+      matchesTextSearch(search, [user.name, user.email, user.phone]),
     );
 
-    if (hasRegionFilter(region) && regionalServices !== undefined) {
-      const clientIds = new Set(
-        regionalServices.map((service) => service.clientId),
+    if (isClients) {
+      result = result.filter((user) => user.role === "client");
+      if (hasRegionFilter(region) && regionalServices !== undefined) {
+        const clientIds = new Set(
+          regionalServices.map((service) => service.clientId),
+        );
+        result = result.filter((user) => clientIds.has(user._id));
+      }
+    } else {
+      result = result.filter(
+        (user) => user.role === "admin" || user.role === "superadmin",
       );
-      result = result.filter((user) => clientIds.has(user._id));
     }
 
     return result;
-  }, [users, regionalServices, region, search]);
+  }, [users, regionalServices, region, search, isClients]);
 
   async function handleRoleChange(
     userId: Id<"users">,
@@ -96,42 +117,85 @@ export function AccountsView({
 
   return (
     <AdminPage>
-      <AdminPageHeader title="Cuentas de usuario" />
+      <AdminPageHeader
+        title={isClients ? "Clientes" : "Cuentas de usuario"}
+        actions={
+          !isClients && isFullAdmin ? (
+            <button
+              type="button"
+              className={showCreate ? btnSecondaryClass : btnPrimaryClass}
+              onClick={() => setShowCreate((open) => !open)}
+            >
+              {showCreate ? "Cerrar" : "Crear usuario"}
+            </button>
+          ) : undefined
+        }
+      />
 
-      <AdminRegionFilters
-        value={region}
-        onChange={setRegion}
-        allowedScopes={isFullAdmin ? undefined : districtScopes}
-      >
-        {isFullAdmin ? (
-          <select
-            value={roleFilter}
-            onChange={(event) =>
-              setRoleFilter(
-                event.target.value as "" | "client" | "admin" | "superadmin",
-              )
-            }
-            className={selectClass}
-          >
-            <option value="">Todos los roles</option>
-            <option value="client">Clientes</option>
-            <option value="admin">Admins</option>
-            <option value="superadmin">Superadmin</option>
-          </select>
-        ) : null}
-        <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Buscar nombre, correo o teléfono"
-          className={inputClass}
-        />
-      </AdminRegionFilters>
+      {!isClients && isFullAdmin && showCreate ? (
+        <AdminCard>
+          <h3 className="text-base font-semibold text-zinc-900">
+            Nuevo usuario admin
+          </h3>
+          <p className="mt-1 text-sm text-zinc-500">
+            Crea un admin con clave y asígnale uno o varios distritos.
+          </p>
+          <div className="mt-4">
+            <CreateAdminUserForm onCreated={() => setShowCreate(false)} />
+          </div>
+        </AdminCard>
+      ) : null}
+
+      {isClients ? (
+        <AdminRegionFilters
+          value={region}
+          onChange={setRegion}
+          allowedScopes={isFullAdmin ? undefined : districtScopes}
+        >
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Buscar nombre, correo o teléfono"
+            className={inputClass}
+          />
+        </AdminRegionFilters>
+      ) : (
+        <div className={`${filterPanelClass} flex flex-col gap-3 sm:flex-row sm:items-center`}>
+          {isFullAdmin ? (
+            <select
+              value={roleFilter}
+              onChange={(event) =>
+                setRoleFilter(event.target.value as StaffRoleFilter)
+              }
+              className={selectClass}
+            >
+              <option value="">Todos los roles</option>
+              <option value="admin">Admins</option>
+              <option value="superadmin">Superadmin</option>
+            </select>
+          ) : null}
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Buscar nombre, correo o teléfono"
+            className={inputClass}
+          />
+        </div>
+      )}
 
       <AdminCard>
         {filteredUsers === undefined ? (
-          <AdminLoading message="Cargando usuarios…" />
+          <AdminLoading
+            message={isClients ? "Cargando clientes…" : "Cargando usuarios…"}
+          />
         ) : filteredUsers.length === 0 ? (
-          <AdminEmpty message="No hay cuentas con estos filtros." />
+          <AdminEmpty
+            message={
+              isClients
+                ? "No hay clientes con estos filtros."
+                : "No hay cuentas con estos filtros."
+            }
+          />
         ) : (
           <AdminTableWrap>
             <table className={tableClass}>

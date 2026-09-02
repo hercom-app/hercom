@@ -4,22 +4,18 @@ export type AdminSection =
   | "markets"
   | "topups"
   | "services"
-  | "income"
   | "promotions"
-  | "premium"
-  | "team";
+  | "clients";
 
 const NAV_ITEMS: Array<{ id: AdminSection; label: string; shortLabel: string }> =
   [
-    { id: "accounts", label: "Cuentas de usuario", shortLabel: "Cuentas" },
     { id: "drivers", label: "Choferes", shortLabel: "Choferes" },
     { id: "markets", label: "Moneda y tipo de cambio", shortLabel: "Moneda" },
     { id: "services", label: "Servicios", shortLabel: "Servicios" },
-    { id: "income", label: "Ingresos", shortLabel: "Ingresos" },
-    { id: "promotions", label: "Promociones", shortLabel: "Promos" },
     { id: "topups", label: "Recargas", shortLabel: "Recargas" },
-    { id: "premium", label: "Viajes premium", shortLabel: "Premium" },
-    { id: "team", label: "Equipo", shortLabel: "Equipo" },
+    { id: "promotions", label: "Promociones", shortLabel: "Promos" },
+    { id: "accounts", label: "Cuentas de usuario", shortLabel: "Cuentas" },
+    { id: "clients", label: "Clientes", shortLabel: "Clientes" },
   ];
 
 type AdminNavProps = {

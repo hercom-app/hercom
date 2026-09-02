@@ -174,7 +174,7 @@ export default defineSchema({
     licensePhotoIds: v.array(v.id("_storage")),
     culPdfId: v.id("_storage"),
     countryCode: v.optional(v.string()),
-    department: v.string(),
+    department: v.optional(v.string()),
     province: v.optional(v.string()),
     district: v.optional(v.string()),
     status: driverApplicationStatusValidator,

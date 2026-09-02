@@ -12,7 +12,6 @@ import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
-import { HercomLogo } from "../components/HercomLogo";
 import {
   DEFAULT_COUNTRY_CODE,
   DriverRegionFields,
@@ -23,6 +22,11 @@ import {
   CONDUCTOR_RECORD_URL,
   CUL_INFO_URL,
 } from "../constants/officialDocuments";
+import {
+  savePendingDriverRegistration,
+  submitDriverApplicationFromPending,
+  type PendingDriverRegistration,
+} from "../lib/driverRegistration";
 
 const LICENSE_CATEGORIES = [
   "A-I",
@@ -246,16 +250,9 @@ export function DriverRegisterScreen({
         <Text className="text-sm font-semibold text-white">← Volver</Text>
       </TouchableOpacity>
 
-      <View className="mb-6 items-center">
-        <HercomLogo width={160} />
-        <Text className="mt-4 text-xl font-bold text-white">
-          Registro de chofer
-        </Text>
-        <Text className="mt-1 text-center text-sm text-white/80">
-          Completa tus datos y documentos. Hercom validará tu solicitud antes de
-          activar el modo conductor.
-        </Text>
-      </View>
+      <Text className="mb-6 text-xl font-bold text-white">
+        Registro de chofer
+      </Text>
 
       {submitted ? (
         <View className="rounded-3xl bg-white p-6 shadow-lg">

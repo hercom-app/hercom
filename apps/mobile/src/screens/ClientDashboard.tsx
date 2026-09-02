@@ -60,12 +60,6 @@ const LIMA_REGION = {
   longitudeDelta: 0.045,
 };
 
-const RISK_MESSAGES = [
-  "EVITA LA MULTA DE 5500 SOLES.",
-  "EN EL PERU HAY 8000 ACCIDENTES AL AÑO POR MANEJAR EN ESTADO DE EBRIEDAD, 4000 DE ELLOS TERMINAN EN MUERTES.",
-  "EVITA IR A LA CARCEL",
-] as const;
-
 const STATUS_LABELS: Record<Doc<"services">["status"], string> = {
   pending: "Pendiente",
   assigned: "Asignado",
@@ -930,24 +924,6 @@ export function ClientDashboard() {
             <Text className="mb-5 text-2xl font-bold text-slate-900">
               ¿Dónde necesitas un chofer de remplazo?
             </Text>
-
-            <View className="mb-5 items-center">
-              <View className="mb-4 h-28 w-28 items-center justify-center rounded-full border-[5px] border-white bg-red-600">
-                <Text className="text-2xl font-black tracking-[3px] text-white">
-                  STOP
-                </Text>
-              </View>
-              <View className="w-full gap-3">
-                {RISK_MESSAGES.map((message) => (
-                  <Text
-                    key={message}
-                    className="text-center text-sm font-semibold leading-5 text-slate-800"
-                  >
-                    {message}
-                  </Text>
-                ))}
-              </View>
-            </View>
 
             <View className="gap-3 rounded-3xl bg-white p-4 shadow-sm">
               {addressFieldButton(

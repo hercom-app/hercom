@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
 import {
   DEFAULT_COUNTRY_CODE,
@@ -57,6 +57,7 @@ export function DriverRegisterScreen({
 }: DriverRegisterScreenProps) {
   const generateUploadUrl = useMutation(api.driverApplications.generateUploadUrl);
   const submitApplication = useMutation(api.driverApplications.submit);
+  const lookupDni = useAction(api.reniec.lookupDni);
 
   const [dni, setDni] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -104,14 +105,20 @@ export function DriverRegisterScreen({
       return;
     }
 
-    // DEMO: sin DECOLECTA_API_KEY / RENIEC. Nombres editables.
-    // TODO: restaurar api.reniec.lookupDni cuando la key esté en Convex empresa.
     setValidatingDni(true);
     try {
-      setFirstName((prev) => (prev.trim() !== "" ? prev : "Chofer"));
-      setFirstLastName((prev) => (prev.trim() !== "" ? prev : "Demo"));
-      setSecondLastName((prev) => (prev.trim() !== "" ? prev : "Hercom"));
+      const result = await lookupDni({ dni: trimmed });
+      setFirstName(result.firstName);
+      setFirstLastName(result.firstLastName);
+      setSecondLastName(result.secondLastName);
       setDniValidated(true);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo validar el DNI con RENIEC.";
+      setFormError(message);
+      onError?.(message);
     } finally {
       setValidatingDni(false);
     }
@@ -301,7 +308,7 @@ export function DriverRegisterScreen({
         {dniValidated && (
           <View className="mb-4 gap-2 rounded-2xl bg-surface-muted px-4 py-3">
             <Text className="text-xs font-semibold uppercase text-slate-600">
-              Demo · sin RENIEC — edita tus datos
+              Datos según RENIEC
             </Text>
             <TextInput
               value={firstName}

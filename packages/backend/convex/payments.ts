@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { paymentStatusValidator } from "./schema";
-import { requireRole, requireUser } from "./lib/auth";
+import { requireFullAdmin, requireUser } from "./lib/auth";
 
 /**
  * Marca un pago como pagado (panel admin).
@@ -12,7 +12,7 @@ export const markPaid = mutation({
     method: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const payment = await ctx.db.get(args.paymentId);
     if (payment === null) {
       throw new Error("Pago no encontrado.");
@@ -35,7 +35,7 @@ export const markPaid = mutation({
 export const listPending = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     return await ctx.db
       .query("payments")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
@@ -52,7 +52,7 @@ export const listAll = query({
     status: v.optional(paymentStatusValidator),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     if (args.status !== undefined) {
       const status = args.status;
       return await ctx.db

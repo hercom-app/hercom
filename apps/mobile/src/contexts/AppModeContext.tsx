@@ -41,7 +41,8 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
 
   const hasDriverProfile = driver !== null;
   const canUseDriverMode = hasDriverProfile;
-  const canUseClientMode = me != null && me.role !== "admin";
+  const canUseClientMode =
+    me != null && me.role !== "admin" && me.role !== "superadmin";
   const driverApplicationStatus = application?.status ?? null;
   const hasPendingDriverApplication = application?.status === "pending";
 

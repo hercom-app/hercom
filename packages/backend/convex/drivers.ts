@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { driverStatusValidator } from "./schema";
-import { requireDriver, requireRole, requireUser } from "./lib/auth";
+import { requireDriver, requireFullAdmin, requireUser } from "./lib/auth";
 import { ensureWallet } from "./driverWallets";
 
 /**
@@ -10,7 +10,7 @@ import { ensureWallet } from "./driverWallets";
 export const listAvailable = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     return await ctx.db
       .query("drivers")
       .withIndex("by_status", (q) => q.eq("status", "available"))
@@ -24,7 +24,7 @@ export const listAvailable = query({
 export const listAll = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     return await ctx.db.query("drivers").collect();
   },
 });

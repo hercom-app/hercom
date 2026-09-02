@@ -108,7 +108,23 @@ const NAV_ITEMS: NavItem[] = [
       </NavIcon>
     ),
   },
+  {
+    id: "team",
+    label: "Equipo",
+    description: "Admins y distritos",
+    icon: (
+      <NavIcon>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+          <circle cx="8" cy="8" r="3" />
+          <circle cx="16" cy="9" r="2.5" />
+          <path d="M3 19c0-2.8 2.2-5 5-5s5 2.2 5 5M14 19c0-2.2 1.8-4 4-4 1.5 0 2.8.8 3.5 2" strokeLinecap="round" />
+        </svg>
+      </NavIcon>
+    ),
+  },
 ];
+
+const SCOPED_ADMIN_SECTIONS: AdminSection[] = ["services", "income"];
 
 export const SECTION_META: Record<
   AdminSection,
@@ -124,6 +140,8 @@ type AdminSidebarProps = {
   active: AdminSection;
   onChange: (section: AdminSection) => void;
   userName: string;
+  userEmail?: string | undefined;
+  isFullAdmin: boolean;
   mobileOpen: boolean;
   onMobileClose: () => void;
 };
@@ -132,10 +150,15 @@ export function AdminSidebar({
   active,
   onChange,
   userName,
+  userEmail,
+  isFullAdmin,
   mobileOpen,
   onMobileClose,
 }: AdminSidebarProps) {
   const { signOut } = useAuthActions();
+  const navItems = isFullAdmin
+    ? NAV_ITEMS
+    : NAV_ITEMS.filter((item) => SCOPED_ADMIN_SECTIONS.includes(item.id));
 
   const sidebar = (
     <div className="flex h-full flex-col">
@@ -153,7 +176,7 @@ export function AdminSidebar({
         <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
           General
         </p>
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const isActive = item.id === active;
           return (
             <button
@@ -189,7 +212,10 @@ export function AdminSidebar({
             <p className="truncate text-sm font-medium text-slate-900">
               {userName.trim() !== "" ? userName : "Administrador"}
             </p>
-            <p className="truncate text-xs text-slate-500">admin@hercom</p>
+            <p className="truncate text-xs text-slate-500">
+              {isFullAdmin ? "Superadmin" : "Admin"}
+              {userEmail !== undefined && userEmail !== "" ? ` · ${userEmail}` : ""}
+            </p>
           </div>
         </div>
         <button

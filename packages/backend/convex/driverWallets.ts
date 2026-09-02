@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { requireDriver, requireRole } from "./lib/auth";
+import { requireDriver, requireFullAdmin } from "./lib/auth";
 import { MIN_DRIVER_WALLET_BALANCE } from "./lib/constants";
 
 const topUpPeriodValidator = v.union(
@@ -55,7 +55,7 @@ export const listMyTransactions = query({
 export const listForAdmin = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const drivers = await ctx.db.query("drivers").order("desc").collect();
     return await Promise.all(
       drivers.map(async (driver) => {
@@ -88,7 +88,7 @@ export const listTopUpsForAdmin = query({
     period: v.optional(topUpPeriodValidator),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const period = args.period ?? "today";
     const now = Date.now();
     const offset = args.timezoneOffsetMinutes ?? 0;
@@ -141,7 +141,7 @@ export const listTopUpsTodayForAdmin = query({
     timezoneOffsetMinutes: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const { startMs, endMs } = getLocalDayRangeUtc(
       args.timezoneOffsetMinutes ?? 0,
       Date.now(),

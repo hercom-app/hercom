@@ -32,7 +32,7 @@ export const seedDemo = internalMutation({
   handler: async (ctx) => {
     await ctx.runMutation(internal.markets.ensureDefaults, {});
 
-    const admin = await ensureUser(ctx, DEMO_ADMIN.email, DEMO_ADMIN.name, "admin");
+    const admin = await ensureUser(ctx, DEMO_ADMIN.email, DEMO_ADMIN.name, "superadmin");
     const driverUser = await ensureUser(ctx, DEMO_DRIVER.email, DEMO_DRIVER.name, "driver");
     const client = await ensureUser(ctx, DEMO_CLIENT.email, DEMO_CLIENT.name, "client");
 

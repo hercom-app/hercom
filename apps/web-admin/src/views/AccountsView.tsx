@@ -34,7 +34,8 @@ import {
 const ROLE_LABELS: Record<string, string> = {
   client: "Cliente",
   driver: "Chofer",
-  admin: "Administrador",
+  admin: "Admin",
+  superadmin: "Superadmin",
 };
 
 type ApplicationStatusFilter =
@@ -153,7 +154,8 @@ export function AccountsView() {
           <option value="">Todos los roles</option>
           <option value="client">Clientes</option>
           <option value="driver">Choferes</option>
-          <option value="admin">Administradores</option>
+          <option value="admin">Admins</option>
+          <option value="superadmin">Superadmin</option>
         </select>
         <select
           value={applicationStatusFilter}
@@ -223,7 +225,12 @@ export function AccountsView() {
                           >
                             <option value="client">{ROLE_LABELS.client}</option>
                             <option value="driver">{ROLE_LABELS.driver}</option>
-                            <option value="admin">{ROLE_LABELS.admin}</option>
+                            {user.role === "admin" ? (
+                              <option value="admin">{ROLE_LABELS.admin}</option>
+                            ) : null}
+                            <option value="superadmin">
+                              {ROLE_LABELS.superadmin}
+                            </option>
                           </select>
                         </td>
                         <td className={tdClass}>

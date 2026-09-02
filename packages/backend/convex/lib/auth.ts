@@ -1,6 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
+import { getAccessContext, isStaffRole } from "./adminAccess";
 
 /**
  * Devuelve el usuario autenticado o `null` si no hay sesión.
@@ -34,6 +35,29 @@ export async function requireRole(
   const user = await requireUser(ctx);
   if (user.role !== role) {
     throw new Error(`No autorizado: se requiere rol "${role}".`);
+  }
+  return user;
+}
+
+/**
+ * Superadmin o admin operativo (con o sin distritos).
+ */
+export async function requireStaff(ctx: QueryCtx): Promise<Doc<"users">> {
+  const user = await requireUser(ctx);
+  if (!isStaffRole(user.role)) {
+    throw new Error("No autorizado: se requiere acceso al panel interno.");
+  }
+  return user;
+}
+
+/**
+ * Dueño de la empresa (superadmin, o admin legado sin distritos).
+ */
+export async function requireFullAdmin(ctx: QueryCtx): Promise<Doc<"users">> {
+  const user = await requireStaff(ctx);
+  const access = await getAccessContext(ctx, user);
+  if (!access.isFullAdmin) {
+    throw new Error("No autorizado: se requiere superadmin.");
   }
   return user;
 }

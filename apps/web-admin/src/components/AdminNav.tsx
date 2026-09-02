@@ -5,7 +5,8 @@ export type AdminSection =
   | "income"
   | "promotions"
   | "premium"
-  | "markets";
+  | "markets"
+  | "team";
 
 const NAV_ITEMS: Array<{ id: AdminSection; label: string; shortLabel: string }> =
   [
@@ -16,6 +17,7 @@ const NAV_ITEMS: Array<{ id: AdminSection; label: string; shortLabel: string }> 
     { id: "promotions", label: "Promociones", shortLabel: "Promos" },
     { id: "markets", label: "Mercados", shortLabel: "Mercados" },
     { id: "premium", label: "Viajes premium", shortLabel: "Premium" },
+    { id: "team", label: "Equipo", shortLabel: "Equipo" },
   ];
 
 type AdminNavProps = {

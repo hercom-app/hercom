@@ -25,7 +25,7 @@ type StatusFilter = "" | Doc<"services">["status"];
 type TypeFilter = "all" | NonNullable<Doc<"services">["serviceType"]>;
 type ChannelFilter = "" | NonNullable<Doc<"services">["requestChannel"]>;
 
-export function ServicesView() {
+export function ServicesView({ isFullAdmin = true }: { isFullAdmin?: boolean }) {
   const [region, setRegion] = useState<RegionFilter>(EMPTY_REGION_FILTER);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
@@ -143,10 +143,12 @@ export function ServicesView() {
         onSelect={setSelectedServiceId}
       />
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <PaymentsPanel />
-        <PayoutsPanel />
-      </div>
+      {isFullAdmin ? (
+        <div className="grid gap-5 lg:grid-cols-2">
+          <PaymentsPanel />
+          <PayoutsPanel />
+        </div>
+      ) : null}
     </AdminPage>
   );
 }

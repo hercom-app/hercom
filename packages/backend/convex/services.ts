@@ -16,7 +16,8 @@ import {
   computeClientTotalForOffer,
   computePlatformCommissionForService,
 } from "./lib/pricing";
-import { requireDriver, requireRole, requireUser } from "./lib/auth";
+import { requireDriver, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
+import { filterServicesByAccess, getAccessContext, isStaffRole, originMatchesDistrictScopes } from "./lib/adminAccess";
 import {
   debitCommissionForService,
   hasSufficientBalance,
@@ -88,7 +89,7 @@ export const createPremiumServiceAsAdmin = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const client = await ctx.db.get(args.clientId);
     if (client === null) {
       throw new Error("Cliente no encontrado.");
@@ -130,7 +131,7 @@ export const assignDriver = mutation({
     driverId: v.id("drivers"),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
 
     const service = await ctx.db.get(args.serviceId);
     if (service === null) {
@@ -648,7 +649,13 @@ export const cancelService = mutation({
     }
 
     const isOwner = service.clientId === user._id;
-    const isAdmin = user.role === "admin";
+    const access = isStaffRole(user.role)
+      ? await getAccessContext(ctx, user)
+      : null;
+    const isAdmin =
+      access !== null &&
+      (access.isFullAdmin ||
+        originMatchesDistrictScopes(service.origin, access.districtScopes));
     if (!isOwner && !isAdmin) {
       throw new Error("No autorizado para cancelar este servicio.");
     }
@@ -884,7 +891,16 @@ export const getById = query({
     if (service === null) {
       return null;
     }
-    if (user.role === "admin" || service.clientId === user._id) {
+    if (isStaffRole(user.role)) {
+      const access = await getAccessContext(ctx, user);
+      if (
+        access.isFullAdmin ||
+        originMatchesDistrictScopes(service.origin, access.districtScopes)
+      ) {
+        return service;
+      }
+    }
+    if (service.clientId === user._id) {
       return service;
     }
     const driver = await ctx.db
@@ -912,7 +928,8 @@ export const listAllForAdmin = query({
     district: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    const user = await requireStaff(ctx);
+    const access = await getAccessContext(ctx, user);
     let services = await ctx.db.query("services").order("desc").collect();
     if (args.serviceType !== undefined) {
       if (args.serviceType === "app") {
@@ -947,7 +964,7 @@ export const listAllForAdmin = query({
         }),
       );
     }
-    return services;
+    return filterServicesByAccess(services, access);
   },
 });
 
@@ -1059,7 +1076,7 @@ function resolveServiceClassification(
   requestChannel?: "mobile_app" | "web_comercial" | "phone",
 ): ServiceClassification {
   if (requestChannel === "phone") {
-    if (userRole !== "admin") {
+    if (userRole !== "admin" && userRole !== "superadmin") {
       throw new Error(
         "Solo un administrador puede registrar solicitudes premium por teléfono.",
       );

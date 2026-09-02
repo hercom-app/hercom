@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { SUPPORTED_COUNTRIES } from "./data/countryCatalog";
-import { requireRole, requireUser } from "./lib/auth";
+import { requireFullAdmin, requireUser } from "./lib/auth";
 import {
   buildDefaultMarketRecord,
   getMarketByCountry,
@@ -35,7 +35,7 @@ function validateMarketNumbers(args: {
 export const listForAdmin = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const markets = await ctx.db.query("markets").collect();
     const byCode = new Map(markets.map((market) => [market.countryCode, market]));
 
@@ -77,7 +77,7 @@ export const getPricing = query({
     countryCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const pricing = await getMarketByCountry(ctx, args.countryCode);
     const sample = marketMoneySummary(pricing, pricing.minServicePrice);
     return {
@@ -120,7 +120,7 @@ export const convert = query({
     direction: v.union(v.literal("local_to_usd"), v.literal("usd_to_local")),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const pricing = await getMarketByCountry(ctx, args.countryCode);
     const local =
       args.direction === "usd_to_local"
@@ -156,7 +156,7 @@ export const upsert = mutation({
     active: v.boolean(),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const countryCode = normalizeCountryCode(args.countryCode);
     const country = SUPPORTED_COUNTRIES.find((item) => item.code === countryCode);
     if (country === undefined) {

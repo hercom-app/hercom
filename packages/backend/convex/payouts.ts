@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireDriver, requireRole } from "./lib/auth";
+import { requireDriver, requireFullAdmin } from "./lib/auth";
 
 /**
  * Liquida (paga) el payout pendiente acumulado de un chofer (panel admin).
@@ -11,7 +11,7 @@ export const markPaid = mutation({
     payoutId: v.id("payouts"),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const payout = await ctx.db.get(args.payoutId);
     if (payout === null) {
       throw new Error("Payout no encontrado.");
@@ -37,7 +37,7 @@ export const listByDriver = query({
     driverId: v.id("drivers"),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     return await ctx.db
       .query("payouts")
       .withIndex("by_driver", (q) => q.eq("driverId", args.driverId))
@@ -52,7 +52,7 @@ export const listByDriver = query({
 export const listPending = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     return await ctx.db
       .query("payouts")
       .withIndex("by_status", (q) => q.eq("status", "pending"))

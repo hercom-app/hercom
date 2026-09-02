@@ -6,7 +6,7 @@ import { getMarketByCountry } from "./lib/markets";
 import { normalizeMoney } from "./lib/money";
 import { computePromotionalPricing } from "./lib/pricing";
 import { applyPromotionToListPrice, findActivePromotion } from "./lib/promotions";
-import { requireRole, requireUser } from "./lib/auth";
+import { requireFullAdmin, requireUser } from "./lib/auth";
 import {
   listLevel1ForCountry,
   listLevel2ForCountry,
@@ -75,7 +75,7 @@ export const listDistricts = query({
 export const listForAdmin = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     return await ctx.db.query("promotions").order("desc").collect();
   },
 });
@@ -87,7 +87,7 @@ export const previewPricing = query({
     countryCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const market = await getMarketByCountry(ctx, args.countryCode);
     const rate = Math.min(
       Math.max(args.discountRate, 0),
@@ -140,7 +140,7 @@ export const create = mutation({
     active: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const user = await requireRole(ctx, "admin");
+    const user = await requireFullAdmin(ctx);
     const countryCode = normalizeCountryCode(args.countryCode);
     const market = await getMarketByCountry(ctx, countryCode);
     const discountRate = normalizeMoney(args.discountRate);
@@ -184,7 +184,7 @@ export const setActive = mutation({
     active: v.boolean(),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const promotion = await ctx.db.get(args.promotionId);
     if (promotion === null) {
       throw new Error("Promoción no encontrada.");
@@ -197,7 +197,7 @@ export const setActive = mutation({
 export const remove = mutation({
   args: { promotionId: v.id("promotions") },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const promotion = await ctx.db.get(args.promotionId);
     if (promotion === null) {
       throw new Error("Promoción no encontrada.");

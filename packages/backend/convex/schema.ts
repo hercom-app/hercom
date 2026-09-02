@@ -10,7 +10,15 @@ export const userRoleValidator = v.union(
   v.literal("client"),
   v.literal("driver"),
   v.literal("admin"),
+  v.literal("superadmin"),
 );
+
+export const districtScopeValidator = v.object({
+  countryCode: v.string(),
+  department: v.string(),
+  province: v.string(),
+  district: v.string(),
+});
 
 export const driverStatusValidator = v.union(
   v.literal("available"),
@@ -124,6 +132,18 @@ export default defineSchema({
   })
     .index("email", ["email"])
     .index("phone", ["phone"]),
+
+  /**
+   * Distritos asignados a un admin operativo.
+   * Un admin puede tener varios, incluso de distintas provincias.
+   */
+  adminDistrictScopes: defineTable({
+    userId: v.id("users"),
+    countryCode: v.string(),
+    department: v.string(),
+    province: v.string(),
+    district: v.string(),
+  }).index("by_user", ["userId"]),
 
   /**
    * Choferes. Cada chofer está ligado 1:1 a un `user`.

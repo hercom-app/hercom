@@ -2,7 +2,8 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { requireDriver, requireRole, requireUser } from "./lib/auth";
+import { requireDriver, requireStaff, requireUser } from "./lib/auth";
+import { filterServicesByAccess, getAccessContext, originMatchesDistrictScopes } from "./lib/adminAccess";
 
 const MAX_TRAIL_POINTS = 400;
 const MIN_UPDATE_INTERVAL_MS = 3000;
@@ -278,10 +279,17 @@ export const getForAdmin = query({
     serviceId: v.id("services"),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    const user = await requireStaff(ctx);
     const service = await ctx.db.get(args.serviceId);
     if (service === null) {
       return null;
+    }
+    const access = await getAccessContext(ctx, user);
+    if (
+      !access.isFullAdmin &&
+      !originMatchesDistrictScopes(service.origin, access.districtScopes)
+    ) {
+      throw new Error("No autorizado para ver este servicio.");
     }
     const tracking = await ctx.db
       .query("serviceTracking")
@@ -323,9 +331,12 @@ export const getForAdmin = query({
 export const listLiveForAdmin = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, "admin");
+    const user = await requireStaff(ctx);
+    const access = await getAccessContext(ctx, user);
     const services = await ctx.db.query("services").order("desc").collect();
-    const live = services.filter((service) => LIVE_STATUSES.has(service.status));
+    const live = filterServicesByAccess(services, access).filter((service) =>
+      LIVE_STATUSES.has(service.status),
+    );
     return await Promise.all(
       live.map(async (service) => {
         const tracking = await ctx.db

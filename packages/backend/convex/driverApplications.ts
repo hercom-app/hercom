@@ -4,7 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { normalizeCountryCode } from "./data/countryCatalog";
 import { driverApplicationStatusValidator, sexValidator } from "./schema";
-import { requireRole, requireUser } from "./lib/auth";
+import { requireFullAdmin, requireUser } from "./lib/auth";
 import { ensureWallet } from "./driverWallets";
 
 /** URL temporal para subir archivos (fotos brevete, CUL PDF). */
@@ -170,7 +170,7 @@ export const approve = mutation({
     applicationId: v.id("driverApplications"),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const application = await ctx.db.get(args.applicationId);
     if (application === null) {
       throw new Error("Solicitud no encontrada.");
@@ -203,7 +203,7 @@ export const reject = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     const application = await ctx.db.get(args.applicationId);
     if (application === null) {
       throw new Error("Solicitud no encontrada.");
@@ -223,7 +223,7 @@ export const reject = mutation({
 export const listPending = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     return await ctx.db
       .query("driverApplications")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
@@ -241,7 +241,7 @@ export const listForAdmin = query({
     status: v.optional(driverApplicationStatusValidator),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    await requireFullAdmin(ctx);
     let applications = await ctx.db
       .query("driverApplications")
       .order("desc")

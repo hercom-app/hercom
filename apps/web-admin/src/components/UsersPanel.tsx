@@ -5,7 +5,8 @@ import type { Id } from "@proyecto/backend/dataModel";
 const ROLE_LABELS: Record<string, string> = {
   client: "Cliente",
   driver: "Chofer",
-  admin: "Administrador",
+  admin: "Admin",
+  superadmin: "Superadmin",
 };
 
 function formatDate(timestamp: number): string {
@@ -25,7 +26,7 @@ export function UsersPanel() {
 
   async function handleRoleChange(
     userId: Id<"users">,
-    role: "client" | "driver" | "admin",
+    role: "client" | "driver" | "admin" | "superadmin",
   ) {
     await setRole({ userId, role });
   }
@@ -90,14 +91,14 @@ export function UsersPanel() {
                       onChange={(e) =>
                         void handleRoleChange(
                           user._id,
-                          e.target.value as "client" | "driver" | "admin",
+                          e.target.value as "client" | "driver" | "superadmin",
                         )
                       }
                       className="rounded-lg border border-slate-300 px-2 py-1 text-xs"
                     >
                       <option value="client">{ROLE_LABELS.client}</option>
                       <option value="driver">{ROLE_LABELS.driver}</option>
-                      <option value="admin">{ROLE_LABELS.admin}</option>
+                      <option value="superadmin">{ROLE_LABELS.superadmin}</option>
                     </select>
                   </td>
                   <td className="py-3 text-slate-500">

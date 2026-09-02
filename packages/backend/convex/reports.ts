@@ -4,7 +4,8 @@ import {
   serviceStatusValidator,
   serviceTypeValidator,
 } from "./schema";
-import { requireRole } from "./lib/auth";
+import { requireStaff } from "./lib/auth";
+import { filterServicesByAccess, getAccessContext } from "./lib/adminAccess";
 
 function normalizeMoney(amount: number): number {
   return Math.round(amount * 100) / 100;
@@ -53,13 +54,15 @@ export const listRevenueForAdmin = query({
     serviceType: v.optional(serviceTypeValidator),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "admin");
+    const user = await requireStaff(ctx);
+    const access = await getAccessContext(ctx, user);
     const { fromMs, toMs } = limaRangeMs(args.fromDate, args.toDate);
     if (!Number.isFinite(fromMs) || !Number.isFinite(toMs) || fromMs > toMs) {
       throw new Error("Rango de fechas inválido.");
     }
 
     let services = await ctx.db.query("services").order("desc").collect();
+    services = filterServicesByAccess(services, access);
     if (args.status !== undefined) {
       const status = args.status;
       services = services.filter((service) => service.status === status);

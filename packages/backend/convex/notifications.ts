@@ -153,7 +153,8 @@ export async function createNotification(
       | "driver_heading_pickup"
       | "driver_arrived_pickup"
       | "advance_confirmed"
-      | "trip_route_updated";
+      | "trip_route_updated"
+      | "support_reply";
     title: string;
     message: string;
     serviceId?: Id<"services">;

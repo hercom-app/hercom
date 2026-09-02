@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   Alert,
   Animated,
@@ -11,16 +11,18 @@ import {
   View,
 } from "react-native";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
+import { api } from "@proyecto/backend";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppMode } from "../contexts/AppModeContext";
+import { DrawerIcon, type DrawerIconName } from "./DrawerIcons";
 
 const DRAWER_WIDTH = Math.min(Dimensions.get("window").width * 0.82, 340);
 
 type MenuItem = {
   key: string;
   label: string;
-  icon: string;
-  active?: boolean;
+  icon: DrawerIconName;
 };
 
 type SideDrawerProps = {
@@ -32,26 +34,64 @@ type SideDrawerProps = {
   onSelectItem?: (key: string) => void;
 };
 
-const CLIENT_ITEMS: MenuItem[] = [
-  { key: "ciudad", label: "Ciudad", icon: "🚗", active: true },
-  { key: "historial", label: "Mis servicios", icon: "🕐" },
-  { key: "notificaciones", label: "Notificaciones", icon: "🔔" },
-  { key: "seguridad", label: "Seguridad", icon: "🛡️" },
-  { key: "configuracion", label: "Configuración", icon: "⚙️" },
-  { key: "ayuda", label: "Ayuda", icon: "ℹ️" },
+const CLIENT_PRIMARY: MenuItem[] = [
+  { key: "ciudad", label: "Pedir un servicio", icon: "mapPin" },
+  { key: "historial", label: "Mis servicios", icon: "clock" },
+  { key: "notificaciones", label: "Notificaciones", icon: "bell" },
 ];
 
-const DRIVER_ITEMS: MenuItem[] = [
-  { key: "servicios", label: "Servicios", icon: "🚗", active: true },
-  { key: "ofertas", label: "Solicitudes abiertas", icon: "📋" },
-  { key: "saldo", label: "Recargar saldo", icon: "💳" },
-  { key: "ganancias", label: "Ganancias", icon: "📈" },
-  { key: "notificaciones", label: "Notificaciones", icon: "🔔" },
-  { key: "configuracion", label: "Datos de cobro", icon: "⚙️" },
-  { key: "ayuda", label: "Ayuda", icon: "ℹ️" },
+const CLIENT_ACCOUNT: MenuItem[] = [
+  { key: "ayuda", label: "Ayuda", icon: "chat" },
+  { key: "seguridad", label: "Seguridad", icon: "shield" },
+  { key: "configuracion", label: "Mi Información", icon: "gear" },
 ];
 
-/** Menú lateral izquierdo (estilo inDrive) con cambio de modo abajo. */
+const DRIVER_PRIMARY: MenuItem[] = [
+  { key: "servicios", label: "Servicios", icon: "car" },
+  { key: "ofertas", label: "Solicitudes abiertas", icon: "clipboard" },
+  { key: "saldo", label: "Recargar saldo", icon: "wallet" },
+  { key: "ganancias", label: "Ganancias", icon: "trend" },
+  { key: "notificaciones", label: "Notificaciones", icon: "bell" },
+];
+
+const DRIVER_ACCOUNT: MenuItem[] = [
+  { key: "ayuda", label: "Ayuda", icon: "chat" },
+  { key: "configuracion", label: "Datos de cobro", icon: "card" },
+];
+
+function MenuRow({
+  item,
+  selected,
+  badge,
+  onPress,
+}: {
+  item: MenuItem;
+  selected: boolean;
+  badge?: number;
+  onPress: () => void;
+}) {
+  const label =
+    badge !== undefined && badge > 0 ? `${item.label} (${badge})` : item.label;
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className={`mx-3 mb-1 flex-row items-center gap-3 rounded-2xl px-4 py-3.5 ${
+        selected ? "bg-slate-100" : ""
+      }`}
+    >
+      <DrawerIcon name={item.icon} selected={selected} />
+      <Text
+        className={`flex-1 text-[15px] ${
+          selected ? "font-semibold text-slate-900" : "font-medium text-slate-700"
+        }`}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+/** Menú lateral izquierdo con iconos de trazo gris y bloque de cuenta al final. */
 export function SideDrawer({
   visible,
   onClose,
@@ -70,6 +110,7 @@ export function SideDrawer({
     openDriverRegistration,
   } = useAppMode();
   const slide = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+  const supportUnread = useQuery(api.support.getMyUnreadCount) ?? 0;
 
   useEffect(() => {
     if (visible) {
@@ -83,9 +124,15 @@ export function SideDrawer({
     }
   }, [slide, visible]);
 
-  const items = mode === "driver" ? DRIVER_ITEMS : CLIENT_ITEMS;
+  const primary = mode === "driver" ? DRIVER_PRIMARY : CLIENT_PRIMARY;
+  const account = mode === "driver" ? DRIVER_ACCOUNT : CLIENT_ACCOUNT;
   const modeButtonLabel =
     mode === "client" ? "Modo conductor" : "Modo cliente";
+
+  function handleSelect(key: string) {
+    onSelectItem?.(key);
+    onClose();
+  }
 
   async function handleModeSwitch() {
     onClose();
@@ -161,7 +208,7 @@ export function SideDrawer({
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 className="h-10 w-10 items-center justify-center rounded-full bg-slate-100"
               >
-                <Text className="text-xl font-medium text-slate-600">✕</Text>
+                <DrawerIcon name="close" />
               </TouchableOpacity>
             </View>
 
@@ -170,48 +217,37 @@ export function SideDrawer({
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 16 }}
             >
-              {items.map((item) => {
-                const selected =
-                  item.key === activeItem ||
-                  (item.active === true && activeItem === item.key);
-                const label =
-                  item.key === "notificaciones" && unreadCount > 0
-                    ? `${item.label} (${unreadCount})`
-                    : item.label;
-                return (
-                  <TouchableOpacity
-                    key={item.key}
-                    onPress={() => {
-                      onSelectItem?.(item.key);
-                      onClose();
-                    }}
-                    className={`mx-3 mb-1 flex-row items-center gap-3 rounded-2xl px-4 py-3.5 ${
-                      selected ? "bg-slate-100" : ""
-                    }`}
-                  >
-                    <Text className="text-base">{item.icon}</Text>
-                    <Text
-                      className={`flex-1 text-[15px] ${
-                        selected
-                          ? "font-semibold text-slate-900"
-                          : "font-medium text-slate-800"
-                      }`}
-                    >
-                      {label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+              {primary.map((item) => (
+                <MenuRow
+                  key={item.key}
+                  item={item}
+                  selected={item.key === activeItem}
+                  badge={item.key === "notificaciones" ? unreadCount : undefined}
+                  onPress={() => handleSelect(item.key)}
+                />
+              ))}
+
+              <View className="mx-7 my-3 h-px bg-slate-200" />
+
+              {account.map((item) => (
+                <MenuRow
+                  key={item.key}
+                  item={item}
+                  selected={item.key === activeItem}
+                  badge={item.key === "ayuda" ? supportUnread : undefined}
+                  onPress={() => handleSelect(item.key)}
+                />
+              ))}
 
               <TouchableOpacity
                 onPress={() => {
                   onClose();
                   void signOut();
                 }}
-                className="mx-3 mt-2 flex-row items-center gap-3 rounded-2xl px-4 py-3.5"
+                className="mx-3 mt-1 flex-row items-center gap-3 rounded-2xl px-4 py-3.5"
               >
-                <Text className="text-base">🚪</Text>
-                <Text className="flex-1 text-[15px] font-medium text-slate-800">
+                <DrawerIcon name="logout" />
+                <Text className="flex-1 text-[15px] font-medium text-slate-700">
                   Cerrar sesión
                 </Text>
               </TouchableOpacity>

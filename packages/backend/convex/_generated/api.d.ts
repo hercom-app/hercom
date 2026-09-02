@@ -40,6 +40,7 @@ import type * as serviceOffers from "../serviceOffers.js";
 import type * as serviceRatings from "../serviceRatings.js";
 import type * as serviceTracking from "../serviceTracking.js";
 import type * as services from "../services.js";
+import type * as support from "../support.js";
 import type * as users from "../users.js";
 
 import type {
@@ -81,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   serviceRatings: typeof serviceRatings;
   serviceTracking: typeof serviceTracking;
   services: typeof services;
+  support: typeof support;
   users: typeof users;
 }>;
 

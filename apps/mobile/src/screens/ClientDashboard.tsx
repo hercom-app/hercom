@@ -26,6 +26,9 @@ import { HelpFab } from "../components/HelpFab";
 import { HercomLogo } from "../components/HercomLogo";
 import { RateServiceStars } from "../components/RateServiceStars";
 import { SideDrawer } from "../components/SideDrawer";
+import { ClientSecurityScreen } from "./ClientSecurityScreen";
+import { ClientSettingsScreen } from "./ClientSettingsScreen";
+import { SupportChatScreen } from "./SupportChatScreen";
 import { LiveTripMapModal } from "../components/LiveTripMapModal";
 import {
   addressDraftFromText,
@@ -789,6 +792,33 @@ export function ClientDashboard() {
       }}
     />
   );
+
+  if (menuSection === "ayuda") {
+    return (
+      <View className="flex-1">
+        <SupportChatScreen onOpenMenu={() => setMenuOpen(true)} />
+        {drawer}
+      </View>
+    );
+  }
+
+  if (menuSection === "seguridad") {
+    return (
+      <View className="flex-1">
+        <ClientSecurityScreen onOpenMenu={() => setMenuOpen(true)} />
+        {drawer}
+      </View>
+    );
+  }
+
+  if (menuSection === "configuracion") {
+    return (
+      <View className="flex-1">
+        <ClientSettingsScreen onOpenMenu={() => setMenuOpen(true)} />
+        {drawer}
+      </View>
+    );
+  }
 
   if (menuSection === "historial" || menuSection === "notificaciones") {
     return (

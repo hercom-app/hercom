@@ -19,6 +19,7 @@ import { HamburgerButton } from "../components/HamburgerButton";
 import { HelpFab } from "../components/HelpFab";
 import { ServiceCard } from "../components/ServiceCard";
 import { SideDrawer } from "../components/SideDrawer";
+import { SupportChatScreen } from "./SupportChatScreen";
 import { useAppMode } from "../contexts/AppModeContext";
 import { useAndroidBackHandler } from "../hooks/useAndroidBackHandler";
 import { canCoverOfferCommission } from "../lib/offerWallet";
@@ -163,9 +164,11 @@ export function DriverDashboard() {
           ? "Notificaciones"
           : menuSection === "configuracion"
             ? "Datos de cobro"
-            : menuSection === "ofertas"
-              ? "Solicitudes abiertas"
-              : "Servicios";
+            : menuSection === "ayuda"
+              ? "Ayuda"
+              : menuSection === "ofertas"
+                ? "Solicitudes abiertas"
+                : "Servicios";
 
   async function handleTopUp() {
     const amount = Number(topUpAmount);
@@ -191,6 +194,38 @@ export function DriverDashboard() {
     } finally {
       setTopUpSubmitting(false);
     }
+  }
+
+  const drawer = (
+    <SideDrawer
+      visible={menuOpen}
+      onClose={() => setMenuOpen(false)}
+      userName={userName}
+      unreadCount={unreadNotifications}
+      activeItem={menuSection}
+      onSelectItem={(key) => {
+        if (
+          key === "servicios" ||
+          key === "ofertas" ||
+          key === "saldo" ||
+          key === "ganancias" ||
+          key === "notificaciones" ||
+          key === "configuracion" ||
+          key === "ayuda"
+        ) {
+          setMenuSection(key);
+        }
+      }}
+    />
+  );
+
+  if (menuSection === "ayuda") {
+    return (
+      <View className="flex-1">
+        <SupportChatScreen onOpenMenu={() => setMenuOpen(true)} />
+        {drawer}
+      </View>
+    );
   }
 
   return (
@@ -572,25 +607,7 @@ export function DriverDashboard() {
         )}
       </View>
 
-      <SideDrawer
-        visible={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        userName={userName}
-        unreadCount={unreadNotifications}
-        activeItem={menuSection}
-        onSelectItem={(key) => {
-          if (
-            key === "servicios" ||
-            key === "ofertas" ||
-            key === "saldo" ||
-            key === "ganancias" ||
-            key === "notificaciones" ||
-            key === "configuracion"
-          ) {
-            setMenuSection(key);
-          }
-        }}
-      />
+      {drawer}
 
       <LiveTripMapModal
         visible={liveMapServiceId !== null}

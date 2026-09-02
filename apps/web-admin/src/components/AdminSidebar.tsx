@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
+import { api } from "@proyecto/backend";
 import type { AdminSection } from "./AdminNav";
 
 type NavItem = {
@@ -53,6 +55,18 @@ const NAV_ITEMS: NavItem[] = [
       <NavIcon>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
           <path d="M3 7h18M3 12h18M3 17h18" strokeLinecap="round" />
+        </svg>
+      </NavIcon>
+    ),
+  },
+  {
+    id: "support",
+    label: "Soporte",
+    description: "Mensajería con la app",
+    icon: (
+      <NavIcon>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+          <path d="M5 6h14a2 2 0 012 2v7a2 2 0 01-2 2H9l-4 3v-3H5a2 2 0 01-2-2V8a2 2 0 012-2z" />
         </svg>
       </NavIcon>
     ),
@@ -114,6 +128,7 @@ const NAV_ITEMS: NavItem[] = [
 const SCOPED_ADMIN_SECTIONS: AdminSection[] = [
   "drivers",
   "services",
+  "support",
   "clients",
 ];
 
@@ -147,6 +162,7 @@ export function AdminSidebar({
   onMobileClose,
 }: AdminSidebarProps) {
   const { signOut } = useAuthActions();
+  const supportUnread = useQuery(api.support.getAdminUnreadCount) ?? 0;
   const navItems = isFullAdmin
     ? NAV_ITEMS
     : NAV_ITEMS.filter((item) => SCOPED_ADMIN_SECTIONS.includes(item.id));
@@ -184,9 +200,22 @@ export function AdminSidebar({
               }`}
             >
               {item.icon}
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">
-                  {item.label}
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center justify-between gap-2">
+                  <span className="block truncate text-sm font-medium">
+                    {item.label}
+                  </span>
+                  {item.id === "support" && supportUnread > 0 && (
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : "bg-slate-900 text-white"
+                      }`}
+                    >
+                      {supportUnread}
+                    </span>
+                  )}
                 </span>
               </span>
             </button>

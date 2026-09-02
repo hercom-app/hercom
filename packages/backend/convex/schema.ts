@@ -81,6 +81,7 @@ export const notificationTypeValidator = v.union(
   v.literal("driver_arrived_pickup"),
   v.literal("advance_confirmed"),
   v.literal("trip_route_updated"),
+  v.literal("support_reply"),
 );
 
 export const checklistPhaseValidator = v.union(
@@ -463,4 +464,31 @@ export default defineSchema({
   })
     .index("by_service", ["serviceId"])
     .index("by_share_token", ["shareToken"]),
+
+  /**
+   * Hilo de mensajería interna entre un usuario de la app y operaciones.
+   * Un documento por usuario.
+   */
+  supportThreads: defineTable({
+    userId: v.id("users"),
+    lastMessageAt: v.number(),
+    lastMessagePreview: v.string(),
+    unreadForAdmin: v.number(),
+    unreadForUser: v.number(),
+    status: v.union(v.literal("open"), v.literal("closed")),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_last_message", ["lastMessageAt"]),
+
+  /**
+   * Mensajes del hilo de soporte.
+   */
+  supportMessages: defineTable({
+    threadId: v.id("supportThreads"),
+    authorId: v.id("users"),
+    authorRole: v.union(v.literal("user"), v.literal("staff")),
+    body: v.string(),
+    createdAt: v.number(),
+  }).index("by_thread", ["threadId", "createdAt"]),
 });

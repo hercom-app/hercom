@@ -16,8 +16,9 @@ import { TopUpsView } from "./views/TopUpsView";
 import { ServicesView } from "./views/ServicesView";
 import { PromotionsView } from "./views/PromotionsView";
 import { MarketsView } from "./views/MarketsView";
+import { SupportView } from "./views/SupportView";
 
-const SCOPED_SECTIONS: AdminSection[] = ["drivers", "services", "clients"];
+const SCOPED_SECTIONS: AdminSection[] = ["drivers", "services", "support", "clients"];
 
 function Dashboard() {
   const me = useQuery(api.users.getAdminContext);
@@ -139,6 +140,7 @@ function Dashboard() {
               districtScopes={me.districtScopes}
             />
           )}
+          {section === "support" && <SupportView />}
           {isFullAdmin && section === "topups" && <TopUpsView />}
           {isFullAdmin && section === "promotions" && <PromotionsView />}
           {isFullAdmin && section === "accounts" && (

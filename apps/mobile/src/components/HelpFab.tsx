@@ -39,20 +39,6 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
     await Linking.openURL(`tel:${HELP_CONTACTS.policePhone}`);
   }
 
-  async function handleSupport() {
-    setMenuOpen(false);
-    try {
-      const canWhatsApp = await Linking.canOpenURL(HELP_CONTACTS.supportWhatsAppUrl);
-      if (canWhatsApp) {
-        await Linking.openURL(HELP_CONTACTS.supportWhatsAppUrl);
-        return;
-      }
-    } catch {
-      // fallback teléfono
-    }
-    await Linking.openURL(`tel:${HELP_CONTACTS.supportPhone}`);
-  }
-
   async function handleNearestHealth() {
     setMenuOpen(false);
     setHealthOpen(true);
@@ -105,7 +91,7 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
     <>
       <TouchableOpacity
         onPress={() => setMenuOpen(true)}
-        accessibilityLabel="Ayuda y emergencia"
+        accessibilityLabel="Emergencia"
         activeOpacity={0.85}
         className="h-12 min-w-12 items-center justify-center rounded-full bg-red-600 px-2.5"
         style={{
@@ -138,22 +124,13 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
             <View className="mb-4 items-center">
               <View className="h-1 w-10 rounded-full bg-slate-300" />
             </View>
-            <Text className="mb-1 text-lg font-bold text-slate-900">Ayuda</Text>
-            <Text className="mb-4 text-sm text-slate-500">
-              Soporte y opciones de emergencia
+            <Text className="mb-1 text-lg font-bold text-slate-900">
+              Emergencia
             </Text>
-
-            <TouchableOpacity
-              onPress={() => void handleSupport()}
-              className="mb-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-            >
-              <Text className="text-base font-semibold text-slate-900">
-                Soporte
-              </Text>
-              <Text className="mt-0.5 text-xs text-slate-500">
-                Contactar a {HELP_CONTACTS.supportLabel}
-              </Text>
-            </TouchableOpacity>
+            <Text className="mb-4 text-sm text-slate-500">
+              Policía y atención médica. Para dudas de la app, usa Ayuda en el
+              menú.
+            </Text>
 
             <TouchableOpacity
               onPress={() => void handleCallPolice()}

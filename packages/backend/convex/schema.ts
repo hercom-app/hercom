@@ -192,7 +192,10 @@ export default defineSchema({
     licenseNumber: v.string(),
     licenseCategory: v.string(),
     licensePhotoIds: v.array(v.id("_storage")),
+    /** PDF del CUL (Certificado Único Laboral, MTPE). */
     culPdfId: v.id("_storage"),
+    /** PDF del récord de conductor (MTC). Ausente en solicitudes antiguas. */
+    conductorRecordPdfId: v.optional(v.id("_storage")),
     countryCode: v.optional(v.string()),
     department: v.optional(v.string()),
     province: v.optional(v.string()),

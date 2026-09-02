@@ -64,6 +64,7 @@ export const submit = mutation({
     licenseCategory: v.string(),
     licensePhotoIds: v.array(v.id("_storage")),
     culPdfId: v.id("_storage"),
+    conductorRecordPdfId: v.id("_storage"),
     countryCode: v.string(),
     department: v.string(),
     province: v.string(),
@@ -123,6 +124,7 @@ export const submit = mutation({
       licenseCategory: args.licenseCategory,
       licensePhotoIds: args.licensePhotoIds,
       culPdfId: args.culPdfId,
+      conductorRecordPdfId: args.conductorRecordPdfId,
       countryCode: region.countryCode,
       department: region.department,
       province: region.province,
@@ -235,7 +237,7 @@ export const listPending = query({
 
 /**
  * Expedientes de registro de choferes para evaluación en panel admin.
- * Incluye URLs temporales de fotos del brevete y PDF del CUL.
+ * Incluye URLs temporales de fotos del brevete, PDF del CUL y PDF del récord MTC.
  */
 export const listForAdmin = query({
   args: {
@@ -278,6 +280,10 @@ export const listForAdmin = query({
         ).filter((url): url is string => url !== null);
 
         const culPdfUrl = await ctx.storage.getUrl(application.culPdfId);
+        const conductorRecordPdfUrl =
+          application.conductorRecordPdfId !== undefined
+            ? await ctx.storage.getUrl(application.conductorRecordPdfId)
+            : null;
 
         return {
           ...application,
@@ -291,6 +297,7 @@ export const listForAdmin = query({
           driverStatus: driver?.status ?? null,
           licensePhotoUrls,
           culPdfUrl,
+          conductorRecordPdfUrl,
         };
       }),
     );

@@ -140,6 +140,7 @@ export function DriversView({
                   <th className={thClass}>DNI</th>
                   <th className={thClass}>Zona</th>
                   <th className={thClass}>Estado</th>
+                  <th className={thClass}>Documentos</th>
                   <th className={thClass}>Registro</th>
                   <th className={thClass}></th>
                 </tr>
@@ -158,6 +159,16 @@ export function DriversView({
                         <td className={tdClass}>{zoneLabel(driver) || "—"}</td>
                         <td className={`${tdClass} capitalize`}>
                           {driver.status}
+                        </td>
+                        <td className={`${tdClass} text-xs text-slate-600`}>
+                          {application === undefined
+                            ? "Sin solicitud"
+                            : [
+                                application.culPdfUrl !== null ? "CUL" : "CUL pendiente",
+                                application.conductorRecordPdfUrl !== null
+                                  ? "Récord"
+                                  : "Récord pendiente",
+                              ].join(" · ")}
                         </td>
                         <td className={`${tdClass} text-slate-500`}>
                           {formatDate(driver._creationTime)}
@@ -178,8 +189,8 @@ export function DriversView({
                       </tr>
                       {isExpanded ? (
                         <tr>
-                          <td colSpan={6} className="px-0 pb-4 pt-1">
-                            <div className="sticky left-0 w-[min(36rem,calc(100vw-2.5rem))]">
+                          <td colSpan={7} className="px-0 pb-4 pt-1">
+                            <div className="sticky left-0 w-[min(52rem,calc(100vw-2.5rem))] lg:w-full lg:max-w-4xl">
                               <DriverDossierPanel
                                 application={application ?? null}
                                 userName={driver.fullName ?? "Chofer"}

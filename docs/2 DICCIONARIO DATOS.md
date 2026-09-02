@@ -147,7 +147,8 @@ Campos:
 - `licenseNumber` (string)
 - `licenseCategory` (string)
 - `licensePhotoIds` (array de id `_storage`)
-- `culPdfId` (id `_storage`)
+- `culPdfId` (id `_storage`) — CUL (Certificado Único Laboral)
+- `conductorRecordPdfId` (optional id `_storage`) — récord de conductor MTC
 - `status` (`"pending" | "approved" | "rejected"`)
 - `submittedAt` (number)
 - `reviewedAt` (optional number)

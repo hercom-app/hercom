@@ -18,11 +18,11 @@ import {
   DriverRegionFields,
 } from "../components/DriverRegionFields";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
+import { OfficialDocumentHint } from "../components/OfficialDocumentHint";
 import {
-  savePendingDriverRegistration,
-  submitDriverApplicationFromPending,
-  type PendingDriverRegistration,
-} from "../lib/driverRegistration";
+  CONDUCTOR_RECORD_URL,
+  CUL_INFO_URL,
+} from "../constants/officialDocuments";
 
 const LICENSE_CATEGORIES = [
   "A-I",
@@ -71,6 +71,10 @@ export function DriverRegisterScreen({
   const [culPdf, setCulPdf] = useState<{ uri: string; name: string } | null>(
     null,
   );
+  const [conductorRecordPdf, setConductorRecordPdf] = useState<{
+    uri: string;
+    name: string;
+  } | null>(null);
   const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
   const [department, setDepartment] = useState("");
   const [province, setProvince] = useState("");
@@ -131,7 +135,9 @@ export function DriverRegisterScreen({
     setLicensePhotos((prev) => [...prev, ...newPhotos].slice(0, 3));
   }
 
-  async function handlePickCul() {
+  async function handlePickPdf(
+    onPicked: (file: { uri: string; name: string }) => void,
+  ) {
     const result = await DocumentPicker.getDocumentAsync({
       type: "application/pdf",
       copyToCacheDirectory: true,
@@ -144,7 +150,7 @@ export function DriverRegisterScreen({
       setFormError("No se pudo leer el archivo PDF seleccionado.");
       return;
     }
-    setCulPdf({ uri: file.uri, name: file.name });
+    onPicked({ uri: file.uri, name: file.name });
   }
 
   function validateForm(): string | null {
@@ -162,6 +168,9 @@ export function DriverRegisterScreen({
     }
     if (culPdf === null) {
       return "Sube el CUL en PDF.";
+    }
+    if (conductorRecordPdf === null) {
+      return "Sube el récord de conductor en PDF.";
     }
     if (department === "" || province === "" || district === "") {
       return "Selecciona país, departamento, provincia y distrito.";
@@ -188,6 +197,8 @@ export function DriverRegisterScreen({
       licensePhotoUris: licensePhotos,
       culPdfUri: culPdf!.uri,
       culPdfName: culPdf!.name,
+      conductorRecordPdfUri: conductorRecordPdf!.uri,
+      conductorRecordPdfName: conductorRecordPdf!.name,
       countryCode,
       department,
       province,
@@ -421,16 +432,35 @@ export function DriverRegisterScreen({
           ))}
         </View>
 
-        {/* CUL PDF */}
-        <Text className="mb-2 text-sm font-semibold text-slate-700">
-          CUL (PDF)
-        </Text>
+        <OfficialDocumentHint
+          title="CUL (PDF)"
+          description="El Certificado Único Laboral lo emite el Ministerio de Trabajo. Incluye datos personales, antecedentes y experiencia laboral. Descárgalo en PDF y súbelo aquí."
+          linkLabel="Obtener CUL en gob.pe"
+          url={CUL_INFO_URL}
+        />
         <TouchableOpacity
-          onPress={() => void handlePickCul()}
+          onPress={() => void handlePickPdf(setCulPdf)}
           className="mb-6 rounded-2xl border border-dashed border-slate-300 py-4"
         >
           <Text className="text-center text-sm font-semibold text-hercom">
             {culPdf !== null ? `✓ ${culPdf.name}` : "+ Subir PDF del CUL"}
+          </Text>
+        </TouchableOpacity>
+
+        <OfficialDocumentHint
+          title="Récord de conductor (PDF)"
+          description="El récord de conductor del MTC muestra infracciones y el estado de tu licencia. Consúltalo, descárgalo y súbelo en PDF."
+          linkLabel="Consultar récord en MTC"
+          url={CONDUCTOR_RECORD_URL}
+        />
+        <TouchableOpacity
+          onPress={() => void handlePickPdf(setConductorRecordPdf)}
+          className="mb-6 rounded-2xl border border-dashed border-slate-300 py-4"
+        >
+          <Text className="text-center text-sm font-semibold text-hercom">
+            {conductorRecordPdf !== null
+              ? `✓ ${conductorRecordPdf.name}`
+              : "+ Subir PDF del récord de conductor"}
           </Text>
         </TouchableOpacity>
 

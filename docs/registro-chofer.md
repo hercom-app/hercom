@@ -13,7 +13,7 @@ flowchart TD
   B --> C[Ingresar DNI + Validar]
   C --> D[API RENIEC Decolecta]
   D --> E[Nombres autocompletados]
-  E --> F[Brevete, sexo, fotos, CUL PDF]
+  E --> F[Brevete, sexo, fotos, CUL, récord MTC]
   F --> G[Continuar]
   G --> H[Google OAuth]
   H --> I[Subir archivos + guardar solicitud]
@@ -22,7 +22,7 @@ flowchart TD
 
 1. **Registrarse** → **Registro de chofer**
 2. DNI (8 dígitos) → **Validar** (RENIEC)
-3. Completar brevete, categoría, sexo, fotos y CUL
+3. Completar brevete, categoría, sexo, fotos, CUL y récord de conductor
 4. **Continuar** → **Registrarse con Google y enviar**
 5. Tras enviar: pantalla *Solicitud enviada* (estado `pending`)
 
@@ -64,7 +64,8 @@ Tabla **`driverApplications`** en Convex:
 | `licenseNumber`, `licenseCategory` | Formulario |
 | `sex` | M / F |
 | `licensePhotoIds` | Fotos brevete (Storage) |
-| `culPdfId` | PDF CUL (Storage) |
+| `culPdfId` | PDF CUL — [obtener en gob.pe](https://www.gob.pe/47089-obtener-tu-certificado-unico-laboral-cul) |
+| `conductorRecordPdfId` | PDF récord de conductor — [MTC](https://recordconductor.mtc.gob.pe/) |
 | `status` | `approved` (activa perfil chofer al instante) |
 
 Al enviar la solicitud se crea el perfil en **`drivers`**, se asigna

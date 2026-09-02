@@ -2,7 +2,11 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@proyecto/backend";
-import { btnPrimaryClass, labelClass } from "../lib/adminUi";
+import { btnPrimaryClass, btnSecondaryClass, labelClass } from "../lib/adminUi";
+import {
+  CONDUCTOR_RECORD_URL,
+  CUL_INFO_URL,
+} from "../lib/officialDocuments";
 
 export type DriverApplicationForAdmin = FunctionReturnType<
   typeof api.driverApplications.listForAdmin
@@ -57,7 +61,7 @@ export function DriverDossierPanel({
   if (application === null) {
     return (
       <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-        {userName} no tiene solicitud de registro (brevete / CUL) cargada.
+        {userName} no tiene solicitud de registro (brevete, CUL ni récord de conductor) cargada.
       </div>
     );
   }
@@ -189,19 +193,69 @@ export function DriverDossierPanel({
         )}
       </div>
 
-      <div className="mt-4">
-        <p className={labelClass}>CUL (Certificado Único de Licencia)</p>
-        {application.culPdfUrl !== null ? (
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <DocumentFileCard
+          title="CUL (Certificado Único Laboral)"
+          description="Documento del Ministerio de Trabajo. Antecedentes y datos laborales."
+          officialLabel="Consultar en gob.pe"
+          officialUrl={CUL_INFO_URL}
+          fileUrl={application.culPdfUrl}
+          fileLabel="Abrir PDF del CUL"
+        />
+        <DocumentFileCard
+          title="Récord de conductor (MTC)"
+          description="Infracciones y estado de la licencia emitidos por el MTC."
+          officialLabel="Consultar en MTC"
+          officialUrl={CONDUCTOR_RECORD_URL}
+          fileUrl={application.conductorRecordPdfUrl}
+          fileLabel="Abrir PDF del récord"
+        />
+      </div>
+    </div>
+  );
+}
+
+function DocumentFileCard({
+  title,
+  description,
+  officialLabel,
+  officialUrl,
+  fileUrl,
+  fileLabel,
+}: {
+  title: string;
+  description: string;
+  officialLabel: string;
+  officialUrl: string;
+  fileUrl: string | null;
+  fileLabel: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <p className="text-sm font-semibold text-slate-900">{title}</p>
+      <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+      <div className="mt-3 flex flex-col gap-2">
+        <a
+          href={officialUrl}
+          target="_blank"
+          rel="noreferrer"
+          className={`${btnSecondaryClass} w-full sm:w-auto`}
+        >
+          {officialLabel}
+        </a>
+        {fileUrl !== null ? (
           <a
-            href={application.culPdfUrl}
+            href={fileUrl}
             target="_blank"
             rel="noreferrer"
-            className={btnPrimaryClass}
+            className={`${btnPrimaryClass} w-full sm:w-auto`}
           >
-            Abrir PDF del CUL
+            {fileLabel}
           </a>
         ) : (
-          <p className="text-sm text-slate-500">PDF no disponible.</p>
+          <p className="text-xs text-slate-500">
+            El chofer aún no subió este PDF.
+          </p>
         )}
       </div>
     </div>

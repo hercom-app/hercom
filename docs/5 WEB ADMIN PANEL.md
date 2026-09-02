@@ -62,7 +62,7 @@ En todas las vistas hay bloque **Filtros de región**: departamento, provincia (
 | Expediente | Estado del registro chofer: pendiente / aprobado / rechazado |
 | Búsqueda | Nombre, correo o teléfono |
 
-**Choferes:** botón *Ver brevete y CUL* abre el expediente con DNI (RENIEC), categoría y número de brevete, fotos del brevete y enlace al PDF del CUL para evaluación.
+**Choferes:** *Ver registro* abre el expediente: DNI, brevete, fotos, PDF del CUL ([gob.pe](https://www.gob.pe/47089-obtener-tu-certificado-unico-laboral-cul)) y PDF del récord de conductor ([MTC](https://recordconductor.mtc.gob.pe/)).
 
 ### Recargas
 
@@ -107,7 +107,7 @@ Incluye **pagos pendientes** y **comisiones pendientes**.
 | Query | Filtros |
 | --- | --- |
 | `users.listAll` | `role` |
-| `driverApplications.listForAdmin` | `status` (expediente chofer + URLs brevete/CUL) |
+| `driverApplications.listForAdmin` | `status` (expediente: brevete, CUL, récord MTC) |
 | `services.listAllForAdmin` | estado, tipo, canal, región |
 | `driverWallets.listTopUpsForAdmin` | periodo |
 

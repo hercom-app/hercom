@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import {
@@ -6,10 +6,8 @@ import {
   AdminEmpty,
   AdminLoading,
   AdminPage,
-  AdminPageHeader,
 } from "../components/AdminLayout";
-import { inputClass } from "../components/RegionFields";
-import { btnPrimaryClass } from "../lib/adminUi";
+import { btnPrimaryClass, inputClass, labelClass } from "../lib/adminUi";
 
 type MarketFormState = {
   currencyCode: string;
@@ -31,32 +29,37 @@ const EMPTY_FORM: MarketFormState = {
   active: true,
 };
 
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className={labelClass}>{label}</span>
+      {children}
+      {hint !== undefined && (
+        <span className="mt-1 block text-xs leading-5 text-zinc-500">{hint}</span>
+      )}
+    </label>
+  );
+}
+
 export function MarketsView() {
   const markets = useQuery(api.markets.listForAdmin, {});
   const upsertMarket = useMutation(api.markets.upsert);
   const [selectedCountry, setSelectedCountry] = useState("PE");
   const [form, setForm] = useState<MarketFormState>(EMPTY_FORM);
-  const [converterAmount, setConverterAmount] = useState("100");
-  const [converterDirection, setConverterDirection] = useState<
-    "local_to_usd" | "usd_to_local"
-  >("local_to_usd");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const selected = markets?.find((item) => item.countryCode === selectedCountry);
   const pricing = selected?.pricing;
-
-  const conversion = useQuery(
-    api.markets.convert,
-    converterAmount.trim() !== "" && Number.isFinite(Number(converterAmount))
-      ? {
-          countryCode: selectedCountry,
-          amount: Number(converterAmount),
-          direction: converterDirection,
-        }
-      : "skip",
-  );
 
   useEffect(() => {
     if (pricing === null || pricing === undefined) {
@@ -108,11 +111,6 @@ export function MarketsView() {
 
   return (
     <AdminPage>
-      <AdminPageHeader
-        title="Moneda local y tipo de cambio"
-        description="En Perú los precios salen en soles (S/). En otros países usa el símbolo y el tipo de cambio local a USD."
-      />
-
       {markets === undefined ? (
         <AdminLoading message="Cargando mercados…" />
       ) : (
@@ -150,37 +148,45 @@ export function MarketsView() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-3 md:grid-cols-2">
-                <input
-                  required
-                  value={form.currencyCode}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      currencyCode: event.target.value.toUpperCase(),
-                    }))
-                  }
-                  placeholder="Código moneda (PEN, MXN…)"
-                  className={inputClass}
-                />
-                <input
-                  required
-                  value={form.currencySymbol}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      currencySymbol: event.target.value,
-                    }))
-                  }
-                  placeholder="Símbolo (S/, $…)"
-                  className={inputClass}
-                />
+                <Field
+                  label="Código de moneda"
+                  hint="ISO de tres letras. Perú: PEN. México: MXN."
+                >
+                  <input
+                    required
+                    value={form.currencyCode}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        currencyCode: event.target.value.toUpperCase(),
+                      }))
+                    }
+                    className={inputClass}
+                  />
+                </Field>
+                <Field
+                  label="Símbolo"
+                  hint="Lo que ve el cliente junto al precio. Perú: S/."
+                >
+                  <input
+                    required
+                    value={form.currencySymbol}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        currencySymbol: event.target.value,
+                      }))
+                    }
+                    className={inputClass}
+                  />
+                </Field>
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
-                <label className="block">
-                  <span className="mb-1 block text-xs font-semibold text-slate-600">
-                    Tipo de cambio (moneda local por 1 USD)
-                  </span>
+                <Field
+                  label="Tipo de cambio"
+                  hint="Cuántos de esta moneda equivalen a 1 dólar. Perú suele estar cerca de 3.75."
+                >
                   <input
                     required
                     type="number"
@@ -195,11 +201,11 @@ export function MarketsView() {
                     }
                     className={inputClass}
                   />
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-xs font-semibold text-slate-600">
-                    Tarifa horaria (moneda local)
-                  </span>
+                </Field>
+                <Field
+                  label="Tarifa horaria"
+                  hint="Precio de una hora de servicio, en esta moneda."
+                >
                   <input
                     required
                     type="number"
@@ -214,46 +220,55 @@ export function MarketsView() {
                     }
                     className={inputClass}
                   />
-                </label>
+                </Field>
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
-                <input
-                  required
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={form.minServiceHours}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      minServiceHours: event.target.value,
-                    }))
-                  }
-                  placeholder="Horas mínimas de servicio"
-                  className={inputClass}
-                />
-                <input
-                  required
-                  type="number"
-                  min="1"
-                  max="100"
-                  step="1"
-                  value={form.commissionPercent}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      commissionPercent: event.target.value,
-                    }))
-                  }
-                  placeholder="Comisión Hercom %"
-                  className={inputClass}
-                />
+                <Field
+                  label="Horas mínimas"
+                  hint="El cliente no puede pedir un servicio más corto que esto."
+                >
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.minServiceHours}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        minServiceHours: event.target.value,
+                      }))
+                    }
+                    className={inputClass}
+                  />
+                </Field>
+                <Field
+                  label="Comisión de Hercom (%)"
+                  hint="Porcentaje del viaje que se queda la plataforma. 25 significa 25%."
+                >
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    max="100"
+                    step="1"
+                    value={form.commissionPercent}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        commissionPercent: event.target.value,
+                      }))
+                    }
+                    className={inputClass}
+                  />
+                </Field>
               </div>
 
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-700">
                 <input
                   type="checkbox"
+                  className="mt-0.5"
                   checked={form.active}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -262,7 +277,16 @@ export function MarketsView() {
                     }))
                   }
                 />
-                Mercado activo
+                <span>
+                  <span className="block font-medium text-zinc-900">
+                    Usar estas tarifas en la app
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-5 text-zinc-500">
+                    Marcado: clientes y choferes de este país ven estos precios.
+                    Desmarcado: esta ficha se ignora y la app cobra como en Perú
+                    (soles) hasta que lo vuelvas a activar.
+                  </span>
+                </span>
               </label>
 
               {minPrice !== null && form.currencySymbol !== "" && (
@@ -292,43 +316,6 @@ export function MarketsView() {
               )}
               {error !== null && <p className="text-sm text-red-600">{error}</p>}
             </form>
-          </AdminCard>
-
-          <AdminCard>
-            <h2 className="mb-3 font-display text-lg font-bold text-slate-900">
-              Conversor rápido
-            </h2>
-            <div className="grid gap-3 md:grid-cols-3">
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={converterAmount}
-                onChange={(event) => setConverterAmount(event.target.value)}
-                className={inputClass}
-              />
-              <select
-                value={converterDirection}
-                onChange={(event) =>
-                  setConverterDirection(
-                    event.target.value as "local_to_usd" | "usd_to_local",
-                  )
-                }
-                className={inputClass}
-              >
-                <option value="local_to_usd">Moneda local → USD</option>
-                <option value="usd_to_local">USD → moneda local</option>
-              </select>
-              <div className="flex items-center rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800">
-                {conversion === undefined ? (
-                  "…"
-                ) : (
-                  <>
-                    {conversion.formattedLocal} · {conversion.formattedUsd}
-                  </>
-                )}
-              </div>
-            </div>
           </AdminCard>
 
           {markets.length === 0 && (

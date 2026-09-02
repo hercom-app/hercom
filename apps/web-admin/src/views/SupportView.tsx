@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
@@ -35,11 +35,13 @@ export function SupportView() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const transcriptRef = useRef<HTMLDivElement>(null);
 
   const detail = useQuery(
     api.support.listMessagesForAdmin,
     selectedId === null ? "skip" : { threadId: selectedId },
   );
+  const lastMessageId = detail?.messages.at(-1)?._id;
 
   useEffect(() => {
     if (selectedId === null) {
@@ -47,6 +49,14 @@ export function SupportView() {
     }
     void markAdminRead({ threadId: selectedId });
   }, [markAdminRead, selectedId, detail?.messages.length]);
+
+  useEffect(() => {
+    const node = transcriptRef.current;
+    if (node === null || lastMessageId === undefined) {
+      return;
+    }
+    node.scrollTop = node.scrollHeight;
+  }, [lastMessageId]);
 
   async function handleSend() {
     if (selectedId === null) {
@@ -171,7 +181,10 @@ export function SupportView() {
                     : ""}
                 </p>
               </div>
-              <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+              <div
+                ref={transcriptRef}
+                className="flex-1 space-y-3 overflow-y-auto px-4 py-4"
+              >
                 {detail.messages.length === 0 ? (
                   <p className="text-sm text-zinc-500">Sin mensajes.</p>
                 ) : (

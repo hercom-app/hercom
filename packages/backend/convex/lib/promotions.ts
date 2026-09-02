@@ -2,7 +2,6 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { normalizeCountryCode } from "../data/countryCatalog";
 import { computePromotionalPricing } from "./pricing";
-import { resolveCountryCode } from "./regionFilters";
 
 export type RegionFilter = {
   countryCode?: string | undefined;
@@ -36,7 +35,7 @@ function promotionMatchesRegion(
   promotion: Doc<"promotions">,
   region: RegionFilter,
 ): boolean {
-  if (promotionCountryCode(promotion) !== resolveCountryCode(region)) {
+  if (promotionCountryCode(promotion) !== normalizeCountryCode(region.countryCode)) {
     return false;
   }
   if (promotion.department !== region.department) {

@@ -155,7 +155,7 @@ async function createDriverFromApplication(
     fullName,
     dni: application.dni,
     countryCode: application.countryCode ?? "PE",
-    department: application.department,
+    department: application.department ?? "",
     province: application.province ?? "",
     district: application.district ?? "",
   });

@@ -2,7 +2,6 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { ConvexReactClient } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { GeistSans } from "geist/font/sans";
 import App from "./App";
 import "./index.css";
 
@@ -20,10 +19,8 @@ if (rootElement === null) {
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <div className={GeistSans.className}>
-      <ConvexAuthProvider client={convex}>
-        <App />
-      </ConvexAuthProvider>
-    </div>
+    <ConvexAuthProvider client={convex}>
+      <App />
+    </ConvexAuthProvider>
   </React.StrictMode>,
 );

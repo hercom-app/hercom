@@ -232,7 +232,7 @@ export function AdminSidebar({
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[272px] border-r border-slate-200/80 bg-white transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-[min(272px,calc(100vw-1.5rem))] border-r border-slate-200/80 bg-white pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] transition-transform duration-200 lg:w-[272px] lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

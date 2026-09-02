@@ -57,7 +57,7 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
   return (
     <AdminCard>
       <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h2 className="font-display text-lg font-bold tracking-tight text-slate-900">
             Ubicación en tiempo real
           </h2>
@@ -69,7 +69,7 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
             </p>
           )}
         </div>
-        <button type="button" onClick={onClose} className={btnGhostClass}>
+        <button type="button" onClick={onClose} className={`${btnGhostClass} shrink-0`}>
           Cerrar
         </button>
       </div>
@@ -82,7 +82,7 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
         </p>
       ) : (
         <>
-          <div className="h-[380px] overflow-hidden rounded-lg border border-slate-200">
+          <div className="h-[min(50dvh,380px)] min-h-[240px] overflow-hidden rounded-lg border border-slate-200 sm:h-[380px]">
             <LiveTripMap
               key={serviceId}
               origin={mapData.origin}
@@ -113,7 +113,7 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
             {live.shareToken !== null && (
               <p>
                 Link comercial:{" "}
-                <span className="font-mono text-slate-700">
+                <span className="break-all font-mono text-slate-700">
                   /live/{live.shareToken}
                 </span>
               </p>

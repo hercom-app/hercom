@@ -39,6 +39,17 @@ function Dashboard() {
     }
   }, [isFullAdmin, isStaff, section]);
 
+  useEffect(() => {
+    if (!mobileNavOpen) {
+      return;
+    }
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [mobileNavOpen]);
+
   const meta = SECTION_META[section];
   const userName = me?.name ?? me?.email ?? "Administrador";
 
@@ -66,7 +77,7 @@ function Dashboard() {
   }
 
   return (
-    <div className="min-h-dvh bg-admin-canvas">
+    <div className="min-h-dvh overflow-x-hidden bg-admin-canvas">
       <AdminSidebar
         active={section}
         onChange={setSection}
@@ -79,13 +90,14 @@ function Dashboard() {
 
       <div className="lg:pl-[272px]">
         <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
-          <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 lg:hidden"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 lg:hidden"
                 onClick={() => setMobileNavOpen(true)}
                 aria-label="Abrir menú"
+                aria-expanded={mobileNavOpen}
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -98,10 +110,10 @@ function Dashboard() {
                 </svg>
               </button>
               <div className="min-w-0">
-                <h1 className="truncate text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
+                <h1 className="text-lg font-semibold leading-tight tracking-tight text-slate-900 sm:truncate sm:text-xl">
                   {meta.title}
                 </h1>
-                <p className="truncate text-sm text-slate-500">
+                <p className="mt-0.5 text-xs leading-snug text-slate-500 sm:truncate sm:text-sm">
                   {isFullAdmin
                     ? meta.description
                     : me.districtScopes

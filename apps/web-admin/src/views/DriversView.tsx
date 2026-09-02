@@ -140,7 +140,7 @@ export function DriversView({
                   <th className={thClass}>DNI</th>
                   <th className={thClass}>Zona</th>
                   <th className={thClass}>Estado</th>
-                  <th className={`${thClass} hidden sm:table-cell`}>Registro</th>
+                  <th className={thClass}>Registro</th>
                   <th className={thClass}></th>
                 </tr>
               </thead>
@@ -156,8 +156,10 @@ export function DriversView({
                         </td>
                         <td className={tdClass}>{driver.dni ?? "—"}</td>
                         <td className={tdClass}>{zoneLabel(driver) || "—"}</td>
-                        <td className={tdClass}>{driver.status}</td>
-                        <td className={`${tdClass} hidden text-slate-500 sm:table-cell`}>
+                        <td className={`${tdClass} capitalize`}>
+                          {driver.status}
+                        </td>
+                        <td className={`${tdClass} text-slate-500`}>
                           {formatDate(driver._creationTime)}
                         </td>
                         <td className={tdClass}>
@@ -177,10 +179,12 @@ export function DriversView({
                       {isExpanded ? (
                         <tr>
                           <td colSpan={6} className="px-0 pb-4 pt-1">
-                            <DriverDossierPanel
-                              application={application ?? null}
-                              userName={driver.fullName ?? "Chofer"}
-                            />
+                            <div className="sticky left-0 w-[min(36rem,calc(100vw-2.5rem))]">
+                              <DriverDossierPanel
+                                application={application ?? null}
+                                userName={driver.fullName ?? "Chofer"}
+                              />
+                            </div>
                           </td>
                         </tr>
                       ) : null}

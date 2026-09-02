@@ -137,12 +137,12 @@ export function DriverDossierPanel({
       </div>
 
       {application.status === "pending" && (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
           <button
             type="button"
             disabled={acting}
             onClick={() => void handleApprove()}
-            className={btnPrimaryClass}
+            className={`${btnPrimaryClass} w-full sm:w-auto`}
           >
             Aprobar solicitud
           </button>
@@ -150,7 +150,7 @@ export function DriverDossierPanel({
             type="button"
             disabled={acting}
             onClick={() => void handleReject()}
-            className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+            className="min-h-11 w-full rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60 sm:w-auto"
           >
             Rechazar
           </button>
@@ -176,12 +176,12 @@ export function DriverDossierPanel({
                 href={url}
                 target="_blank"
                 rel="noreferrer"
-                className="block overflow-hidden rounded-lg border border-slate-200 bg-white"
+                className="block w-full overflow-hidden rounded-lg border border-slate-200 bg-white sm:w-auto"
               >
                 <img
                   src={url}
                   alt={`Brevete ${index + 1}`}
-                  className="h-32 w-auto max-w-[200px] object-cover"
+                  className="h-32 w-full max-w-full object-cover sm:h-32 sm:w-auto sm:max-w-[200px]"
                 />
               </a>
             ))}

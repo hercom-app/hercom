@@ -106,7 +106,7 @@ export function DistrictPicker({
           draft.province === "" ||
           draft.district === ""
         }
-        className={btnSecondaryClass}
+        className={`${btnSecondaryClass} w-full sm:w-auto`}
       >
         Agregar distrito
       </button>
@@ -232,7 +232,7 @@ export function CreateAdminUserForm({
       <button
         type="submit"
         disabled={saving || districts.length === 0}
-        className={btnPrimaryClass}
+        className={`${btnPrimaryClass} w-full sm:w-auto`}
       >
         {saving ? "Creando…" : "Crear usuario"}
       </button>
@@ -330,7 +330,7 @@ export function TeamView() {
                     </div>
                     <button
                       type="button"
-                      className={btnSecondaryClass}
+                      className={`${btnSecondaryClass} w-full sm:w-auto`}
                       onClick={() => {
                         if (isEditing) {
                           setEditingId(null);
@@ -352,7 +352,7 @@ export function TeamView() {
                       />
                       <button
                         type="button"
-                        className={btnPrimaryClass}
+                        className={`${btnPrimaryClass} w-full sm:w-auto`}
                         onClick={() => void handleSaveDistricts(admin._id)}
                       >
                         Guardar distritos
@@ -372,7 +372,7 @@ export function TeamView() {
                         </label>
                         <button
                           type="button"
-                          className={btnSecondaryClass}
+                          className={`${btnSecondaryClass} w-full sm:w-auto`}
                           disabled={newPassword.length < 8}
                           onClick={() => void handlePassword(admin._id)}
                         >

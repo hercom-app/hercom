@@ -274,7 +274,7 @@ export function PromotionsView() {
                     {formatDateInput(promotion.endsAt)}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                   <button
                     type="button"
                     onClick={() =>
@@ -283,7 +283,7 @@ export function PromotionsView() {
                         active: !promotion.active,
                       })
                     }
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    className={`min-h-11 rounded-full px-3 py-2 text-xs font-semibold ${
                       promotion.active
                         ? "bg-emerald-100 text-emerald-800"
                         : "bg-slate-200 text-slate-600"
@@ -294,7 +294,7 @@ export function PromotionsView() {
                   <button
                     type="button"
                     onClick={() => void removePromotion({ promotionId: promotion._id })}
-                    className="text-xs font-semibold text-red-600 hover:text-red-700"
+                    className="min-h-11 text-xs font-semibold text-red-600 hover:text-red-700"
                   >
                     Eliminar
                   </button>

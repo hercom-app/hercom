@@ -3,7 +3,7 @@ import { api } from "@proyecto/backend";
 import { DEFAULT_COUNTRY_CODE } from "../lib/adminFilters";
 
 const inputClass =
-  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-hercom";
+  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 outline-none focus:border-hercom md:text-sm";
 
 type RegionFieldsProps = {
   countryCode?: string;

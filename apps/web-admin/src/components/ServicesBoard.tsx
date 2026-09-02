@@ -65,19 +65,19 @@ export function ServicesBoard({
         <AdminEmpty message="No hay servicios con estos filtros." />
       ) : (
         <AdminTableWrap>
-          <table className={`${tableClass} min-w-[960px]`}>
+          <table className={tableClass}>
             <thead className={tableHeadClass}>
               <tr>
                 <th className={thClass}>Tipo</th>
-                <th className={`${thClass} hidden lg:table-cell`}>Canal</th>
-                <th className={`${thClass} hidden md:table-cell`}>Región</th>
-                <th className={`${thClass} hidden xl:table-cell`}>Promo</th>
+                <th className={thClass}>Canal</th>
+                <th className={thClass}>Región</th>
+                <th className={thClass}>Promo</th>
                 <th className={thClass}>Ruta</th>
                 <th className={thClass}>Total</th>
-                <th className={`${thClass} hidden sm:table-cell`}>Comisión</th>
-                <th className={`${thClass} hidden lg:table-cell`}>Anticipo</th>
+                <th className={thClass}>Comisión</th>
+                <th className={thClass}>Anticipo</th>
                 <th className={thClass}>Estado</th>
-                <th className={`${thClass} hidden md:table-cell`}>Código</th>
+                <th className={thClass}>Código</th>
                 {onSelect !== undefined && <th className={thClass}>Mapa</th>}
               </tr>
             </thead>
@@ -108,16 +108,16 @@ export function ServicesBoard({
                         {typeMeta.label}
                       </span>
                     </td>
-                    <td className={`${tdClass} hidden text-xs lg:table-cell`}>
+                    <td className={`${tdClass} text-xs`}>
                       {getRequestChannelLabel(service)}
                     </td>
-                    <td className={`${tdClass} hidden text-xs md:table-cell`}>
+                    <td className={`${tdClass} text-xs`}>
                       {regionParts.length > 0 ? regionParts.join(" · ") : "—"}
                     </td>
-                    <td className={`${tdClass} hidden text-xs xl:table-cell`}>
+                    <td className={`${tdClass} text-xs`}>
                       {service.promotionName ?? "—"}
                     </td>
-                    <td className={`${tdClass} max-w-[220px] whitespace-normal text-slate-900 sm:max-w-xs`}>
+                    <td className={`${tdClass} max-w-[280px] whitespace-normal text-slate-900`}>
                       <span className="line-clamp-2">
                         {service.origin.address} → {service.destination.address}
                       </span>
@@ -125,10 +125,10 @@ export function ServicesBoard({
                     <td className={`${tdClass} font-semibold text-slate-900`}>
                       S/{service.totalPrice.toFixed(2)}
                     </td>
-                    <td className={`${tdClass} hidden sm:table-cell`}>
+                    <td className={tdClass}>
                       S/{service.driverCommission.toFixed(2)}
                     </td>
-                    <td className={`${tdClass} hidden lg:table-cell`}>
+                    <td className={tdClass}>
                       {advanceAmount !== null ? (
                         <>
                           S/{advanceAmount.toFixed(2)}
@@ -143,7 +143,7 @@ export function ServicesBoard({
                         {STATUS_LABELS[service.status] ?? service.status}
                       </span>
                     </td>
-                    <td className={`${tdClass} hidden md:table-cell`}>
+                    <td className={tdClass}>
                       {service.securityCode ?? "—"}
                     </td>
                     {onSelect !== undefined && (

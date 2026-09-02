@@ -29,7 +29,9 @@ export function AdminPageHeader({
         )}
       </div>
       {actions !== undefined ? (
-        <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+          {actions}
+        </div>
       ) : null}
     </div>
   );
@@ -57,7 +59,14 @@ type AdminTableWrapProps = {
 };
 
 export function AdminTableWrap({ children }: AdminTableWrapProps) {
-  return <div className={tableWrapClass}>{children}</div>;
+  return (
+    <div>
+      <p className="mb-2 text-xs text-zinc-400 md:hidden">
+        Desliza hacia los lados para ver todas las columnas
+      </p>
+      <div className={tableWrapClass}>{children}</div>
+    </div>
+  );
 }
 
 type AdminStateProps = {

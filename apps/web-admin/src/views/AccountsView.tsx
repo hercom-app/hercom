@@ -123,7 +123,7 @@ export function AccountsView({
           !isClients && isFullAdmin ? (
             <button
               type="button"
-              className={showCreate ? btnSecondaryClass : btnPrimaryClass}
+              className={`${showCreate ? btnSecondaryClass : btnPrimaryClass} w-full sm:w-auto`}
               onClick={() => setShowCreate((open) => !open)}
             >
               {showCreate ? "Cerrar" : "Crear usuario"}
@@ -203,9 +203,9 @@ export function AccountsView({
                 <tr>
                   <th className={thClass}>Usuario</th>
                   <th className={thClass}>Correo</th>
-                  <th className={`${thClass} hidden md:table-cell`}>Teléfono</th>
+                  <th className={thClass}>Teléfono</th>
                   <th className={thClass}>Rol</th>
-                  <th className={`${thClass} hidden sm:table-cell`}>Registro</th>
+                  <th className={thClass}>Registro</th>
                 </tr>
               </thead>
               <tbody>
@@ -215,9 +215,7 @@ export function AccountsView({
                       {user.name ?? "Sin nombre"}
                     </td>
                     <td className={tdClass}>{user.email ?? "—"}</td>
-                    <td className={`${tdClass} hidden md:table-cell`}>
-                      {user.phone ?? "—"}
-                    </td>
+                    <td className={tdClass}>{user.phone ?? "—"}</td>
                     <td className={tdClass}>
                       {isFullAdmin && user.role !== "admin" ? (
                         <select
@@ -241,7 +239,7 @@ export function AccountsView({
                         </span>
                       )}
                     </td>
-                    <td className={`${tdClass} hidden text-slate-500 sm:table-cell`}>
+                    <td className={`${tdClass} text-slate-500`}>
                       {formatDate(user._creationTime)}
                     </td>
                   </tr>

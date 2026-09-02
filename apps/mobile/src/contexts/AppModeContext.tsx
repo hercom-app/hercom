@@ -10,7 +10,10 @@ import {
 import { ActivityIndicator, View } from "react-native";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
+import type { Doc } from "@proyecto/backend/dataModel";
 import { loadAppMode, saveAppMode, type AppMode } from "../lib/appMode";
+
+type DriverApplicationStatus = Doc<"driverApplications">["status"] | null;
 
 type AppModeContextValue = {
   mode: AppMode;
@@ -18,6 +21,8 @@ type AppModeContextValue = {
   hasDriverProfile: boolean;
   canUseDriverMode: boolean;
   canUseClientMode: boolean;
+  driverApplicationStatus: DriverApplicationStatus;
+  hasPendingDriverApplication: boolean;
   showDriverRegistration: boolean;
   openDriverRegistration: () => void;
   closeDriverRegistration: () => void;
@@ -29,6 +34,7 @@ const AppModeContext = createContext<AppModeContextValue | null>(null);
 export function AppModeProvider({ children }: { children: ReactNode }) {
   const me = useQuery(api.users.getMe);
   const driver = useQuery(api.drivers.getMyDriverProfile);
+  const application = useQuery(api.driverApplications.getMyApplication);
   const [mode, setModeState] = useState<AppMode>("client");
   const [ready, setReady] = useState(false);
   const [showDriverRegistration, setShowDriverRegistration] = useState(false);
@@ -36,9 +42,11 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
   const hasDriverProfile = driver !== null;
   const canUseDriverMode = hasDriverProfile;
   const canUseClientMode = me != null && me.role !== "admin";
+  const driverApplicationStatus = application?.status ?? null;
+  const hasPendingDriverApplication = application?.status === "pending";
 
   useEffect(() => {
-    if (me === undefined || driver === undefined) {
+    if (me === undefined || driver === undefined || application === undefined) {
       return;
     }
 
@@ -55,7 +63,7 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
       }
       setReady(true);
     })();
-  }, [canUseClientMode, driver, hasDriverProfile, me]);
+  }, [application, canUseClientMode, driver, hasDriverProfile, me]);
 
   const setMode = useCallback(
     async (nextMode: AppMode) => {
@@ -78,6 +86,8 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
       hasDriverProfile,
       canUseDriverMode,
       canUseClientMode,
+      driverApplicationStatus,
+      hasPendingDriverApplication,
       showDriverRegistration,
       openDriverRegistration: () => setShowDriverRegistration(true),
       closeDriverRegistration: () => setShowDriverRegistration(false),
@@ -86,7 +96,9 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
     [
       canUseClientMode,
       canUseDriverMode,
+      driverApplicationStatus,
       hasDriverProfile,
+      hasPendingDriverApplication,
       me?.email,
       me?.name,
       mode,
@@ -95,7 +107,12 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  if (me === undefined || driver === undefined || !ready) {
+  if (
+    me === undefined ||
+    driver === undefined ||
+    application === undefined ||
+    !ready
+  ) {
     return (
       <View className="flex-1 items-center justify-center bg-slate-100">
         <ActivityIndicator color="#007AFF" />

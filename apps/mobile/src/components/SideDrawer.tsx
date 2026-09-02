@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Dimensions,
   Modal,
@@ -10,9 +11,7 @@ import {
   View,
 } from "react-native";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useMutation } from "convex/react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { api } from "@proyecto/backend";
 import { useAppMode } from "../contexts/AppModeContext";
 
 const DRAWER_WIDTH = Math.min(Dimensions.get("window").width * 0.82, 340);
@@ -67,9 +66,9 @@ export function SideDrawer({
     mode,
     setMode,
     canUseDriverMode,
+    driverApplicationStatus,
+    openDriverRegistration,
   } = useAppMode();
-  const ensureDemoDriver = useMutation(api.drivers.ensureDemoDriverProfile);
-  const [modeSwitching, setModeSwitching] = useState(false);
   const slide = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
 
   useEffect(() => {
@@ -89,28 +88,31 @@ export function SideDrawer({
     mode === "client" ? "Modo conductor" : "Modo cliente";
 
   async function handleModeSwitch() {
-    if (modeSwitching) {
-      return;
-    }
     onClose();
     if (mode === "client") {
       if (canUseDriverMode) {
         await setMode("driver");
         return;
       }
-      // DEMO: sin RENIEC ni documentos — crea perfil mínimo y entra a modo chofer.
-      setModeSwitching(true);
-      try {
-        await ensureDemoDriver({});
-        await setMode("driver");
-      } catch (error) {
-        console.warn(
-          "No se pudo activar perfil demo de chofer:",
-          error instanceof Error ? error.message : error,
+      if (driverApplicationStatus === "pending") {
+        Alert.alert(
+          "Solicitud en revisión",
+          "Tu registro de chofer está siendo validado por Hercom. Te avisaremos cuando esté habilitado.",
         );
-      } finally {
-        setModeSwitching(false);
+        return;
       }
+      if (driverApplicationStatus === "rejected") {
+        Alert.alert(
+          "Solicitud no aprobada",
+          "Tu solicitud anterior no fue aprobada. Puedes enviar una nueva con datos actualizados.",
+          [
+            { text: "Cancelar", style: "cancel" },
+            { text: "Reintentar", onPress: () => openDriverRegistration() },
+          ],
+        );
+        return;
+      }
+      openDriverRegistration();
       return;
     }
     await setMode("client");
@@ -170,7 +172,8 @@ export function SideDrawer({
             >
               {items.map((item) => {
                 const selected =
-                  item.key === activeItem || (item.active === true && activeItem === item.key);
+                  item.key === activeItem ||
+                  (item.active === true && activeItem === item.key);
                 const label =
                   item.key === "notificaciones" && unreadCount > 0
                     ? `${item.label} (${unreadCount})`

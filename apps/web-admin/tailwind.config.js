@@ -4,31 +4,30 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        /** Títulos — Plus Jakarta Sans (libre). Ver docs/TIPOGRAFIA.md */
-        display: [
-          "Plus Jakarta Sans",
+        sans: [
+          "Geist Sans",
+          "Geist",
+          "ui-sans-serif",
           "system-ui",
           "-apple-system",
-          "Segoe UI",
           "sans-serif",
         ],
-        /** Cuerpo, labels, tablas — Inter */
-        sans: [
-          "Inter",
+        display: [
+          "Geist Sans",
+          "Geist",
+          "ui-sans-serif",
           "system-ui",
-          "-apple-system",
-          "Segoe UI",
-          "Roboto",
           "sans-serif",
         ],
       },
       fontSize: {
-        xs: ["0.875rem", { lineHeight: "1.35rem" }],
-        sm: ["1.0625rem", { lineHeight: "1.55rem" }],
-        base: ["1.125rem", { lineHeight: "1.7rem" }],
-        lg: ["1.25rem", { lineHeight: "1.8rem" }],
-        xl: ["1.375rem", { lineHeight: "1.95rem" }],
-        "2xl": ["1.625rem", { lineHeight: "2.15rem" }],
+        xs: ["0.75rem", { lineHeight: "1.125rem" }],
+        sm: ["0.875rem", { lineHeight: "1.25rem" }],
+        base: ["0.9375rem", { lineHeight: "1.5rem" }],
+        lg: ["1.0625rem", { lineHeight: "1.625rem" }],
+        xl: ["1.25rem", { lineHeight: "1.75rem" }],
+        "2xl": ["1.5rem", { lineHeight: "2rem" }],
+        "3xl": ["1.875rem", { lineHeight: "2.25rem" }],
       },
       colors: {
         hercom: {
@@ -41,14 +40,15 @@ export default {
           dark: "#0062CC",
         },
         admin: {
-          ink: "#0F172A",
-          surface: "#F8FAFC",
-          border: "#E2E8F0",
+          ink: "#18181b",
+          canvas: "#f4f4f5",
+          border: "#e4e4e7",
         },
       },
       boxShadow: {
-        card: "0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.06)",
-        header: "0 1px 0 0 rgb(15 23 42 / 0.05)",
+        card: "0 1px 2px 0 rgb(24 24 27 / 0.04), 0 1px 3px 0 rgb(24 24 27 / 0.08)",
+        panel:
+          "0 0 0 1px rgb(24 24 27 / 0.04), 0 8px 24px -12px rgb(24 24 27 / 0.18)",
       },
     },
   },

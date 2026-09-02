@@ -1,10 +1,14 @@
 export type RegionFilter = {
+  countryCode: string;
   department: string;
   province: string;
   district: string;
 };
 
+export const DEFAULT_COUNTRY_CODE = "PE";
+
 export const EMPTY_REGION_FILTER: RegionFilter = {
+  countryCode: DEFAULT_COUNTRY_CODE,
   department: "",
   province: "",
   district: "",
@@ -15,11 +19,13 @@ export function hasRegionFilter(filter: RegionFilter): boolean {
 }
 
 export function regionToQueryArgs(filter: RegionFilter): {
+  countryCode?: string;
   department?: string;
   province?: string;
   district?: string;
 } {
   return {
+    ...(filter.countryCode !== "" ? { countryCode: filter.countryCode } : {}),
     ...(filter.department !== "" ? { department: filter.department } : {}),
     ...(filter.province !== "" ? { province: filter.province } : {}),
     ...(filter.district !== "" ? { district: filter.district } : {}),
@@ -41,12 +47,20 @@ export function matchesTextSearch(
 
 export function matchesPromotionRegion(
   promotion: {
+    countryCode?: string;
     department: string;
     province?: string;
     district?: string;
   },
   filter: RegionFilter,
 ): boolean {
+  const promoCountry = (promotion.countryCode ?? DEFAULT_COUNTRY_CODE).toUpperCase();
+  if (
+    filter.countryCode !== "" &&
+    promoCountry !== filter.countryCode.toUpperCase()
+  ) {
+    return false;
+  }
   if (filter.department !== "" && promotion.department !== filter.department) {
     return false;
   }

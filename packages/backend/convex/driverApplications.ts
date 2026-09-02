@@ -1,5 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
+import { normalizeCountryCode } from "./data/countryCatalog";
 import { driverApplicationStatusValidator, sexValidator } from "./schema";
 import { requireRole, requireUser } from "./lib/auth";
 import { ensureWallet } from "./driverWallets";
@@ -26,7 +29,29 @@ export const getMyApplication = query({
   },
 });
 
-/** Envía solicitud de registro como chofer. */
+function validateOperatingRegion(args: {
+  countryCode: string;
+  department: string;
+  province: string;
+  district: string;
+}) {
+  const countryCode = normalizeCountryCode(args.countryCode);
+  const department = args.department.trim();
+  const province = args.province.trim();
+  const district = args.district.trim();
+  if (department === "") {
+    throw new Error("Selecciona tu departamento (nivel 1).");
+  }
+  if (province === "") {
+    throw new Error("Selecciona tu provincia (nivel 2).");
+  }
+  if (district === "") {
+    throw new Error("Selecciona tu distrito (nivel 3).");
+  }
+  return { countryCode, department, province, district };
+}
+
+/** Envía solicitud de registro como chofer (queda pendiente de validación admin). */
 export const submit = mutation({
   args: {
     dni: v.string(),
@@ -38,9 +63,14 @@ export const submit = mutation({
     licenseCategory: v.string(),
     licensePhotoIds: v.array(v.id("_storage")),
     culPdfId: v.id("_storage"),
+    countryCode: v.string(),
+    department: v.string(),
+    province: v.string(),
+    district: v.string(),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
+    const region = validateOperatingRegion(args);
 
     const existingDriver = await ctx.db
       .query("drivers")
@@ -81,7 +111,7 @@ export const submit = mutation({
       throw new Error("Este DNI ya tiene una solicitud registrada.");
     }
 
-    const applicationId = await ctx.db.insert("driverApplications", {
+    return await ctx.db.insert("driverApplications", {
       userId: user._id,
       dni,
       firstName: args.firstName.trim(),
@@ -92,33 +122,100 @@ export const submit = mutation({
       licenseCategory: args.licenseCategory,
       licensePhotoIds: args.licensePhotoIds,
       culPdfId: args.culPdfId,
-      status: "approved",
+      countryCode: region.countryCode,
+      department: region.department,
+      province: region.province,
+      district: region.district,
+      status: "pending",
       submittedAt: Date.now(),
+    });
+  },
+});
+
+async function createDriverFromApplication(
+  ctx: MutationCtx,
+  application: Doc<"driverApplications">,
+): Promise<Id<"drivers">> {
+  const fullName =
+    `${application.firstLastName} ${application.secondLastName} ${application.firstName}`.trim();
+
+  const driverId = await ctx.db.insert("drivers", {
+    userId: application.userId,
+    status: "offline",
+    vehicle: {
+      make: "Por completar",
+      model: "Por completar",
+      plate: "PENDIENTE",
+      year: new Date().getFullYear(),
+    },
+    licenseNumber: application.licenseNumber,
+    licenseExpiry: Date.now() + 365 * 24 * 60 * 60 * 1000,
+    rating: 5,
+    totalTrips: 0,
+    fullName,
+    dni: application.dni,
+    countryCode: application.countryCode ?? "PE",
+    department: application.department,
+    province: application.province ?? "",
+    district: application.district ?? "",
+  });
+  await ensureWallet(ctx, driverId);
+  await ctx.db.patch(application.userId, { name: fullName });
+  return driverId;
+}
+
+/** Aprueba una solicitud y crea el perfil de chofer. */
+export const approve = mutation({
+  args: {
+    applicationId: v.id("driverApplications"),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, "admin");
+    const application = await ctx.db.get(args.applicationId);
+    if (application === null) {
+      throw new Error("Solicitud no encontrada.");
+    }
+    if (application.status !== "pending") {
+      throw new Error("Solo se pueden aprobar solicitudes pendientes.");
+    }
+
+    const existingDriver = await ctx.db
+      .query("drivers")
+      .withIndex("by_user", (q) => q.eq("userId", application.userId))
+      .unique();
+    if (existingDriver !== null) {
+      throw new Error("Este usuario ya tiene perfil de chofer.");
+    }
+
+    const driverId = await createDriverFromApplication(ctx, application);
+    await ctx.db.patch(application._id, {
+      status: "approved",
       reviewedAt: Date.now(),
     });
+    return { applicationId: application._id, driverId };
+  },
+});
 
-    const fullName = `${args.firstLastName} ${args.secondLastName} ${args.firstName}`.trim();
-
-    const driverId = await ctx.db.insert("drivers", {
-      userId: user._id,
-      status: "offline",
-      vehicle: {
-        make: "Por completar",
-        model: "Por completar",
-        plate: "PENDIENTE",
-        year: new Date().getFullYear(),
-      },
-      licenseNumber: args.licenseNumber.trim(),
-      licenseExpiry: Date.now() + 365 * 24 * 60 * 60 * 1000,
-      rating: 5,
-      totalTrips: 0,
+/** Rechaza una solicitud de registro. */
+export const reject = mutation({
+  args: {
+    applicationId: v.id("driverApplications"),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, "admin");
+    const application = await ctx.db.get(args.applicationId);
+    if (application === null) {
+      throw new Error("Solicitud no encontrada.");
+    }
+    if (application.status !== "pending") {
+      throw new Error("Solo se pueden rechazar solicitudes pendientes.");
+    }
+    await ctx.db.patch(application._id, {
+      status: "rejected",
+      reviewedAt: Date.now(),
     });
-    await ensureWallet(ctx, driverId);
-
-    await ctx.db.patch(user._id, { name: fullName });
-    // Mantener rol "client" si ya lo era: pasajero y chofer en la misma cuenta.
-
-    return applicationId;
+    return application._id;
   },
 });
 

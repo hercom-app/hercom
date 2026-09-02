@@ -1,12 +1,19 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { normalizeCountryCode } from "../data/countryCatalog";
 import { computePromotionalPricing } from "./pricing";
+import { resolveCountryCode } from "./regionFilters";
 
-type RegionFilter = {
+export type RegionFilter = {
+  countryCode?: string | undefined;
   department: string;
   province?: string | undefined;
   district?: string | undefined;
 };
+
+function promotionCountryCode(promotion: Doc<"promotions">): string {
+  return normalizeCountryCode(promotion.countryCode);
+}
 
 function isWithinDateRange(
   promotion: Doc<"promotions">,
@@ -29,6 +36,9 @@ function promotionMatchesRegion(
   promotion: Doc<"promotions">,
   region: RegionFilter,
 ): boolean {
+  if (promotionCountryCode(promotion) !== resolveCountryCode(region)) {
+    return false;
+  }
   if (promotion.department !== region.department) {
     return false;
   }

@@ -1,64 +1,74 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import {
-  listDistrictsForProvince,
-  listProvincesForDepartment,
-  PERU_DEPARTMENTS,
-} from "./data/peruLocations";
-import {
-  HOURLY_SERVICE_RATE_PEN,
-  MAX_PROMOTION_DISCOUNT_RATE,
-  MIN_SERVICE_HOURS,
-  MIN_SERVICE_PRICE_PEN,
-} from "./lib/constants";
+import { normalizeCountryCode } from "./data/countryCatalog";
+import { MAX_PROMOTION_DISCOUNT_RATE } from "./lib/constants";
+import { getMarketByCountry } from "./lib/markets";
+import { normalizeMoney } from "./lib/money";
 import { computePromotionalPricing } from "./lib/pricing";
 import { applyPromotionToListPrice, findActivePromotion } from "./lib/promotions";
 import { requireRole, requireUser } from "./lib/auth";
+import {
+  listLevel1ForCountry,
+  listLevel2ForCountry,
+  listLevel3ForCountry,
+} from "./lib/regionFilters";
 
-function normalizeMoney(amount: number): number {
-  return Math.round(amount * 100) / 100;
-}
-
-function parseDateStartMs(dateStr: string): number {
-  const parsed = new Date(`${dateStr}T00:00:00.000-05:00`);
+function parseDateStartMs(dateStr: string, timezone: string): number {
+  const offset = timezone === "America/Lima" ? "-05:00" : "Z";
+  const parsed = new Date(`${dateStr}T00:00:00.000${offset}`);
   if (Number.isNaN(parsed.getTime())) {
     throw new Error("Fecha de inicio inválida.");
   }
   return parsed.getTime();
 }
 
-function parseDateEndMs(dateStr: string): number {
-  const parsed = new Date(`${dateStr}T23:59:59.999-05:00`);
+function parseDateEndMs(dateStr: string, timezone: string): number {
+  const offset = timezone === "America/Lima" ? "-05:00" : "Z";
+  const parsed = new Date(`${dateStr}T23:59:59.999${offset}`);
   if (Number.isNaN(parsed.getTime())) {
     throw new Error("Fecha de fin inválida.");
   }
   return parsed.getTime();
 }
 
+/** @deprecated Usar geo.listLevel1 */
 export const listDepartments = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { countryCode: v.optional(v.string()) },
+  handler: async (ctx, args) => {
     await requireUser(ctx);
-    return [...PERU_DEPARTMENTS];
+    return listLevel1ForCountry(normalizeCountryCode(args.countryCode));
   },
 });
 
+/** @deprecated Usar geo.listLevel2 */
 export const listProvinces = query({
-  args: { department: v.string() },
+  args: {
+    countryCode: v.optional(v.string()),
+    department: v.string(),
+  },
   handler: async (_ctx, args) => {
     await requireUser(_ctx);
-    return listProvincesForDepartment(args.department);
+    return listLevel2ForCountry(
+      normalizeCountryCode(args.countryCode),
+      args.department,
+    );
   },
 });
 
+/** @deprecated Usar geo.listLevel3 */
 export const listDistricts = query({
   args: {
+    countryCode: v.optional(v.string()),
     department: v.string(),
     province: v.string(),
   },
   handler: async (_ctx, args) => {
     await requireUser(_ctx);
-    return listDistrictsForProvince(args.department, args.province);
+    return listLevel3ForCountry(
+      normalizeCountryCode(args.countryCode),
+      args.department,
+      args.province,
+    );
   },
 });
 
@@ -74,23 +84,31 @@ export const previewPricing = query({
   args: {
     listPrice: v.number(),
     discountRate: v.number(),
+    countryCode: v.optional(v.string()),
   },
-  handler: async (_ctx, args) => {
-    await requireRole(_ctx, "admin");
-    const rate = Math.min(Math.max(args.discountRate, 0), MAX_PROMOTION_DISCOUNT_RATE);
+  handler: async (ctx, args) => {
+    await requireRole(ctx, "admin");
+    const market = await getMarketByCountry(ctx, args.countryCode);
+    const rate = Math.min(
+      Math.max(args.discountRate, 0),
+      MAX_PROMOTION_DISCOUNT_RATE,
+    );
     const pricing = computePromotionalPricing(args.listPrice, rate);
     return {
       ...pricing,
       maxDiscountRate: MAX_PROMOTION_DISCOUNT_RATE,
-      minListPrice: MIN_SERVICE_PRICE_PEN,
-      hourlyRate: HOURLY_SERVICE_RATE_PEN,
-      minHours: MIN_SERVICE_HOURS,
+      minListPrice: market.minServicePrice,
+      hourlyRate: market.hourlyRate,
+      minHours: market.minServiceHours,
+      currencySymbol: market.currencySymbol,
+      currencyCode: market.currencyCode,
     };
   },
 });
 
 export const previewForRegion = query({
   args: {
+    countryCode: v.optional(v.string()),
     department: v.string(),
     province: v.optional(v.string()),
     district: v.optional(v.string()),
@@ -99,6 +117,7 @@ export const previewForRegion = query({
   handler: async (ctx, args) => {
     await requireUser(ctx);
     const applied = await applyPromotionToListPrice(ctx, args.listPrice, {
+      countryCode: normalizeCountryCode(args.countryCode),
       department: args.department,
       province: args.province,
       district: args.district,
@@ -111,6 +130,7 @@ export const create = mutation({
   args: {
     name: v.string(),
     festivityLabel: v.optional(v.string()),
+    countryCode: v.optional(v.string()),
     department: v.string(),
     province: v.optional(v.string()),
     district: v.optional(v.string()),
@@ -121,20 +141,23 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireRole(ctx, "admin");
+    const countryCode = normalizeCountryCode(args.countryCode);
+    const market = await getMarketByCountry(ctx, countryCode);
     const discountRate = normalizeMoney(args.discountRate);
     if (discountRate <= 0 || discountRate > MAX_PROMOTION_DISCOUNT_RATE) {
       throw new Error(
         `El descuento debe estar entre 1% y ${MAX_PROMOTION_DISCOUNT_RATE * 100}% (tope donde Hercom deja de ganar).`,
       );
     }
-    const startsAt = parseDateStartMs(args.startDate);
-    const endsAt = parseDateEndMs(args.endDate);
+    const startsAt = parseDateStartMs(args.startDate, market.timezone);
+    const endsAt = parseDateEndMs(args.endDate, market.timezone);
     if (endsAt < startsAt) {
       throw new Error("La fecha de fin debe ser posterior a la de inicio.");
     }
 
     return await ctx.db.insert("promotions", {
       name: args.name.trim(),
+      countryCode,
       ...(args.festivityLabel !== undefined
         ? { festivityLabel: args.festivityLabel.trim() }
         : {}),
@@ -186,6 +209,7 @@ export const remove = mutation({
 
 export const getActiveForRegion = query({
   args: {
+    countryCode: v.optional(v.string()),
     department: v.string(),
     province: v.optional(v.string()),
     district: v.optional(v.string()),
@@ -193,6 +217,7 @@ export const getActiveForRegion = query({
   handler: async (ctx, args) => {
     await requireUser(ctx);
     return await findActivePromotion(ctx, {
+      countryCode: normalizeCountryCode(args.countryCode),
       department: args.department,
       province: args.province,
       district: args.district,

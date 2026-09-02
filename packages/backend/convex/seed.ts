@@ -1,4 +1,5 @@
 import { createAccount, modifyAccountCredentials } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
@@ -29,6 +30,8 @@ const DEMO_CLIENT = { email: "cliente@demo.com", name: "Cliente Demo" };
 export const seedDemo = internalMutation({
   args: {},
   handler: async (ctx) => {
+    await ctx.runMutation(internal.markets.ensureDefaults, {});
+
     const admin = await ensureUser(ctx, DEMO_ADMIN.email, DEMO_ADMIN.name, "admin");
     const driverUser = await ensureUser(ctx, DEMO_DRIVER.email, DEMO_DRIVER.name, "driver");
     const client = await ensureUser(ctx, DEMO_CLIENT.email, DEMO_CLIENT.name, "client");
@@ -124,6 +127,7 @@ export const seedLiveDemo = internalMutation({
       address: "Av. Javier Prado Oeste 460, San Isidro",
       lat: -12.0931,
       lng: -77.0431,
+      countryCode: "PE",
       department: "Lima",
       province: "Lima",
       district: "San Isidro",
@@ -132,6 +136,7 @@ export const seedLiveDemo = internalMutation({
       address: "Aeropuerto Internacional Jorge Chávez",
       lat: -12.0219,
       lng: -77.1143,
+      countryCode: "PE",
       department: "Callao",
       province: "Callao",
       district: "Callao",
@@ -312,6 +317,10 @@ async function ensureDriver(
     licenseExpiry: Date.now() + 365 * 24 * 60 * 60 * 1000,
     rating: 5,
     totalTrips: 0,
+    countryCode: "PE",
+    department: "Lima",
+    province: "Lima",
+    district: "Miraflores",
   });
   await ensureWallet(ctx, driverId);
   return (await ctx.db.get(driverId)) as Doc<"drivers">;

@@ -14,7 +14,6 @@ export function HomeScreen() {
   const driver = useQuery(api.drivers.getMyDriverProfile);
   const {
     mode,
-    setMode,
     showDriverRegistration,
     closeDriverRegistration,
     hasDriverProfile,
@@ -33,10 +32,7 @@ export function HomeScreen() {
       <DriverRegisterScreen
         onBack={closeDriverRegistration}
         submitAsAuthenticated
-        onSubmitSuccess={() => {
-          closeDriverRegistration();
-          void setMode("driver");
-        }}
+        onSubmitSuccess={closeDriverRegistration}
       />
     );
   }

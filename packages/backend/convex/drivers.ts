@@ -103,38 +103,15 @@ export const setStatus = mutation({
 });
 
 /**
- * DEMO / QA: crea perfil de chofer mínimo sin RENIEC ni documentos.
- * TODO: quitar o restringir a admin cuando vuelva la validación formal.
+ * Deshabilitado: el perfil de chofer solo se crea al aprobar una solicitud.
  */
 export const ensureDemoDriverProfile = mutation({
   args: {},
   handler: async (ctx) => {
-    const user = await requireUser(ctx);
-    const existing = await ctx.db
-      .query("drivers")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .unique();
-    if (existing !== null) {
-      return existing._id;
-    }
-
-    const driverId = await ctx.db.insert("drivers", {
-      userId: user._id,
-      status: "offline",
-      vehicle: {
-        make: "N/A",
-        model: "N/A",
-        plate: "N/A",
-        year: new Date().getFullYear(),
-      },
-      licenseNumber: "PENDIENTE",
-      licenseExpiry: Date.now() + 365 * 24 * 60 * 60 * 1000,
-      rating: 5,
-      totalTrips: 0,
-      fullName: user.name?.trim() || "Chofer Hercom",
-    });
-    await ensureWallet(ctx, driverId);
-    return driverId;
+    await requireUser(ctx);
+    throw new Error(
+      "Debes completar el registro de chofer y esperar la validación de Hercom.",
+    );
   },
 });
 

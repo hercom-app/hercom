@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
 import { RegionFields, inputClass } from "./RegionFields";
+import { DEFAULT_COUNTRY_CODE } from "../lib/adminFilters";
 import { AdminCard } from "./AdminLayout";
 import { btnPrimaryClass } from "../lib/adminUi";
 
@@ -12,6 +13,7 @@ export function PremiumServiceForm() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
   const [department, setDepartment] = useState("");
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
@@ -35,6 +37,7 @@ export function PremiumServiceForm() {
           address: String(form.get("originAddress")),
           lat: 0,
           lng: 0,
+          countryCode,
           department,
           ...(province !== "" ? { province } : {}),
           ...(district !== "" ? { district } : {}),
@@ -94,6 +97,8 @@ export function PremiumServiceForm() {
           ))}
         </select>
         <RegionFields
+          countryCode={countryCode}
+          onCountryCodeChange={setCountryCode}
           department={department}
           province={province}
           district={district}

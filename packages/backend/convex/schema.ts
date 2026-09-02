@@ -91,8 +91,13 @@ export const locationValidator = v.object({
   address: v.string(),
   lat: v.number(),
   lng: v.number(),
+  /** ISO 3166-1 alpha-2 (ej. PE). Default PE si no se envía. */
+  countryCode: v.optional(v.string()),
+  /** Nivel 1: departamento (PE), estado, etc. */
   department: v.optional(v.string()),
+  /** Nivel 2: provincia (PE), municipio, etc. */
   province: v.optional(v.string()),
+  /** Nivel 3: distrito (PE), comuna, etc. */
   district: v.optional(v.string()),
 });
 
@@ -145,6 +150,11 @@ export default defineSchema({
     bankAccount1: v.optional(v.string()),
     bankAccount2: v.optional(v.string()),
     bankAccount3: v.optional(v.string()),
+    /** Zona de operación del chofer (país + niveles 1/2/3). */
+    countryCode: v.optional(v.string()),
+    department: v.optional(v.string()),
+    province: v.optional(v.string()),
+    district: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_status", ["status"]),
@@ -163,6 +173,10 @@ export default defineSchema({
     licenseCategory: v.string(),
     licensePhotoIds: v.array(v.id("_storage")),
     culPdfId: v.id("_storage"),
+    countryCode: v.optional(v.string()),
+    department: v.string(),
+    province: v.optional(v.string()),
+    district: v.optional(v.string()),
     status: driverApplicationStatusValidator,
     submittedAt: v.number(),
     reviewedAt: v.optional(v.number()),
@@ -363,11 +377,32 @@ export default defineSchema({
     .index("by_client", ["clientId"]),
 
   /**
-   * Promociones festivas por región (departamento / provincia / distrito).
+   * Configuración comercial por país (moneda local y tipo de cambio a USD).
+   */
+  markets: defineTable({
+    countryCode: v.string(),
+    name: v.string(),
+    currencyCode: v.string(),
+    currencySymbol: v.string(),
+    /** Moneda local por 1 USD (ej. 3.75 PEN/USD). */
+    usdExchangeRate: v.number(),
+    hourlyRate: v.number(),
+    minServiceHours: v.number(),
+    commissionRate: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_country", ["countryCode"]),
+
+  /**
+   * Promociones festivas por región (país + niveles 1/2/3).
    */
   promotions: defineTable({
     name: v.string(),
     festivityLabel: v.optional(v.string()),
+    /** ISO 3166-1 alpha-2; registros antiguos sin campo se tratan como PE. */
+    countryCode: v.optional(v.string()),
     department: v.string(),
     province: v.optional(v.string()),
     district: v.optional(v.string()),
@@ -379,6 +414,7 @@ export default defineSchema({
     createdBy: v.id("users"),
   })
     .index("by_active", ["active"])
+    .index("by_country", ["countryCode"])
     .index("by_department", ["department"]),
 
   /**

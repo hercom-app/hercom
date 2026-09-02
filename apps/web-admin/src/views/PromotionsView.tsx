@@ -23,11 +23,16 @@ function formatDateInput(timestamp: number): string {
 }
 
 function formatRegion(promotion: {
+  countryCode?: string;
   department: string;
   province?: string;
   district?: string;
 }): string {
-  const parts = [promotion.department];
+  const parts: string[] = [];
+  if (promotion.countryCode !== undefined && promotion.countryCode !== "") {
+    parts.push(promotion.countryCode);
+  }
+  parts.push(promotion.department);
   if (promotion.province !== undefined) {
     parts.push(promotion.province);
   }
@@ -51,6 +56,7 @@ export function PromotionsView() {
 
   const [name, setName] = useState("");
   const [festivityLabel, setFestivityLabel] = useState("");
+  const [countryCode, setCountryCode] = useState(EMPTY_REGION_FILTER.countryCode);
   const [department, setDepartment] = useState("");
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
@@ -65,7 +71,7 @@ export function PromotionsView() {
   const pricingPreview = useQuery(
     api.promotions.previewPricing,
     Number.isFinite(discountRate) && discountRate > 0
-      ? { listPrice: 80, discountRate }
+      ? { listPrice: 80, discountRate, countryCode }
       : "skip",
   );
 
@@ -102,6 +108,7 @@ export function PromotionsView() {
     try {
       await createPromotion({
         name: name.trim(),
+        countryCode,
         ...(festivityLabel.trim() !== ""
           ? { festivityLabel: festivityLabel.trim() }
           : {}),
@@ -116,6 +123,7 @@ export function PromotionsView() {
       setMessage("Promoción creada y activada.");
       setName("");
       setFestivityLabel("");
+      setCountryCode(EMPTY_REGION_FILTER.countryCode);
       setDepartment("");
       setProvince("");
       setDistrict("");
@@ -176,6 +184,8 @@ export function PromotionsView() {
             className={inputClass}
           />
           <RegionFields
+            countryCode={countryCode}
+            onCountryCodeChange={setCountryCode}
             department={department}
             province={province}
             district={district}
@@ -212,8 +222,12 @@ export function PromotionsView() {
           </div>
           {pricingPreview !== undefined && pricingPreview !== null && (
             <p className="rounded-xl bg-violet-50 px-3 py-2 text-xs text-violet-800">
-              Vista previa S/80: cliente S/{pricingPreview.clientPrice.toFixed(2)}{" "}
-              · chofer S/{pricingPreview.driverNet.toFixed(2)} · Hercom S/
+              Vista previa {pricingPreview.currencySymbol}80: cliente{" "}
+              {pricingPreview.currencySymbol}
+              {pricingPreview.clientPrice.toFixed(2)} · chofer{" "}
+              {pricingPreview.currencySymbol}
+              {pricingPreview.driverNet.toFixed(2)} · Hercom{" "}
+              {pricingPreview.currencySymbol}
               {pricingPreview.platformCommission.toFixed(2)}
             </p>
           )}

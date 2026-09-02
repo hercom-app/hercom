@@ -13,6 +13,10 @@ import * as ImagePicker from "expo-image-picker";
 import { useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
 import { HercomLogo } from "../components/HercomLogo";
+import {
+  DEFAULT_COUNTRY_CODE,
+  DriverRegionFields,
+} from "../components/DriverRegionFields";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import {
   savePendingDriverRegistration,
@@ -67,9 +71,14 @@ export function DriverRegisterScreen({
   const [culPdf, setCulPdf] = useState<{ uri: string; name: string } | null>(
     null,
   );
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
+  const [department, setDepartment] = useState("");
+  const [province, setProvince] = useState("");
+  const [district, setDistrict] = useState("");
 
   const [readyForGoogle, setReadyForGoogle] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -154,6 +163,9 @@ export function DriverRegisterScreen({
     if (culPdf === null) {
       return "Sube el CUL en PDF.";
     }
+    if (department === "" || province === "" || district === "") {
+      return "Selecciona país, departamento, provincia y distrito.";
+    }
     return null;
   }
 
@@ -176,6 +188,10 @@ export function DriverRegisterScreen({
       licensePhotoUris: licensePhotos,
       culPdfUri: culPdf!.uri,
       culPdfName: culPdf!.name,
+      countryCode,
+      department,
+      province,
+      district,
     };
 
     await savePendingDriverRegistration(pending);
@@ -188,6 +204,7 @@ export function DriverRegisterScreen({
           () => generateUploadUrl({}),
           (args) => submitApplication(args),
         );
+        setSubmitted(true);
         onSubmitSuccess?.();
       } catch (error) {
         const message =
@@ -224,11 +241,30 @@ export function DriverRegisterScreen({
           Registro de chofer
         </Text>
         <Text className="mt-1 text-center text-sm text-white/80">
-          Demo: Validar no consulta RENIEC. Completa nombres a mano o usa Modo
-          conductor en el menú.
+          Completa tus datos y documentos. Hercom validará tu solicitud antes de
+          activar el modo conductor.
         </Text>
       </View>
 
+      {submitted ? (
+        <View className="rounded-3xl bg-white p-6 shadow-lg">
+          <Text className="text-center text-lg font-bold text-slate-900">
+            Solicitud enviada
+          </Text>
+          <Text className="mt-3 text-center text-sm leading-6 text-slate-600">
+            Recibimos tu registro. El equipo de Hercom revisará tu información y
+            documentos. Te avisaremos cuando tu perfil de chofer esté habilitado.
+          </Text>
+          <TouchableOpacity
+            onPress={onBack}
+            className="mt-6 rounded-2xl bg-hercom py-3.5"
+          >
+            <Text className="text-center text-base font-bold text-white">
+              Volver al inicio
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
       <View className="rounded-3xl bg-white p-5 shadow-lg">
         {/* DNI — validación formal pendiente (Decolecta) */}
         <Text className="mb-2 text-sm font-semibold text-slate-700">DNI</Text>
@@ -282,6 +318,24 @@ export function DriverRegisterScreen({
             />
           </View>
         )}
+
+        <DriverRegionFields
+          countryCode={countryCode}
+          department={department}
+          province={province}
+          district={district}
+          onCountryCodeChange={setCountryCode}
+          onDepartmentChange={setDepartment}
+          onProvinceChange={setProvince}
+          onDistrictChange={setDistrict}
+        />
+
+        <View className="mb-4 rounded-2xl bg-amber-50 px-4 py-3">
+          <Text className="text-xs leading-5 text-amber-900">
+            Tu zona de operación será validada por Hercom. Hasta entonces no podrás
+            usar el modo conductor.
+          </Text>
+        </View>
 
         {/* Brevete */}
         <Text className="mb-2 text-sm font-semibold text-slate-700">
@@ -406,7 +460,7 @@ export function DriverRegisterScreen({
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text className="text-center text-base font-bold text-white">
-                Activar perfil de chofer
+                Enviar solicitud de chofer
               </Text>
             )}
           </TouchableOpacity>
@@ -425,6 +479,7 @@ export function DriverRegisterScreen({
           </View>
         )}
       </View>
+      )}
     </ScrollView>
   );
 }

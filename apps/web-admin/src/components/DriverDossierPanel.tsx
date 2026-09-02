@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@proyecto/backend";
 import { btnPrimaryClass, labelClass } from "../lib/adminUi";
@@ -27,6 +29,16 @@ function formatDateTime(timestamp: number): string {
   }).format(new Date(timestamp));
 }
 
+function formatRegion(application: DriverApplicationForAdmin): string {
+  const parts = [
+    application.countryCode ?? "PE",
+    application.department,
+    application.province,
+    application.district,
+  ].filter((part) => part !== undefined && part !== "");
+  return parts.join(" · ");
+}
+
 type DriverDossierPanelProps = {
   application: DriverApplicationForAdmin | null;
   userName: string;
@@ -36,12 +48,54 @@ export function DriverDossierPanel({
   application,
   userName,
 }: DriverDossierPanelProps) {
+  const approveApplication = useMutation(api.driverApplications.approve);
+  const rejectApplication = useMutation(api.driverApplications.reject);
+  const [acting, setActing] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   if (application === null) {
     return (
       <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-500">
         {userName} no tiene expediente de registro (brevete / CUL) cargado.
       </div>
     );
+  }
+
+  async function handleApprove() {
+    setActing(true);
+    setMessage(null);
+    setError(null);
+    try {
+      await approveApplication({ applicationId: application!._id });
+      setMessage("Solicitud aprobada. Perfil de chofer creado.");
+    } catch (approveError) {
+      setError(
+        approveError instanceof Error
+          ? approveError.message
+          : "No se pudo aprobar la solicitud.",
+      );
+    } finally {
+      setActing(false);
+    }
+  }
+
+  async function handleReject() {
+    setActing(true);
+    setMessage(null);
+    setError(null);
+    try {
+      await rejectApplication({ applicationId: application!._id });
+      setMessage("Solicitud rechazada.");
+    } catch (rejectError) {
+      setError(
+        rejectError instanceof Error
+          ? rejectError.message
+          : "No se pudo rechazar la solicitud.",
+      );
+    } finally {
+      setActing(false);
+    }
   }
 
   return (
@@ -69,6 +123,7 @@ export function DriverDossierPanel({
         <InfoRow label="Sexo" value={SEX_LABELS[application.sex]} />
         <InfoRow label="N.° brevete" value={application.licenseNumber} />
         <InfoRow label="Categoría brevete" value={application.licenseCategory} />
+        <InfoRow label="Zona de operación" value={formatRegion(application)} />
         <InfoRow
           label="Enviado"
           value={formatDateTime(application.submittedAt)}
@@ -80,6 +135,34 @@ export function DriverDossierPanel({
           <InfoRow label="Estado operativo" value={application.driverStatus} />
         )}
       </div>
+
+      {application.status === "pending" && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={acting}
+            onClick={() => void handleApprove()}
+            className={btnPrimaryClass}
+          >
+            Aprobar solicitud
+          </button>
+          <button
+            type="button"
+            disabled={acting}
+            onClick={() => void handleReject()}
+            className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+          >
+            Rechazar
+          </button>
+        </div>
+      )}
+
+      {message !== null && (
+        <p className="mt-3 text-sm font-medium text-emerald-700">{message}</p>
+      )}
+      {error !== null && (
+        <p className="mt-3 text-sm font-medium text-red-600">{error}</p>
+      )}
 
       <div className="mt-4">
         <p className={labelClass}>Fotos del brevete</p>

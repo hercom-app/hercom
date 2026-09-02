@@ -3,15 +3,14 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { locationValidator, serviceRequestChannelValidator, serviceStatusValidator, serviceTypeValidator } from "./schema";
-import { matchesOriginRegion } from "./lib/regionFilters";
+import { matchesOriginRegion, resolveCountryCode } from "./lib/regionFilters";
+import { normalizeCountryCode } from "./data/countryCatalog";
 import {
   computeClientAdvance,
   computePlatformCommission,
-  HOURLY_SERVICE_RATE_PEN,
-  MIN_SERVICE_HOURS,
-  MIN_SERVICE_PRICE_PEN,
   PENDING_SERVICE_TTL_MS,
 } from "./lib/constants";
+import { getMarketByCountry } from "./lib/markets";
 import { applyPromotionToListPrice } from "./lib/promotions";
 import {
   computeClientTotalForOffer,
@@ -41,9 +40,12 @@ export const createService = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    if (args.basePrice < MIN_SERVICE_PRICE_PEN) {
+    const origin = normalizeServiceLocation(args.origin);
+    const destination = normalizeServiceLocation(args.destination);
+    const market = await getMarketByCountry(ctx, origin.countryCode);
+    if (args.basePrice < market.minServicePrice) {
       throw new Error(
-        `La tarifa base mínima es S/${MIN_SERVICE_PRICE_PEN} (S/${HOURLY_SERVICE_RATE_PEN}/hora × ${MIN_SERVICE_HOURS}h mínimas).`,
+        `La tarifa base mínima es ${market.currencySymbol}${market.minServicePrice} (${market.currencySymbol}${market.hourlyRate}/hora × ${market.minServiceHours}h mínimas).`,
       );
     }
     const extraDestinations = normalizeExtraDestinations(args.extraDestinations);
@@ -52,12 +54,12 @@ export const createService = mutation({
       user.role,
       args.requestChannel,
     );
-    const pricing = await buildServicePricingFields(ctx, basePrice, args.origin);
+    const pricing = await buildServicePricingFields(ctx, basePrice, origin);
 
     return await ctx.db.insert("services", {
       clientId: user._id,
-      origin: args.origin,
-      destination: args.destination,
+      origin,
+      destination,
       ...(extraDestinations !== undefined ? { extraDestinations } : {}),
       ...pricing,
       serviceType,
@@ -91,19 +93,22 @@ export const createPremiumServiceAsAdmin = mutation({
     if (client === null) {
       throw new Error("Cliente no encontrado.");
     }
-    if (args.basePrice < MIN_SERVICE_PRICE_PEN) {
+    const origin = normalizeServiceLocation(args.origin);
+    const destination = normalizeServiceLocation(args.destination);
+    const market = await getMarketByCountry(ctx, origin.countryCode);
+    if (args.basePrice < market.minServicePrice) {
       throw new Error(
-        `La tarifa base mínima es S/${MIN_SERVICE_PRICE_PEN} (S/${HOURLY_SERVICE_RATE_PEN}/hora × ${MIN_SERVICE_HOURS}h mínimas).`,
+        `La tarifa base mínima es ${market.currencySymbol}${market.minServicePrice} (${market.currencySymbol}${market.hourlyRate}/hora × ${market.minServiceHours}h mínimas).`,
       );
     }
     const extraDestinations = normalizeExtraDestinations(args.extraDestinations);
     const basePrice = normalizeMoney(args.basePrice);
-    const pricing = await buildServicePricingFields(ctx, basePrice, args.origin);
+    const pricing = await buildServicePricingFields(ctx, basePrice, origin);
 
     return await ctx.db.insert("services", {
       clientId: args.clientId,
-      origin: args.origin,
-      destination: args.destination,
+      origin,
+      destination,
       ...(extraDestinations !== undefined ? { extraDestinations } : {}),
       ...pricing,
       serviceType: "premium",
@@ -901,6 +906,7 @@ export const listAllForAdmin = query({
     status: v.optional(serviceStatusValidator),
     serviceType: v.optional(serviceTypeValidator),
     requestChannel: v.optional(serviceRequestChannelValidator),
+    countryCode: v.optional(v.string()),
     department: v.optional(v.string()),
     province: v.optional(v.string()),
     district: v.optional(v.string()),
@@ -927,12 +933,14 @@ export const listAllForAdmin = query({
       services = services.filter((service) => service.status === status);
     }
     if (
+      args.countryCode !== undefined ||
       args.department !== undefined ||
       args.province !== undefined ||
       args.district !== undefined
     ) {
       services = services.filter((service) =>
         matchesOriginRegion(service.origin, {
+          countryCode: args.countryCode,
           department: args.department,
           province: args.province,
           district: args.district,
@@ -999,10 +1007,12 @@ function limaWeekKeys(days: number): string[] {
 }
 
 function normalizeLocation(location: LocationInput): LocationInput {
+  const countryCode = normalizeCountryCode(location.countryCode);
   return {
     address: location.address.trim(),
     lat: location.lat,
     lng: location.lng,
+    countryCode,
     ...(location.department !== undefined
       ? { department: location.department }
       : {}),
@@ -1011,10 +1021,13 @@ function normalizeLocation(location: LocationInput): LocationInput {
   };
 }
 
+const normalizeServiceLocation = normalizeLocation;
+
 type LocationInput = {
   address: string;
   lat: number;
   lng: number;
+  countryCode?: string;
   department?: string;
   province?: string;
   district?: string;
@@ -1063,15 +1076,18 @@ async function buildServicePricingFields(
   ctx: MutationCtx,
   listBasePrice: number,
   origin: {
+    countryCode?: string;
     department?: string;
     province?: string;
     district?: string;
   },
 ) {
+  const market = await getMarketByCountry(ctx, origin.countryCode);
   const catalogBasePrice = normalizeMoney(
-    Math.max(listBasePrice, MIN_SERVICE_PRICE_PEN),
+    Math.max(listBasePrice, market.minServicePrice),
   );
   const applied = await applyPromotionToListPrice(ctx, catalogBasePrice, {
+    countryCode: resolveCountryCode(origin),
     department: origin.department ?? "",
     province: origin.province,
     district: origin.district,

@@ -14,6 +14,10 @@ export type PendingDriverRegistration = {
   licensePhotoUris: { uri: string; mimeType: string }[];
   culPdfUri: string;
   culPdfName: string;
+  countryCode: string;
+  department: string;
+  province: string;
+  district: string;
 };
 
 export async function savePendingDriverRegistration(
@@ -49,6 +53,10 @@ type SubmitDriverApplicationArgs = {
   licenseCategory: string;
   licensePhotoIds: Id<"_storage">[];
   culPdfId: Id<"_storage">;
+  countryCode: string;
+  department: string;
+  province: string;
+  district: string;
 };
 
 export async function submitDriverApplicationFromPending(
@@ -82,6 +90,10 @@ export async function submitDriverApplicationFromPending(
     licenseCategory: pending.licenseCategory,
     licensePhotoIds,
     culPdfId,
+    countryCode: pending.countryCode,
+    department: pending.department,
+    province: pending.province,
+    district: pending.district,
   });
 }
 

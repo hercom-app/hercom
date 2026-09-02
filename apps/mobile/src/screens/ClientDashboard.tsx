@@ -46,9 +46,11 @@ import { HERCOM_COLORS } from "../constants/theme";
 import { useAndroidBackHandler } from "../hooks/useAndroidBackHandler";
 import * as Location from "expo-location";
 
-const HOURLY_SERVICE_RATE = 40;
-const MIN_SERVICE_HOURS = 2;
-const MIN_SERVICE_PRICE = HOURLY_SERVICE_RATE * MIN_SERVICE_HOURS;
+const DEFAULT_HOURLY_SERVICE_RATE = 40;
+const DEFAULT_MIN_SERVICE_HOURS = 2;
+const DEFAULT_MIN_SERVICE_PRICE =
+  DEFAULT_HOURLY_SERVICE_RATE * DEFAULT_MIN_SERVICE_HOURS;
+const DEFAULT_COUNTRY_CODE = "PE";
 const CLIENT_ADVANCE_RATE = 0.25;
 const SERVICE_HOUR_OPTIONS = [2, 3, 4, 5, 6, 8] as const;
 const LIMA_REGION = {
@@ -414,6 +416,14 @@ export function ClientDashboard() {
   const createService = useMutation(api.services.createService);
   const markAllNotificationsAsRead = useMutation(api.notifications.markAllAsRead);
   const notifications = useQuery(api.notifications.listMine, { limit: 8 });
+  const market = useQuery(api.markets.getPublicPricing, {
+    countryCode: DEFAULT_COUNTRY_CODE,
+  });
+  const hourlyRate = market?.hourlyRate ?? DEFAULT_HOURLY_SERVICE_RATE;
+  const minServiceHours = market?.minServiceHours ?? DEFAULT_MIN_SERVICE_HOURS;
+  const minServicePrice = market?.minServicePrice ?? DEFAULT_MIN_SERVICE_PRICE;
+  const currencySymbol = market?.currencySymbol ?? "S/";
+  const countryCode = market?.countryCode ?? DEFAULT_COUNTRY_CODE;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSection, setMenuSection] = useState("ciudad");
@@ -434,7 +444,7 @@ export function ClientDashboard() {
     createEmptyAddressDraft(),
   );
   const [extraDestinations, setExtraDestinations] = useState<AddressDraft[]>([]);
-  const [serviceHours, setServiceHours] = useState<number>(MIN_SERVICE_HOURS);
+  const [serviceHours, setServiceHours] = useState<number>(DEFAULT_MIN_SERVICE_HOURS);
   const [department, setDepartment] = useState("");
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
@@ -452,7 +462,7 @@ export function ClientDashboard() {
   const unreadNotifications = (notifications ?? []).filter(
     (notification) => notification.readAt === undefined,
   ).length;
-  const listPrice = serviceHours * HOURLY_SERVICE_RATE;
+  const listPrice = serviceHours * hourlyRate;
   const addressRegion = {
     department,
     ...(province !== "" ? { province } : {}),
@@ -533,8 +543,9 @@ export function ClientDashboard() {
 
   const promoPreview = useQuery(
     api.promotions.previewForRegion,
-    department !== "" && listPrice >= MIN_SERVICE_PRICE
+    department !== "" && listPrice >= minServicePrice
       ? {
+          countryCode,
           department,
           ...(province !== "" ? { province } : {}),
           ...(district !== "" ? { district } : {}),
@@ -714,7 +725,7 @@ export function ClientDashboard() {
     setOriginPlaceId(null);
     setDestination(createEmptyAddressDraft());
     setExtraDestinations([]);
-    setServiceHours(MIN_SERVICE_HOURS);
+    setServiceHours(minServiceHours);
     setDepartment("");
     setProvince("");
     setDistrict("");
@@ -727,10 +738,10 @@ export function ClientDashboard() {
       origin.trim() === "" ||
       destination.address.trim() === "" ||
       department === "" ||
-      listPrice < MIN_SERVICE_PRICE
+      listPrice < minServicePrice
     ) {
       setError(
-        `Completa origen, destino y al menos ${MIN_SERVICE_HOURS}h (S/${MIN_SERVICE_PRICE}).`,
+        `Completa origen, destino y al menos ${minServiceHours}h (${currencySymbol}${minServicePrice}).`,
       );
       return;
     }
@@ -747,6 +758,7 @@ export function ClientDashboard() {
           address: origin.trim(),
           lat: originLat ?? 0,
           lng: originLng ?? 0,
+          countryCode,
           department,
           ...(province !== "" ? { province } : {}),
           ...(district !== "" ? { district } : {}),
@@ -1383,8 +1395,9 @@ export function ClientDashboard() {
             ¿Cuánto tiempo necesitas?
           </Text>
           <Text className="mb-3 text-xs text-slate-500">
-            Tarifa S/{HOURLY_SERVICE_RATE}/h · mínimo {MIN_SERVICE_HOURS}h = S/
-            {MIN_SERVICE_PRICE}
+            Tarifa {currencySymbol}
+            {hourlyRate}/h · mínimo {minServiceHours}h = {currencySymbol}
+            {minServicePrice}
           </Text>
 
           <ScrollView
@@ -1417,7 +1430,8 @@ export function ClientDashboard() {
                       selected ? "text-white/90" : "text-slate-500"
                     }`}
                   >
-                    S/{hours * HOURLY_SERVICE_RATE}
+                    {currencySymbol}
+                    {hours * hourlyRate}
                   </Text>
                 </TouchableOpacity>
               );
@@ -1430,11 +1444,13 @@ export function ClientDashboard() {
                 Tarifa estimada
               </Text>
               <Text className="text-2xl font-bold text-white">
-                S/{listPrice.toFixed(0)}
+                {currencySymbol}
+                {listPrice.toFixed(0)}
               </Text>
             </View>
             <Text className="pb-1 text-xs text-slate-400">
-              {serviceHours}h × S/{HOURLY_SERVICE_RATE}
+              {serviceHours}h × {currencySymbol}
+              {hourlyRate}
             </Text>
           </View>
 
@@ -1445,7 +1461,8 @@ export function ClientDashboard() {
                 {(promoPreview.discountRate * 100).toFixed(0)}% off)
               </Text>
               <Text className="mt-1 text-xs text-slate-600">
-                Pagas S/{promoPreview.basePrice.toFixed(2)} (lista S/
+                Pagas {currencySymbol}
+                {promoPreview.basePrice.toFixed(2)} (lista {currencySymbol}
                 {promoPreview.catalogBasePrice.toFixed(2)}).
               </Text>
             </View>
@@ -1469,7 +1486,8 @@ export function ClientDashboard() {
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text className="text-base font-bold text-white">
-                Solicitar servicio · S/{listPrice.toFixed(0)}
+                Solicitar servicio · {currencySymbol}
+                {listPrice.toFixed(0)}
               </Text>
             )}
           </TouchableOpacity>

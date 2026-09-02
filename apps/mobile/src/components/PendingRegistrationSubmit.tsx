@@ -7,7 +7,6 @@ import {
   loadPendingDriverRegistration,
   submitDriverApplicationFromPending,
 } from "../lib/driverRegistration";
-import { saveAppMode } from "../lib/appMode";
 
 /** Tras Google OAuth, sube archivos y envía la solicitud de chofer pendiente. */
 export function PendingRegistrationSubmit({
@@ -38,7 +37,6 @@ export function PendingRegistrationSubmit({
         );
 
         await clearPendingDriverRegistration();
-        await saveAppMode("driver");
       } catch (e) {
         const message =
           e instanceof Error
@@ -57,6 +55,9 @@ export function PendingRegistrationSubmit({
         <ActivityIndicator color="#007AFF" size="large" />
         <Text className="mt-4 text-center text-sm text-slate-600">
           Enviando tu solicitud de chofer…
+        </Text>
+        <Text className="mt-2 text-center text-xs text-slate-500">
+          Hercom validará tu registro antes de habilitar el modo conductor.
         </Text>
       </View>
     );

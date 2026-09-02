@@ -19,11 +19,11 @@ export function AdminPageHeader({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h2 className="text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl">
           {title}
-        </h1>
+        </h2>
         {description !== undefined && (
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-500">
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-zinc-500">
             {description}
           </p>
         )}
@@ -66,8 +66,8 @@ type AdminStateProps = {
 
 export function AdminLoading({ message = "Cargando…" }: AdminStateProps) {
   return (
-    <p className="flex items-center gap-2 text-sm text-slate-500">
-      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-hercom" />
+    <p className="flex items-center gap-2 text-sm text-zinc-500">
+      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-zinc-200 border-t-zinc-900" />
       {message}
     </p>
   );
@@ -75,7 +75,7 @@ export function AdminLoading({ message = "Cargando…" }: AdminStateProps) {
 
 export function AdminEmpty({ message }: AdminStateProps) {
   return (
-    <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+    <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-10 text-center text-sm text-zinc-500">
       {message}
     </p>
   );

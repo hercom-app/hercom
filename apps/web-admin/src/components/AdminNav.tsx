@@ -13,11 +13,11 @@ const NAV_ITEMS: Array<{ id: AdminSection; label: string; shortLabel: string }> 
     { id: "drivers", label: "Choferes", shortLabel: "Choferes" },
     { id: "markets", label: "Moneda y tipo de cambio", shortLabel: "Moneda" },
     { id: "services", label: "Servicios", shortLabel: "Servicios" },
-    { id: "support", label: "Soporte", shortLabel: "Soporte" },
     { id: "topups", label: "Recargas", shortLabel: "Recargas" },
     { id: "promotions", label: "Promociones", shortLabel: "Promos" },
     { id: "accounts", label: "Cuentas de usuario", shortLabel: "Cuentas" },
     { id: "clients", label: "Clientes", shortLabel: "Clientes" },
+    { id: "support", label: "Soporte", shortLabel: "Soporte" },
   ];
 
 type AdminNavProps = {

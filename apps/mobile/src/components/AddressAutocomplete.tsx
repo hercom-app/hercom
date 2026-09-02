@@ -265,7 +265,7 @@ export function AddressAutocomplete({
 
       {loading && searchActive && (
         <View className="mt-2 flex-row items-center gap-2">
-          <ActivityIndicator color="#007AFF" size="small" />
+          <ActivityIndicator color="#64748B" size="small" />
           <Text className="text-xs text-slate-500">Buscando direcciones...</Text>
         </View>
       )}

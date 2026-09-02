@@ -10,6 +10,13 @@ import {
 } from "./lib/adminAccess";
 import { normalizeCountryCode } from "./data/countryCatalog";
 import { getCurrentUser, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
+import {
+  assertDniAvailable,
+  findDniOwnerUserId,
+  isClientIdentityComplete,
+  isValidDni,
+  normalizeDni,
+} from "./lib/identity";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -54,11 +61,44 @@ function normalizeDistricts(
 
 /**
  * Devuelve el usuario autenticado actual (o null si no hay sesión).
+ * Completa nombres RENIEC desde la solicitud de chofer si aún no están en users.
  */
 export const getMe = query({
   args: {},
   handler: async (ctx) => {
-    return await getCurrentUser(ctx);
+    const user = await getCurrentUser(ctx);
+    if (user === null) {
+      return null;
+    }
+
+    const applications = await ctx.db
+      .query("driverApplications")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    const preferred =
+      applications.find((row) => row.status === "approved") ??
+      applications.find((row) => row.status === "pending") ??
+      [...applications].sort((a, b) => b.submittedAt - a.submittedAt)[0];
+    const resolved = {
+      ...user,
+      ...(preferred !== undefined
+        ? {
+            dni: user.dni ?? preferred.dni,
+            firstName: user.firstName ?? preferred.firstName,
+            firstLastName: user.firstLastName ?? preferred.firstLastName,
+            secondLastName: user.secondLastName ?? preferred.secondLastName,
+          }
+        : {}),
+    };
+    const selfieUrl =
+      user.selfieStorageId !== undefined
+        ? await ctx.storage.getUrl(user.selfieStorageId)
+        : null;
+    return {
+      ...resolved,
+      selfieUrl,
+      identityComplete: isClientIdentityComplete(resolved),
+    };
   },
 });
 
@@ -89,20 +129,89 @@ export const getAdminContext = query({
 });
 
 /**
- * Actualiza el perfil básico del usuario autenticado.
+ * Actualiza datos no identitarios del usuario autenticado.
+ * Nombre y DNI solo se escriben tras validar RENIEC.
  */
 export const updateProfile = mutation({
   args: {
-    name: v.optional(v.string()),
     phone: v.optional(v.string()),
     image: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
     await ctx.db.patch(user._id, {
-      ...(args.name !== undefined ? { name: args.name } : {}),
       ...(args.phone !== undefined ? { phone: args.phone } : {}),
       ...(args.image !== undefined ? { image: args.image } : {}),
+    });
+    return user._id;
+  },
+});
+
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireUser(ctx);
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+/**
+ * Indica si el DNI ya pertenece a otra cuenta.
+ */
+export const getDniRegistration = query({
+  args: {
+    dni: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const dni = normalizeDni(args.dni);
+    if (!isValidDni(dni)) {
+      return { registered: false, isMine: false };
+    }
+    const me = await getCurrentUser(ctx);
+    const ownerId = await findDniOwnerUserId(ctx, dni);
+    if (ownerId === null) {
+      return { registered: false, isMine: false };
+    }
+    return {
+      registered: true,
+      isMine: me !== null && me._id === ownerId,
+    };
+  },
+});
+
+/**
+ * Guarda DNI validado por RENIEC + selfie. Obligatorio para pedir servicio.
+ */
+export const submitIdentity = mutation({
+  args: {
+    dni: v.string(),
+    firstName: v.string(),
+    firstLastName: v.string(),
+    secondLastName: v.string(),
+    selfieStorageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const dni = normalizeDni(args.dni);
+    if (!isValidDni(dni)) {
+      throw new Error("El DNI debe tener exactamente 8 dígitos.");
+    }
+    const firstName = args.firstName.trim();
+    const firstLastName = args.firstLastName.trim();
+    const secondLastName = args.secondLastName.trim();
+    if (firstName === "" || firstLastName === "" || secondLastName === "") {
+      throw new Error("Valida tu DNI con RENIEC antes de continuar.");
+    }
+    await assertDniAvailable(ctx, dni, user._id);
+    const fullName = `${firstLastName} ${secondLastName} ${firstName}`.trim();
+    await ctx.db.patch(user._id, {
+      dni,
+      firstName,
+      firstLastName,
+      secondLastName,
+      name: fullName,
+      selfieStorageId: args.selfieStorageId,
+      identityVerifiedAt: Date.now(),
     });
     return user._id;
   },

@@ -1,14 +1,8 @@
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
+import { UiButton, UiCard, UiInput } from "./ui";
 
 type DriverPayoutFields = {
   fullName?: string;
@@ -40,14 +34,12 @@ function Field({
 }) {
   return (
     <View className="mb-3">
-      <Text className="mb-1 text-xs font-semibold text-slate-600">{label}</Text>
-      <TextInput
+      <Text className="mb-1.5 text-xs font-semibold text-slate-500">{label}</Text>
+      <UiInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#94A3B8"
         keyboardType={keyboardType}
-        className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900"
       />
     </View>
   );
@@ -115,7 +107,7 @@ export function DriverPayoutConfig({
 
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
-      <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+      <UiCard className="mb-4">
         <Text className="mb-1 text-sm font-bold text-slate-900">
           Datos para el anticipo
         </Text>
@@ -169,17 +161,12 @@ export function DriverPayoutConfig({
           placeholder="Opcional"
         />
 
-        <TouchableOpacity
+        <UiButton
+          label="Guardar"
           onPress={() => void handleSave()}
           disabled={saving}
-          className="mt-2 items-center rounded-2xl bg-hercom py-3.5 disabled:opacity-60"
-        >
-          {saving ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text className="text-base font-bold text-white">Guardar</Text>
-          )}
-        </TouchableOpacity>
+          loading={saving}
+        />
         {message !== null && (
           <Text className="mt-2 text-center text-xs font-medium text-success">
             {message}
@@ -190,7 +177,7 @@ export function DriverPayoutConfig({
             {error}
           </Text>
         )}
-      </View>
+      </UiCard>
     </ScrollView>
   );
 }

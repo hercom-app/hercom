@@ -75,8 +75,8 @@ export default function App() {
 
   if (!fontsLoaded) {
     return (
-      <View className="flex-1 items-center justify-center bg-hercom">
-        <ActivityIndicator color="#FFFFFF" />
+      <View className="flex-1 items-center justify-center bg-canvas">
+        <ActivityIndicator color="#64748B" />
       </View>
     );
   }
@@ -85,11 +85,11 @@ export default function App() {
     <AppErrorBoundary>
       <ConvexAuthProvider client={convex} storage={secureStorage}>
         <SafeAreaProvider>
-          <SafeAreaView className="flex-1 bg-slate-100" edges={["left", "right"]}>
+          <SafeAreaView className="flex-1 bg-canvas" edges={["left", "right"]}>
             <LiveShareLinkListener />
             <AuthLoading>
-              <View className="flex-1 items-center justify-center bg-hercom">
-                <ActivityIndicator color="#FFFFFF" />
+              <View className="flex-1 items-center justify-center bg-canvas">
+                <ActivityIndicator color="#64748B" />
               </View>
             </AuthLoading>
             <Unauthenticated>

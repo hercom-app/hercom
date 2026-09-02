@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, View } from "react-native";
 import { AddressAutocomplete } from "./AddressAutocomplete";
 import { AppModal } from "./AppModal";
+import { UiButton } from "./ui";
 import type { SelectedPlace } from "../lib/googlePlaces";
 
 type LocationValue = {
@@ -104,15 +105,14 @@ export function EditTripLocationsModal({
       title="Editar ruta del viaje"
       onClose={onClose}
       footer={
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={saving || (originPlace === null && destPlace === null)}
-          className="mt-3 rounded-2xl bg-hercom py-4 disabled:opacity-60"
-        >
-          <Text className="text-center text-lg font-bold text-white">
-            {saving ? "Guardando..." : "Guardar cambios"}
-          </Text>
-        </TouchableOpacity>
+        <View className="mt-3">
+          <UiButton
+            label={saving ? "Guardando..." : "Guardar cambios"}
+            onPress={handleSave}
+            disabled={saving || (originPlace === null && destPlace === null)}
+            loading={saving}
+          />
+        </View>
       }
     >
       <Text className="mb-4 text-base text-slate-600">

@@ -130,9 +130,18 @@ export default defineSchema({
     role: userRoleValidator,
     /** Token Expo Push para notificaciones del sistema. */
     expoPushToken: v.optional(v.string()),
+    /** Identidad RENIEC (solo se escribe tras validar DNI). */
+    dni: v.optional(v.string()),
+    firstName: v.optional(v.string()),
+    firstLastName: v.optional(v.string()),
+    secondLastName: v.optional(v.string()),
+    /** Selfie de identidad del cliente (obligatoria para pedir servicio). */
+    selfieStorageId: v.optional(v.id("_storage")),
+    identityVerifiedAt: v.optional(v.number()),
   })
     .index("email", ["email"])
-    .index("phone", ["phone"]),
+    .index("phone", ["phone"])
+    .index("by_dni", ["dni"]),
 
   /**
    * Distritos asignados a un admin operativo.

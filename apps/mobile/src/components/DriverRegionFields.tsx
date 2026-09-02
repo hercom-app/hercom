@@ -25,8 +25,7 @@ type DriverRegionFieldsProps = {
 
 type PickerTarget = "country" | "level1" | "level2" | "level3" | null;
 
-const inputClass =
-  "rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3";
+const inputClass = "rounded-2xl bg-slate-100 px-4 py-3";
 
 export function DriverRegionFields({
   countryCode,
@@ -161,6 +160,9 @@ export function DriverRegionFields({
             className="max-h-[70%] rounded-t-3xl bg-white px-4 pb-8 pt-4"
             onPress={(event) => event.stopPropagation()}
           >
+            <View className="mb-2 items-center">
+              <View className="h-1 w-10 rounded-full bg-slate-300" />
+            </View>
             <Text className="mb-3 text-center text-base font-bold text-slate-900">
               Seleccionar
             </Text>

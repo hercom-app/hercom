@@ -19,16 +19,16 @@ export function AccountScreenShell({
 }: AccountScreenShellProps) {
   const insets = useSafeAreaInsets();
   return (
-    <View className="flex-1 bg-slate-100">
+    <View className="flex-1 bg-canvas">
       <View
         style={{ paddingTop: insets.top + 8 }}
-        className="flex-row items-center gap-3 border-b border-slate-200 bg-white px-4 pb-3"
+        className="flex-row items-center gap-3 border-b border-slate-100 bg-white/90 px-4 pb-3"
       >
         <HamburgerButton onPress={onOpenMenu} />
         <View className="min-w-0 flex-1">
-          <Text className="text-lg font-bold text-slate-900">{title}</Text>
+          <Text className="font-bold text-lg text-slate-900">{title}</Text>
           {subtitle !== undefined && subtitle !== "" && (
-            <Text className="mt-0.5 text-xs leading-4 text-slate-500">
+            <Text className="mt-0.5 text-sm leading-5 text-slate-500">
               {subtitle}
             </Text>
           )}

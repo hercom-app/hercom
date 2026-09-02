@@ -63,7 +63,7 @@ export function CarDamageCanvas({ marks, onChange }: Props) {
 
       <TouchableOpacity
         onPress={() => setExpanded(true)}
-        className="mt-3 rounded-xl bg-slate-900 py-3"
+        className="mt-3 rounded-xl bg-hercom py-3"
       >
         <Text className="text-center text-sm font-bold text-white">
           Ampliar diagrama a pantalla completa

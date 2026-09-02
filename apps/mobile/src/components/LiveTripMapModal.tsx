@@ -180,7 +180,7 @@ export function LiveTripMapModal({
 
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator color={HERCOM_COLORS.primary} />
+            <ActivityIndicator color="#64748B" />
             <Text className="mt-3 text-sm text-slate-500">
               Cargando ubicación…
             </Text>

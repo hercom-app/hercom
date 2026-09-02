@@ -4,7 +4,6 @@ import {
   Image,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -18,6 +17,8 @@ import {
 } from "../components/DriverRegionFields";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { OfficialDocumentHint } from "../components/OfficialDocumentHint";
+import { UiButton, UiCard, UiChip, UiInput } from "../components/ui";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   CONDUCTOR_RECORD_URL,
   CUL_INFO_URL,
@@ -55,6 +56,7 @@ export function DriverRegisterScreen({
   submitAsAuthenticated = false,
   onSubmitSuccess,
 }: DriverRegisterScreenProps) {
+  const insets = useSafeAreaInsets();
   const generateUploadUrl = useMutation(api.driverApplications.generateUploadUrl);
   const submitApplication = useMutation(api.driverApplications.submit);
   const lookupDni = useAction(api.reniec.lookupDni);
@@ -244,61 +246,58 @@ export function DriverRegisterScreen({
     setReadyForGoogle(true);
   }
 
-  const inputClass =
-    "rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900";
-
   return (
     <ScrollView
-      className="flex-1 bg-hercom"
-      contentContainerClassName="px-6 pb-10 pt-6"
+      className="flex-1 bg-canvas"
+      contentContainerStyle={{
+        paddingHorizontal: 20,
+        paddingTop: insets.top + 12,
+        paddingBottom: insets.bottom + 32,
+      }}
       keyboardShouldPersistTaps="handled"
     >
       <TouchableOpacity onPress={onBack} className="mb-4 self-start">
-        <Text className="text-sm font-semibold text-white">← Volver</Text>
+        <Text className="text-sm font-semibold text-slate-500">← Volver</Text>
       </TouchableOpacity>
 
-      <Text className="mb-6 text-xl font-bold text-white">
+      <Text className="mb-2 text-2xl font-bold text-slate-900">
         Registro de chofer
+      </Text>
+      <Text className="mb-6 text-sm leading-5 text-slate-500">
+        Valida tu DNI y adjunta tus documentos. Hercom revisará tu solicitud.
       </Text>
 
       {submitted ? (
-        <View className="rounded-3xl bg-white p-6 shadow-lg">
+        <UiCard>
           <Text className="text-center text-lg font-bold text-slate-900">
             Solicitud enviada
           </Text>
-          <Text className="mt-3 text-center text-sm leading-6 text-slate-600">
+          <Text className="mt-3 text-center text-sm leading-6 text-slate-500">
             Recibimos tu registro. El equipo de Hercom revisará tu información y
             documentos. Te avisaremos cuando tu perfil de chofer esté habilitado.
           </Text>
-          <TouchableOpacity
-            onPress={onBack}
-            className="mt-6 rounded-2xl bg-hercom py-3.5"
-          >
-            <Text className="text-center text-base font-bold text-white">
-              Volver al inicio
-            </Text>
-          </TouchableOpacity>
-        </View>
+          <View className="mt-6">
+            <UiButton label="Volver al inicio" onPress={onBack} />
+          </View>
+        </UiCard>
       ) : (
-      <View className="rounded-3xl bg-white p-5 shadow-lg">
-        {/* DNI — validación formal pendiente (Decolecta) */}
-        <Text className="mb-2 text-sm font-semibold text-slate-700">DNI</Text>
+      <UiCard>
+        <Text className="mb-2 text-sm font-semibold text-slate-500">DNI</Text>
         <View className="mb-3 flex-row gap-2">
-          <TextInput
+          <UiInput
             value={dni}
             onChangeText={(v) => setDni(v.replace(/\D/g, "").slice(0, 8))}
             placeholder="8 dígitos"
-            placeholderTextColor="#94A3B8"
             keyboardType="number-pad"
-            className={`${inputClass} flex-1`}
+            className="flex-1"
           />
           <TouchableOpacity
             onPress={() => void handleValidateDni()}
             disabled={validatingDni || dni.length !== 8}
-            className="items-center justify-center rounded-2xl bg-hercom px-4 disabled:opacity-50"
+            className="h-[52px] items-center justify-center rounded-2xl bg-hercom px-4 disabled:opacity-45"
           >
             {validatingDni ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text className="font-bold text-white">Validar</Text>
             )}
@@ -306,31 +305,13 @@ export function DriverRegisterScreen({
         </View>
 
         {dniValidated && (
-          <View className="mb-4 gap-2 rounded-2xl bg-surface-muted px-4 py-3">
-            <Text className="text-xs font-semibold uppercase text-slate-600">
-              Datos según RENIEC
+          <View className="mb-4 gap-2">
+            <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Según RENIEC
             </Text>
-            <TextInput
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholder="Nombres"
-              placeholderTextColor="#94A3B8"
-              className={inputClass}
-            />
-            <TextInput
-              value={firstLastName}
-              onChangeText={setFirstLastName}
-              placeholder="Apellido paterno"
-              placeholderTextColor="#94A3B8"
-              className={inputClass}
-            />
-            <TextInput
-              value={secondLastName}
-              onChangeText={setSecondLastName}
-              placeholder="Apellido materno"
-              placeholderTextColor="#94A3B8"
-              className={inputClass}
-            />
+            <ReniecRow label="Nombres" value={firstName} />
+            <ReniecRow label="Apellido paterno" value={firstLastName} />
+            <ReniecRow label="Apellido materno" value={secondLastName} />
           </View>
         )}
 
@@ -345,89 +326,63 @@ export function DriverRegisterScreen({
           onDistrictChange={setDistrict}
         />
 
-        <View className="mb-4 rounded-2xl bg-amber-50 px-4 py-3">
-          <Text className="text-xs leading-5 text-amber-900">
+        <View className="mb-4 rounded-2xl bg-slate-100 px-4 py-3">
+          <Text className="text-xs leading-5 text-slate-600">
             Tu zona de operación será validada por Hercom. Hasta entonces no podrás
             usar el modo conductor.
           </Text>
         </View>
 
-        {/* Brevete */}
-        <Text className="mb-2 text-sm font-semibold text-slate-700">
+        <Text className="mb-2 text-sm font-semibold text-slate-500">
           Número de brevete
         </Text>
-        <TextInput
+        <UiInput
           value={licenseNumber}
           onChangeText={setLicenseNumber}
           placeholder="Ej. Q12345678"
-          placeholderTextColor="#94A3B8"
-          className={`${inputClass} mb-4`}
+          className="mb-4"
         />
 
-        <Text className="mb-2 text-sm font-semibold text-slate-700">
+        <Text className="mb-2 text-sm font-semibold text-slate-500">
           Categoría de brevete
         </Text>
         <View className="mb-4 flex-row flex-wrap gap-2">
           {LICENSE_CATEGORIES.map((cat) => (
-            <TouchableOpacity
+            <UiChip
               key={cat}
+              label={cat}
+              selected={licenseCategory === cat}
               onPress={() => setLicenseCategory(cat)}
-              className={`rounded-xl border px-3 py-2 ${
-                licenseCategory === cat
-                  ? "border-hercom bg-hercom-soft"
-                  : "border-slate-200 bg-slate-50"
-              }`}
-            >
-              <Text
-                className={`text-sm font-semibold ${
-                  licenseCategory === cat ? "text-hercom" : "text-slate-600"
-                }`}
-              >
-                {cat}
-              </Text>
-            </TouchableOpacity>
+            />
           ))}
         </View>
 
-        {/* Sexo */}
-        <Text className="mb-2 text-sm font-semibold text-slate-700">Sexo</Text>
-        <View className="mb-4 flex-row gap-3">
+        <Text className="mb-2 text-sm font-semibold text-slate-500">Sexo</Text>
+        <View className="mb-4 flex-row gap-2">
           {(["M", "F"] as const).map((value) => (
-            <TouchableOpacity
+            <UiChip
               key={value}
+              label={value === "M" ? "Masculino" : "Femenino"}
+              selected={sex === value}
               onPress={() => setSex(value)}
-              className={`flex-1 rounded-2xl border py-3 ${
-                sex === value
-                  ? "border-hercom bg-hercom-soft"
-                  : "border-slate-200 bg-slate-50"
-              }`}
-            >
-              <Text
-                className={`text-center font-semibold ${
-                  sex === value ? "text-hercom" : "text-slate-600"
-                }`}
-              >
-                {value === "M" ? "Masculino" : "Femenino"}
-              </Text>
-            </TouchableOpacity>
+            />
           ))}
         </View>
 
-        {/* Fotos brevete */}
-        <Text className="mb-2 text-sm font-semibold text-slate-700">
+        <Text className="mb-2 text-sm font-semibold text-slate-500">
           Fotos del brevete
         </Text>
         <TouchableOpacity
           onPress={() => void handlePickLicensePhoto()}
           disabled={licensePhotos.length >= 3}
-          className="mb-2 rounded-2xl border border-dashed border-slate-300 py-4 disabled:opacity-50"
+          className="mb-2 rounded-2xl bg-slate-100 py-4 disabled:opacity-50"
         >
-          <Text className="text-center text-sm font-semibold text-hercom">
+          <Text className="text-center text-sm font-semibold text-slate-800">
             + Agregar foto ({licensePhotos.length}/3)
           </Text>
         </TouchableOpacity>
         <View className="mb-4 flex-row flex-wrap gap-2">
-          {licensePhotos.map((photo, index) => (
+          {licensePhotos.map((photo) => (
             <Image
               key={photo.uri}
               source={{ uri: photo.uri }}
@@ -444,9 +399,9 @@ export function DriverRegisterScreen({
         />
         <TouchableOpacity
           onPress={() => void handlePickPdf(setCulPdf)}
-          className="mb-6 rounded-2xl border border-dashed border-slate-300 py-4"
+          className="mb-6 rounded-2xl bg-slate-100 py-4"
         >
-          <Text className="text-center text-sm font-semibold text-hercom">
+          <Text className="text-center text-sm font-semibold text-slate-800">
             {culPdf !== null ? `✓ ${culPdf.name}` : "+ Subir PDF del CUL"}
           </Text>
         </TouchableOpacity>
@@ -459,9 +414,9 @@ export function DriverRegisterScreen({
         />
         <TouchableOpacity
           onPress={() => void handlePickPdf(setConductorRecordPdf)}
-          className="mb-6 rounded-2xl border border-dashed border-slate-300 py-4"
+          className="mb-6 rounded-2xl bg-slate-100 py-4"
         >
-          <Text className="text-center text-sm font-semibold text-hercom">
+          <Text className="text-center text-sm font-semibold text-slate-800">
             {conductorRecordPdf !== null
               ? `✓ ${conductorRecordPdf.name}`
               : "+ Subir PDF del récord de conductor"}
@@ -475,32 +430,21 @@ export function DriverRegisterScreen({
         )}
 
         {!readyForGoogle && !submitAsAuthenticated ? (
-          <TouchableOpacity
+          <UiButton
+            label="Continuar"
             onPress={() => void handlePrepareSubmit()}
             disabled={submitting}
-            className="rounded-2xl bg-hercom py-3.5 disabled:opacity-60"
-          >
-            <Text className="text-center text-base font-bold text-white">
-              Continuar
-            </Text>
-          </TouchableOpacity>
+          />
         ) : submitAsAuthenticated ? (
-          <TouchableOpacity
+          <UiButton
+            label="Enviar solicitud de chofer"
             onPress={() => void handlePrepareSubmit()}
             disabled={submitting}
-            className="rounded-2xl bg-hercom py-3.5 disabled:opacity-60"
-          >
-            {submitting ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text className="text-center text-base font-bold text-white">
-                Enviar solicitud de chofer
-              </Text>
-            )}
-          </TouchableOpacity>
+            loading={submitting}
+          />
         ) : (
           <View>
-            <Text className="mb-3 text-center text-sm text-slate-600">
+            <Text className="mb-3 text-center text-sm text-slate-500">
               Crea tu cuenta con Google para enviar la solicitud.
             </Text>
             <GoogleSignInButton
@@ -512,8 +456,17 @@ export function DriverRegisterScreen({
             />
           </View>
         )}
-      </View>
+      </UiCard>
       )}
     </ScrollView>
+  );
+}
+
+function ReniecRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="rounded-2xl bg-slate-50 px-4 py-3">
+      <Text className="text-xs text-slate-400">{label}</Text>
+      <Text className="mt-0.5 text-base font-medium text-slate-900">{value}</Text>
+    </View>
   );
 }

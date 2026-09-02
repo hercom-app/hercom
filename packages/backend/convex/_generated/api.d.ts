@@ -20,6 +20,7 @@ import type * as http from "../http.js";
 import type * as lib_adminAccess from "../lib/adminAccess.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_constants from "../lib/constants.js";
+import type * as lib_identity from "../lib/identity.js";
 import type * as lib_markets from "../lib/markets.js";
 import type * as lib_money from "../lib/money.js";
 import type * as lib_pricing from "../lib/pricing.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   "lib/adminAccess": typeof lib_adminAccess;
   "lib/auth": typeof lib_auth;
   "lib/constants": typeof lib_constants;
+  "lib/identity": typeof lib_identity;
   "lib/markets": typeof lib_markets;
   "lib/money": typeof lib_money;
   "lib/pricing": typeof lib_pricing;

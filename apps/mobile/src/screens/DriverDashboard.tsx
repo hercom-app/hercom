@@ -5,7 +5,6 @@ import {
   FlatList,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -32,6 +31,13 @@ import type { Id } from "@proyecto/backend/dataModel";
 import { ChecklistRecojoScreen } from "./ChecklistRecojoScreen";
 import { useDriverLiveTracking } from "../hooks/useDriverLiveTracking";
 import { LiveTripMapModal } from "../components/LiveTripMapModal";
+import {
+  UiButton,
+  UiCard,
+  UiChip,
+  UiEmpty,
+  UiInput,
+} from "../components/ui";
 
 const MIN_OFFER_PRICE = 80;
 
@@ -43,6 +49,7 @@ export function DriverDashboard() {
   const markAllNotificationsAsRead = useMutation(api.notifications.markAllAsRead);
   const [checklistServiceId, setChecklistServiceId] =
     useState<Id<"services"> | null>(null);
+  const me = useQuery(api.users.getMe);
   const driver = useQuery(api.drivers.getMyDriverProfile);
   const wallet = useQuery(
     api.driverWallets.getMine,
@@ -105,8 +112,8 @@ export function DriverDashboard() {
 
   if (driver === undefined) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-100">
-        <ActivityIndicator color="#007AFF" />
+      <View className="flex-1 items-center justify-center bg-canvas">
+        <ActivityIndicator color="#64748B" />
       </View>
     );
   }
@@ -201,6 +208,7 @@ export function DriverDashboard() {
       visible={menuOpen}
       onClose={() => setMenuOpen(false)}
       userName={userName}
+      avatarUrl={me?.selfieUrl}
       unreadCount={unreadNotifications}
       activeItem={menuSection}
       onSelectItem={(key) => {
@@ -229,7 +237,7 @@ export function DriverDashboard() {
   }
 
   return (
-    <View className="flex-1 bg-slate-100" style={{ paddingTop: insets.top + 8 }}>
+    <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top + 8 }}>
       <View className="mb-4 flex-row items-center gap-3 px-4">
         <HamburgerButton onPress={() => setMenuOpen(true)} />
         <View className="flex-1">
@@ -243,8 +251,8 @@ export function DriverDashboard() {
           <DriverEarningsView />
         ) : menuSection === "saldo" ? (
           <ScrollView showsVerticalScrollIndicator={false}>
-            <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
-              <Text className="text-xs font-semibold uppercase text-slate-500">
+            <UiCard>
+              <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Saldo de app
               </Text>
               <Text className="mt-1 text-2xl font-bold text-slate-900">
@@ -259,46 +267,33 @@ export function DriverDashboard() {
                 </Text>
               )}
 
-              <View className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <Text className="mb-2 text-xs font-semibold text-slate-600">
+              <View className="mt-4">
+                <Text className="mb-2 text-xs font-semibold text-slate-500">
                   Monto a recargar
                 </Text>
-                <View className="mb-2 flex-row gap-2">
+                <View className="mb-3 flex-row gap-2">
                   {[10, 20, 50].map((quickAmount) => (
-                    <TouchableOpacity
+                    <UiChip
                       key={quickAmount}
+                      label={`S/${quickAmount}`}
+                      selected={topUpAmount === String(quickAmount)}
                       onPress={() => setTopUpAmount(String(quickAmount))}
-                      className="rounded-lg border border-slate-300 bg-white px-2 py-1"
-                    >
-                      <Text className="text-xs font-semibold text-slate-700">
-                        S/{quickAmount}
-                      </Text>
-                    </TouchableOpacity>
+                    />
                   ))}
                 </View>
-                <View className="flex-row items-center gap-2">
-                  <TextInput
-                    value={topUpAmount}
-                    onChangeText={setTopUpAmount}
-                    placeholder="Monto en S/"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="decimal-pad"
-                    className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
-                  />
-                  <TouchableOpacity
-                    onPress={() => void handleTopUp()}
-                    disabled={topUpSubmitting}
-                    className="rounded-xl bg-hercom px-3 py-2 active:opacity-90 disabled:opacity-60"
-                  >
-                    {topUpSubmitting ? (
-                      <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                      <Text className="text-xs font-bold uppercase text-white">
-                        Recargar
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
+                <UiInput
+                  value={topUpAmount}
+                  onChangeText={setTopUpAmount}
+                  placeholder="Monto en S/"
+                  keyboardType="decimal-pad"
+                  className="mb-3"
+                />
+                <UiButton
+                  label="Recargar"
+                  onPress={() => void handleTopUp()}
+                  disabled={topUpSubmitting}
+                  loading={topUpSubmitting}
+                />
                 {topUpMessage !== null && (
                   <Text className="mt-2 text-xs font-medium text-success">
                     {topUpMessage}
@@ -312,16 +307,16 @@ export function DriverDashboard() {
               </View>
 
               {(walletTransactions ?? []).length > 0 && (
-                <View className="mt-4">
-                  <Text className="mb-1 text-xs font-semibold text-slate-500">
+                <View className="mt-5">
+                  <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
                     Movimientos recientes
                   </Text>
                   {(walletTransactions ?? []).map((tx) => (
-                    <View key={tx._id} className="flex-row justify-between py-0.5">
+                    <View key={tx._id} className="flex-row justify-between py-1.5">
                       <Text className="text-xs text-slate-600">
                         {tx.type === "top_up" ? "Recarga" : "Comisión"}
                       </Text>
-                      <Text className="text-xs font-semibold text-slate-700">
+                      <Text className="text-xs font-semibold text-slate-800">
                         {tx.type === "commission_debit" ? "- " : "+ "}S/
                         {tx.amount.toFixed(2)}
                       </Text>
@@ -329,14 +324,14 @@ export function DriverDashboard() {
                   ))}
                 </View>
               )}
-            </View>
+            </UiCard>
           </ScrollView>
         ) : menuSection === "configuracion" ? (
           <DriverPayoutConfig driver={driver} fallbackName={userName} />
         ) : menuSection === "notificaciones" ? (
           <ScrollView showsVerticalScrollIndicator={false}>
-            <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
-              <View className="mb-2 flex-row items-center justify-between">
+            <UiCard>
+              <View className="mb-3 flex-row items-center justify-between">
                 <Text className="text-sm font-bold text-slate-900">
                   {unreadNotifications} sin leer
                 </Text>
@@ -347,14 +342,12 @@ export function DriverDashboard() {
                 </TouchableOpacity>
               </View>
               {(notifications ?? []).length === 0 ? (
-                <Text className="text-xs text-slate-500">
-                  Aún no tienes notificaciones.
-                </Text>
+                <UiEmpty title="Aún no tienes notificaciones." />
               ) : (
                 (notifications ?? []).map((notification) => (
                   <View
                     key={notification._id}
-                    className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-3"
+                    className="mb-2 rounded-2xl bg-slate-50 p-3"
                   >
                     <Text className="text-xs font-semibold text-slate-800">
                       {notification.title}
@@ -365,14 +358,14 @@ export function DriverDashboard() {
                   </View>
                 ))
               )}
-            </View>
+            </UiCard>
           </ScrollView>
         ) : (
           <>
             <AvailabilityToggle status={driver.status} />
 
-            <View className="mb-3 flex-row items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-sm">
-              <Text className="text-sm text-slate-600">Saldo</Text>
+            <View className="mb-3 flex-row items-center justify-between rounded-3xl bg-white px-4 py-3">
+              <Text className="text-sm text-slate-500">Saldo</Text>
               <TouchableOpacity onPress={() => setMenuSection("saldo")}>
                 <Text className="text-base font-bold text-slate-900">
                   S/{(wallet?.balance ?? 0).toFixed(2)} ›
@@ -381,14 +374,13 @@ export function DriverDashboard() {
             </View>
 
             {(menuSection === "ofertas" || menuSection === "servicios") && (
-              <View className="mb-4 overflow-hidden rounded-2xl bg-white p-4 shadow-sm">
-                <Text className="mb-2 text-sm font-bold text-slate-900">
-                  Solicitudes para ofertar
-                </Text>
-                {(openServices ?? []).length === 0 ? (
-                  <Text className="text-xs text-slate-500">
-                    No hay solicitudes pendientes para ofertar.
+              <View className="mb-4 overflow-hidden">
+                <UiCard>
+                  <Text className="mb-2 text-sm font-bold text-slate-900">
+                    Solicitudes para ofertar
                   </Text>
+                {(openServices ?? []).length === 0 ? (
+                  <UiEmpty title="No hay solicitudes pendientes para ofertar." />
                 ) : (
                   <View className="relative">
                     <View
@@ -408,7 +400,7 @@ export function DriverDashboard() {
                         return (
                           <View
                             key={service._id}
-                            className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-3"
+                            className="mb-2 rounded-2xl bg-slate-50 p-3"
                           >
                             <Text className="text-xs text-slate-600">
                               Tarifa lista: S/{minPrice.toFixed(2)}
@@ -425,7 +417,7 @@ export function DriverDashboard() {
                               )}
                             </Text>
                             {alreadyOffered !== undefined ? (
-                              <View className="mt-2 rounded-xl border border-hercom/30 bg-white px-3 py-2">
+                              <View className="mt-2 rounded-2xl border border-hercom/30 bg-hercom-soft px-3 py-2">
                                 <Text className="text-xs font-semibold text-hercom">
                                   Ya ofertaste S/{alreadyOffered.toFixed(2)}
                                 </Text>
@@ -435,7 +427,7 @@ export function DriverDashboard() {
                               </View>
                             ) : (
                               <View className="mt-2 flex-row items-center gap-2">
-                                <TextInput
+                                <UiInput
                                   value={
                                     offerByService[service._id] ?? defaultOffer
                                   }
@@ -462,12 +454,14 @@ export function DriverDashboard() {
                                   }}
                                   editable={canAfford && isAvailable}
                                   placeholder={`Oferta >= S/${floorPrice.toFixed(0)}`}
-                                  placeholderTextColor="#94A3B8"
                                   keyboardType="decimal-pad"
-                                  className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                                  className="flex-1 py-2.5"
                                 />
-                                <TouchableOpacity
-                                  onPress={() => {
+                                <View>
+                                  <UiButton
+                                    label="Ofertar"
+                                    size="md"
+                                    onPress={() => {
                                     if (!isAvailable || !canAfford) {
                                       return;
                                     }
@@ -535,22 +529,15 @@ export function DriverDashboard() {
                                         );
                                       })
                                       .finally(() => setOfferingServiceId(null));
-                                  }}
-                                  disabled={
-                                    offeringServiceId === service._id ||
-                                    !canAfford ||
-                                    !isAvailable
-                                  }
-                                  className="rounded-xl bg-hercom px-3 py-2 disabled:opacity-60"
-                                >
-                                  {offeringServiceId === service._id ? (
-                                    <ActivityIndicator color="#FFFFFF" />
-                                  ) : (
-                                    <Text className="text-xs font-bold uppercase text-white">
-                                      Ofertar
-                                    </Text>
-                                  )}
-                                </TouchableOpacity>
+                                    }}
+                                    disabled={
+                                      offeringServiceId === service._id ||
+                                      !canAfford ||
+                                      !isAvailable
+                                    }
+                                    loading={offeringServiceId === service._id}
+                                  />
+                                </View>
                               </View>
                             )}
                           </View>
@@ -563,14 +550,14 @@ export function DriverDashboard() {
                           {offersLockReason}
                         </Text>
                         {lacksBalance && isAvailable && (
-                          <TouchableOpacity
-                            onPress={() => setMenuSection("saldo")}
-                            className="mt-3 rounded-xl bg-white px-4 py-2"
-                          >
-                            <Text className="text-xs font-bold text-slate-900">
-                              Ir a recargar saldo
-                            </Text>
-                          </TouchableOpacity>
+                          <View className="mt-3">
+                            <UiButton
+                              label="Ir a recargar saldo"
+                              variant="secondary"
+                              size="md"
+                              onPress={() => setMenuSection("saldo")}
+                            />
+                          </View>
                         )}
                       </View>
                     )}
@@ -581,6 +568,7 @@ export function DriverDashboard() {
                     {offerError}
                   </Text>
                 )}
+                </UiCard>
               </View>
             )}
 
@@ -596,9 +584,10 @@ export function DriverDashboard() {
                   />
                 )}
                 ListEmptyComponent={
-                  <Text className="mt-8 text-center text-sm text-slate-500">
-                    No tienes servicios activos por ahora.
-                  </Text>
+                  <UiEmpty
+                    title="No tienes servicios activos por ahora."
+                    subtitle="Cuando acepten una oferta, el viaje aparece aquí."
+                  />
                 }
                 showsVerticalScrollIndicator={false}
               />

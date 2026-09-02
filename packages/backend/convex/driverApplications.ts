@@ -5,6 +5,7 @@ import type { MutationCtx } from "./_generated/server";
 import { normalizeCountryCode } from "./data/countryCatalog";
 import { driverApplicationStatusValidator, sexValidator } from "./schema";
 import { requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
+import { assertDniAvailable } from "./lib/identity";
 import { getAccessContext, originMatchesDistrictScopes } from "./lib/adminAccess";
 import { ensureWallet } from "./driverWallets";
 
@@ -99,26 +100,27 @@ export const submit = mutation({
       throw new Error("Sube al menos una foto del brevete.");
     }
 
-    const dniTaken = await ctx.db
-      .query("driverApplications")
-      .withIndex("by_dni", (q) => q.eq("dni", dni))
-      .filter((q) =>
-        q.or(
-          q.eq(q.field("status"), "pending"),
-          q.eq(q.field("status"), "approved"),
-        ),
-      )
-      .first();
-    if (dniTaken !== null && dniTaken.userId !== user._id) {
-      throw new Error("Este DNI ya tiene una solicitud registrada.");
-    }
+    await assertDniAvailable(ctx, dni, user._id);
+
+    const firstName = args.firstName.trim();
+    const firstLastName = args.firstLastName.trim();
+    const secondLastName = args.secondLastName.trim();
+    const fullName = `${firstLastName} ${secondLastName} ${firstName}`.trim();
+
+    await ctx.db.patch(user._id, {
+      dni,
+      firstName,
+      firstLastName,
+      secondLastName,
+      name: fullName,
+    });
 
     return await ctx.db.insert("driverApplications", {
       userId: user._id,
       dni,
-      firstName: args.firstName.trim(),
-      firstLastName: args.firstLastName.trim(),
-      secondLastName: args.secondLastName.trim(),
+      firstName,
+      firstLastName,
+      secondLastName,
       sex: args.sex,
       licenseNumber: args.licenseNumber.trim(),
       licenseCategory: args.licenseCategory,
@@ -163,7 +165,13 @@ async function createDriverFromApplication(
     district: application.district ?? "",
   });
   await ensureWallet(ctx, driverId);
-  await ctx.db.patch(application.userId, { name: fullName });
+  await ctx.db.patch(application.userId, {
+    name: fullName,
+    dni: application.dni,
+    firstName: application.firstName,
+    firstLastName: application.firstLastName,
+    secondLastName: application.secondLastName,
+  });
   return driverId;
 }
 

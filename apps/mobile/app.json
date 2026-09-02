@@ -21,6 +21,7 @@
       },
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Hercom pedirá acceso a tu ubicación cuando pulses «Usar mi ubicación actual» para completar el punto de recojo.",
+        "NSCameraUsageDescription": "Hercom necesita la cámara para la foto selfie de tu identidad.",
         "LSApplicationQueriesSchemes": [
           "waze"
         ]
@@ -39,6 +40,7 @@
         }
       },
       "permissions": [
+        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
@@ -51,7 +53,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Hercom necesita acceso a fotos para subir imágenes del brevete."
+          "photosPermission": "Hercom necesita acceso a fotos para subir imágenes del brevete.",
+          "cameraPermission": "Hercom necesita la cámara para la foto selfie de tu identidad."
         }
       ],
       [

@@ -51,8 +51,8 @@ export function PendingRegistrationSubmit({
 
   if (processing) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-100 px-6">
-        <ActivityIndicator color="#007AFF" size="large" />
+      <View className="flex-1 items-center justify-center bg-canvas px-6">
+        <ActivityIndicator color="#64748B" size="large" />
         <Text className="mt-4 text-center text-sm text-slate-600">
           Enviando tu solicitud de chofer…
         </Text>
@@ -65,7 +65,7 @@ export function PendingRegistrationSubmit({
 
   if (error !== null) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-100 px-6">
+      <View className="flex-1 items-center justify-center bg-canvas px-6">
         <Text className="mb-2 text-center text-base font-semibold text-red-600">
           Error al registrar
         </Text>

@@ -1,61 +1,49 @@
-import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { useMutation, useQuery } from "convex/react";
+import { useState } from "react";
+import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import { AccountScreenShell } from "../components/AccountScreenShell";
+import { UiCard, CARD_SHADOW } from "../components/ui";
 import { LegalDocumentModal } from "../components/LegalDocumentModal";
 import { PRIVACY_POLICY, TERMS_OF_USE } from "../constants/legalCopy";
-import { convexErrorMessage } from "../lib/convexErrorMessage";
+import { ClientIdentityForm } from "./ClientIdentityForm";
 
 type ClientSettingsScreenProps = {
   onOpenMenu: () => void;
 };
 
-/** Nombre, teléfono, correo (solo lectura) y documentos legales. */
+function ReadOnlyField({
+  label,
+  value,
+  last = false,
+}: {
+  label: string;
+  value: string | undefined;
+  last?: boolean;
+}) {
+  const display = value !== undefined && value.trim() !== "" ? value : "—";
+  return (
+    <View className={last ? "" : "mb-3"}>
+      <Text className="mb-1.5 text-xs font-semibold text-slate-500">{label}</Text>
+      <View className="rounded-2xl bg-slate-100 px-4 py-3.5">
+        <Text className="text-base text-slate-900">{display}</Text>
+      </View>
+    </View>
+  );
+}
+
+/** Identidad RENIEC y correo: solo lectura. */
 export function ClientSettingsScreen({ onOpenMenu }: ClientSettingsScreenProps) {
   const me = useQuery(api.users.getMe);
-  const updateProfile = useMutation(api.users.updateProfile);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [hydrated, setHydrated] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [legal, setLegal] = useState<"terms" | "privacy" | null>(null);
 
-  useEffect(() => {
-    if (me === undefined || me === null || hydrated) {
-      return;
-    }
-    setName(me.name ?? "");
-    setPhone(me.phone ?? "");
-    setHydrated(true);
-  }, [hydrated, me]);
-
-  async function handleSave() {
-    const nextName = name.trim();
-    if (nextName === "") {
-      Alert.alert("Nombre", "Escribe cómo quieres que te veamos en la app.");
-      return;
-    }
-    setSaving(true);
-    try {
-      await updateProfile({
-        name: nextName,
-        phone: phone.trim(),
-      });
-      Alert.alert("Listo", "Tus datos se actualizaron.");
-    } catch (error) {
-      Alert.alert("No se pudo guardar", convexErrorMessage(error));
-    } finally {
-      setSaving(false);
-    }
+  if (me !== undefined && me !== null && me.identityComplete !== true) {
+    return (
+      <ClientIdentityForm
+        onOpenMenu={onOpenMenu}
+        title="Mi Información"
+      />
+    );
   }
 
   return (
@@ -63,61 +51,38 @@ export function ClientSettingsScreen({ onOpenMenu }: ClientSettingsScreenProps) 
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        keyboardShouldPersistTaps="handled"
       >
-        <View className="rounded-2xl border border-slate-100 bg-white p-4">
-          {me === undefined || me === null || !hydrated ? (
-            <ActivityIndicator color="#64748B" />
+        <UiCard>
+          {me === undefined || me === null ? (
+            <Text className="text-sm text-slate-400">Cargando…</Text>
           ) : (
             <>
-              <Text className="mb-1.5 text-xs font-semibold text-slate-600">
-                Nombre
-              </Text>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Tu nombre"
-                placeholderTextColor="#94A3B8"
-                className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
+              <ReadOnlyField label="DNI" value={me.dni} />
+              <ReadOnlyField label="Nombres" value={me.firstName} />
+              <ReadOnlyField label="Apellido paterno" value={me.firstLastName} />
+              <ReadOnlyField
+                label="Apellido materno"
+                value={me.secondLastName}
               />
-              <Text className="mb-1.5 text-xs font-semibold text-slate-600">
-                Teléfono
-              </Text>
-              <TextInput
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="Ej. 999 888 777"
-                placeholderTextColor="#94A3B8"
-                keyboardType="phone-pad"
-                className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
-              />
-              <Text className="mb-1.5 text-xs font-semibold text-slate-600">
-                Correo
-              </Text>
-              <TextInput
-                value={me.email ?? ""}
-                editable={false}
-                selectTextOnFocus={false}
-                className="rounded-xl border border-slate-200 bg-slate-200 px-4 py-3 text-base text-slate-400"
-              />
-              <TouchableOpacity
-                onPress={() => void handleSave()}
-                disabled={saving}
-                className="mt-4 items-center rounded-xl bg-hercom py-3.5 disabled:opacity-60"
-              >
-                {saving ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text className="text-sm font-bold text-white">
-                    Guardar cambios
+              {me.selfieUrl !== null && me.selfieUrl !== undefined && (
+                <View className="mb-3">
+                  <Text className="mb-1.5 text-xs font-semibold text-slate-500">
+                    Selfie
                   </Text>
-                )}
-              </TouchableOpacity>
+                  <Image
+                    source={{ uri: me.selfieUrl }}
+                    style={{ width: 112, height: 160, borderRadius: 16 }}
+                    className="bg-slate-200"
+                  />
+                </View>
+              )}
+              <ReadOnlyField label="Correo" value={me.email} />
+              <ReadOnlyField label="Teléfono" value={me.phone} last />
             </>
           )}
-        </View>
+        </UiCard>
 
-        <View className="mt-4 rounded-2xl border border-slate-100 bg-white p-1">
+        <View className="mt-4 overflow-hidden rounded-3xl bg-white p-1" style={CARD_SHADOW}>
           <TouchableOpacity
             onPress={() => setLegal("terms")}
             className="px-3 py-3.5"

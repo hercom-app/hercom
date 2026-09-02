@@ -17,8 +17,8 @@ type AdvancePayoutModalProps = {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <View className="mb-3 border-b border-slate-100 pb-3">
-      <Text className="mb-1 text-base font-semibold text-slate-500">{label}</Text>
+    <View className="mb-3 rounded-2xl bg-slate-50 px-4 py-3">
+      <Text className="mb-1 text-xs font-semibold text-slate-500">{label}</Text>
       <Text selectable className="text-lg font-semibold text-slate-900">
         {value !== "" ? value : "—"}
       </Text>

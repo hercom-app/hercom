@@ -1,6 +1,7 @@
 import type { Id } from "@proyecto/backend/dataModel";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, View } from "react-native";
 import { AppModal } from "./AppModal";
+import { UiButton } from "./ui";
 
 export type DriverOfferInfo = {
   _id: Id<"serviceOffers">;
@@ -37,15 +38,14 @@ export function DriverOfferModal({
       onClose={onClose}
       footer={
         offer !== null ? (
-          <TouchableOpacity
-            onPress={onAccept}
-            disabled={accepting}
-            className="mt-3 rounded-2xl bg-hercom py-4 disabled:opacity-60"
-          >
-            <Text className="text-center text-lg font-bold text-white">
-              {accepting ? "Confirmando..." : "Elegir este chofer"}
-            </Text>
-          </TouchableOpacity>
+          <View className="mt-3">
+            <UiButton
+              label={accepting ? "Confirmando..." : "Elegir este chofer"}
+              onPress={onAccept}
+              disabled={accepting}
+              loading={accepting}
+            />
+          </View>
         ) : null
       }
     >
@@ -72,7 +72,7 @@ export function DriverOfferModal({
             <Info label="Placa" value={offer.driverPlate} />
           )}
           <View className="mt-2 rounded-2xl bg-hercom-soft p-4">
-            <Text className="text-base font-semibold text-slate-600">
+            <Text className="text-sm font-semibold text-slate-600">
               Tarifa ofertada
             </Text>
             <Text className="text-2xl font-bold text-hercom">
@@ -91,7 +91,7 @@ export function DriverOfferModal({
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <View className="mb-3">
-      <Text className="text-base font-semibold text-slate-500">{label}</Text>
+      <Text className="text-sm font-semibold text-slate-500">{label}</Text>
       <Text className="text-lg font-semibold text-slate-900">{value}</Text>
     </View>
   );

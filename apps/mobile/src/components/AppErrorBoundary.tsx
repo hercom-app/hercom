@@ -40,7 +40,7 @@ export class AppErrorBoundary extends Component<
     }
 
     return (
-      <View className="flex-1 items-center justify-center bg-slate-100 px-6">
+      <View className="flex-1 items-center justify-center bg-canvas px-6">
         <View className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-lg">
           <Text className="mb-2 text-center text-lg font-bold text-slate-900">
             Ocurrió un error
@@ -50,9 +50,9 @@ export class AppErrorBoundary extends Component<
           </Text>
           <TouchableOpacity
             onPress={this.handleRetry}
-            className="mt-5 rounded-2xl bg-hercom py-3"
+            className="mt-5 h-14 items-center justify-center rounded-2xl bg-hercom"
           >
-            <Text className="text-center text-sm font-semibold text-white">
+            <Text className="text-center text-base font-bold text-white">
               Reintentar
             </Text>
           </TouchableOpacity>

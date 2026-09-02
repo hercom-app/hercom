@@ -60,18 +60,6 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    id: "support",
-    label: "Soporte",
-    description: "Mensajería con la app",
-    icon: (
-      <NavIcon>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <path d="M5 6h14a2 2 0 012 2v7a2 2 0 01-2 2H9l-4 3v-3H5a2 2 0 01-2-2V8a2 2 0 012-2z" />
-        </svg>
-      </NavIcon>
-    ),
-  },
-  {
     id: "topups",
     label: "Recargas",
     description: "Billeteras chofer",
@@ -123,13 +111,25 @@ const NAV_ITEMS: NavItem[] = [
       </NavIcon>
     ),
   },
+  {
+    id: "support",
+    label: "Soporte",
+    description: "Chats de la app",
+    icon: (
+      <NavIcon>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+          <path d="M5 6h14a2 2 0 012 2v7a2 2 0 01-2 2H9l-4 3v-3H5a2 2 0 01-2-2V8a2 2 0 012-2z" />
+        </svg>
+      </NavIcon>
+    ),
+  },
 ];
 
 const SCOPED_ADMIN_SECTIONS: AdminSection[] = [
   "drivers",
   "services",
-  "support",
   "clients",
+  "support",
 ];
 
 export const SECTION_META: Record<

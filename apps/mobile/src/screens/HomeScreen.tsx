@@ -21,8 +21,8 @@ export function HomeScreen() {
 
   if (driver === undefined) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-100">
-        <ActivityIndicator color="#007AFF" />
+      <View className="flex-1 items-center justify-center bg-canvas">
+        <ActivityIndicator color="#64748B" />
       </View>
     );
   }

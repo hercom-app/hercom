@@ -28,7 +28,9 @@ import { RateServiceStars } from "../components/RateServiceStars";
 import { SideDrawer } from "../components/SideDrawer";
 import { ClientSecurityScreen } from "./ClientSecurityScreen";
 import { ClientSettingsScreen } from "./ClientSettingsScreen";
+import { ClientIdentityForm } from "./ClientIdentityForm";
 import { SupportChatScreen } from "./SupportChatScreen";
+import { UiButton, UiCard, UiChip, UiEmpty, SHEET_SHADOW } from "../components/ui";
 import { LiveTripMapModal } from "../components/LiveTripMapModal";
 import {
   addressDraftFromText,
@@ -47,6 +49,7 @@ import { formatServiceStopsLabel } from "../lib/wazeNavigation";
 import { useAppMode } from "../contexts/AppModeContext";
 import { HERCOM_COLORS } from "../constants/theme";
 import { useAndroidBackHandler } from "../hooks/useAndroidBackHandler";
+import { convexErrorMessage } from "../lib/convexErrorMessage";
 import * as Location from "expo-location";
 
 const DEFAULT_HOURLY_SERVICE_RATE = 40;
@@ -157,17 +160,11 @@ function ClientServiceCard({
   }
 
   return (
-    <View className="mb-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-      <View className="mb-2 flex-row items-center justify-between">
-        <View className="flex-row items-center gap-2">
-          <Text className="text-sm font-semibold uppercase text-hercom">
-            {STATUS_LABELS[service.status]}
-          </Text>
-          {(service.serviceType ?? "app") === "app" && (
-            <Text className="rounded-full bg-hercom-soft px-2 py-0.5 text-xs font-semibold text-hercom-dark">
-              App
-            </Text>
-          )}
+    <UiCard className="mb-3">
+      <View className="mb-3 flex-row items-center justify-between gap-2">
+        <View className="flex-row flex-wrap items-center gap-2">
+          <UiChip label={STATUS_LABELS[service.status]} />
+          {(service.serviceType ?? "app") === "app" && <UiChip label="App" />}
         </View>
         <Text className="text-base font-bold text-slate-900">
           {service.offeredPrice !== undefined
@@ -175,66 +172,65 @@ function ClientServiceCard({
             : "Sin acordar"}
         </Text>
       </View>
-      <Text className="mb-1 text-base text-slate-600">
+      <Text className="mb-1 text-sm text-slate-500">
         {service.offeredPrice !== undefined
           ? `Tarifa acordada: S/${service.offeredPrice.toFixed(2)}`
           : "Esperando acuerdo de tarifa"}
       </Text>
-      <Text className="mb-1 text-base font-medium text-slate-800">
+      <Text className="mb-1 text-sm font-medium text-slate-800">
         {service.driverName !== undefined
           ? `Chofer: ${service.driverName}`
           : "Sin chofer asignado"}
       </Text>
       {service.promotionName !== undefined && (
-        <Text className="mb-1 text-base font-semibold text-hercom-dark">
+        <Text className="mb-1 text-sm font-semibold text-slate-700">
           Promo: {service.promotionName}
         </Text>
       )}
-      <Text className="text-base text-slate-700">
+      <Text className="text-sm text-slate-700">
         {service.origin.address} →{" "}
         {formatServiceStopsLabel(service.destination, service.extraDestinations)}
       </Text>
       {canShowLive && (
-        <TouchableOpacity
-          onPress={() => setLiveMapOpen(true)}
-          className="mt-3 rounded-xl bg-hercom py-3"
-        >
-          <Text className="text-center text-base font-bold text-white">
-            Ver chofer en vivo · Compartir viaje
-          </Text>
-        </TouchableOpacity>
+        <View className="mt-3">
+          <UiButton
+            label="Ver chofer en vivo · Compartir viaje"
+            size="md"
+            onPress={() => setLiveMapOpen(true)}
+          />
+        </View>
       )}
       {inProgress && (
-        <TouchableOpacity
-          onPress={() => {
-            setRouteError(null);
-            setEditRouteOpen(true);
-          }}
-          className="mt-3 rounded-xl border border-hercom py-3"
-        >
-          <Text className="text-center text-base font-semibold text-hercom">
-            Editar partida o destino
-          </Text>
-        </TouchableOpacity>
+        <View className="mt-3">
+          <UiButton
+            label="Editar partida o destino"
+            variant="secondary"
+            size="md"
+            onPress={() => {
+              setRouteError(null);
+              setEditRouteOpen(true);
+            }}
+          />
+        </View>
       )}
       {service.status === "assigned" && service.offeredPrice !== undefined && (
-        <View className="mt-3 rounded-xl bg-surface-muted p-4">
+        <View className="mt-3 rounded-2xl bg-slate-50 p-4">
           <Text className="text-lg font-bold text-slate-900">
             Anticipo: S/{advanceAmount.toFixed(2)}
           </Text>
-          <Text className="mt-1 text-base text-slate-600">
+          <Text className="mt-1 text-sm text-slate-500">
             Transfiere el 25% de la tarifa al chofer antes de que salga.
           </Text>
-          <TouchableOpacity
-            onPress={() => setPayoutOpen(true)}
-            className="mt-3 rounded-xl bg-white py-3"
-          >
-            <Text className="text-center text-base font-bold text-hercom">
-              Ver datos para transferir
-            </Text>
-          </TouchableOpacity>
+          <View className="mt-3">
+            <UiButton
+              label="Ver datos para transferir"
+              variant="secondary"
+              size="md"
+              onPress={() => setPayoutOpen(true)}
+            />
+          </View>
           {advanceConfirmed && (
-            <Text className="mt-3 text-base font-semibold text-success">
+            <Text className="mt-3 text-sm font-semibold text-success">
               ✓ El chofer confirmó que recibió el anticipo
             </Text>
           )}
@@ -243,22 +239,22 @@ function ClientServiceCard({
       {service.securityCode !== undefined &&
         service.status !== "finished" &&
         service.status !== "cancelled" && (
-          <View className="mt-3 rounded-xl bg-hercom-soft p-4">
-            <Text className="text-base text-hercom-dark">
+          <View className="mt-3 rounded-2xl bg-hercom-soft p-4">
+            <Text className="text-sm text-hercom-dark">
               Código de seguridad para iniciar viaje:{" "}
               <Text className="font-bold text-slate-900">{service.securityCode}</Text>
             </Text>
           </View>
         )}
       {service.status === "pending" && (
-        <View className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <Text className="mb-2 text-base font-semibold text-slate-600">
+        <View className="mt-3 rounded-2xl bg-slate-50 p-3">
+          <Text className="mb-2 text-sm font-semibold text-slate-700">
             Ofertas de choferes
           </Text>
           {offers === undefined ? (
-            <Text className="text-base text-slate-500">Cargando ofertas...</Text>
+            <Text className="text-sm text-slate-500">Cargando ofertas...</Text>
           ) : offers.length === 0 ? (
-            <Text className="text-base text-slate-500">
+            <Text className="text-sm text-slate-500">
               Aún no hay ofertas para este servicio.
             </Text>
           ) : (
@@ -280,9 +276,9 @@ function ClientServiceCard({
                       driverColor: offer.driverColor,
                     });
                   }}
-                  className="mb-2 rounded-lg border border-slate-200 bg-white p-3"
+                  className="mb-2 rounded-2xl bg-white p-3"
                 >
-                  <Text className="text-base font-semibold text-slate-800">
+                  <Text className="text-sm font-semibold text-slate-800">
                     {offer.driverName} · {offer.driverRating.toFixed(1)}★
                     {offer.driverTrips > 0
                       ? ` · ${offer.driverTrips} viajes`
@@ -291,14 +287,14 @@ function ClientServiceCard({
                   <Text className="mt-1 text-lg font-bold text-slate-900">
                     S/{offer.offeredPrice.toFixed(2)}
                   </Text>
-                  <Text className="mt-1 text-base font-semibold text-hercom">
+                  <Text className="mt-1 text-sm font-semibold text-hercom">
                     Ver chofer
                   </Text>
                 </TouchableOpacity>
               ))
           )}
           {offerError !== null && selectedOffer === null && (
-            <Text className="mt-1 text-base font-medium text-red-600">{offerError}</Text>
+            <Text className="mt-1 text-sm font-medium text-red-600">{offerError}</Text>
           )}
         </View>
       )}
@@ -326,7 +322,7 @@ function ClientServiceCard({
         />
       )}
       {service.status === "finished" && service.clientRating !== undefined && (
-        <Text className="mt-3 text-base font-semibold text-slate-700">
+        <Text className="mt-3 text-sm font-semibold text-slate-700">
           Valoraste este viaje con {service.clientRating}★
         </Text>
       )}
@@ -334,9 +330,9 @@ function ClientServiceCard({
         <TouchableOpacity
           onPress={() => void handleCancel()}
           disabled={cancelling}
-          className="mt-3 rounded-xl border border-red-200 py-3 disabled:opacity-60"
+          className="mt-3 rounded-2xl border border-red-200 py-3 disabled:opacity-60"
         >
-          <Text className="text-center text-base font-semibold text-red-600">
+          <Text className="text-center text-sm font-semibold text-red-600">
             {cancelling ? "Cancelando..." : "Cancelar solicitud"}
           </Text>
         </TouchableOpacity>
@@ -385,7 +381,7 @@ function ClientServiceCard({
         onClose={() => setLiveMapOpen(false)}
         title="Chofer en vivo"
       />
-    </View>
+    </UiCard>
   );
 }
 
@@ -409,6 +405,7 @@ function fitMapRegion(
 export function ClientDashboard() {
   const insets = useSafeAreaInsets();
   const { userName } = useAppMode();
+  const me = useQuery(api.users.getMe);
   const services = useQuery(api.services.listForClient, {});
   const createService = useMutation(api.services.createService);
   const markAllNotificationsAsRead = useMutation(api.notifications.markAllAsRead);
@@ -770,8 +767,10 @@ export function ClientDashboard() {
       resetComposeForm();
       setMessage("Solicitud enviada. Espera ofertas y elige un chofer.");
       setMenuSection("historial");
-    } catch {
-      setError("No se pudo crear la solicitud.");
+    } catch (submitError) {
+      setError(
+        convexErrorMessage(submitError, "No se pudo crear la solicitud."),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -782,6 +781,7 @@ export function ClientDashboard() {
       visible={menuOpen}
       onClose={() => setMenuOpen(false)}
       userName={userName}
+      avatarUrl={me?.selfieUrl}
       unreadCount={unreadNotifications}
       activeItem={menuSection}
       onSelectItem={(key) => {
@@ -822,10 +822,10 @@ export function ClientDashboard() {
 
   if (menuSection === "historial" || menuSection === "notificaciones") {
     return (
-      <View className="flex-1 bg-slate-100">
+      <View className="flex-1 bg-canvas">
         <View
           style={{ paddingTop: insets.top + 8, paddingBottom: 12 }}
-          className="flex-row items-center gap-3 border-b border-slate-200 bg-white px-4"
+          className="flex-row items-center gap-3 border-b border-slate-100 bg-white px-4"
         >
           <HamburgerButton onPress={() => setMenuOpen(true)} />
           <Text className="flex-1 text-lg font-bold text-slate-900">
@@ -850,8 +850,8 @@ export function ClientDashboard() {
             </Text>
           )}
           {menuSection === "notificaciones" ? (
-            <View className="rounded-2xl border border-slate-100 bg-white p-3">
-              <View className="mb-2 flex-row items-center justify-between">
+            <UiCard>
+              <View className="mb-3 flex-row items-center justify-between">
                 <Text className="text-sm font-semibold text-slate-900">
                   {unreadNotifications} sin leer
                 </Text>
@@ -864,14 +864,12 @@ export function ClientDashboard() {
                 </TouchableOpacity>
               </View>
               {(notifications ?? []).length === 0 ? (
-                <Text className="text-xs text-slate-500">
-                  Sin notificaciones.
-                </Text>
+                <UiEmpty title="Sin notificaciones." />
               ) : (
                 (notifications ?? []).map((notification) => (
                   <View
                     key={notification._id}
-                    className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-3"
+                    className="mb-2 rounded-2xl bg-slate-50 p-3"
                   >
                     <Text className="text-xs font-semibold text-slate-800">
                       {notification.title}
@@ -882,19 +880,38 @@ export function ClientDashboard() {
                   </View>
                 ))
               )}
-            </View>
+            </UiCard>
           ) : services === undefined ? (
-            <ActivityIndicator color="#007AFF" />
+            <ActivityIndicator color="#64748B" />
           ) : services.length === 0 ? (
-            <Text className="text-center text-sm text-slate-500">
-              Aún no tienes solicitudes.
-            </Text>
+            <UiEmpty
+              title="Aún no tienes solicitudes."
+              subtitle="Cuando pidas un servicio, aparece aquí."
+            />
           ) : (
             services.map((service) => (
               <ClientServiceCard key={service._id} service={service} />
             ))
           )}
         </ScrollView>
+        {drawer}
+      </View>
+    );
+  }
+
+  if (me === undefined) {
+    return (
+      <View className="flex-1 items-center justify-center bg-canvas">
+        <ActivityIndicator color="#64748B" />
+        {drawer}
+      </View>
+    );
+  }
+
+  if (me !== null && me.identityComplete !== true) {
+    return (
+      <View className="flex-1">
+        <ClientIdentityForm onOpenMenu={() => setMenuOpen(true)} />
         {drawer}
       </View>
     );
@@ -909,13 +926,13 @@ export function ClientDashboard() {
       onPress: () => void,
     ) => (
       <View>
-        <Text className="mb-1.5 text-xs font-semibold text-slate-600">
+        <Text className="mb-1.5 text-xs font-semibold text-slate-500">
           {label}
         </Text>
         <Pressable
           onPress={onPress}
           disabled={submitting}
-          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 active:bg-slate-100"
+          className="rounded-2xl bg-slate-100 px-4 py-3.5 active:bg-slate-200"
         >
           <Text
             className={`text-base ${
@@ -930,7 +947,7 @@ export function ClientDashboard() {
     );
 
     return (
-      <View className="flex-1 bg-slate-100">
+      <View className="flex-1 bg-canvas">
         <View
           style={{ paddingTop: insets.top + 8 }}
           className="z-10 flex-row items-center justify-between px-4 pb-2"
@@ -951,30 +968,24 @@ export function ClientDashboard() {
               paddingBottom: insets.bottom + 28,
             }}
           >
-            <Text className="mb-5 text-2xl font-bold text-slate-900">
+            <Text className="mb-6 text-2xl font-bold leading-8 text-slate-900">
               ¿Dónde necesitas un chofer de remplazo?
             </Text>
 
-            <View className="gap-3 rounded-3xl bg-white p-4 shadow-sm">
+            <UiCard className="gap-3">
               {addressFieldButton(
                 "Punto de recojo",
                 origin,
                 "¿De dónde te recogemos?",
                 () => openAddressSearch("origin"),
               )}
-              <TouchableOpacity
+              <UiButton
+                label="Usar mi ubicación actual"
                 onPress={() => void handleUseMyLocationForOrigin()}
                 disabled={locationLoading || submitting}
-                className="flex-row items-center justify-center rounded-2xl border border-hercom/30 bg-hercom-soft py-3 disabled:opacity-60"
-              >
-                {locationLoading ? (
-                  <ActivityIndicator color={HERCOM_COLORS.primary} />
-                ) : (
-                  <Text className="text-sm font-semibold text-hercom-dark">
-                    Usar mi ubicación actual
-                  </Text>
-                )}
-              </TouchableOpacity>
+                loading={locationLoading}
+                variant="secondary"
+              />
 
               {addressFieldButton(
                 "Destino",
@@ -1002,9 +1013,9 @@ export function ClientDashboard() {
                         previous.filter((_, itemIndex) => itemIndex !== index),
                       );
                     }}
-                    className="mt-6 rounded-xl border border-red-200 px-3 py-3"
+                    className="mt-6 h-12 w-12 items-center justify-center rounded-2xl bg-slate-100"
                   >
-                    <Text className="text-sm font-semibold text-red-600">✕</Text>
+                    <Text className="text-sm font-semibold text-slate-500">✕</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -1017,21 +1028,19 @@ export function ClientDashboard() {
                   ])
                 }
                 disabled={submitting}
-                className="rounded-2xl border border-dashed border-slate-300 py-2.5 disabled:opacity-60"
+                className="rounded-2xl py-2.5 disabled:opacity-60"
               >
-                <Text className="text-center text-sm font-semibold text-slate-600">
+                <Text className="text-center text-sm font-semibold text-slate-500">
                   + Agregar parada
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
+              <UiButton
+                label="Continuar"
                 onPress={handleContinueToConfirm}
                 disabled={!canContinue || submitting}
-                className="items-center rounded-2xl bg-hercom py-3.5 active:opacity-90 disabled:opacity-50"
-              >
-                <Text className="text-base font-bold text-white">Continuar</Text>
-              </TouchableOpacity>
-            </View>
+              />
+            </UiCard>
 
             {error !== null && (
               <Text className="mt-3 text-center text-sm text-red-600">
@@ -1046,14 +1055,7 @@ export function ClientDashboard() {
           >
             <View
               className="mx-2 overflow-hidden rounded-t-[28px] bg-white"
-              style={{
-                height: addressSheetHeight,
-                shadowColor: "#0F172A",
-                shadowOpacity: 0.16,
-                shadowRadius: 18,
-                shadowOffset: { width: 0, height: -4 },
-                elevation: 14,
-              }}
+              style={[{ height: addressSheetHeight }, SHEET_SHADOW]}
             >
               <View className="flex-row items-center justify-between px-4 pb-1 pt-3">
                 <View className="w-10" />
@@ -1225,9 +1227,9 @@ export function ClientDashboard() {
                           setAddressSearchField("destination");
                         }
                       }}
-                      className="rounded-xl border border-red-200 px-3 py-3"
+                      className="h-12 w-12 items-center justify-center rounded-2xl bg-slate-100"
                     >
-                      <Text className="text-sm font-semibold text-red-600">
+                      <Text className="text-sm font-semibold text-slate-500">
                         ✕
                       </Text>
                     </TouchableOpacity>
@@ -1235,15 +1237,13 @@ export function ClientDashboard() {
                 ))}
 
                 {canContinue && (
-                  <TouchableOpacity
-                    onPress={handleContinueToConfirm}
-                    disabled={submitting}
-                    className="mt-2 items-center rounded-2xl bg-hercom py-3.5 active:opacity-90 disabled:opacity-50"
-                  >
-                    <Text className="text-base font-bold text-white">
-                      Continuar
-                    </Text>
-                  </TouchableOpacity>
+                  <View className="mt-2">
+                    <UiButton
+                      label="Continuar"
+                      onPress={handleContinueToConfirm}
+                      disabled={submitting}
+                    />
+                  </View>
                 )}
               </ScrollView>
             </View>
@@ -1328,15 +1328,13 @@ export function ClientDashboard() {
 
       <View
         className="absolute bottom-0 left-0 right-0 z-20 overflow-hidden rounded-t-[28px] bg-white"
-        style={{
-          height: confirmSheetHeight,
-          paddingBottom: insets.bottom + 8,
-          shadowColor: "#0F172A",
-          shadowOpacity: 0.14,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: -4 },
-          elevation: 12,
-        }}
+        style={[
+          {
+            height: confirmSheetHeight,
+            paddingBottom: insets.bottom + 8,
+          },
+          SHEET_SHADOW,
+        ]}
       >
         <View className="items-center pb-1 pt-3">
           <View className="h-1 w-10 rounded-full bg-slate-300" />
@@ -1354,7 +1352,7 @@ export function ClientDashboard() {
             Confirma tu servicio
           </Text>
 
-          <View className="mb-4 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+          <View className="mb-4 rounded-2xl bg-slate-50 p-4">
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => {
@@ -1418,10 +1416,8 @@ export function ClientDashboard() {
                 <TouchableOpacity
                   key={hours}
                   onPress={() => setServiceHours(hours)}
-                  className={`rounded-2xl border px-4 py-3 ${
-                    selected
-                      ? "border-hercom bg-hercom"
-                      : "border-slate-200 bg-white"
+                  className={`rounded-2xl px-4 py-3 ${
+                    selected ? "bg-hercom" : "bg-slate-100"
                   }`}
                 >
                   <Text
@@ -1444,9 +1440,9 @@ export function ClientDashboard() {
             })}
           </ScrollView>
 
-          <View className="mb-3 flex-row items-end justify-between rounded-2xl bg-slate-900 px-4 py-3">
+          <View className="mb-3 flex-row items-end justify-between rounded-2xl bg-hercom px-4 py-3">
             <View>
-              <Text className="text-xs font-medium text-slate-300">
+              <Text className="text-xs font-medium text-white/80">
                 Tarifa estimada
               </Text>
               <Text className="text-2xl font-bold text-white">
@@ -1454,19 +1450,19 @@ export function ClientDashboard() {
                 {listPrice.toFixed(0)}
               </Text>
             </View>
-            <Text className="pb-1 text-xs text-slate-400">
+            <Text className="pb-1 text-xs text-white/75">
               {serviceHours}h × {currencySymbol}
               {hourlyRate}
             </Text>
           </View>
 
           {promoPreview !== undefined && promoPreview !== null && (
-            <View className="mb-3 rounded-xl bg-hercom-soft px-3 py-2">
+            <View className="mb-3 rounded-2xl bg-hercom-soft px-3 py-2.5">
               <Text className="text-xs font-semibold text-hercom-dark">
                 Promo: {promoPreview.promotionName} (
                 {(promoPreview.discountRate * 100).toFixed(0)}% off)
               </Text>
-              <Text className="mt-1 text-xs text-slate-600">
+              <Text className="mt-1 text-xs text-slate-500">
                 Pagas {currencySymbol}
                 {promoPreview.basePrice.toFixed(2)} (lista {currencySymbol}
                 {promoPreview.catalogBasePrice.toFixed(2)}).
@@ -1480,23 +1476,15 @@ export function ClientDashboard() {
             placeholder="Notas (opcional)"
             placeholderTextColor="#94A3B8"
             multiline
-            className="mb-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
+            className="mb-3 rounded-2xl bg-slate-100 px-4 py-3.5 text-base text-slate-900"
           />
 
-          <TouchableOpacity
+          <UiButton
+            label={`Solicitar servicio · ${currencySymbol}${listPrice.toFixed(0)}`}
             onPress={() => void handleSubmit()}
             disabled={submitting}
-            className="items-center rounded-2xl bg-hercom py-3.5 active:opacity-90 disabled:opacity-60"
-          >
-            {submitting ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text className="text-base font-bold text-white">
-                Solicitar servicio · {currencySymbol}
-                {listPrice.toFixed(0)}
-              </Text>
-            )}
-          </TouchableOpacity>
+            loading={submitting}
+          />
 
           {error !== null && (
             <Text className="mt-3 text-center text-sm text-red-600">{error}</Text>

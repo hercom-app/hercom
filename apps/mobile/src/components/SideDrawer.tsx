@@ -3,6 +3,7 @@ import {
   Alert,
   Animated,
   Dimensions,
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -16,6 +17,7 @@ import { api } from "@proyecto/backend";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppMode } from "../contexts/AppModeContext";
 import { DrawerIcon, type DrawerIconName } from "./DrawerIcons";
+import { UiBadge, UiButton, UiChip } from "./ui";
 
 const DRAWER_WIDTH = Math.min(Dimensions.get("window").width * 0.82, 340);
 
@@ -29,6 +31,7 @@ type SideDrawerProps = {
   visible: boolean;
   onClose: () => void;
   userName: string;
+  avatarUrl?: string | null;
   unreadCount?: number;
   activeItem?: string;
   onSelectItem?: (key: string) => void;
@@ -70,23 +73,28 @@ function MenuRow({
   badge?: number;
   onPress: () => void;
 }) {
-  const label =
-    badge !== undefined && badge > 0 ? `${item.label} (${badge})` : item.label;
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`mx-3 mb-1 flex-row items-center gap-3 rounded-2xl px-4 py-3.5 ${
-        selected ? "bg-slate-100" : ""
+      className={`mx-3 mb-1 flex-row items-center gap-3 rounded-2xl px-3 py-2.5 ${
+        selected ? "bg-hercom-soft" : ""
       }`}
     >
-      <DrawerIcon name={item.icon} selected={selected} />
-      <Text
-        className={`flex-1 text-[15px] ${
-          selected ? "font-semibold text-slate-900" : "font-medium text-slate-700"
+      <View
+        className={`h-9 w-9 items-center justify-center rounded-xl ${
+          selected ? "bg-white" : "bg-slate-50"
         }`}
       >
-        {label}
+        <DrawerIcon name={item.icon} selected={selected} />
+      </View>
+      <Text
+        className={`flex-1 text-[15px] ${
+          selected ? "font-semibold text-hercom-dark" : "font-medium text-slate-600"
+        }`}
+      >
+        {item.label}
       </Text>
+      <UiBadge count={badge ?? 0} />
     </TouchableOpacity>
   );
 }
@@ -96,6 +104,7 @@ export function SideDrawer({
   visible,
   onClose,
   userName,
+  avatarUrl,
   unreadCount = 0,
   activeItem = "ciudad",
   onSelectItem,
@@ -183,25 +192,38 @@ export function SideDrawer({
           className="h-full bg-white"
         >
           <View className="flex-1">
-            <View className="mb-2 flex-row items-center gap-2 px-4 py-3">
-              <TouchableOpacity
-                activeOpacity={0.8}
-                className="flex-1 flex-row items-center gap-3 py-1"
-              >
-                <View className="h-14 w-14 items-center justify-center rounded-full bg-hercom">
-                  <Text className="text-2xl text-white">
-                    {(userName.trim()[0] ?? "H").toUpperCase()}
-                  </Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-lg font-semibold text-slate-900">
+            <View className="mb-3 flex-row items-center gap-2 px-4 py-3">
+              <View className="flex-1 flex-row items-center gap-3 py-1">
+                {avatarUrl !== undefined &&
+                avatarUrl !== null &&
+                avatarUrl !== "" ? (
+                  <Image
+                    source={{ uri: avatarUrl }}
+                    className="bg-slate-200"
+                    style={{ width: 56, height: 56, borderRadius: 28 }}
+                  />
+                ) : (
+                  <View className="h-14 w-14 items-center justify-center rounded-full bg-hercom">
+                    <Text className="text-xl font-semibold text-white">
+                      {(userName.trim()[0] ?? "H").toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                <View className="min-w-0 flex-1">
+                  <Text
+                    className="text-base font-semibold text-slate-900"
+                    numberOfLines={1}
+                  >
                     {userName.trim() !== "" ? userName : "Usuario Hercom"}
                   </Text>
-                  <Text className="mt-0.5 text-xs text-slate-500">
-                    {mode === "driver" ? "Chofer" : "Pasajero"} · Hercom
-                  </Text>
+                  <View className="mt-1.5">
+                    <UiChip
+                      label={mode === "driver" ? "Chofer" : "Pasajero"}
+                      selected={false}
+                    />
+                  </View>
                 </View>
-              </TouchableOpacity>
+              </View>
               <TouchableOpacity
                 onPress={onClose}
                 accessibilityLabel="Cerrar menú"
@@ -227,7 +249,7 @@ export function SideDrawer({
                 />
               ))}
 
-              <View className="mx-7 my-3 h-px bg-slate-200" />
+              <View className="mx-6 my-3 h-px bg-slate-100" />
 
               {account.map((item) => (
                 <MenuRow
@@ -244,25 +266,22 @@ export function SideDrawer({
                   onClose();
                   void signOut();
                 }}
-                className="mx-3 mt-1 flex-row items-center gap-3 rounded-2xl px-4 py-3.5"
+                className="mx-3 mt-1 flex-row items-center gap-3 rounded-2xl px-3 py-2.5"
               >
-                <DrawerIcon name="logout" />
-                <Text className="flex-1 text-[15px] font-medium text-slate-700">
+                <View className="h-9 w-9 items-center justify-center rounded-xl bg-slate-50">
+                  <DrawerIcon name="logout" />
+                </View>
+                <Text className="flex-1 text-[15px] font-medium text-slate-600">
                   Cerrar sesión
                 </Text>
               </TouchableOpacity>
             </ScrollView>
 
-            <View className="border-t border-slate-100 px-5 pt-4">
-              <TouchableOpacity
+            <View className="border-t border-slate-100 px-4 pt-4">
+              <UiButton
+                label={modeButtonLabel}
                 onPress={() => void handleModeSwitch()}
-                activeOpacity={0.9}
-                className="items-center rounded-2xl bg-hercom py-4"
-              >
-                <Text className="text-base font-bold text-white">
-                  {modeButtonLabel}
-                </Text>
-              </TouchableOpacity>
+              />
             </View>
           </View>
         </Animated.View>

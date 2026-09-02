@@ -1,7 +1,7 @@
 import Svg, { Circle, Path, Polyline, Rect } from "react-native-svg";
 
 const MUTED = "#64748B";
-const ACTIVE = "#0F172A";
+const ACTIVE = "#007AFF";
 
 export type DrawerIconName =
   | "mapPin"

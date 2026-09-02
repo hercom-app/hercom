@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { PanResponder, Text, View } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
+import { UiCard } from "./ui";
 
 type DriverStatus = "available" | "busy" | "offline";
 
@@ -68,7 +69,7 @@ export function AvailabilityToggle({ status }: { status: DriverStatus }) {
       : "Desliza para ponerte disponible";
 
   return (
-    <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+    <UiCard className="mb-4">
       <View className="mb-3 flex-row items-center justify-between">
         <Text className="text-base font-semibold text-slate-800">Estado</Text>
         <View
@@ -137,6 +138,6 @@ export function AvailabilityToggle({ status }: { status: DriverStatus }) {
           </View>
         )}
       </View>
-    </View>
+    </UiCard>
   );
 }

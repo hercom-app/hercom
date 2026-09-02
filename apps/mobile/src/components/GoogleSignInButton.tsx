@@ -96,7 +96,7 @@ export function GoogleSignInButton({
       onPress={() => void handlePress()}
       disabled={disabled || submitting}
       activeOpacity={0.85}
-      className="flex-row items-center justify-center rounded-2xl border border-slate-200 bg-white py-4 active:bg-slate-50 disabled:opacity-60"
+      className="h-14 flex-row items-center justify-center rounded-2xl border border-slate-200 bg-white disabled:opacity-60"
       style={{
         shadowColor: "#0F172A",
         shadowOpacity: 0.08,

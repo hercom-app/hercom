@@ -17,6 +17,7 @@ import {
   CarDamageCanvas,
   type DamageMark,
 } from "../components/CarDamageCanvas";
+import { UiButton, UiCard, UiInput } from "../components/ui";
 
 type Props = {
   serviceId: Id<"services">;
@@ -108,22 +109,22 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
 
   if (checklist === undefined) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-100">
-        <ActivityIndicator color="#007AFF" />
+      <View className="flex-1 items-center justify-center bg-canvas">
+        <ActivityIndicator color="#64748B" />
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-slate-100"
+      className="flex-1 bg-canvas"
       style={{ flex: 1, paddingTop: insets.top }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
     >
       <View className="flex-row items-center border-b border-slate-200 bg-white px-4 py-3">
         <TouchableOpacity onPress={onBack} className="mr-3 py-1 pr-2">
-          <Text className="text-sm font-semibold text-brand">← Volver</Text>
+          <Text className="text-sm font-semibold text-slate-500">← Volver</Text>
         </TouchableOpacity>
         <Text className="flex-1 text-base font-bold text-slate-900">
           Checklist de recojo
@@ -195,7 +196,7 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
                 : "Estado general del vehículo"
             }
             multiline
-            className="min-h-[88px] rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900"
+            className="min-h-[88px] rounded-2xl bg-slate-100 px-4 py-3.5 text-base text-slate-900"
             textAlignVertical="top"
           />
         </Section>
@@ -211,7 +212,7 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
               value={insuranceNotes}
               onChangeText={setInsuranceNotes}
               placeholder="Póliza o nota"
-              className="mt-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900"
+              className="mt-2 rounded-2xl bg-slate-100 px-4 py-3.5 text-base text-slate-900"
             />
           )}
         </Section>
@@ -225,24 +226,21 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
           </Text>
         )}
 
-        <TouchableOpacity
+        <UiButton
+          label={saving ? "Guardando…" : "Guardar checklist"}
           onPress={() => void handleSave()}
-          disabled={saving}
-          className={`rounded-2xl py-3 ${
-            canSave ? "bg-brand active:bg-brand-dark" : "bg-slate-300"
-          } disabled:opacity-60`}
-        >
-          <Text className="text-center text-sm font-bold text-white">
-            {saving ? "Guardando…" : "Guardar checklist"}
-          </Text>
-        </TouchableOpacity>
+          disabled={saving || !canSave}
+          loading={saving}
+        />
 
         {savedOk && (
-          <TouchableOpacity onPress={onBack} className="mt-3 py-2">
-            <Text className="text-center text-sm font-semibold text-brand">
-              Volver a servicios
-            </Text>
-          </TouchableOpacity>
+          <View className="mt-3">
+            <UiButton
+              label="Volver a servicios"
+              variant="ghost"
+              onPress={onBack}
+            />
+          </View>
         )}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -259,10 +257,8 @@ function Section({
   flush?: boolean;
 }) {
   return (
-    <View
-      className={`mb-5 rounded-2xl bg-white shadow-sm ${
-        flush ? "overflow-hidden p-3" : "p-4"
-      }`}
+    <UiCard
+      className={`mb-5 ${flush ? "overflow-hidden p-3" : ""}`.trim()}
     >
       <Text
         className={`mb-3 text-xs font-bold uppercase tracking-wide text-slate-500 ${
@@ -272,7 +268,7 @@ function Section({
         {title}
       </Text>
       {children}
-    </View>
+    </UiCard>
   );
 }
 
@@ -288,10 +284,8 @@ function DocToggle({
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`mb-2 rounded-xl border px-3 py-3 ${
-        value
-          ? "border-hercom/40 bg-hercom-soft"
-          : "border-slate-300 bg-slate-50"
+      className={`mb-2 rounded-2xl px-3 py-3 ${
+        value ? "bg-hercom-soft" : "bg-slate-100"
       }`}
     >
       <Text
@@ -321,13 +315,12 @@ function Field({
 }) {
   return (
     <View className="mb-2">
-      <Text className="mb-1 text-base font-semibold text-slate-600">{label}</Text>
-      <TextInput
+      <Text className="mb-1.5 text-xs font-semibold text-slate-500">{label}</Text>
+      <UiInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
         keyboardType={keyboardType}
-        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900"
       />
     </View>
   );

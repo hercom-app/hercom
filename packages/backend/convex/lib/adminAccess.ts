@@ -51,6 +51,13 @@ export function originMatchesDistrictScopes(
   return scopes.some((scope) => districtScopeKey(scope) === originKey);
 }
 
+export function driverMatchesDistrictScopes(
+  driver: GeoRegion,
+  scopes: DistrictScope[],
+): boolean {
+  return originMatchesDistrictScopes(driver, scopes);
+}
+
 export async function listDistrictScopes(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,

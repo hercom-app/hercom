@@ -4,11 +4,12 @@ import { mutation, query } from "./_generated/server";
 import { districtScopeValidator, userRoleValidator } from "./schema";
 import {
   districtScopeKey,
+  filterServicesByAccess,
   getAccessContext,
   listDistrictScopes,
 } from "./lib/adminAccess";
 import { normalizeCountryCode } from "./data/countryCatalog";
-import { getCurrentUser, requireFullAdmin, requireUser } from "./lib/auth";
+import { getCurrentUser, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -163,10 +164,21 @@ export const listAll = query({
     role: v.optional(userRoleValidator),
   },
   handler: async (ctx, args) => {
-    await requireFullAdmin(ctx);
+    const user = await requireStaff(ctx);
+    const access = await getAccessContext(ctx, user);
     let users = await ctx.db.query("users").order("desc").collect();
     if (args.role !== undefined) {
-      users = users.filter((user) => user.role === args.role);
+      users = users.filter((item) => item.role === args.role);
+    }
+    if (!access.isFullAdmin) {
+      const services = filterServicesByAccess(
+        await ctx.db.query("services").collect(),
+        access,
+      );
+      const allowedIds = new Set(services.map((service) => service.clientId));
+      users = users.filter(
+        (item) => item.role === "client" && allowedIds.has(item._id),
+      );
     }
     return users;
   },

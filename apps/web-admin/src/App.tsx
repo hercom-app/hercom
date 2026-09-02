@@ -11,6 +11,7 @@ import { AdminSidebar, SECTION_META } from "./components/AdminSidebar";
 import type { AdminSection } from "./components/AdminNav";
 import { AdminCard } from "./components/AdminLayout";
 import { AccountsView } from "./views/AccountsView";
+import { DriversView } from "./views/DriversView";
 import { TopUpsView } from "./views/TopUpsView";
 import { ServicesView } from "./views/ServicesView";
 import { PromotionsView } from "./views/PromotionsView";
@@ -19,11 +20,16 @@ import { IncomeView } from "./views/IncomeView";
 import { MarketsView } from "./views/MarketsView";
 import { TeamView } from "./views/TeamView";
 
-const SCOPED_SECTIONS: AdminSection[] = ["services", "income"];
+const SCOPED_SECTIONS: AdminSection[] = [
+  "accounts",
+  "drivers",
+  "services",
+  "income",
+];
 
 function Dashboard() {
   const me = useQuery(api.users.getAdminContext);
-  const [section, setSection] = useState<AdminSection>("services");
+  const [section, setSection] = useState<AdminSection>("accounts");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const isStaff =
@@ -37,7 +43,7 @@ function Dashboard() {
       return;
     }
     if (!isFullAdmin && !SCOPED_SECTIONS.includes(section)) {
-      setSection("services");
+      setSection("accounts");
     }
   }, [isFullAdmin, isStaff, section]);
 
@@ -112,22 +118,37 @@ function Dashboard() {
                 </p>
               </div>
             </div>
-            <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 sm:flex">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              {isFullAdmin ? "Operaciones en línea" : "Zonas asignadas"}
-            </div>
           </div>
         </header>
 
         <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          {section === "services" && (
-            <ServicesView isFullAdmin={isFullAdmin} />
+          {section === "accounts" && (
+            <AccountsView
+              isFullAdmin={isFullAdmin}
+              districtScopes={me.districtScopes}
+            />
           )}
-          {section === "income" && <IncomeView />}
-          {isFullAdmin && section === "accounts" && <AccountsView />}
+          {section === "drivers" && (
+            <DriversView
+              isFullAdmin={isFullAdmin}
+              districtScopes={me.districtScopes}
+            />
+          )}
+          {isFullAdmin && section === "markets" && <MarketsView />}
+          {section === "services" && (
+            <ServicesView
+              isFullAdmin={isFullAdmin}
+              districtScopes={me.districtScopes}
+            />
+          )}
+          {section === "income" && (
+            <IncomeView
+              isFullAdmin={isFullAdmin}
+              districtScopes={me.districtScopes}
+            />
+          )}
           {isFullAdmin && section === "topups" && <TopUpsView />}
           {isFullAdmin && section === "promotions" && <PromotionsView />}
-          {isFullAdmin && section === "markets" && <MarketsView />}
           {isFullAdmin && section === "premium" && <PremiumTripsView />}
           {isFullAdmin && section === "team" && <TeamView />}
         </main>

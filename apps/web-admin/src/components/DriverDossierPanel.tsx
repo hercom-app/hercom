@@ -57,7 +57,7 @@ export function DriverDossierPanel({
   if (application === null) {
     return (
       <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-        {userName} no tiene expediente de registro (brevete / CUL) cargado.
+        {userName} no tiene solicitud de registro (brevete / CUL) cargada.
       </div>
     );
   }
@@ -102,7 +102,7 @@ export function DriverDossierPanel({
     <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <p className="font-display text-base font-bold text-slate-900">
-          Expediente del chofer
+          Registro del chofer
         </p>
         <span
           className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${

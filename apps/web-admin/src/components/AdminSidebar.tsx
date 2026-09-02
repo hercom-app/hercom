@@ -19,6 +19,47 @@ function NavIcon({ children }: { children: ReactNode }) {
 
 const NAV_ITEMS: NavItem[] = [
   {
+    id: "accounts",
+    label: "Cuentas de usuario",
+    description: "Clientes y cuentas registradas",
+    icon: (
+      <NavIcon>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+          <circle cx="9" cy="8" r="3" />
+          <path d="M3 19c0-3 2.5-5 6-5s6 2 6 5" strokeLinecap="round" />
+          <path d="M16 11h5M18.5 8.5v5" strokeLinecap="round" />
+        </svg>
+      </NavIcon>
+    ),
+  },
+  {
+    id: "drivers",
+    label: "Choferes",
+    description: "Perfiles y solicitudes",
+    icon: (
+      <NavIcon>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+          <path d="M5 17l2-6h10l2 6M7 11l2-4h6l2 4" strokeLinejoin="round" />
+          <circle cx="7.5" cy="17.5" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="16.5" cy="17.5" r="1.5" fill="currentColor" stroke="none" />
+        </svg>
+      </NavIcon>
+    ),
+  },
+  {
+    id: "markets",
+    label: "Moneda y tipo de cambio",
+    description: "Soles, USD y tarifas por país",
+    icon: (
+      <NavIcon>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+          <circle cx="12" cy="12" r="8" />
+          <path d="M4 12h16M12 4a12 12 0 0 1 0 16M12 4a12 12 0 0 0 0 16" />
+        </svg>
+      </NavIcon>
+    ),
+  },
+  {
     id: "services",
     label: "Servicios",
     description: "Operación en vivo",
@@ -38,20 +79,6 @@ const NAV_ITEMS: NavItem[] = [
       <NavIcon>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
           <path d="M4 19V5M4 19h16M8 15v-3M12 15V9M16 15V11" strokeLinecap="round" />
-        </svg>
-      </NavIcon>
-    ),
-  },
-  {
-    id: "accounts",
-    label: "Cuentas",
-    description: "Usuarios y choferes",
-    icon: (
-      <NavIcon>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <circle cx="9" cy="8" r="3" />
-          <path d="M3 19c0-3 2.5-5 6-5s6 2 6 5" strokeLinecap="round" />
-          <path d="M16 11h5M18.5 8.5v5" strokeLinecap="round" />
         </svg>
       </NavIcon>
     ),
@@ -82,28 +109,13 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    id: "markets",
-    label: "Mercados",
-    description: "Moneda y tarifas",
-    icon: (
-      <NavIcon>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <circle cx="12" cy="12" r="8" />
-          <path d="M4 12h16M12 4a12 12 0 0 1 0 16M12 4a12 12 0 0 0 0 16" />
-        </svg>
-      </NavIcon>
-    ),
-  },
-  {
     id: "premium",
     label: "Premium",
     description: "Viajes gestionados",
     icon: (
       <NavIcon>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <path d="M5 17l2-6h10l2 6M7 11l2-4h6l2 4" strokeLinejoin="round" />
-          <circle cx="7.5" cy="17.5" r="1.5" fill="currentColor" stroke="none" />
-          <circle cx="16.5" cy="17.5" r="1.5" fill="currentColor" stroke="none" />
+          <path d="M12 4l2 6h6l-5 4 2 6-5-3.5L7 20l2-6-5-4h6L12 4z" />
         </svg>
       </NavIcon>
     ),
@@ -124,7 +136,12 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-const SCOPED_ADMIN_SECTIONS: AdminSection[] = ["services", "income"];
+const SCOPED_ADMIN_SECTIONS: AdminSection[] = [
+  "accounts",
+  "drivers",
+  "services",
+  "income",
+];
 
 export const SECTION_META: Record<
   AdminSection,
@@ -174,7 +191,7 @@ export function AdminSidebar({
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-          General
+          MENU
         </p>
         {navItems.map((item) => {
           const isActive = item.id === active;

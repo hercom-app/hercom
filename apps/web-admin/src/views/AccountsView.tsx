@@ -1,9 +1,8 @@
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Doc, Id } from "@proyecto/backend/dataModel";
 import { AdminRegionFilters } from "../components/AdminRegionFilters";
-import { DriverDossierPanel } from "../components/DriverDossierPanel";
 import {
   EMPTY_REGION_FILTER,
   hasRegionFilter,
@@ -22,7 +21,6 @@ import {
   AdminTableWrap,
 } from "../components/AdminLayout";
 import {
-  btnGhostClass,
   rowClass,
   selectClass as uiSelectClass,
   tableClass,
@@ -30,17 +28,13 @@ import {
   tdClass,
   thClass,
 } from "../lib/adminUi";
+import type { DistrictScopeOption } from "../components/AdminRegionFilters";
 
 const ROLE_LABELS: Record<string, string> = {
   client: "Cliente",
-  driver: "Chofer",
   admin: "Admin",
   superadmin: "Superadmin",
 };
-
-type ApplicationStatusFilter =
-  | ""
-  | Doc<"driverApplications">["status"];
 
 function formatDate(timestamp: number): string {
   return new Intl.DateTimeFormat("es-PE", {
@@ -49,24 +43,22 @@ function formatDate(timestamp: number): string {
   }).format(new Date(timestamp));
 }
 
-export function AccountsView() {
+type AccountsViewProps = {
+  isFullAdmin: boolean;
+  districtScopes: DistrictScopeOption[];
+};
+
+export function AccountsView({
+  isFullAdmin,
+  districtScopes,
+}: AccountsViewProps) {
   const [region, setRegion] = useState<RegionFilter>(EMPTY_REGION_FILTER);
-  const [roleFilter, setRoleFilter] = useState<"" | Doc<"users">["role"]>("");
-  const [applicationStatusFilter, setApplicationStatusFilter] =
-    useState<ApplicationStatusFilter>("");
+  const [roleFilter, setRoleFilter] = useState<"" | "client" | "admin" | "superadmin">("");
   const [search, setSearch] = useState("");
-  const [expandedUserId, setExpandedUserId] = useState<Id<"users"> | null>(null);
 
   const users = useQuery(
     api.users.listAll,
     roleFilter !== "" ? { role: roleFilter } : {},
-  );
-  const drivers = useQuery(api.drivers.listAll, {});
-  const driverApplications = useQuery(
-    api.driverApplications.listForAdmin,
-    applicationStatusFilter !== ""
-      ? { status: applicationStatusFilter }
-      : {},
   );
   const regionalServices = useQuery(
     api.services.listAllForAdmin,
@@ -74,60 +66,26 @@ export function AccountsView() {
   );
   const setRole = useMutation(api.users.setRole);
 
-  const applicationByUserId = useMemo(() => {
-    if (driverApplications === undefined) {
-      return new Map();
-    }
-    const map = new Map<Id<"users">, (typeof driverApplications)[number]>();
-    for (const application of driverApplications) {
-      if (!map.has(application.userId)) {
-        map.set(application.userId, application);
-      }
-    }
-    return map;
-  }, [driverApplications]);
-
   const filteredUsers = useMemo(() => {
     if (users === undefined) {
       return undefined;
     }
 
-    let result = users.filter((user) =>
-      matchesTextSearch(search, [user.name, user.email, user.phone]),
+    let result = users.filter(
+      (user) =>
+        user.role !== "driver" &&
+        matchesTextSearch(search, [user.name, user.email, user.phone]),
     );
 
-    if (applicationStatusFilter !== "") {
-      result = result.filter((user) => {
-        const application = applicationByUserId.get(user._id);
-        return application?.status === applicationStatusFilter;
-      });
-    }
-
-    if (hasRegionFilter(region) && regionalServices !== undefined && drivers !== undefined) {
-      const clientIds = new Set(regionalServices.map((service) => service.clientId));
-      const driverUserIds = new Set(
-        regionalServices
-          .map((service) => service.driverId)
-          .filter((id): id is Id<"drivers"> => id !== undefined)
-          .map((driverId) => drivers.find((driver) => driver._id === driverId)?.userId)
-          .filter((userId): userId is Id<"users"> => userId !== undefined),
+    if (hasRegionFilter(region) && regionalServices !== undefined) {
+      const clientIds = new Set(
+        regionalServices.map((service) => service.clientId),
       );
-
-      result = result.filter(
-        (user) => clientIds.has(user._id) || driverUserIds.has(user._id),
-      );
+      result = result.filter((user) => clientIds.has(user._id));
     }
 
     return result;
-  }, [
-    users,
-    drivers,
-    regionalServices,
-    region,
-    search,
-    applicationByUserId,
-    applicationStatusFilter,
-  ]);
+  }, [users, regionalServices, region, search]);
 
   async function handleRoleChange(
     userId: Id<"users">,
@@ -138,39 +96,29 @@ export function AccountsView() {
 
   return (
     <AdminPage>
-      <AdminPageHeader
-        title="Cuentas"
-        description="Usuarios registrados. En choferes puedes abrir el expediente (DNI, brevete, CUL) para evaluarlo."
-      />
+      <AdminPageHeader title="Cuentas de usuario" />
 
-      <AdminRegionFilters value={region} onChange={setRegion}>
-        <select
-          value={roleFilter}
-          onChange={(event) =>
-            setRoleFilter(event.target.value as "" | Doc<"users">["role"])
-          }
-          className={selectClass}
-        >
-          <option value="">Todos los roles</option>
-          <option value="client">Clientes</option>
-          <option value="driver">Choferes</option>
-          <option value="admin">Admins</option>
-          <option value="superadmin">Superadmin</option>
-        </select>
-        <select
-          value={applicationStatusFilter}
-          onChange={(event) =>
-            setApplicationStatusFilter(
-              event.target.value as ApplicationStatusFilter,
-            )
-          }
-          className={selectClass}
-        >
-          <option value="">Expediente: todos</option>
-          <option value="pending">Pendiente de revisión</option>
-          <option value="approved">Expediente aprobado</option>
-          <option value="rejected">Expediente rechazado</option>
-        </select>
+      <AdminRegionFilters
+        value={region}
+        onChange={setRegion}
+        allowedScopes={isFullAdmin ? undefined : districtScopes}
+      >
+        {isFullAdmin ? (
+          <select
+            value={roleFilter}
+            onChange={(event) =>
+              setRoleFilter(
+                event.target.value as "" | "client" | "admin" | "superadmin",
+              )
+            }
+            className={selectClass}
+          >
+            <option value="">Todos los roles</option>
+            <option value="client">Clientes</option>
+            <option value="admin">Admins</option>
+            <option value="superadmin">Superadmin</option>
+          </select>
+        ) : null}
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -193,82 +141,47 @@ export function AccountsView() {
                   <th className={thClass}>Correo</th>
                   <th className={`${thClass} hidden md:table-cell`}>Teléfono</th>
                   <th className={thClass}>Rol</th>
-                  <th className={thClass}>Expediente</th>
                   <th className={`${thClass} hidden sm:table-cell`}>Registro</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => {
-                  const application = applicationByUserId.get(user._id);
-                  const isDriver = user.role === "driver";
-                  const isExpanded = expandedUserId === user._id;
-                  return (
-                    <Fragment key={user._id}>
-                      <tr className={rowClass}>
-                        <td className={`${tdClass} font-medium text-slate-900`}>
-                          {user.name ?? "Sin nombre"}
-                        </td>
-                        <td className={tdClass}>{user.email ?? "—"}</td>
-                        <td className={`${tdClass} hidden md:table-cell`}>
-                          {user.phone ?? "—"}
-                        </td>
-                        <td className={tdClass}>
-                          <select
-                            value={user.role}
-                            onChange={(event) =>
-                              void handleRoleChange(
-                                user._id,
-                                event.target.value as Doc<"users">["role"],
-                              )
-                            }
-                            className={`${uiSelectClass} !py-1.5 text-xs`}
-                          >
-                            <option value="client">{ROLE_LABELS.client}</option>
-                            <option value="driver">{ROLE_LABELS.driver}</option>
-                            {user.role === "admin" ? (
-                              <option value="admin">{ROLE_LABELS.admin}</option>
-                            ) : null}
-                            <option value="superadmin">
-                              {ROLE_LABELS.superadmin}
-                            </option>
-                          </select>
-                        </td>
-                        <td className={tdClass}>
-                          {isDriver ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExpandedUserId(isExpanded ? null : user._id)
-                              }
-                              className={btnGhostClass}
-                            >
-                              {isExpanded
-                                ? "Ocultar"
-                                : application !== undefined
-                                  ? "Ver expediente"
-                                  : "Sin expediente"}
-                            </button>
-                          ) : (
-                            <span className="text-xs text-slate-400">—</span>
-                          )}
-                        </td>
-                        <td className={`${tdClass} hidden text-slate-500 sm:table-cell`}>
-                          {formatDate(user._creationTime)}
-                        </td>
-                      </tr>
-                      {isDriver && isExpanded && (
-                        <tr>
-                          <td colSpan={6} className="px-0 pb-4 pt-1">
-                            <DriverDossierPanel
-                              application={application ?? null}
-                              userName={user.name ?? user.email ?? "Chofer"}
-                            />
-                          </td>
-                        </tr>
+                {filteredUsers.map((user) => (
+                  <tr key={user._id} className={rowClass}>
+                    <td className={`${tdClass} font-medium text-slate-900`}>
+                      {user.name ?? "Sin nombre"}
+                    </td>
+                    <td className={tdClass}>{user.email ?? "—"}</td>
+                    <td className={`${tdClass} hidden md:table-cell`}>
+                      {user.phone ?? "—"}
+                    </td>
+                    <td className={tdClass}>
+                      {isFullAdmin && user.role !== "admin" ? (
+                        <select
+                          value={user.role}
+                          onChange={(event) =>
+                            void handleRoleChange(
+                              user._id,
+                              event.target.value as Doc<"users">["role"],
+                            )
+                          }
+                          className={`${uiSelectClass} !py-1.5 text-xs`}
+                        >
+                          <option value="client">{ROLE_LABELS.client}</option>
+                          <option value="superadmin">
+                            {ROLE_LABELS.superadmin}
+                          </option>
+                        </select>
+                      ) : (
+                        <span className="text-xs font-medium text-zinc-600">
+                          {ROLE_LABELS[user.role] ?? user.role}
+                        </span>
                       )}
-                    </Fragment>
-                  );
-                })}
+                    </td>
+                    <td className={`${tdClass} hidden text-slate-500 sm:table-cell`}>
+                      {formatDate(user._creationTime)}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </AdminTableWrap>

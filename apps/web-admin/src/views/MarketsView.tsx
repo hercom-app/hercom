@@ -109,8 +109,8 @@ export function MarketsView() {
   return (
     <AdminPage>
       <AdminPageHeader
-        title="Mercados y moneda"
-        description="Configura moneda local, tipo de cambio a USD y tarifas por país."
+        title="Moneda local y tipo de cambio"
+        description="En Perú los precios salen en soles (S/). En otros países usa el símbolo y el tipo de cambio local a USD."
       />
 
       {markets === undefined ? (

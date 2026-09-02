@@ -4,7 +4,8 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { normalizeCountryCode } from "./data/countryCatalog";
 import { driverApplicationStatusValidator, sexValidator } from "./schema";
-import { requireFullAdmin, requireUser } from "./lib/auth";
+import { requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
+import { getAccessContext, originMatchesDistrictScopes } from "./lib/adminAccess";
 import { ensureWallet } from "./driverWallets";
 
 /** URL temporal para subir archivos (fotos brevete, CUL PDF). */
@@ -241,11 +242,18 @@ export const listForAdmin = query({
     status: v.optional(driverApplicationStatusValidator),
   },
   handler: async (ctx, args) => {
-    await requireFullAdmin(ctx);
+    const user = await requireStaff(ctx);
+    const access = await getAccessContext(ctx, user);
     let applications = await ctx.db
       .query("driverApplications")
       .order("desc")
       .collect();
+
+    if (!access.isFullAdmin) {
+      applications = applications.filter((application) =>
+        originMatchesDistrictScopes(application, access.districtScopes),
+      );
+    }
 
     if (args.status !== undefined) {
       applications = applications.filter(

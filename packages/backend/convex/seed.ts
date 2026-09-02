@@ -11,6 +11,9 @@ import { ensureWallet } from "./driverWallets";
  * Cámbialas antes de cualquier entorno que no sea local.
  */
 const DEMO_PASSWORD = "demo1234";
+const OWNER_EMAIL = "ricardos@hercom.com";
+const OWNER_PASSWORD = "Hercom2026";
+const OWNER_NAME = "Ricardo Bejarano";
 
 const DEMO_ADMIN = { email: "admin@demo.com", name: "Admin Demo" };
 const DEMO_DRIVER = { email: "chofer@demo.com", name: "Carlos Chofer" };
@@ -346,4 +349,177 @@ async function ensureDemoWalletBalance(
     note: "Recarga seed demo",
     createdAt: Date.now(),
   });
+}
+
+async function wipeTable(
+  ctx: MutationCtx,
+  table:
+    | "serviceOffers"
+    | "serviceTracking"
+    | "serviceRatings"
+    | "serviceVehicleChecklists"
+    | "payments"
+    | "walletTransactions"
+    | "notifications"
+    | "services"
+    | "payouts"
+    | "driverWallets"
+    | "driverApplications"
+    | "adminDistrictScopes"
+    | "drivers"
+    | "promotions",
+): Promise<number> {
+  const rows = await ctx.db.query(table).collect();
+  for (const row of rows) {
+    await ctx.db.delete(row._id);
+  }
+  return rows.length;
+}
+
+async function deleteAuthForUser(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  email: string | undefined,
+): Promise<void> {
+  const sessions = await ctx.db.query("authSessions").collect();
+  for (const session of sessions) {
+    if (session.userId === userId) {
+      await ctx.db.delete(session._id);
+    }
+  }
+  const accounts = await ctx.db.query("authAccounts").collect();
+  for (const account of accounts) {
+    if (account.userId === userId) {
+      await ctx.db.delete(account._id);
+    }
+  }
+  if (email !== undefined && email !== "") {
+    const byEmail = await ctx.db
+      .query("authAccounts")
+      .withIndex("providerAndAccountId", (q) =>
+        q.eq("provider", "password").eq("providerAccountId", email),
+      )
+      .unique();
+    if (byEmail !== null) {
+      await ctx.db.delete(byEmail._id);
+    }
+  }
+}
+
+/**
+ * Deja el entorno listo para mostrar al dueño: un solo superadmin,
+ * sin admins, sin choferes, sin viajes ni solicitudes de registro.
+ *
+ *   npx convex run seed:resetForOwnerKickoff
+ *   npx convex run seed:resetForOwnerKickoff --prod
+ */
+export const resetForOwnerKickoff = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    await ctx.runMutation(internal.markets.ensureDefaults, {});
+
+    const deleted = {
+      serviceOffers: await wipeTable(ctx, "serviceOffers"),
+      serviceTracking: await wipeTable(ctx, "serviceTracking"),
+      serviceRatings: await wipeTable(ctx, "serviceRatings"),
+      checklists: await wipeTable(ctx, "serviceVehicleChecklists"),
+      payments: await wipeTable(ctx, "payments"),
+      walletTransactions: await wipeTable(ctx, "walletTransactions"),
+      notifications: await wipeTable(ctx, "notifications"),
+      services: await wipeTable(ctx, "services"),
+      payouts: await wipeTable(ctx, "payouts"),
+      driverWallets: await wipeTable(ctx, "driverWallets"),
+      driverApplications: await wipeTable(ctx, "driverApplications"),
+      adminDistrictScopes: await wipeTable(ctx, "adminDistrictScopes"),
+      drivers: await wipeTable(ctx, "drivers"),
+      promotions: await wipeTable(ctx, "promotions"),
+    };
+
+    const users = await ctx.db.query("users").collect();
+    let deletedUsers = 0;
+    for (const user of users) {
+      const email = user.email?.trim().toLowerCase() ?? "";
+      if (email === OWNER_EMAIL) {
+        await ctx.db.patch(user._id, {
+          role: "superadmin",
+          name: OWNER_NAME,
+        });
+        continue;
+      }
+      await deleteAuthForUser(ctx, user._id, user.email);
+      await ctx.db.delete(user._id);
+      deletedUsers += 1;
+    }
+
+    const owner = await ensureUserWithPassword(
+      ctx,
+      OWNER_EMAIL,
+      OWNER_NAME,
+      "superadmin",
+      OWNER_PASSWORD,
+    );
+
+    return {
+      message: "Entorno limpio para pruebas con el dueño.",
+      superadmin: {
+        email: OWNER_EMAIL,
+        password: OWNER_PASSWORD,
+        userId: owner._id,
+      },
+      deletedUsers,
+      deleted,
+    };
+  },
+});
+
+async function ensureUserWithPassword(
+  ctx: MutationCtx,
+  email: string,
+  name: string,
+  role: Doc<"users">["role"],
+  password: string,
+): Promise<Doc<"users">> {
+  const existing = await ctx.db
+    .query("users")
+    .withIndex("email", (q) => q.eq("email", email))
+    .unique();
+  if (existing !== null) {
+    if (existing.role !== role || existing.name !== name) {
+      await ctx.db.patch(existing._id, { role, name });
+    }
+    const existingAccount = await ctx.db
+      .query("authAccounts")
+      .withIndex("providerAndAccountId", (q) =>
+        q.eq("provider", "password").eq("providerAccountId", email),
+      )
+      .unique();
+    if (existingAccount === null) {
+      await createAccount(ctx as never, {
+        provider: "password",
+        account: { id: email, secret: password },
+        profile: { email, name, role },
+        shouldLinkViaEmail: true,
+      });
+    } else {
+      await modifyAccountCredentials(ctx as never, {
+        provider: "password",
+        account: { id: email, secret: password },
+      });
+    }
+    return (await ctx.db.get(existing._id)) as Doc<"users">;
+  }
+
+  await createAccount(ctx as never, {
+    provider: "password",
+    account: { id: email, secret: password },
+    profile: { email, name, role },
+  });
+  const created = await ctx.db
+    .query("users")
+    .withIndex("email", (q) => q.eq("email", email))
+    .unique();
+  if (created === null) {
+    throw new Error(`No se pudo crear la cuenta para ${email}.`);
+  }
+  return created;
 }

@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { driverStatusValidator } from "./schema";
-import { requireDriver, requireFullAdmin, requireUser } from "./lib/auth";
+import { requireDriver, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
+import { driverMatchesDistrictScopes, getAccessContext } from "./lib/adminAccess";
 import { ensureWallet } from "./driverWallets";
 
 /**
@@ -24,8 +25,15 @@ export const listAvailable = query({
 export const listAll = query({
   args: {},
   handler: async (ctx) => {
-    await requireFullAdmin(ctx);
-    return await ctx.db.query("drivers").collect();
+    const user = await requireStaff(ctx);
+    const access = await getAccessContext(ctx, user);
+    const drivers = await ctx.db.query("drivers").collect();
+    if (access.isFullAdmin) {
+      return drivers;
+    }
+    return drivers.filter((driver) =>
+      driverMatchesDistrictScopes(driver, access.districtScopes),
+    );
   },
 });
 

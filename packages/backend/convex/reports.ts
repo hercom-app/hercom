@@ -6,6 +6,7 @@ import {
 } from "./schema";
 import { requireStaff } from "./lib/auth";
 import { filterServicesByAccess, getAccessContext } from "./lib/adminAccess";
+import { matchesOriginRegion } from "./lib/regionFilters";
 
 function normalizeMoney(amount: number): number {
   return Math.round(amount * 100) / 100;
@@ -52,6 +53,10 @@ export const listRevenueForAdmin = query({
     toDate: v.string(),
     status: v.optional(serviceStatusValidator),
     serviceType: v.optional(serviceTypeValidator),
+    countryCode: v.optional(v.string()),
+    department: v.optional(v.string()),
+    province: v.optional(v.string()),
+    district: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireStaff(ctx);
@@ -63,6 +68,21 @@ export const listRevenueForAdmin = query({
 
     let services = await ctx.db.query("services").order("desc").collect();
     services = filterServicesByAccess(services, access);
+    if (
+      args.countryCode !== undefined ||
+      args.department !== undefined ||
+      args.province !== undefined ||
+      args.district !== undefined
+    ) {
+      services = services.filter((service) =>
+        matchesOriginRegion(service.origin, {
+          countryCode: args.countryCode,
+          department: args.department,
+          province: args.province,
+          district: args.district,
+        }),
+      );
+    }
     if (args.status !== undefined) {
       const status = args.status;
       services = services.filter((service) => service.status === status);

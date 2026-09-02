@@ -25,7 +25,18 @@ type StatusFilter = "" | Doc<"services">["status"];
 type TypeFilter = "all" | NonNullable<Doc<"services">["serviceType"]>;
 type ChannelFilter = "" | NonNullable<Doc<"services">["requestChannel"]>;
 
-export function ServicesView({ isFullAdmin = true }: { isFullAdmin?: boolean }) {
+export function ServicesView({
+  isFullAdmin = true,
+  districtScopes = [],
+}: {
+  isFullAdmin?: boolean;
+  districtScopes?: Array<{
+    countryCode: string;
+    department: string;
+    province: string;
+    district: string;
+  }>;
+}) {
   const [region, setRegion] = useState<RegionFilter>(EMPTY_REGION_FILTER);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
@@ -96,7 +107,11 @@ export function ServicesView({ isFullAdmin = true }: { isFullAdmin?: boolean }) 
         />
       )}
 
-      <AdminRegionFilters value={region} onChange={setRegion}>
+      <AdminRegionFilters
+        value={region}
+        onChange={setRegion}
+        allowedScopes={isFullAdmin ? undefined : districtScopes}
+      >
         <select
           value={statusFilter}
           onChange={(event) =>

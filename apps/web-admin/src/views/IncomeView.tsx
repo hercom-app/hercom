@@ -11,6 +11,13 @@ import {
   AdminTableWrap,
 } from "../components/AdminLayout";
 import { limaDaysAgo, limaToday, liveStatusLabel } from "../lib/liveTrip";
+import { AdminRegionFilters } from "../components/AdminRegionFilters";
+import {
+  EMPTY_REGION_FILTER,
+  hasRegionFilter,
+  regionToQueryArgs,
+  type RegionFilter,
+} from "../lib/adminFilters";
 import {
   inputClass,
   rowClass,
@@ -35,17 +42,30 @@ function formatDateTime(timestamp: number): string {
   }).format(new Date(timestamp));
 }
 
-export function IncomeView() {
+export function IncomeView({
+  isFullAdmin = true,
+  districtScopes = [],
+}: {
+  isFullAdmin?: boolean;
+  districtScopes?: Array<{
+    countryCode: string;
+    department: string;
+    province: string;
+    district: string;
+  }>;
+}) {
   const [fromDate, setFromDate] = useState(() => limaDaysAgo(30));
   const [toDate, setToDate] = useState(() => limaToday());
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("finished");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [region, setRegion] = useState<RegionFilter>(EMPTY_REGION_FILTER);
 
   const report = useQuery(api.reports.listRevenueForAdmin, {
     fromDate,
     toDate,
     ...(statusFilter !== "" ? { status: statusFilter } : {}),
     ...(typeFilter !== "all" ? { serviceType: typeFilter } : {}),
+    ...(hasRegionFilter(region) ? regionToQueryArgs(region) : {}),
   });
 
   return (
@@ -53,6 +73,12 @@ export function IncomeView() {
       <AdminPageHeader
         title="Ingresos"
         description="Viajes filtrados por fecha (hora de Lima) y estado. Los montos cerrados corresponden a servicios finalizados."
+      />
+
+      <AdminRegionFilters
+        value={region}
+        onChange={setRegion}
+        allowedScopes={isFullAdmin ? undefined : districtScopes}
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

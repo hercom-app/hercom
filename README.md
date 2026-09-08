@@ -16,6 +16,9 @@ backend único de Convex compartido por tres aplicaciones.
 > **Login móvil (elementos de pantalla + estructura del monorepo):**
 > [`docs/mobile-login-y-estructura.md`](docs/mobile-login-y-estructura.md)
 >
+> **Pedir servicio — «¿Dónde necesitas un chofer…?» (modo pasajero):**
+> [`docs/mobile-cliente-pedir-servicio.md`](docs/mobile-cliente-pedir-servicio.md)
+>
 > **Flujo visual Google Auth (diagramas):**
 > [`docs/flujo-google-auth.md`](docs/flujo-google-auth.md)
 

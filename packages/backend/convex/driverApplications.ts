@@ -63,7 +63,11 @@ export const submit = mutation({
     sex: sexValidator,
     licenseNumber: v.string(),
     licenseCategory: v.string(),
+    licenseFormat: v.optional(
+      v.union(v.literal("physical"), v.literal("digital")),
+    ),
     licensePhotoIds: v.array(v.id("_storage")),
+    licensePdfId: v.optional(v.id("_storage")),
     culPdfId: v.id("_storage"),
     conductorRecordPdfId: v.id("_storage"),
     countryCode: v.string(),
@@ -96,8 +100,18 @@ export const submit = mutation({
     if (!/^\d{8}$/.test(dni)) {
       throw new Error("DNI inválido.");
     }
-    if (args.licensePhotoIds.length === 0) {
-      throw new Error("Sube al menos una foto del brevete.");
+    const licenseFormat = args.licenseFormat ?? "physical";
+    if (licenseFormat === "digital") {
+      if (args.licensePdfId === undefined) {
+        throw new Error("Sube el PDF de tu brevete digital.");
+      }
+      if (args.licensePhotoIds.length < 1) {
+        throw new Error("Sube la selfie sosteniendo el brevete impreso.");
+      }
+    } else if (args.licensePhotoIds.length < 3) {
+      throw new Error(
+        "Sube las 3 fotos del brevete físico: anverso, reverso y selfie con el documento.",
+      );
     }
 
     await assertDniAvailable(ctx, dni, user._id);
@@ -124,7 +138,11 @@ export const submit = mutation({
       sex: args.sex,
       licenseNumber: args.licenseNumber.trim(),
       licenseCategory: args.licenseCategory,
+      licenseFormat,
       licensePhotoIds: args.licensePhotoIds,
+      ...(args.licensePdfId !== undefined
+        ? { licensePdfId: args.licensePdfId }
+        : {}),
       culPdfId: args.culPdfId,
       conductorRecordPdfId: args.conductorRecordPdfId,
       countryCode: region.countryCode,
@@ -288,6 +306,10 @@ export const listForAdmin = query({
         ).filter((url): url is string => url !== null);
 
         const culPdfUrl = await ctx.storage.getUrl(application.culPdfId);
+        const licensePdfUrl =
+          application.licensePdfId !== undefined
+            ? await ctx.storage.getUrl(application.licensePdfId)
+            : null;
         const conductorRecordPdfUrl =
           application.conductorRecordPdfId !== undefined
             ? await ctx.storage.getUrl(application.conductorRecordPdfId)
@@ -304,6 +326,7 @@ export const listForAdmin = query({
           driverPlate: driver?.vehicle.plate ?? null,
           driverStatus: driver?.status ?? null,
           licensePhotoUrls,
+          licensePdfUrl,
           culPdfUrl,
           conductorRecordPdfUrl,
         };

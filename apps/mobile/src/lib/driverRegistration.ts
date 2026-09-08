@@ -11,7 +11,10 @@ export type PendingDriverRegistration = {
   sex: "M" | "F";
   licenseNumber: string;
   licenseCategory: string;
+  licenseFormat: "physical" | "digital";
   licensePhotoUris: { uri: string; mimeType: string }[];
+  licensePdfUri?: string;
+  licensePdfName?: string;
   culPdfUri: string;
   culPdfName: string;
   conductorRecordPdfUri: string;
@@ -53,7 +56,9 @@ type SubmitDriverApplicationArgs = {
   sex: "M" | "F";
   licenseNumber: string;
   licenseCategory: string;
+  licenseFormat: "physical" | "digital";
   licensePhotoIds: Id<"_storage">[];
+  licensePdfId?: Id<"_storage">;
   culPdfId: Id<"_storage">;
   conductorRecordPdfId: Id<"_storage">;
   countryCode: string;
@@ -88,6 +93,18 @@ export async function submitDriverApplicationFromPending(
     "application/pdf",
   );
 
+  let licensePdfId: Id<"_storage"> | undefined;
+  if (
+    pending.licenseFormat === "digital" &&
+    pending.licensePdfUri !== undefined
+  ) {
+    licensePdfId = await uploadToConvex(
+      generateUploadUrl,
+      pending.licensePdfUri,
+      "application/pdf",
+    );
+  }
+
   await submitApplication({
     dni: pending.dni,
     firstName: pending.firstName,
@@ -96,7 +113,9 @@ export async function submitDriverApplicationFromPending(
     sex: pending.sex,
     licenseNumber: pending.licenseNumber,
     licenseCategory: pending.licenseCategory,
+    licenseFormat: pending.licenseFormat,
     licensePhotoIds,
+    ...(licensePdfId !== undefined ? { licensePdfId } : {}),
     culPdfId,
     conductorRecordPdfId,
     countryCode: pending.countryCode,

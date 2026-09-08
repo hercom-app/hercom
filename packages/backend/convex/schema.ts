@@ -201,7 +201,11 @@ export default defineSchema({
     sex: sexValidator,
     licenseNumber: v.string(),
     licenseCategory: v.string(),
+    licenseFormat: v.optional(
+      v.union(v.literal("physical"), v.literal("digital")),
+    ),
     licensePhotoIds: v.array(v.id("_storage")),
+    licensePdfId: v.optional(v.id("_storage")),
     /** PDF del CUL (Certificado Único Laboral, MTPE). */
     culPdfId: v.id("_storage"),
     /** PDF del récord de conductor (MTC). Ausente en solicitudes antiguas. */

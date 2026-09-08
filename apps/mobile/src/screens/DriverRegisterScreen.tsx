@@ -24,21 +24,20 @@ import {
   CUL_INFO_URL,
 } from "../constants/officialDocuments";
 import {
+  PERU_LICENSE_CLASS_A,
+  PERU_LICENSE_CLASS_B,
+  PERU_LICENSE_CATEGORIES,
+} from "../constants/peruLicenseCategories";
+import {
   savePendingDriverRegistration,
   submitDriverApplicationFromPending,
   type PendingDriverRegistration,
 } from "../lib/driverRegistration";
 
-const LICENSE_CATEGORIES = [
-  "A-I",
-  "A-IIa",
-  "A-IIb",
-  "A-IIIa",
-  "A-IIIb",
-  "B",
-  "C",
-  "D",
-] as const;
+const BREVETE_GOB_PE_URL =
+  "https://www.gob.pe/262-tipos-de-licencia-de-conducir-brevete";
+
+type LicenseFormat = "physical" | "digital";
 
 type DriverRegisterScreenProps = {
   onBack: () => void;
@@ -70,11 +69,17 @@ export function DriverRegisterScreen({
 
   const [licenseNumber, setLicenseNumber] = useState("");
   const [licenseCategory, setLicenseCategory] = useState<string>(
-    LICENSE_CATEGORIES[0],
+    PERU_LICENSE_CATEGORIES[0],
+  );
+  const [licenseFormat, setLicenseFormat] = useState<LicenseFormat>("physical");
+  const [licenseFront, setLicenseFront] = useState<LocalPhoto | null>(null);
+  const [licenseBack, setLicenseBack] = useState<LocalPhoto | null>(null);
+  const [licenseSelfie, setLicenseSelfie] = useState<LocalPhoto | null>(null);
+  const [licensePdf, setLicensePdf] = useState<{ uri: string; name: string } | null>(
+    null,
   );
   const [sex, setSex] = useState<"M" | "F" | null>(null);
 
-  const [licensePhotos, setLicensePhotos] = useState<LocalPhoto[]>([]);
   const [culPdf, setCulPdf] = useState<{ uri: string; name: string } | null>(
     null,
   );
@@ -126,7 +131,9 @@ export function DriverRegisterScreen({
     }
   }
 
-  async function handlePickLicensePhoto() {
+  async function handlePickLicenseImage(
+    onPicked: (photo: LocalPhoto) => void,
+  ) {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       setFormError("Necesitamos acceso a la galería para las fotos del brevete.");
@@ -135,17 +142,47 @@ export function DriverRegisterScreen({
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       quality: 0.85,
-      allowsMultipleSelection: true,
-      selectionLimit: 3 - licensePhotos.length,
+      allowsMultipleSelection: false,
     });
-    if (result.canceled) {
+    if (result.canceled || result.assets.length === 0) {
       return;
     }
-    const newPhotos = result.assets.map((asset) => ({
+    const asset = result.assets[0];
+    if (asset === undefined) {
+      return;
+    }
+    onPicked({
       uri: asset.uri,
       mimeType: asset.mimeType ?? "image/jpeg",
-    }));
-    setLicensePhotos((prev) => [...prev, ...newPhotos].slice(0, 3));
+    });
+  }
+
+  function renderLicensePhotoSlot(
+    label: string,
+    photo: LocalPhoto | null,
+    onPicked: (photo: LocalPhoto) => void,
+  ) {
+    return (
+      <View className="mb-3">
+        <Text className="mb-1.5 text-xs font-semibold text-slate-600">{label}</Text>
+        <TouchableOpacity
+          onPress={() => void handlePickLicenseImage(onPicked)}
+          className="overflow-hidden rounded-2xl bg-slate-100"
+        >
+          {photo !== null ? (
+            <Image
+              source={{ uri: photo.uri }}
+              className="h-28 w-full"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="items-center py-6">
+              <Text className="text-sm font-semibold text-slate-800">+ Agregar foto</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   async function handlePickPdf(
@@ -176,8 +213,17 @@ export function DriverRegisterScreen({
     if (sex === null) {
       return "Selecciona tu sexo.";
     }
-    if (licensePhotos.length === 0) {
-      return "Sube al menos una foto del brevete.";
+    if (licenseFormat === "physical") {
+      if (licenseFront === null || licenseBack === null || licenseSelfie === null) {
+        return "Sube anverso, reverso y selfie con el brevete físico.";
+      }
+    } else {
+      if (licensePdf === null) {
+        return "Sube el PDF del brevete digital.";
+      }
+      if (licenseSelfie === null) {
+        return "Sube la selfie sosteniendo el brevete impreso.";
+      }
     }
     if (culPdf === null) {
       return "Sube el CUL en PDF.";
@@ -199,6 +245,11 @@ export function DriverRegisterScreen({
       return;
     }
 
+    const licensePhotoUris =
+      licenseFormat === "physical"
+        ? [licenseFront!, licenseBack!, licenseSelfie!]
+        : [licenseSelfie!];
+
     const pending: PendingDriverRegistration = {
       dni: dni.trim(),
       firstName,
@@ -207,7 +258,11 @@ export function DriverRegisterScreen({
       sex: sex as "M" | "F",
       licenseNumber: licenseNumber.trim(),
       licenseCategory,
-      licensePhotoUris: licensePhotos,
+      licenseFormat,
+      licensePhotoUris,
+      ...(licenseFormat === "digital" && licensePdf !== null
+        ? { licensePdfUri: licensePdf.uri, licensePdfName: licensePdf.name }
+        : {}),
       culPdfUri: culPdf!.uri,
       culPdfName: culPdf!.name,
       conductorRecordPdfUri: conductorRecordPdf!.uri,
@@ -344,10 +399,26 @@ export function DriverRegisterScreen({
         />
 
         <Text className="mb-2 text-sm font-semibold text-slate-500">
-          Categoría de brevete
+          Categoría de brevete (Perú — MTC)
         </Text>
+        <Text className="mb-2 text-xs leading-5 text-slate-500">
+          Clase A: automóviles y vehículos motorizados. Clase B: motos y mototaxis.
+          Referencia oficial en gob.pe.
+        </Text>
+        <Text className="mb-1.5 text-xs font-semibold text-slate-600">Clase A</Text>
+        <View className="mb-3 flex-row flex-wrap gap-2">
+          {PERU_LICENSE_CLASS_A.map((cat) => (
+            <UiChip
+              key={cat}
+              label={cat}
+              selected={licenseCategory === cat}
+              onPress={() => setLicenseCategory(cat)}
+            />
+          ))}
+        </View>
+        <Text className="mb-1.5 text-xs font-semibold text-slate-600">Clase B</Text>
         <View className="mb-4 flex-row flex-wrap gap-2">
-          {LICENSE_CATEGORIES.map((cat) => (
+          {PERU_LICENSE_CLASS_B.map((cat) => (
             <UiChip
               key={cat}
               label={cat}
@@ -357,7 +428,77 @@ export function DriverRegisterScreen({
           ))}
         </View>
 
-        <Text className="mb-2 text-sm font-semibold text-slate-500">Sexo</Text>
+        <Text className="mb-2 text-sm font-semibold text-slate-500">
+          Tipo de brevete
+        </Text>
+        <View className="mb-3 flex-row gap-2">
+          <UiChip
+            label="Físico (tarjeta)"
+            selected={licenseFormat === "physical"}
+            onPress={() => {
+              setLicenseFormat("physical");
+              setLicensePdf(null);
+            }}
+          />
+          <UiChip
+            label="Digital (PDF)"
+            selected={licenseFormat === "digital"}
+            onPress={() => {
+              setLicenseFormat("digital");
+              setLicenseFront(null);
+              setLicenseBack(null);
+            }}
+          />
+        </View>
+
+        <Text className="mb-2 text-sm font-semibold text-slate-500">
+          {licenseFormat === "physical"
+            ? "Fotos del brevete físico"
+            : "Brevete digital + selfie"}
+        </Text>
+        {licenseFormat === "physical" ? (
+          <>
+            {renderLicensePhotoSlot("Anverso del brevete", licenseFront, setLicenseFront)}
+            {renderLicensePhotoSlot("Reverso del brevete", licenseBack, setLicenseBack)}
+            {renderLicensePhotoSlot(
+              "Selfie sosteniendo el brevete",
+              licenseSelfie,
+              setLicenseSelfie,
+            )}
+          </>
+        ) : (
+          <>
+            <View className="mb-3 rounded-2xl bg-amber-50 px-4 py-3">
+              <Text className="text-xs leading-5 text-amber-900">
+                Si tu brevete es digital, imprímelo en tamaño real antes de la selfie.
+                Debes sostener el documento impreso junto a tu rostro (no basta con
+                mostrar el PDF en pantalla).
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => void handlePickPdf(setLicensePdf)}
+              className="mb-3 rounded-2xl bg-slate-100 py-4"
+            >
+              <Text className="text-center text-sm font-semibold text-slate-800">
+                {licensePdf !== null ? `✓ ${licensePdf.name}` : "+ Subir PDF del brevete"}
+              </Text>
+            </TouchableOpacity>
+            {renderLicensePhotoSlot(
+              "Selfie con brevete impreso",
+              licenseSelfie,
+              setLicenseSelfie,
+            )}
+          </>
+        )}
+
+        <OfficialDocumentHint
+          title="Tipos de brevete en Perú"
+          description="Consulta las categorías oficiales A-I, A-IIa, B-IIb, etc. en el MTC."
+          linkLabel="Ver categorías en gob.pe"
+          url={BREVETE_GOB_PE_URL}
+        />
+
+        <Text className="mb-2 mt-4 text-sm font-semibold text-slate-500">Sexo</Text>
         <View className="mb-4 flex-row gap-2">
           {(["M", "F"] as const).map((value) => (
             <UiChip
@@ -365,28 +506,6 @@ export function DriverRegisterScreen({
               label={value === "M" ? "Masculino" : "Femenino"}
               selected={sex === value}
               onPress={() => setSex(value)}
-            />
-          ))}
-        </View>
-
-        <Text className="mb-2 text-sm font-semibold text-slate-500">
-          Fotos del brevete
-        </Text>
-        <TouchableOpacity
-          onPress={() => void handlePickLicensePhoto()}
-          disabled={licensePhotos.length >= 3}
-          className="mb-2 rounded-2xl bg-slate-100 py-4 disabled:opacity-50"
-        >
-          <Text className="text-center text-sm font-semibold text-slate-800">
-            + Agregar foto ({licensePhotos.length}/3)
-          </Text>
-        </TouchableOpacity>
-        <View className="mb-4 flex-row flex-wrap gap-2">
-          {licensePhotos.map((photo) => (
-            <Image
-              key={photo.uri}
-              source={{ uri: photo.uri }}
-              className="h-20 w-20 rounded-xl"
             />
           ))}
         </View>

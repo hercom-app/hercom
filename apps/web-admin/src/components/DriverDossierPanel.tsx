@@ -127,6 +127,16 @@ export function DriverDossierPanel({
         <InfoRow label="Sexo" value={SEX_LABELS[application.sex]} />
         <InfoRow label="N.° brevete" value={application.licenseNumber} />
         <InfoRow label="Categoría brevete" value={application.licenseCategory} />
+        <InfoRow
+          label="Formato brevete"
+          value={
+            application.licenseFormat === "digital"
+              ? "Digital (PDF + selfie)"
+              : application.licenseFormat === "physical"
+                ? "Físico (anverso, reverso, selfie)"
+                : "Físico (legacy)"
+          }
+        />
         <InfoRow label="Zona de operación" value={formatRegion(application)} />
         <InfoRow
           label="Enviado"
@@ -174,7 +184,12 @@ export function DriverDossierPanel({
           <p className="text-sm text-slate-500">Sin fotos disponibles.</p>
         ) : (
           <div className="flex flex-wrap gap-3">
-            {application.licensePhotoUrls.map((url, index) => (
+            {application.licensePhotoUrls.map((url, index) => {
+              const labels =
+                application.licenseFormat === "digital"
+                  ? ["Selfie con brevete impreso"]
+                  : ["Anverso", "Reverso", "Selfie con brevete"];
+              return (
               <a
                 key={`${application._id}-license-${index}`}
                 href={url}
@@ -182,15 +197,30 @@ export function DriverDossierPanel({
                 rel="noreferrer"
                 className="block w-full overflow-hidden rounded-lg border border-slate-200 bg-white sm:w-auto"
               >
+                <p className="px-2 pt-2 text-xs font-medium text-slate-600">
+                  {labels[index] ?? `Foto ${index + 1}`}
+                </p>
                 <img
                   src={url}
-                  alt={`Brevete ${index + 1}`}
+                  alt={labels[index] ?? `Brevete ${index + 1}`}
                   className="h-32 w-full max-w-full object-cover sm:h-32 sm:w-auto sm:max-w-[200px]"
                 />
               </a>
-            ))}
+              );
+            })}
           </div>
         )}
+        {application.licensePdfUrl !== null &&
+          application.licensePdfUrl !== undefined && (
+            <a
+              href={application.licensePdfUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-block text-sm font-semibold text-brand hover:underline"
+            >
+              Abrir PDF del brevete digital
+            </a>
+          )}
       </div>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">

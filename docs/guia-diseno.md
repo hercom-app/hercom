@@ -152,9 +152,38 @@ cuando el usuario **no está autenticado** (`<Unauthenticated>`).
 
 **Conclusión:** el login móvil **sí aplica la identidad Hercom** acordada para esa
 pantalla. Lo estilo Yango completo (mapa + tarjetas KPI) corresponde al **panel del
-chofer**, aún no rediseñado.
+chofer** y al **paso 2 confirm** del cliente, no a esta pantalla de login.
 
-### Árbol de elementos (móvil — no HTML)
+---
+
+## Vista 2 — Pedir servicio (modo pasajero) ⭐ «¿Dónde necesitas…?»
+
+Documentación detallada (elementos, estados, assets):
+[`docs/mobile-cliente-pedir-servicio.md`](mobile-cliente-pedir-servicio.md)
+
+### Archivo
+
+```
+apps/mobile/src/screens/ClientDashboard.tsx   ← flowStep "compose"
+```
+
+Enrutamiento: [`HomeScreen.tsx`](../apps/mobile/src/screens/HomeScreen.tsx) →
+`ClientDashboard` cuando el usuario está en **modo pasajero**.
+
+### Elementos clave
+
+| Elemento | Implementación |
+| --- | --- |
+| Título «¿Dónde necesitas un Chofer para Remplazo?» | `Text` en compose |
+| Card recojo / destino / paradas | `UiCard` + campos `Pressable` |
+| Ilustración chofer | `chofer.png` debajo de la card |
+| Continuar | `UiButton` primario → `flowStep "confirm"` (mapa) |
+
+Captura Dribbble: `imagenes/capturas/04-pedir-servicio.png`
+
+---
+
+### Árbol de elementos login (móvil — no HTML)
 
 ```
 View (pantalla, bg-hercom)

@@ -23,7 +23,7 @@ import { DriverOfferModal, type DriverOfferInfo } from "../components/DriverOffe
 import { EditTripLocationsModal } from "../components/EditTripLocationsModal";
 import { HamburgerButton } from "../components/HamburgerButton";
 import { HelpFab } from "../components/HelpFab";
-import { HercomLogo } from "../components/HercomLogo";
+import { ChauffeurIllustration } from "../components/ChauffeurIllustration";
 import { RateServiceStars } from "../components/RateServiceStars";
 import { SideDrawer } from "../components/SideDrawer";
 import { ClientSecurityScreen } from "./ClientSecurityScreen";
@@ -950,12 +950,9 @@ export function ClientDashboard() {
       <View className="flex-1 bg-canvas">
         <View
           style={{ paddingTop: insets.top + 8 }}
-          className="z-10 flex-row items-center justify-between px-4 pb-2"
+          className="z-10 flex-row items-center px-4 pb-2"
         >
           <HamburgerButton onPress={() => setMenuOpen(true)} />
-          <View className="h-12 justify-center">
-            <HercomLogo width={44} />
-          </View>
         </View>
 
         {!addressSearchActive ? (
@@ -969,10 +966,10 @@ export function ClientDashboard() {
             }}
           >
             <Text className="mb-6 text-2xl font-bold leading-8 text-slate-900">
-              ¿Dónde necesitas un chofer de remplazo?
+              ¿Dónde necesitas un Chofer para Remplazo?
             </Text>
 
-            <UiCard className="gap-3">
+            <UiCard className="gap-3 overflow-hidden pb-0">
               {addressFieldButton(
                 "Punto de recojo",
                 origin,
@@ -1040,6 +1037,10 @@ export function ClientDashboard() {
                 onPress={handleContinueToConfirm}
                 disabled={!canContinue || submitting}
               />
+
+              <View className="-mx-5 mt-1 items-center border-t border-slate-100 pt-3">
+                <ChauffeurIllustration />
+              </View>
             </UiCard>
 
             {error !== null && (

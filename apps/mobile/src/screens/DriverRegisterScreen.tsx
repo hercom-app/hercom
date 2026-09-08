@@ -9,33 +9,31 @@ import {
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { useAction, useMutation } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import {
   DEFAULT_COUNTRY_CODE,
   DriverRegionFields,
 } from "../components/DriverRegionFields";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
+import { HamburgerButton } from "../components/HamburgerButton";
 import { OfficialDocumentHint } from "../components/OfficialDocumentHint";
+import { SideDrawer } from "../components/SideDrawer";
 import { UiButton, UiCard, UiChip, UiInput } from "../components/ui";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppMode } from "../contexts/AppModeContext";
 import {
   CONDUCTOR_RECORD_URL,
   CUL_INFO_URL,
 } from "../constants/officialDocuments";
 import {
   PERU_LICENSE_CLASS_A,
-  PERU_LICENSE_CLASS_B,
-  PERU_LICENSE_CATEGORIES,
 } from "../constants/peruLicenseCategories";
 import {
   savePendingDriverRegistration,
   submitDriverApplicationFromPending,
   type PendingDriverRegistration,
 } from "../lib/driverRegistration";
-
-const BREVETE_GOB_PE_URL =
-  "https://www.gob.pe/262-tipos-de-licencia-de-conducir-brevete";
 
 type LicenseFormat = "physical" | "digital";
 
@@ -56,6 +54,9 @@ export function DriverRegisterScreen({
   onSubmitSuccess,
 }: DriverRegisterScreenProps) {
   const insets = useSafeAreaInsets();
+  const { userName } = useAppMode();
+  const me = useQuery(api.users.getMe);
+  const notifications = useQuery(api.notifications.listMine, { limit: 8 });
   const generateUploadUrl = useMutation(api.driverApplications.generateUploadUrl);
   const submitApplication = useMutation(api.driverApplications.submit);
   const lookupDni = useAction(api.reniec.lookupDni);
@@ -69,7 +70,7 @@ export function DriverRegisterScreen({
 
   const [licenseNumber, setLicenseNumber] = useState("");
   const [licenseCategory, setLicenseCategory] = useState<string>(
-    PERU_LICENSE_CATEGORIES[0],
+    PERU_LICENSE_CLASS_A[0],
   );
   const [licenseFormat, setLicenseFormat] = useState<LicenseFormat>("physical");
   const [licenseFront, setLicenseFront] = useState<LocalPhoto | null>(null);
@@ -96,6 +97,25 @@ export function DriverRegisterScreen({
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const unreadNotifications = (notifications ?? []).filter(
+    (n) => n.readAt === undefined,
+  ).length;
+
+  const drawer = (
+    <SideDrawer
+      visible={menuOpen}
+      onClose={() => setMenuOpen(false)}
+      userName={userName}
+      avatarUrl={me?.selfieUrl}
+      unreadCount={unreadNotifications}
+      onSelectItem={() => {
+        setMenuOpen(false);
+        onBack();
+      }}
+    />
+  );
 
   useEffect(() => {
     setDniValidated(false);
@@ -302,19 +322,22 @@ export function DriverRegisterScreen({
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-canvas"
-      contentContainerStyle={{
-        paddingHorizontal: 20,
-        paddingTop: insets.top + 12,
-        paddingBottom: insets.bottom + 32,
-      }}
-      keyboardShouldPersistTaps="handled"
-    >
-      <TouchableOpacity onPress={onBack} className="mb-4 self-start">
-        <Text className="text-sm font-semibold text-slate-500">← Volver</Text>
-      </TouchableOpacity>
+    <View className="flex-1 bg-canvas">
+      <View
+        style={{ paddingTop: insets.top + 8 }}
+        className="z-10 flex-row items-center px-4 pb-2"
+      >
+        <HamburgerButton onPress={() => setMenuOpen(true)} />
+      </View>
 
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingBottom: insets.bottom + 32,
+        }}
+        keyboardShouldPersistTaps="handled"
+      >
       <Text className="mb-2 text-2xl font-bold text-slate-900">
         Registro de chofer
       </Text>
@@ -399,26 +422,10 @@ export function DriverRegisterScreen({
         />
 
         <Text className="mb-2 text-sm font-semibold text-slate-500">
-          Categoría de brevete (Perú — MTC)
+          Categoría de brevete
         </Text>
-        <Text className="mb-2 text-xs leading-5 text-slate-500">
-          Clase A: automóviles y vehículos motorizados. Clase B: motos y mototaxis.
-          Referencia oficial en gob.pe.
-        </Text>
-        <Text className="mb-1.5 text-xs font-semibold text-slate-600">Clase A</Text>
-        <View className="mb-3 flex-row flex-wrap gap-2">
-          {PERU_LICENSE_CLASS_A.map((cat) => (
-            <UiChip
-              key={cat}
-              label={cat}
-              selected={licenseCategory === cat}
-              onPress={() => setLicenseCategory(cat)}
-            />
-          ))}
-        </View>
-        <Text className="mb-1.5 text-xs font-semibold text-slate-600">Clase B</Text>
         <View className="mb-4 flex-row flex-wrap gap-2">
-          {PERU_LICENSE_CLASS_B.map((cat) => (
+          {PERU_LICENSE_CLASS_A.map((cat) => (
             <UiChip
               key={cat}
               label={cat}
@@ -491,14 +498,7 @@ export function DriverRegisterScreen({
           </>
         )}
 
-        <OfficialDocumentHint
-          title="Tipos de brevete en Perú"
-          description="Consulta las categorías oficiales A-I, A-IIa, B-IIb, etc. en el MTC."
-          linkLabel="Ver categorías en gob.pe"
-          url={BREVETE_GOB_PE_URL}
-        />
-
-        <Text className="mb-2 mt-4 text-sm font-semibold text-slate-500">Sexo</Text>
+        <Text className="mb-2 mt-2 text-sm font-semibold text-slate-500">Sexo</Text>
         <View className="mb-4 flex-row gap-2">
           {(["M", "F"] as const).map((value) => (
             <UiChip
@@ -512,8 +512,8 @@ export function DriverRegisterScreen({
 
         <OfficialDocumentHint
           title="CUL (PDF)"
-          description="El Certificado Único Laboral lo emite el Ministerio de Trabajo. Incluye datos personales, antecedentes y experiencia laboral. Descárgalo en PDF y súbelo aquí."
-          linkLabel="Obtener CUL en gob.pe"
+          description="Certificado Único Laboral del Ministerio de Trabajo. Descárgalo en PDF y súbelo aquí."
+          linkLabel="Cómo obtener el CUL"
           url={CUL_INFO_URL}
         />
         <TouchableOpacity
@@ -527,8 +527,8 @@ export function DriverRegisterScreen({
 
         <OfficialDocumentHint
           title="Récord de conductor (PDF)"
-          description="El récord de conductor del MTC muestra infracciones y el estado de tu licencia. Consúltalo, descárgalo y súbelo en PDF."
-          linkLabel="Consultar récord en MTC"
+          description="Historial de infracciones y estado de tu licencia (MTC). Descárgalo y súbelo en PDF."
+          linkLabel="Consultar récord MTC"
           url={CONDUCTOR_RECORD_URL}
         />
         <TouchableOpacity
@@ -577,7 +577,9 @@ export function DriverRegisterScreen({
         )}
       </UiCard>
       )}
-    </ScrollView>
+      </ScrollView>
+      {drawer}
+    </View>
   );
 }
 

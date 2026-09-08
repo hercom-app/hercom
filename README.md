@@ -1,5 +1,7 @@
 # Choferes de Reemplazo — Hercom
 
+Repositorio: **https://github.com/hercom-app/hercom**
+
 Monorepo (pnpm + Turborepo) para una plataforma de choferes para reemplazo con un
 backend único de Convex compartido por tres aplicaciones.
 
@@ -10,6 +12,9 @@ backend único de Convex compartido por tres aplicaciones.
 >
 > **Guía de diseño (elementos UI, CSS/Tailwind, marca Hercom):**
 > [`docs/guia-diseno.md`](docs/guia-diseno.md)
+>
+> **Login móvil (elementos de pantalla + estructura del monorepo):**
+> [`docs/mobile-login-y-estructura.md`](docs/mobile-login-y-estructura.md)
 >
 > **Flujo visual Google Auth (diagramas):**
 > [`docs/flujo-google-auth.md`](docs/flujo-google-auth.md)

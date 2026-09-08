@@ -106,7 +106,7 @@ export function GoogleSignInButton({
       }}
     >
       {submitting ? (
-        <ActivityIndicator color="#007AFF" />
+        <ActivityIndicator color="#0B70FE" />
       ) : (
         <>
           <GoogleGlyph />

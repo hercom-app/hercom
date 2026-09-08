@@ -12,7 +12,8 @@
     "web:comercial": "pnpm --filter @proyecto/web-comercial dev",
     "web:admin": "pnpm --filter @proyecto/web-admin dev",
     "mobile": "pnpm --filter @proyecto/mobile start",
-    "mobile:tunnel": "pnpm --filter @proyecto/mobile start -- --tunnel --clear"
+    "mobile:tunnel": "pnpm --filter @proyecto/mobile start -- --tunnel",
+    "mobile:tunnel:clean": "pnpm --filter @proyecto/mobile start -- --tunnel --clear"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

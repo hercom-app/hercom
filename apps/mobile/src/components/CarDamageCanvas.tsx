@@ -167,12 +167,13 @@ function DiagramPad({
       className="overflow-hidden rounded-xl border border-slate-300 bg-white"
       style={{ width, height, alignSelf: "center" }}
     >
-      <Image
-        source={DIAGRAM}
-        style={{ width, height }}
-        resizeMode="contain"
-        pointerEvents="none"
-      />
+      <View pointerEvents="none" style={{ width, height }}>
+        <Image
+          source={DIAGRAM}
+          style={{ width, height }}
+          resizeMode="contain"
+        />
+      </View>
       {diagramMarks.map((m, i) => (
         <View
           key={`d-${m.x.toFixed(3)}-${m.y.toFixed(3)}-${i}`}

@@ -5,11 +5,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { HercomLogo } from "../components/HercomLogo";
 import { LegalDocumentModal } from "../components/LegalDocumentModal";
-import { CARD_SHADOW } from "../components/ui";
 import { PRIVACY_POLICY, TERMS_OF_USE } from "../constants/legalCopy";
 
+const LOGIN_CARD_SHADOW = {
+  shadowColor: "#0F172A",
+  shadowOpacity: 0.05,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 2,
+} as const;
+
 /**
- * Ingreso: marca en cabecera azul, acción en card blanca.
+ * Ingreso: marca en cabecera azul, panel inferior mínimo (solo card + legal).
  */
 export function SignInScreen() {
   const insets = useSafeAreaInsets();
@@ -17,28 +24,29 @@ export function SignInScreen() {
   const [legalDoc, setLegalDoc] = useState<"terms" | "privacy" | null>(null);
 
   return (
-    <View className="flex-1 bg-canvas">
+    <View className="flex-1 bg-hercom">
       <StatusBar style="light" />
+
       <View
-        className="flex-1 items-center justify-center bg-hercom"
-        style={{ paddingTop: insets.top + 16 }}
+        className="flex-1 items-center justify-center"
+        style={{ paddingTop: insets.top + 16, paddingBottom: 24 }}
       >
         <HercomLogo width={200} />
       </View>
 
       <View
-        className="-mt-6 rounded-t-[32px] bg-canvas px-6 pt-8"
-        style={{ paddingBottom: insets.bottom + 20 }}
+        className="overflow-hidden rounded-t-[28px] bg-canvas px-6 pt-6"
+        style={{
+          marginTop: -20,
+          paddingBottom: insets.bottom + 16,
+        }}
       >
         <View
-          className="rounded-3xl bg-white p-5"
-          style={CARD_SHADOW}
+          className="rounded-3xl border border-slate-100 bg-white px-5 pb-5 pt-6"
+          style={LOGIN_CARD_SHADOW}
         >
-          <Text className="mb-1 text-center text-lg font-bold text-slate-900">
+          <Text className="mb-5 text-center text-lg font-bold text-slate-900">
             Inicia sesión
-          </Text>
-          <Text className="mb-5 text-center text-sm text-slate-500">
-            Chofer para remplazo
           </Text>
           <GoogleSignInButton
             label="Continuar con Google"
@@ -49,7 +57,7 @@ export function SignInScreen() {
           )}
         </View>
 
-        <Text className="mt-5 text-center text-[12px] leading-5 text-slate-500">
+        <Text className="mt-4 text-center text-[12px] leading-5 text-slate-500">
           Al unirte a nuestra aplicación, aceptas nuestros{" "}
           <Text
             className="font-semibold text-slate-800 underline"

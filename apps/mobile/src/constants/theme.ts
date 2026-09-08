@@ -1,8 +1,8 @@
 /** Paleta institucional Hercom — sobria, pocos acentos funcionales. */
 export const HERCOM_COLORS = {
-  /** Azul institucional (marca / CTAs). */
-  primary: "#007AFF",
-  primaryDark: "#0062CC",
+  /** Azul institucional — coincide con el fondo de hercom-logo.png (#0B70FE). */
+  primary: "#0B70FE",
+  primaryDark: "#0959CC",
   primarySoft: "#E8F2FF",
 
   white: "#FFFFFF",
@@ -27,7 +27,7 @@ export const HERCOM_COLORS = {
   dangerSoft: "#FEE2E2",
 
   offline: "#334155",
-  modeSwitch: "#007AFF",
+  modeSwitch: "#0B70FE",
   mapFallback: "#E8EEF5",
 } as const;
 

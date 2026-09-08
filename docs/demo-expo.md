@@ -123,8 +123,17 @@ pnpm --filter @proyecto/mobile exec npx expo install @expo/ngrok
 **3. Arrancar con túnel:**
 
 ```powershell
-pnpm --filter @proyecto/mobile start -- --tunnel --clear
+pnpm --filter @proyecto/mobile start -- --tunnel
 ```
+
+Para limpiar caché (solo si Metro falla raro; **puede hacer timeout del túnel**):
+
+```powershell
+pnpm mobile:tunnel:clean
+```
+
+En PC con usuario con espacios en la ruta, ver **`docs/setup-pc.md`** (script
+`scripts/start-mobile-tunnel.ps1`).
 
 Éxito = `Tunnel connected` / `Tunnel ready` + QR y URL tipo:
 

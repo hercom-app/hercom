@@ -24,8 +24,8 @@ sería análogo; en móvil **nunca** uses esos tags.
 
 | Token Tailwind | Hex | Uso |
 | --- | --- | --- |
-| `hercom` / `brand` (móvil) | `#007AFF` | Primario institucional: login, CTAs, **Modo conductor/cliente**, FAB ayuda, estados activos |
-| `hercom-dark` / `brand-dark` | `#0062CC` | Pressed / hover del azul |
+| `hercom` / `brand` (móvil) | `#0B70FE` | Primario institucional: login, CTAs, **Modo conductor/cliente**, FAB ayuda, estados activos (alineado al PNG del logo) |
+| `hercom-dark` / `brand-dark` | `#0959CC` | Pressed / hover del azul |
 | `bg-white` | `#FFFFFF` | Bottom sheet, drawer, chips flotantes, cards |
 | `text-slate-900` | `#0F172A` | Títulos sobre blanco |
 | `text-slate-500` / `600` | `#64748B` / `#475569` | Texto secundario |
@@ -124,6 +124,9 @@ Componente que carga el logo móvil:
 
 ## Vista 1 — Login Hercom (app móvil) ⭐ Primera pantalla
 
+Documentación detallada (elementos, archivos, estructura del monorepo):
+[`docs/mobile-login-y-estructura.md`](mobile-login-y-estructura.md)
+
 ### Archivo
 
 ```
@@ -137,12 +140,12 @@ cuando el usuario **no está autenticado** (`<Unauthenticated>`).
 
 | Directriz | ¿Implementado? | Detalle |
 | --- | --- | --- |
-| Azul eléctrico `#007AFF` de fondo | ✅ Sí | `bg-hercom` en contenedor raíz |
-| HERCOM + “Choferes para reemplazo” centrados | ✅ Sí | `Text` blanco centrado bajo logo |
+| Azul de fondo alineado al logo | ✅ Sí | `bg-hercom` `#0B70FE` (mismo azul que `hercom-logo.png`) |
 | Logo institucional | ✅ Sí | `HercomLogo` → `assets/images/hercom-logo.png` |
-| Tarjeta blanca flotante `rounded-3xl` | ✅ Sí | Contenedor del formulario |
-| Botón azul, texto blanco, mayúsculas | ✅ Sí | “ENTRAR” con `uppercase font-bold` |
-| Texto oscuro sobre tarjeta blanca | ✅ Sí | `text-slate-900` / `text-slate-600` |
+| Hero azul + panel inferior mínimo | ✅ Sí | Cabecera `flex-1`; canvas solo envuelve card + legal |
+| Tarjeta blanca flotante `rounded-3xl` | ✅ Sí | Login card con sombra hacia abajo |
+| «Continuar con Google» (OAuth) | ✅ Sí | `GoogleSignInButton` |
+| Subtítulo «Chofer para remplazo» bajo título | ❌ No | Eliminado del layout; tagline puede estar en el PNG |
 | Mapa de fondo pantalla completa | ❌ No | Previsto para **DriverDashboard**, no login |
 | Tarjeta superior de ganancias | ❌ No | Previsto en dashboard post-login |
 | Botón “CONECTARSE” jornada | ❌ No | Está en `AvailabilityToggle.tsx` (otra pantalla) |

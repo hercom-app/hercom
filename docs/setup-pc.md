@@ -1,166 +1,212 @@
 # Setup en una PC provisional (Windows)
 
-Guía práctica con lo que suele fallar en una máquina nueva o prestada.
-Incluye **varias terminales** (así es como se trabaja el monorepo).
+Guía para levantar Hercom en una máquina nueva o prestada — incluye lo que
+**realmente** falló en la PC con usuario `Gustavo Miguel` (sep. 2025) y cómo
+evitar perder horas.
 
 ---
 
-## Qué tenés que tener instalado
+## Por qué tardó tanto (post-mortem honesto)
 
-| Herramienta | Para qué |
-| --- | --- |
-| **Git** | Clonar el repo (`git clone …`) |
-| **Cursor** (o VS Code) | Editar código y abrir terminales integradas |
-| **Node.js LTS** (≥ 18) | Corre `node` / `npm`; trae el runtime de JS |
-| **pnpm** | Gestor de paquetes del monorepo (se instala con npm) |
-| **Cuenta Convex** | Backend en la nube del equipo Hercom |
-| **Expo Go** (celular, SDK 54) | Abrir la app móvil vía QR |
+No fue un solo bug. Se encadenaron **varios problemas distintos** y cada uno
+parecía el mismo síntoma: **“Something went wrong”** en Expo Go.
 
-No hace falta instalar Convex a mano: viene en el repo y se usa con `pnpm backend:dev`.
-
----
-
-## Permisos y PATH (PowerShell)
-
-### PATH no ve Node / pnpm
-
-Una terminal abierta **antes** de instalar Node (o una terminal nueva sin refrescar) no encuentra `node` / `npm` / `pnpm`.
-
-Al inicio de **cada** terminal nueva, si falla:
-
-```powershell
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-node -v
-```
-
-Mejor a largo plazo: cerrar y reabrir Cursor para que herede el PATH del sistema.
-
-### Execution Policy (scripts bloqueados)
-
-Error típico: *no se puede cargar npm.ps1 / ejecución de scripts deshabilitada*.
-
-Una sola vez por usuario de Windows:
-
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-```
-
-Eso permite scripts locales firmados (npm/pnpm). No es un permiso de admin del PC entero; es solo para tu usuario.
-
----
-
-## Variables de entorno (por qué hay varios `.env`)
-
-Cada proceso lee **su** carpeta. El backend no le pasa la URL a Expo ni al admin automáticamente.
-
-| Archivo | Quién lo usa | Variable | Quién lo crea |
+| # | Problema | Síntoma | Qué NO era |
 | --- | --- | --- | --- |
-| `packages/backend/.env.local` | `convex dev` | `CONVEX_URL`, `CONVEX_DEPLOYMENT`, … | Automático al correr `pnpm backend:dev` — **no editar a mano** |
-| `apps/mobile/.env` | Expo / Metro | `EXPO_PUBLIC_CONVEX_URL` | Vos (o ya viene en el repo del equipo) |
-| `apps/web-admin/.env.local` | Vite (panel admin) | `VITE_CONVEX_URL` | Vos, si levantás el admin |
+| 1 | **Node no estaba en el PATH** del sistema | Nada arrancaba | No era el código del repo |
+| 2 | **QR / URL de LAN** (`192.168.x.x`) con celular en **otra red** | Something went wrong | No era Convex ni la app |
+| 3 | **`pnpm mobile:tunnel` con `--clear`** + puerto 8081 ocupado | `ngrok tunnel took too long` | No era “ngrok roto” en general |
+| 4 | **Plan B ngrok manual** sin `EXPO_PACKAGER_PROXY_URL` | Manifiesto apuntaba a `:8081` local | No bastaba “tener ngrok” |
+| 5 | **Metro en background** (sin terminal interactiva) + proyecto con **EAS/owner** | Metro pedía login Expo → error 500 en manifiesto | **No era el espacio en “Gustavo Miguel”** |
+| 6 | Se probó **`EXPO_OFFLINE=1`** para el login | Rompió el túnel clásico | Empeoró el diagnóstico |
 
-La URL es la que imprime Convex, por ejemplo:
-
-`https://perceptive-setter-262.convex.cloud`
-
-Misma URL en mobile y admin; distinto **nombre** de variable porque Expo usa prefijo `EXPO_PUBLIC_` y Vite usa `VITE_`.
-
----
-
-## Flujo en 2–3 terminales
-
-Cloná el repo, abrí el proyecto en Cursor y trabajá así:
-
-### Terminal A — una sola vez: deps
-
-```powershell
-cd C:\Users\…\hercom
-
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-
-node -v
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-npm install -g pnpm
-pnpm install
-```
-
-### Terminal A (o la misma) — backend Convex — **dejar abierta**
-
-```powershell
-pnpm backend:dev
-```
-
-- Login en el navegador si lo pide.
-- Elegí el proyecto existente **hercom**.
-- Cuando diga `Convex functions ready!`, está bien.
-- **No la cierres** mientras desarrollás.
-
-### Terminal B — Expo Go con túnel (celular)
-
-Terminal **nueva**. Si `pnpm` no se reconoce, refrescar PATH otra vez:
-
-```powershell
-cd C:\Users\…\hercom
-
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-
-pnpm --filter @proyecto/mobile start -- --tunnel --clear
-```
-
-- Escaneá el QR con **Expo Go**.
-- El túnel sirve cuando el celular no está en la misma Wi‑Fi que la PC.
-- Si pregunta por el puerto (8081 ocupado), podés decir que sí a otro (ej. 8082).
-
-### Terminal C (opcional) — panel admin web
-
-Solo si necesitás el admin. Creá antes `apps/web-admin/.env.local`:
-
-```
-VITE_CONVEX_URL=https://TU-DEPLOYMENT.convex.cloud
-```
-
-```powershell
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-pnpm web:admin
-```
-
-→ http://localhost:5174
+**Fix definitivo:** `apps/mobile/app.config.js` quita `owner` y `eas.projectId` en
+desarrollo local (EAS Build sigue igual). Túnel clásico `--tunnel` **sin** `--clear`,
+puerto 8081 libre, URL `exp://….exp.direct`.
 
 ---
 
-## Checklist “¿ya puedo codear?”
+## Esta PC en concreto
 
-1. Terminal backend: `Convex functions ready!`
-2. Terminal mobile: `Tunnel ready` + QR
-3. App abre en Expo Go (login / pantalla de la app)
+| Detalle | Valor |
+| --- | --- |
+| Repositorio Git | https://github.com/hercom-app/hercom |
+| Ruta del repo | `C:\Users\Gustavo Miguel\Documents\hercom` |
+| Node portable | `.tools\nodejs\` (no depende del PATH del sistema) |
+| pnpm | `pnpm.cmd` si PowerShell bloquea `pnpm.ps1` |
+| DNS | Yandex Family (`77.88.8.7`) — a veces inestable con túneles; el túnel **clásico de Expo** sí funcionó |
 
-Si eso está, **sí**: podés mejorar código. Los cambios en `packages/backend/convex` se sincronizan solos con `convex dev` abierto; en mobile, Metro recarga al guardar.
+**Siempre** usar rutas entre comillas por el espacio en el nombre de usuario.
 
 ---
 
-## Comandos que usamos en la práctica (resumen)
+## Arranque rápido (copiar y pegar)
+
+Abrir **2 terminales** en Cursor o PowerShell.
+
+### En cada terminal (primero)
 
 ```powershell
-# Por terminal nueva, si hace falta:
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+$env:Path = "C:\Users\Gustavo Miguel\Documents\hercom\.tools\nodejs;" + $env:Path
+cd "C:\Users\Gustavo Miguel\Documents\hercom"
+```
 
-node -v
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-npm install -g pnpm
-pnpm install
+Comprobar: `node -v` → debe mostrar v22.x.
 
-# Terminal 1 (dejar abierta):
-pnpm backend:dev
+### Terminal 1 — Convex (opcional si solo probás la app)
 
-# Terminal 2 — Expo + túnel:
-pnpm --filter @proyecto/mobile start -- --tunnel --clear
+La app móvil ya apunta al deployment en la nube (`EXPO_PUBLIC_CONVEX_URL` en
+`apps/mobile/.env`). Solo necesitás esta terminal si **editás** funciones en
+`packages/backend/convex`:
+
+```powershell
+pnpm.cmd backend:dev
+```
+
+Esperar: `Convex functions ready!`
+
+### Terminal 2 — Expo Go con túnel (celular en otra red)
+
+**Forma recomendada** (libera 8081 y arranca túnel):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\start-mobile-tunnel.ps1
+```
+
+**Alternativa manual:**
+
+```powershell
+pnpm.cmd mobile:tunnel
+```
+
+**No uses** `mobile:tunnel:clean` salvo que Metro esté corrupto — `--clear` suele
+hacer fallar el túnel (timeout 10 s).
+
+Esperar en la terminal:
+
+```text
+Tunnel connected.
+Tunnel ready.
+```
+
+Aparece un QR y una línea tipo:
+
+```text
+exp://XXXX-anonymous-8081.exp.direct
+```
+
+(`XXXX` cambia por proyecto; copiá la que muestre **tu** terminal.)
+
+---
+
+## Entrar con Expo Go
+
+1. Abrir **Expo Go** (SDK 54).
+2. **Enter URL manually** / Introducir URL.
+3. Pegar la URL **completa**, con `exp://`:
+
+```text
+exp://XXXX-anonymous-8081.exp.direct
+```
+
+- **Sí** incluir `exp://`
+- **No** usar `https://`
+- **No** añadir `:80` (con túnel clásico no hace falta)
+- **No** escanear un QR que diga `192.168…` si el celular no está en la misma Wi‑Fi
+
+---
+
+## Checklist “¿listo para trabajar?”
+
+1. [ ] Terminal Expo: `Tunnel ready` + URL `exp://….exp.direct`
+2. [ ] Expo Go abre la app (login / pantalla principal)
+3. [ ] (Opcional) Terminal Convex: `Convex functions ready!` — solo si tocás backend
+
+---
+
+## Si vuelve “Something went wrong”
+
+| Revisar | Acción |
+| --- | --- |
+| URL incorrecta | Debe ser `exp://….exp.direct`, no LAN ni ngrok manual |
+| Puerto 8081 ocupado | Cerrar Metro viejos o usar `scripts/start-mobile-tunnel.ps1` |
+| Usaste `--clear` | Reiniciar con `pnpm.cmd mobile:tunnel` (sin clean) |
+| Terminal Expo cerrada | Volver a levantar túnel; la URL puede cambiar |
+| Querés firma EAS en local | Una vez: `npx expo login` (cuenta `hercom-worker`) en terminal **interactiva** |
+
+En la terminal de Expo deberían verse líneas cuando el celular conecta (bundle,
+errores en rojo). Si no aparece nada, el celular no está llegando al túnel.
+
+---
+
+## Variables de entorno
+
+| Archivo | Variable | Uso |
+| --- | --- | --- |
+| `apps/mobile/.env` | `EXPO_PUBLIC_CONVEX_URL` | Backend Convex en la nube |
+| `packages/backend/.env.local` | (auto) | Solo `pnpm backend:dev` |
+
+---
+
+## Comandos útiles
+
+```powershell
+# PATH + carpeta (cada terminal nueva)
+$env:Path = "C:\Users\Gustavo Miguel\Documents\hercom\.tools\nodejs;" + $env:Path
+cd "C:\Users\Gustavo Miguel\Documents\hercom"
+
+# Backend
+pnpm.cmd backend:dev
+
+# Mobile — túnel clásico (recomendado)
+pnpm.cmd mobile:tunnel
+# o
+powershell -ExecutionPolicy Bypass -File .\scripts\start-mobile-tunnel.ps1
+
+# Mobile — misma Wi‑Fi solamente (sin túnel)
+pnpm.cmd mobile
+
+# Admin web (opcional)
+pnpm.cmd web:admin
 ```
 
 ---
 
-## No hace falta
+## Git (Windows sin instalar Git en el sistema)
 
-- Cerrar Convex para abrir Expo (son terminales distintas).
-- Crear `.env` del admin si solo usás mobile.
-- Actualizar npm a la última major solo por el aviso.
-- Instalar “Convex AI files” ni actualizar Convex en el momento de setup.
+| | |
+| --- | --- |
+| Remoto | https://github.com/hercom-app/hercom |
+| Clonar | `git clone https://github.com/hercom-app/hercom.git` |
+| Git portable | `.\scripts\git.ps1` (usa `.tools\PortableGit`) |
+
+```powershell
+cd "C:\Users\Gustavo Miguel\Documents\hercom"
+.\scripts\git.ps1 status
+.\scripts\git.ps1 pull origin main
+.\scripts\git.ps1 push origin main
+```
+
+---
+
+## Qué tenés instalado en el repo (no repetir)
+
+- Node 22 portable en `.tools/nodejs/` (en `.gitignore`)
+- Git portable en `.tools/PortableGit/` (en `.gitignore`)
+- `@expo/ngrok` en dependencias del mobile
+- `apps/mobile/app.config.js` — fix Expo Go local (no tocar salvo que sepas EAS)
+
+---
+
+## No hace falta para empezar
+
+- `convex dev` si solo probás la app contra la nube
+- ngrok manual / Cloudflare (Plan B; ver `docs/demo-expo.md`)
+- Instalar Node o Git en todo el sistema (portables en `.tools`)
+
+---
+
+## Referencias
+
+- Demo cliente / QR: `docs/demo-expo.md`
+- Conectar Convex: `docs/conectar-convex-expo.md`

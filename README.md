@@ -8,7 +8,13 @@ backend único de Convex compartido por tres aplicaciones.
 > **Guía de vistas y flujo del negocio:** [`docs/flujo-vistas.md`](docs/flujo-vistas.md)
 > (orientada a alguien ajeno al código).
 >
-> **Setup en PC provisional (Windows):** [`docs/setup-pc.md`](docs/setup-pc.md)
+> **Setup desde cero (Node, Git, Convex, Expo, Vercel + Cursor):**
+> [`docs/0 SETUP DESDE CERO.md`](docs/0%20SETUP%20DESDE%20CERO.md)
+>
+> **Cambios prod único + registro chofer (sep 2026):**
+> [`docs/0 CAMBIOS PROD Y REGISTRO CHOFER.md`](docs/0%20CAMBIOS%20PROD%20Y%20REGISTRO%20CHOFER.md)
+>
+> **Setup en PC (arranque rápido):** [`docs/setup-pc.md`](docs/setup-pc.md)
 >
 > **Guía de diseño (elementos UI, CSS/Tailwind, marca Hercom):**
 > [`docs/guia-diseno.md`](docs/guia-diseno.md)

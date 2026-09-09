@@ -8,7 +8,7 @@ import {
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { requireUser } from "./lib/auth";
+import { getCurrentUser, requireUser } from "./lib/auth";
 
 /**
  * Lista notificaciones del usuario autenticado.
@@ -18,7 +18,10 @@ export const listMine = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx);
+    const user = await getCurrentUser(ctx);
+    if (user === null) {
+      return [];
+    }
     const limit = Math.min(Math.max(args.limit ?? 20, 1), 100);
     return await ctx.db
       .query("notifications")
@@ -34,7 +37,10 @@ export const listMine = query({
 export const getUnreadCount = query({
   args: {},
   handler: async (ctx) => {
-    const user = await requireUser(ctx);
+    const user = await getCurrentUser(ctx);
+    if (user === null) {
+      return 0;
+    }
     const all = await ctx.db
       .query("notifications")
       .withIndex("by_user", (q) => q.eq("userId", user._id))

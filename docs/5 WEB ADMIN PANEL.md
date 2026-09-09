@@ -5,10 +5,7 @@ Panel de operaciones Hercom (`apps/web-admin`). Acceso solo rol **admin**.
 ## Cómo levantarlo
 
 ```powershell
-# Terminal 1
-pnpm --filter @proyecto/backend dev
-
-# Terminal 2
+# Apps apuntan a Convex producción (un solo ambiente por ahora)
 pnpm web:admin
 ```
 
@@ -18,10 +15,11 @@ Abrir http://localhost:5174 · cuenta demo: `admin@demo.com` / `demo1234`
 
 | | |
 | --- | --- |
-| URL panel | https://admin.hercom.pe (temporal: https://hercom-web-admin.vercel.app) |
-| Convex prod | `https://wry-lapwing-809.convex.cloud` |
-| Convex dev (local) | `https://hip-mink-145.convex.cloud` |
-| Demo prod | `admin@demo.com` / `demo1234` (requiere `seed:seedDemo --prod` + `@convex-dev/auth --prod`) |
+| URL panel | https://hercom-web-admin-opal.vercel.app/ (dominio: `admin.hercom.pe` cuando esté) |
+| Convex | `https://lovable-kudu-343.convex.cloud` (**único ambiente** hasta Play Store) |
+| Demo | `admin@demo.com` / `demo1234` |
+
+> No hay ambiente de prueba activo. Preview Vercel / Convex de prueba = después de Play Store.
 
 Guía paso a paso: [`docs/6 DEPLOY ADMIN VERCEL.md`](6%20DEPLOY%20ADMIN%20VERCEL.md)
 

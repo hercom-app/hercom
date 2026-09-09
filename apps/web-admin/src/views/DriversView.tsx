@@ -4,7 +4,10 @@ import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
 import { AdminRegionFilters } from "../components/AdminRegionFilters";
 import type { DistrictScopeOption } from "../components/AdminRegionFilters";
-import { DriverDossierPanel } from "../components/DriverDossierPanel";
+import {
+  DriverDossierPanel,
+  type DriverApplicationForAdmin,
+} from "../components/DriverDossierPanel";
 import {
   EMPTY_REGION_FILTER,
   hasRegionFilter,
@@ -52,6 +55,21 @@ type DriversViewProps = {
   districtScopes: DistrictScopeOption[];
 };
 
+type ChoferRow = {
+  key: string;
+  userId: Id<"users">;
+  fullName: string;
+  dni: string | undefined;
+  department: string | undefined;
+  province: string | undefined;
+  district: string | undefined;
+  zone: string;
+  statusLabel: string;
+  documentsLabel: string;
+  registeredAt: number;
+  application: DriverApplicationForAdmin | null;
+};
+
 export function DriversView({
   isFullAdmin,
   districtScopes,
@@ -78,17 +96,78 @@ export function DriversView({
     return map;
   }, [applications]);
 
-  const filteredDrivers = useMemo(() => {
-    if (drivers === undefined) {
+  const rows = useMemo((): ChoferRow[] | undefined => {
+    if (drivers === undefined || applications === undefined) {
       return undefined;
     }
-    return drivers.filter((driver) => {
+
+    const driverUserIds = new Set(drivers.map((driver) => driver.userId));
+    const fromDrivers: ChoferRow[] = drivers.map((driver) => {
+      const application = applicationByUserId.get(driver.userId);
+      return {
+        key: driver._id,
+        userId: driver.userId,
+        fullName: driver.fullName ?? "Sin nombre",
+        dni: driver.dni,
+        department: driver.department,
+        province: driver.province,
+        district: driver.district,
+        zone: zoneLabel(driver),
+        statusLabel: driver.status,
+        documentsLabel:
+          application === undefined
+            ? "Sin solicitud"
+            : [
+                application.culPdfUrl !== null ? "CUL" : "CUL pendiente",
+                application.conductorRecordPdfUrl !== null
+                  ? "Récord"
+                  : "Récord pendiente",
+              ].join(" · "),
+        registeredAt: driver._creationTime,
+        application: application ?? null,
+      };
+    });
+
+    const pendingOnly: ChoferRow[] = applications
+      .filter(
+        (application) =>
+          application.status === "pending" &&
+          !driverUserIds.has(application.userId),
+      )
+      .map((application) => ({
+        key: `app-${application._id}`,
+        userId: application.userId,
+        fullName:
+          `${application.firstLastName} ${application.secondLastName} ${application.firstName}`.trim(),
+        dni: application.dni,
+        department: application.department,
+        province: application.province,
+        district: application.district,
+        zone: zoneLabel(application),
+        statusLabel: "Pendiente de revisión",
+        documentsLabel: [
+          application.culPdfUrl !== null ? "CUL" : "CUL pendiente",
+          application.conductorRecordPdfUrl !== null
+            ? "Récord"
+            : "Récord pendiente",
+        ].join(" · "),
+        registeredAt: application.submittedAt,
+        application,
+      }));
+
+    return [...pendingOnly, ...fromDrivers];
+  }, [drivers, applications, applicationByUserId]);
+
+  const filteredRows = useMemo(() => {
+    if (rows === undefined) {
+      return undefined;
+    }
+    return rows.filter((row) => {
       if (
         !matchesTextSearch(search, [
-          driver.fullName,
-          driver.dni,
-          driver.licenseNumber,
-          driver.vehicle.plate,
+          row.fullName,
+          row.dni,
+          row.application?.licenseNumber,
         ])
       ) {
         return false;
@@ -96,18 +175,18 @@ export function DriversView({
       if (!hasRegionFilter(region)) {
         return true;
       }
-      if (region.department !== "" && driver.department !== region.department) {
+      if (region.department !== "" && row.department !== region.department) {
         return false;
       }
-      if (region.province !== "" && driver.province !== region.province) {
+      if (region.province !== "" && row.province !== region.province) {
         return false;
       }
-      if (region.district !== "" && driver.district !== region.district) {
+      if (region.district !== "" && row.district !== region.district) {
         return false;
       }
       return true;
     });
-  }, [drivers, search, region]);
+  }, [rows, search, region]);
 
   return (
     <AdminPage>
@@ -127,10 +206,10 @@ export function DriversView({
       </AdminRegionFilters>
 
       <AdminCard>
-        {filteredDrivers === undefined ? (
+        {filteredRows === undefined ? (
           <AdminLoading message="Cargando choferes…" />
-        ) : filteredDrivers.length === 0 ? (
-          <AdminEmpty message="No hay choferes con estos filtros." />
+        ) : filteredRows.length === 0 ? (
+          <AdminEmpty message="No hay choferes ni solicitudes con estos filtros." />
         ) : (
           <AdminTableWrap>
             <table className={tableClass}>
@@ -146,32 +225,24 @@ export function DriversView({
                 </tr>
               </thead>
               <tbody>
-                {filteredDrivers.map((driver) => {
-                  const application = applicationByUserId.get(driver.userId);
-                  const isExpanded = expandedUserId === driver.userId;
+                {filteredRows.map((row) => {
+                  const isExpanded = expandedUserId === row.userId;
                   return (
-                    <Fragment key={driver._id}>
+                    <Fragment key={row.key}>
                       <tr className={rowClass}>
                         <td className={`${tdClass} font-medium text-slate-900`}>
-                          {driver.fullName ?? "Sin nombre"}
+                          {row.fullName}
                         </td>
-                        <td className={tdClass}>{driver.dni ?? "—"}</td>
-                        <td className={tdClass}>{zoneLabel(driver) || "—"}</td>
+                        <td className={tdClass}>{row.dni ?? "—"}</td>
+                        <td className={tdClass}>{row.zone || "—"}</td>
                         <td className={`${tdClass} capitalize`}>
-                          {driver.status}
+                          {row.statusLabel}
                         </td>
                         <td className={`${tdClass} text-xs text-slate-600`}>
-                          {application === undefined
-                            ? "Sin solicitud"
-                            : [
-                                application.culPdfUrl !== null ? "CUL" : "CUL pendiente",
-                                application.conductorRecordPdfUrl !== null
-                                  ? "Récord"
-                                  : "Récord pendiente",
-                              ].join(" · ")}
+                          {row.documentsLabel}
                         </td>
                         <td className={`${tdClass} text-slate-500`}>
-                          {formatDate(driver._creationTime)}
+                          {formatDate(row.registeredAt)}
                         </td>
                         <td className={tdClass}>
                           <button
@@ -179,7 +250,7 @@ export function DriversView({
                             className={btnGhostClass}
                             onClick={() =>
                               setExpandedUserId(
-                                isExpanded ? null : driver.userId,
+                                isExpanded ? null : row.userId,
                               )
                             }
                           >
@@ -192,8 +263,8 @@ export function DriversView({
                           <td colSpan={7} className="px-0 pb-4 pt-1">
                             <div className="sticky left-0 w-[min(52rem,calc(100vw-2.5rem))] lg:w-full lg:max-w-4xl">
                               <DriverDossierPanel
-                                application={application ?? null}
-                                userName={driver.fullName ?? "Chofer"}
+                                application={row.application}
+                                userName={row.fullName}
                               />
                             </div>
                           </td>

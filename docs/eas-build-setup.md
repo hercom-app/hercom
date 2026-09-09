@@ -72,7 +72,7 @@ Al ejecutarlo por primera vez:
 - Elige **"choose an existing project"** → selecciona **hercom**
 - Crea un deployment de desarrollo y guarda las URLs en `.env.local`
 
-**URL del deployment activo:** `https://perceptive-setter-262.convex.cloud`
+**URL del deployment activo (producción):** `https://lovable-kudu-343.convex.cloud`
 
 **Cuenta Convex:** team `hercom-app`, proyecto `hercom`
 

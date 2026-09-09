@@ -85,9 +85,9 @@ Al enviar la solicitud se crea el perfil en **`drivers`**, se asigna
 
 ## Aprobar choferes (manual por ahora)
 
-1. [Dashboard Convex → driverApplications](https://dashboard.convex.dev/d/hip-mink-145)
-2. Cambia `status` a `approved`
-3. Crea fila en **`drivers`** vinculada al `userId` (o automatizar en admin más adelante)
+1. Admin → **Choferes** (solicitudes pendientes aparecen aunque aún no exista perfil `drivers`)
+2. O [Dashboard Convex → driverApplications](https://dashboard.convex.dev/d/lovable-kudu-343)
+3. En admin: **Aprobar** crea el perfil en `drivers` automáticamente
 
 ---
 

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { driverStatusValidator } from "./schema";
-import { requireDriver, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
+import { getCurrentUser, requireDriver, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
 import { driverMatchesDistrictScopes, getAccessContext } from "./lib/adminAccess";
 import { ensureWallet } from "./driverWallets";
 
@@ -43,7 +43,10 @@ export const listAll = query({
 export const getMyDriverProfile = query({
   args: {},
   handler: async (ctx) => {
-    const user = await requireUser(ctx);
+    const user = await getCurrentUser(ctx);
+    if (user === null) {
+      return null;
+    }
     return await ctx.db
       .query("drivers")
       .withIndex("by_user", (q) => q.eq("userId", user._id))

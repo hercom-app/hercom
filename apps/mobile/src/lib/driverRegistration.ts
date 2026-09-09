@@ -15,6 +15,7 @@ export type PendingDriverRegistration = {
   licensePhotoUris: { uri: string; mimeType: string }[];
   licensePdfUri?: string;
   licensePdfName?: string;
+  vehicleBodyType: "auto" | "camioneta";
   culPdfUri: string;
   culPdfName: string;
   conductorRecordPdfUri: string;
@@ -59,6 +60,7 @@ type SubmitDriverApplicationArgs = {
   licenseFormat: "physical" | "digital";
   licensePhotoIds: Id<"_storage">[];
   licensePdfId?: Id<"_storage">;
+  vehicleBodyType: "auto" | "camioneta";
   culPdfId: Id<"_storage">;
   conductorRecordPdfId: Id<"_storage">;
   countryCode: string;
@@ -98,10 +100,13 @@ export async function submitDriverApplicationFromPending(
     pending.licenseFormat === "digital" &&
     pending.licensePdfUri !== undefined
   ) {
+    const mime = pending.licensePdfName?.toLowerCase().endsWith(".pdf")
+      ? "application/pdf"
+      : "image/jpeg";
     licensePdfId = await uploadToConvex(
       generateUploadUrl,
       pending.licensePdfUri,
-      "application/pdf",
+      mime,
     );
   }
 
@@ -116,6 +121,7 @@ export async function submitDriverApplicationFromPending(
     licenseFormat: pending.licenseFormat,
     licensePhotoIds,
     ...(licensePdfId !== undefined ? { licensePdfId } : {}),
+    vehicleBodyType: pending.vehicleBodyType,
     culPdfId,
     conductorRecordPdfId,
     countryCode: pending.countryCode,

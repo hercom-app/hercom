@@ -9,23 +9,22 @@ Guía completa (Hercom, julio 2026). Lenguaje simple + comandos exactos.
 | Qué | URL | Dónde vive |
 | --- | --- | --- |
 | Landing pública | `www.hercom.pe` | Proyecto Vercel **aparte** (landing) |
-| Panel admin | `admin.hercom.pe` | Proyecto Vercel **`hercom-web-admin`** |
-| Backend (datos) | Convex producción | *(pendiente: `npx convex deploy`)* |
-| Desarrollo local | tu PC | Convex dev `https://perceptive-setter-262.convex.cloud` |
+| Panel admin | https://hercom-web-admin-opal.vercel.app/ | Proyecto Vercel **`hercom-web-admin`** |
+| Backend (datos) | `https://lovable-kudu-343.convex.cloud` | Convex **producción** (único ambiente hasta Play Store) |
 
-**Importante:** local y producción son **dos bases de datos distintas**. Lo que creas en dev no existe en prod hasta que lo ejecutes con `--prod`.
+**Política actual:** mobile, admin local y Vercel usan **la misma** base Convex de producción. No hay ambiente de prueba activo; se agregará después de Play Store.
 
 ---
 
 ## Checklist rápido (orden correcto)
 
-- [x] Código en GitHub (`hercom-prjct/app-choferes-hercom`)
-- [x] `npx convex deploy` → backend en producción
+- [x] Código en GitHub (`hercom-app/hercom`)
+- [x] `npx convex deploy` → backend en producción (`lovable-kudu-343`)
 - [x] Proyecto Vercel con Root Directory `apps/web-admin`
-- [x] Variable `VITE_CONVEX_URL` = URL de **producción** Convex
-- [x] `npx @convex-dev/auth --prod` → claves JWT en producción
-- [x] `npx convex run seed:seedDemo --prod` → usuarios demo en producción
-- [x] Login OK en `https://hercom-web-admin.vercel.app`
+- [x] Variable `VITE_CONVEX_URL` = `https://lovable-kudu-343.convex.cloud`
+- [x] JWT / Auth en producción
+- [x] `npx convex run seed:seedDemo --prod` → usuarios demo
+- [x] Login OK en https://hercom-web-admin-opal.vercel.app/
 - [ ] Dominio `admin.hercom.pe` (DNS + Vercel Domains)
 - [ ] Actualizar `SITE_URL` a `https://admin.hercom.pe` (después del dominio)
 
@@ -37,17 +36,16 @@ Desde `packages/backend`:
 
 ```powershell
 cd packages/backend
-npx convex deploy
+npx convex deploy --yes
 ```
-
-Cuando pregunte si subir a prod → **Yes**.
 
 | Entorno | Deployment | URL |
 | --- | --- | --- |
-| **Dev** (local, `convex dev`) | `hip-mink-145` | `https://hip-mink-145.convex.cloud` |
-| **Prod** (internet) | `wry-lapwing-809` | `https://wry-lapwing-809.convex.cloud` |
+| **Producción (activo)** | `lovable-kudu-343` | `https://lovable-kudu-343.convex.cloud` |
 
-En Vercel **siempre** usa la URL de **prod** (`wry-lapwing-809`), no la de dev.
+En Vercel **siempre** usa `https://lovable-kudu-343.convex.cloud`.
+
+> Nombres viejos en docs anteriores (`wry-lapwing-809`, `perceptive-setter-262`, `hip-mink-145`) **ya no se usan** para datos reales.
 
 ---
 
@@ -109,7 +107,7 @@ Idempotente: puedes correrlo varias veces.
 
 | Key | Value |
 | --- | --- |
-| `VITE_CONVEX_URL` | `https://wry-lapwing-809.convex.cloud` |
+| `VITE_CONVEX_URL` | `https://lovable-kudu-343.convex.cloud` |
 
 6. **Deploy**
 
@@ -193,9 +191,9 @@ Config en repo: `apps/web-admin/vercel.json`
 
 ### Login OK en local, no en Vercel
 
-**Causa:** `VITE_CONVEX_URL` apunta a dev (`hip-mink-145`) o falta redeploy.
+**Causa:** `VITE_CONVEX_URL` apunta a un deployment viejo o falta redeploy.
 
-**Solución:** variable = `https://wry-lapwing-809.convex.cloud` + Redeploy.
+**Solución:** variable = `https://lovable-kudu-343.convex.cloud` + Redeploy.
 
 ### Repo no aparece en Vercel
 

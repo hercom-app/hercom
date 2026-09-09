@@ -4,7 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { normalizeCountryCode } from "./data/countryCatalog";
 import { driverApplicationStatusValidator, sexValidator } from "./schema";
-import { requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
+import { getCurrentUser, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
 import { assertDniAvailable } from "./lib/identity";
 import { getAccessContext, originMatchesDistrictScopes } from "./lib/adminAccess";
 import { ensureWallet } from "./driverWallets";
@@ -22,7 +22,10 @@ export const generateUploadUrl = mutation({
 export const getMyApplication = query({
   args: {},
   handler: async (ctx) => {
-    const user = await requireUser(ctx);
+    const user = await getCurrentUser(ctx);
+    if (user === null) {
+      return null;
+    }
     return await ctx.db
       .query("driverApplications")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
@@ -68,6 +71,7 @@ export const submit = mutation({
     ),
     licensePhotoIds: v.array(v.id("_storage")),
     licensePdfId: v.optional(v.id("_storage")),
+    vehicleBodyType: v.union(v.literal("auto"), v.literal("camioneta")),
     culPdfId: v.id("_storage"),
     conductorRecordPdfId: v.id("_storage"),
     countryCode: v.string(),
@@ -102,8 +106,12 @@ export const submit = mutation({
     }
     const licenseFormat = args.licenseFormat ?? "physical";
     if (licenseFormat === "digital") {
-      if (args.licensePdfId === undefined) {
-        throw new Error("Sube el PDF de tu brevete digital.");
+      const hasDigitalFile =
+        args.licensePdfId !== undefined || args.licensePhotoIds.length >= 2;
+      if (!hasDigitalFile) {
+        throw new Error(
+          "Sube el brevete digital (PDF o imagen) y la selfie con el documento.",
+        );
       }
       if (args.licensePhotoIds.length < 1) {
         throw new Error("Sube la selfie sosteniendo el brevete impreso.");
@@ -143,6 +151,7 @@ export const submit = mutation({
       ...(args.licensePdfId !== undefined
         ? { licensePdfId: args.licensePdfId }
         : {}),
+      vehicleBodyType: args.vehicleBodyType,
       culPdfId: args.culPdfId,
       conductorRecordPdfId: args.conductorRecordPdfId,
       countryCode: region.countryCode,

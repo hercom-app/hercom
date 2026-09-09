@@ -110,6 +110,7 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
 
   if (
     me === undefined ||
+    me === null ||
     driver === undefined ||
     application === undefined ||
     !ready

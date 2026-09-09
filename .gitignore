@@ -43,3 +43,13 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Local snapshots / temp exports (Convex migrate, etc.)
+.tmp/
+
+.vercel
+.env*
+
+.env.local
+.vercel/
+

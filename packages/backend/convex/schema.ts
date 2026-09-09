@@ -206,6 +206,10 @@ export default defineSchema({
     ),
     licensePhotoIds: v.array(v.id("_storage")),
     licensePdfId: v.optional(v.id("_storage")),
+    /** Vehículo habitual: auto o camioneta (checklist de registro). */
+    vehicleBodyType: v.optional(
+      v.union(v.literal("auto"), v.literal("camioneta")),
+    ),
     /** PDF del CUL (Certificado Único Laboral, MTPE). */
     culPdfId: v.id("_storage"),
     /** PDF del récord de conductor (MTC). Ausente en solicitudes antiguas. */

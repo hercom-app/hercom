@@ -19,6 +19,7 @@ import {
   Poppins_700Bold,
 } from "@expo-google-fonts/poppins";
 import { AppErrorBoundary } from "./src/components/AppErrorBoundary";
+import { AuthSessionGuard } from "./src/components/AuthSessionGuard";
 import { LiveShareLinkListener } from "./src/components/LiveShareLinkListener";
 import { NotificationBridge } from "./src/components/NotificationBridge";
 import { PendingRegistrationSubmit } from "./src/components/PendingRegistrationSubmit";
@@ -96,12 +97,14 @@ export default function App() {
               <SignInScreen />
             </Unauthenticated>
             <Authenticated>
-              <PendingRegistrationSubmit>
-                <AppModeProvider>
-                  <NotificationBridge />
-                  <HomeScreen />
-                </AppModeProvider>
-              </PendingRegistrationSubmit>
+              <AuthSessionGuard>
+                <PendingRegistrationSubmit>
+                  <AppModeProvider>
+                    <NotificationBridge />
+                    <HomeScreen />
+                  </AppModeProvider>
+                </PendingRegistrationSubmit>
+              </AuthSessionGuard>
             </Authenticated>
             <StatusBar style="dark" />
           </SafeAreaView>

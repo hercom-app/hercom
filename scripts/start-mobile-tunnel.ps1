@@ -3,8 +3,20 @@
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$nodeDir = Join-Path $root ".tools\nodejs"
-$env:Path = "$nodeDir;" + $env:Path
+# Prefer Node del PATH / instalación de usuario; fallback al portable del repo
+$userNode = Join-Path $env:LOCALAPPDATA "Programs\nodejs"
+$repoNode = Join-Path $root ".tools\nodejs"
+foreach ($nodeDir in @($userNode, $repoNode)) {
+  if (Test-Path (Join-Path $nodeDir "node.exe")) {
+    if (($env:Path -split ";") -notcontains $nodeDir) {
+      $env:Path = "$nodeDir;" + $env:Path
+    }
+    break
+  }
+}
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+  throw "Node no encontrado. Ejecutá: powershell -ExecutionPolicy Bypass -File .\scripts\install-dev-tools.ps1"
+}
 $env:EXPO_NO_TELEMETRY = "1"
 
 Write-Host "Liberando puerto 8081..."

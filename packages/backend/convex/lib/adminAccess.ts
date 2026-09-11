@@ -42,13 +42,28 @@ export function originMatchesDistrictScopes(
   if (scopes.length === 0) {
     return false;
   }
-  const originKey = districtScopeKey({
-    countryCode: resolveCountryCode(origin),
-    department: origin.department ?? "",
-    province: origin.province ?? "",
-    district: origin.district ?? "",
+  const originCountry = normalizeCountryCode(resolveCountryCode(origin));
+  const originDepartment = origin.department?.trim() ?? "";
+  const originProvince = origin.province?.trim() ?? "";
+  const originDistrict = origin.district?.trim() ?? "";
+
+  return scopes.some((scope) => {
+    if (normalizeCountryCode(scope.countryCode) !== originCountry) {
+      return false;
+    }
+    if (scope.department.trim() !== originDepartment) {
+      return false;
+    }
+    if (scope.province.trim() !== originProvince) {
+      return false;
+    }
+    const scopedDistrict = scope.district.trim();
+    // Distrito vacío = toda la provincia (p. ej. Lima · Lima).
+    if (scopedDistrict === "") {
+      return originProvince !== "";
+    }
+    return scopedDistrict === originDistrict;
   });
-  return scopes.some((scope) => districtScopeKey(scope) === originKey);
 }
 
 export function driverMatchesDistrictScopes(

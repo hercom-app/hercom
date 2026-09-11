@@ -157,7 +157,17 @@ export function DriverDossierPanel({
                 : "Físico (legacy)"
           }
         />
-        <InfoRow label="Zona de operación" value={formatRegion(application)} />
+        <InfoRow
+          label="Tipo de vehículo"
+          value={
+            application.vehicleBodyType === "camioneta"
+              ? "Camioneta"
+              : application.vehicleBodyType === "auto"
+                ? "Auto"
+                : "—"
+          }
+        />
+        <InfoRow label="Zona" value={formatRegion(application)} />
         <InfoRow
           label="Enviado"
           value={formatDateTime(application.submittedAt)}
@@ -246,16 +256,16 @@ export function DriverDossierPanel({
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <DocumentFileCard
           title="CUL (Certificado Único Laboral)"
-          description="Documento del Ministerio de Trabajo. Antecedentes y datos laborales."
-          officialLabel="Consultar en gob.pe"
+          description="PDF que subió el chofer."
+          officialLabel="Abrir sitio oficial"
           officialUrl={CUL_INFO_URL}
           fileUrl={application.culPdfUrl}
           fileLabel="Abrir PDF del CUL"
         />
         <DocumentFileCard
           title="Récord de conductor (MTC)"
-          description="Infracciones y estado de la licencia emitidos por el MTC."
-          officialLabel="Consultar en MTC"
+          description="PDF que subió el chofer."
+          officialLabel="Abrir sitio oficial"
           officialUrl={CONDUCTOR_RECORD_URL}
           fileUrl={application.conductorRecordPdfUrl}
           fileLabel="Abrir PDF del récord"

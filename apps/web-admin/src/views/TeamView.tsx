@@ -46,11 +46,7 @@ export function DistrictPicker({
   const [draft, setDraft] = useState<DistrictDraft>(EMPTY_DRAFT);
 
   function addDistrict() {
-    if (
-      draft.department === "" ||
-      draft.province === "" ||
-      draft.district === ""
-    ) {
+    if (draft.department === "" || draft.province === "") {
       return;
     }
     const key = districtKey(draft);
@@ -96,23 +92,19 @@ export function DistrictPicker({
           setDraft((previous) => ({ ...previous, district: value }))
         }
         provinceOptionalLabel="Provincia"
-        districtOptionalLabel="Distrito"
+        districtOptionalLabel="Toda la provincia"
       />
       <button
         type="button"
         onClick={addDistrict}
-        disabled={
-          draft.department === "" ||
-          draft.province === "" ||
-          draft.district === ""
-        }
+        disabled={draft.department === "" || draft.province === ""}
         className={`${btnSecondaryClass} w-full sm:w-auto`}
       >
-        Agregar distrito
+        Agregar zona
       </button>
       {districts.length === 0 ? (
         <p className="text-sm text-zinc-500">
-          Aún no hay distritos. Puedes mezclar provincias distintas.
+          Sin distrito = toda la provincia. Puedes mezclar provincias distintas.
         </p>
       ) : (
         <ul className="flex flex-wrap gap-2">
@@ -122,7 +114,9 @@ export function DistrictPicker({
               className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 text-xs text-zinc-700"
             >
               <span>
-                {item.district}, {item.province}, {item.department}
+                {item.district === ""
+                  ? `Toda ${item.province} (${item.department})`
+                  : `${item.district}, ${item.province}, ${item.department}`}
               </span>
               <button
                 type="button"
@@ -221,7 +215,7 @@ export function CreateAdminUserForm({
         />
       </label>
       <div>
-        <p className={labelClass}>Distritos asignados</p>
+        <p className={labelClass}>Zonas asignadas</p>
         <DistrictPicker districts={districts} onChange={setDistricts} />
       </div>
       {error !== null && (
@@ -282,7 +276,7 @@ export function TeamView() {
     <AdminPage>
       <AdminPageHeader
         title="Equipo interno"
-        description="Crea admins con su clave y asígnales uno o varios distritos, incluso de distintas provincias. Cada admin solo verá servicios e ingresos de esas zonas."
+        description="Crea admins con su clave y asígnales provincias o distritos. Sin distrito, el admin ve toda la provincia (choferes, solicitudes y servicios de esa zona)."
       />
 
       <AdminCard>
@@ -319,11 +313,12 @@ export function TeamView() {
                       </p>
                       <p className="mt-2 text-xs leading-relaxed text-zinc-600">
                         {admin.districtScopes.length === 0
-                          ? "Sin distritos (acceso legado total). Asigna zonas para limitarlo."
+                          ? "Sin zonas (acceso legado total). Asigna provincias o distritos para limitarlo."
                           : admin.districtScopes
-                              .map(
-                                (scope) =>
-                                  `${scope.district} (${scope.province})`,
+                              .map((scope) =>
+                                scope.district === ""
+                                  ? `Toda ${scope.province} (${scope.department})`
+                                  : `${scope.district} (${scope.province})`,
                               )
                               .join(" · ")}
                       </p>

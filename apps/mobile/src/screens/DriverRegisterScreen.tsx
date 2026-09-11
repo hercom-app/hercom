@@ -788,9 +788,8 @@ export function DriverRegisterScreen({
             ) : (
               <>
                 <OfficialDocumentHint
-                  title="Licencia digital MTC"
-                  description="Consulta o descarga tu brevete digital. Puedes subir PDF o una imagen."
-                  linkLabel="Abrir licencias.mtc.gob.pe"
+                  title="Brevete digital — MTC"
+                  linkLabel="Abrir sitio oficial"
                   url={DIGITAL_LICENSE_URL}
                 />
                 <TacticalPanel tone="sunken" className="mb-3">
@@ -840,9 +839,8 @@ export function DriverRegisterScreen({
             )}
 
             <OfficialDocumentHint
-              title="Récord de conductor (PDF)"
-              description="Historial de infracciones y estado de tu licencia (MTC). Descárgalo y súbelo en PDF."
-              linkLabel="Consultar récord MTC"
+              title="Récord de conductor — MTC"
+              linkLabel="Abrir sitio oficial"
               url={CONDUCTOR_RECORD_URL}
             />
             {renderPdfSlot(
@@ -853,9 +851,8 @@ export function DriverRegisterScreen({
             )}
 
             <OfficialDocumentHint
-              title="CUL (PDF)"
-              description="Certificado Único Laboral del Ministerio de Trabajo. Descárgalo en PDF y súbelo aquí."
-              linkLabel="Cómo obtener el CUL"
+              title="CUL — Ministerio de Trabajo"
+              linkLabel="Abrir sitio oficial"
               url={CUL_INFO_URL}
             />
             {renderPdfSlot("CUL", "+ Subir PDF del CUL (*)", culPdf, () =>

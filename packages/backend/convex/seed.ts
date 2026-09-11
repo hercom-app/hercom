@@ -472,6 +472,55 @@ export const resetForOwnerKickoff = internalMutation({
   },
 });
 
+const LIMA_ADMIN_EMAIL = "lima@hercom.com";
+const LIMA_ADMIN_PASSWORD = "LimaOps2026";
+const LIMA_ADMIN_NAME = "Admin Lima";
+const LIMA_PROVINCE_SCOPE = {
+  countryCode: "PE",
+  department: "Lima",
+  province: "Lima",
+  district: "",
+} as const;
+
+/**
+ * Admin operativo de la provincia de Lima (depto Lima).
+ * Ve todos los choferes y solicitudes inscritos en esa provincia, no el resto del país.
+ *
+ *   npx convex run seed:ensureLimaProvinceAdmin --prod
+ */
+export const ensureLimaProvinceAdmin = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const admin = await ensureUserWithPassword(
+      ctx,
+      LIMA_ADMIN_EMAIL,
+      LIMA_ADMIN_NAME,
+      "admin",
+      LIMA_ADMIN_PASSWORD,
+    );
+
+    const existing = await ctx.db
+      .query("adminDistrictScopes")
+      .withIndex("by_user", (q) => q.eq("userId", admin._id))
+      .collect();
+    for (const row of existing) {
+      await ctx.db.delete(row._id);
+    }
+    await ctx.db.insert("adminDistrictScopes", {
+      userId: admin._id,
+      ...LIMA_PROVINCE_SCOPE,
+    });
+
+    return {
+      email: LIMA_ADMIN_EMAIL,
+      password: LIMA_ADMIN_PASSWORD,
+      name: LIMA_ADMIN_NAME,
+      userId: admin._id,
+      scope: "PE · Lima · Lima (toda la provincia)",
+    };
+  },
+});
+
 async function ensureUserWithPassword(
   ctx: MutationCtx,
   email: string,

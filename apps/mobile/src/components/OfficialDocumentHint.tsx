@@ -1,5 +1,5 @@
 import { Linking, Text, TouchableOpacity, View } from "react-native";
-import { TacticalLabel, TacticalText } from "./tactical";
+import { TacticalLabel } from "./tactical";
 import {
   MONO,
   TACTICAL_BORDER,
@@ -10,15 +10,13 @@ import {
 
 type OfficialDocumentHintProps = {
   title: string;
-  description: string;
   linkLabel: string;
   url: string;
 };
 
-/** Bloque informativo con enlace oficial — panel HUD con fila de enlace al pie. */
+/** Enlace al portal oficial. Hercom no tramita el documento. */
 export function OfficialDocumentHint({
   title,
-  description,
   linkLabel,
   url,
 }: OfficialDocumentHintProps) {
@@ -36,9 +34,6 @@ export function OfficialDocumentHint({
         <TacticalLabel size={10} tone="text">
           {title}
         </TacticalLabel>
-        <TacticalText size={11} className="mt-1">
-          {description}
-        </TacticalText>
       </View>
       <TouchableOpacity
         onPress={() => void Linking.openURL(url)}

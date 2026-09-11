@@ -44,17 +44,13 @@ function normalizeDistricts(
       province: raw.province.trim(),
       district: raw.district.trim(),
     };
-    if (
-      scope.department === "" ||
-      scope.province === "" ||
-      scope.district === ""
-    ) {
-      throw new Error("Cada zona debe incluir departamento, provincia y distrito.");
+    if (scope.department === "" || scope.province === "") {
+      throw new Error("Cada zona debe incluir departamento y provincia.");
     }
     unique.set(districtScopeKey(scope), scope);
   }
   if (unique.size === 0) {
-    throw new Error("Asigna al menos un distrito.");
+    throw new Error("Asigna al menos una provincia o distrito.");
   }
   return [...unique.values()];
 }
@@ -315,7 +311,7 @@ export const listAdmins = query({
 });
 
 /**
- * Crea un admin operativo con clave y uno o más distritos.
+ * Crea un admin operativo con clave y una o más zonas (provincia o distrito).
  */
 export const createAdminUser = mutation({
   args: {

@@ -144,8 +144,8 @@ export default defineSchema({
     .index("by_dni", ["dni"]),
 
   /**
-   * Distritos asignados a un admin operativo.
-   * Un admin puede tener varios, incluso de distintas provincias.
+   * Zonas asignadas a un admin operativo.
+   * Distrito vacío = toda la provincia. Un admin puede mezclar provincias.
    */
   adminDistrictScopes: defineTable({
     userId: v.id("users"),

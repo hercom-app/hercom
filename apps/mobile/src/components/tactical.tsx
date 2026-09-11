@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useAppTheme } from "../contexts/ThemeContext";
 import {
+  DISPLAY,
   MONO,
   POPPINS,
   TACTICAL_BORDER,
@@ -28,7 +29,9 @@ import {
  * Reglas del sistema:
  * - Esquinas casi angulares (2-4 px), nunca pill salvo indicadores de estado.
  * - Bordes de 1 px en azul acero con opacidad baja.
- * - Etiquetas y datos numéricos en monoespaciada, mayúsculas y tracking amplio.
+ * - Etiquetas y datos numéricos en Share Tech Mono, mayúsculas y tracking amplio.
+ * - Títulos de mando en Black Ops One.
+ * - Cuerpo en Rajdhani (condensada).
  */
 
 /** Corchetes en las esquinas, como miras de una pantalla de mando. */
@@ -282,7 +285,7 @@ export function TacticalValue({
   );
 }
 
-/** Título de pantalla: monoespaciada, mayúsculas, tracking de mando. */
+/** Título de pantalla: Black Ops One, mayúsculas, tracking de mando. */
 export function TacticalTitle({
   children,
   size = 20,
@@ -296,9 +299,9 @@ export function TacticalTitle({
     <Text
       className={className}
       style={{
-        fontFamily: MONO.bold,
+        fontFamily: DISPLAY.regular,
         fontSize: size,
-        letterSpacing: size >= 20 ? 2 : 1.6,
+        letterSpacing: 0.8,
         color: TACTICAL_COLORS.textStrong,
         textTransform: "uppercase",
       }}
@@ -354,7 +357,7 @@ type TacticalButtonProps = {
   className?: string;
 };
 
-/** CTA táctico: relleno azul cielo en primario, contorno acero en secundario. */
+/** CTA táctico: relleno cian sonar en primario, contorno acero en secundario. */
 export function TacticalButton({
   label,
   onPress,
@@ -369,9 +372,9 @@ export function TacticalButton({
   const background = isPrimary
     ? TACTICAL_COLORS.accent
     : isDanger
-      ? "rgba(248, 113, 113, 0.12)"
+      ? `${TACTICAL_COLORS.danger}1F`
       : variant === "secondary"
-        ? "rgba(91, 132, 177, 0.12)"
+        ? `${TACTICAL_COLORS.steel}1F`
         : "transparent";
   const borderColor = isPrimary
     ? TACTICAL_COLORS.accent
@@ -442,7 +445,7 @@ export function TacticalInput({
         <TacticalLabel className="mb-2">{label}</TacticalLabel>
       )}
       <TextInput
-        placeholderTextColor="rgba(91, 132, 177, 0.7)"
+        placeholderTextColor={`${TACTICAL_COLORS.steel}B3`}
         {...props}
         style={[
           {

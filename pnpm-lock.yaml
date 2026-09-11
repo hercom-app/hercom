@@ -186,10 +186,13 @@ importers:
       '@convex-dev/auth':
         specifier: ^0.0.87
         version: 0.0.87(@auth/core@0.37.4)(convex@1.40.0(react@19.1.0))(react@19.1.0)
-      '@expo-google-fonts/jetbrains-mono':
+      '@expo-google-fonts/black-ops-one':
         specifier: ^0.4.1
         version: 0.4.1
-      '@expo-google-fonts/poppins':
+      '@expo-google-fonts/rajdhani':
+        specifier: ^0.4.1
+        version: 0.4.1
+      '@expo-google-fonts/share-tech-mono':
         specifier: ^0.4.1
         version: 0.4.1
       '@expo/ngrok':
@@ -1268,11 +1271,14 @@ packages:
     resolution: {integrity: sha512-d9zaMRSTIKDLhctzH12MtXvJKSSUhaHcjV+2Z+GK+EEY7XKpP5yR4x+N3TAcHTcu963nIr+TMcCb4DBCYX1z6Q==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
-  '@expo-google-fonts/jetbrains-mono@0.4.1':
-    resolution: {integrity: sha512-CslACrtMOcRwoWXCO7OMEI+9w3fukWSoBtvNz46OqPoogEuuoY0tkDY1O8sFumk8t0pC6Cx0Xr95O0TOQhpkug==}
+  '@expo-google-fonts/black-ops-one@0.4.1':
+    resolution: {integrity: sha512-zI4jScCgs2JGABbHHqLCsF6UIpvDCpzI6e/u27JbLnUPr0mcJqtPnJ/StxuVpt+LrARQaEhraBE2sDbSsxoBtQ==}
 
-  '@expo-google-fonts/poppins@0.4.1':
-    resolution: {integrity: sha512-LiX5oEryJqDt3UmWwr4oqf11hGMz/JEffkkNcZ3UtGwyoMFzXmBmTwcrAWrEttxypxmLNmPykDg+CY2VjKve9A==}
+  '@expo-google-fonts/rajdhani@0.4.1':
+    resolution: {integrity: sha512-AQS+20ymwULMvlT9AJlsrgjK2KSI6jW+WenVeFdZgmjC2ZYbWQSotm6PQe9tZx74mBvw+J6X6WorW2B+ISmncg==}
+
+  '@expo-google-fonts/share-tech-mono@0.4.1':
+    resolution: {integrity: sha512-SwOwfm3Kgl2UX0IyOkYtvEgdRQTfbLZ3OJ3GMwZAcMsuCxocELUpAd+eo5LCXUhPqa1zJRgnXARZZMTmd2Vuew==}
 
   '@expo/cli@54.0.27':
     resolution: {integrity: sha512-BxKOr6e8wmUwhGSyEVKY+CHWgS3Cre9ibgx1QWcdCenKTVKAz62qGmYL51q0lCcKg6vQY+4Usw9RK5Il4ZFaIA==}
@@ -8267,9 +8273,11 @@ snapshots:
 
   '@eslint/js@8.57.1': {}
 
-  '@expo-google-fonts/jetbrains-mono@0.4.1': {}
+  '@expo-google-fonts/black-ops-one@0.4.1': {}
 
-  '@expo-google-fonts/poppins@0.4.1': {}
+  '@expo-google-fonts/rajdhani@0.4.1': {}
+
+  '@expo-google-fonts/share-tech-mono@0.4.1': {}
 
   '@expo/cli@54.0.27(expo@54.0.37(@babel/core@7.29.7)(react-native@0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@18.3.3)(react@18.3.1))(react@18.3.1)(typescript@5.6.3))(react-native@0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@18.3.3)(react@18.3.1))(typescript@5.6.3)':
     dependencies:

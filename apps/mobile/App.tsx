@@ -13,16 +13,13 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import * as SecureStore from "expo-secure-store";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-  Poppins_700Bold,
-} from "@expo-google-fonts/poppins";
-import {
-  JetBrainsMono_400Regular,
-  JetBrainsMono_500Medium,
-  JetBrainsMono_700Bold,
-} from "@expo-google-fonts/jetbrains-mono";
+  Rajdhani_400Regular,
+  Rajdhani_500Medium,
+  Rajdhani_600SemiBold,
+  Rajdhani_700Bold,
+} from "@expo-google-fonts/rajdhani";
+import { ShareTechMono_400Regular } from "@expo-google-fonts/share-tech-mono";
+import { BlackOpsOne_400Regular } from "@expo-google-fonts/black-ops-one";
 import { AppErrorBoundary } from "./src/components/AppErrorBoundary";
 import { AuthSessionGuard } from "./src/components/AuthSessionGuard";
 import { LiveShareLinkListener } from "./src/components/LiveShareLinkListener";
@@ -49,7 +46,7 @@ const secureStorage = {
   removeItem: SecureStore.deleteItemAsync,
 };
 
-function applyPoppinsDefaults() {
+function applyHudTypeDefaults() {
   const textDefaults = Text as unknown as {
     defaultProps?: { style?: unknown };
   };
@@ -58,7 +55,7 @@ function applyPoppinsDefaults() {
   };
   textDefaults.defaultProps = {
     ...(textDefaults.defaultProps ?? {}),
-    style: [{ fontFamily: POPPINS.regular }, textDefaults.defaultProps?.style],
+    style: [{ fontFamily: POPPINS.medium }, textDefaults.defaultProps?.style],
   };
   inputDefaults.defaultProps = {
     ...(inputDefaults.defaultProps ?? {}),
@@ -68,18 +65,17 @@ function applyPoppinsDefaults() {
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
-    Poppins_700Bold,
-    JetBrainsMono_400Regular,
-    JetBrainsMono_500Medium,
-    JetBrainsMono_700Bold,
+    Rajdhani_400Regular,
+    Rajdhani_500Medium,
+    Rajdhani_600SemiBold,
+    Rajdhani_700Bold,
+    ShareTechMono_400Regular,
+    BlackOpsOne_400Regular,
   });
 
   useEffect(() => {
     if (fontsLoaded) {
-      applyPoppinsDefaults();
+      applyHudTypeDefaults();
     }
   }, [fontsLoaded]);
 

@@ -55,7 +55,7 @@ import {
 } from "../lib/pickupLocation";
 import { formatServiceStopsLabel } from "../lib/wazeNavigation";
 import { useAppMode } from "../contexts/AppModeContext";
-import { HERCOM_COLORS, TACTICAL_BORDER, TACTICAL_COLORS, TACTICAL_RADIUS, MONO } from "../constants/theme";
+import { HERCOM_COLORS, TACTICAL_BORDER, TACTICAL_COLORS, TACTICAL_RADIUS, MONO, POPPINS } from "../constants/theme";
 import { useAndroidBackHandler } from "../hooks/useAndroidBackHandler";
 import { convexErrorMessage } from "../lib/convexErrorMessage";
 import * as Location from "expo-location";
@@ -1011,7 +1011,7 @@ export function ClientDashboard() {
         >
           <Text
             style={{
-              fontFamily: "Poppins_400Regular",
+              fontFamily: POPPINS.regular,
               fontSize: 15,
               color:
                 value.trim() !== ""

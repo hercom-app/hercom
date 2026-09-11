@@ -49,91 +49,101 @@ export type ThemeColors = {
 };
 
 /**
- * Paleta táctica «Sky Blue Camo» — modo oscuro (HUD de operaciones).
- * El dueño percibió esta UI como oscura; queda como dark.
+ * Oscuro — HUD Black Ops / SilentArc: negro-oliva, cian sonar, ámbar de alerta.
  */
 export const DARK_COLORS: ThemeColors = {
-  base: "#111622",
-  baseElevated: "#161D2E",
-  surface: "#2A3B5C",
-  surfaceSunken: "#1B2439",
-  accent: "#A1C4FD",
-  accentDim: "#7FA8E8",
-  steel: "#5B84B1",
-  text: "#F0F4F8",
-  textStrong: "#FFFFFF",
-  success: "#4ADE80",
-  warning: "#FBBF24",
-  danger: "#F87171",
+  base: "#07090B",
+  baseElevated: "#0C1014",
+  surface: "#12181C",
+  surfaceSunken: "#080B0E",
+  accent: "#3EE0C6",
+  accentDim: "#1FA896",
+  steel: "#7A8B94",
+  text: "#DCE6E2",
+  textStrong: "#F3F7F5",
+  success: "#3DDC84",
+  warning: "#FFB020",
+  danger: "#FF4D4D",
 };
 
-/** Modo claro: fondo blanco, texto oscuro, acento institucional. */
+/**
+ * Claro — briefing diurno: papel táctico, tinta de mando, mismo cian de ops.
+ */
 export const LIGHT_COLORS: ThemeColors = {
-  base: "#FFFFFF",
-  baseElevated: "#F8FAFC",
-  surface: "#FFFFFF",
-  surfaceSunken: "#F1F5F9",
-  accent: "#0B70FE",
-  accentDim: "#0959CC",
-  steel: "#64748B",
-  text: "#0F172A",
-  textStrong: "#0B1220",
-  success: "#15803D",
+  base: "#E8E4D9",
+  baseElevated: "#F1EEE6",
+  surface: "#F7F5EE",
+  surfaceSunken: "#DDD8CC",
+  accent: "#0A6B5F",
+  accentDim: "#08574E",
+  steel: "#5C6562",
+  text: "#141A1C",
+  textStrong: "#0B1012",
+  success: "#157A3C",
   warning: "#B45309",
-  danger: "#DC2626",
+  danger: "#C81E1E",
 };
 
 /** Tokens vivos: `applyColorScheme` los muta para que la app se re-pinte. */
 export const TACTICAL_COLORS: ThemeColors = { ...DARK_COLORS };
 
-/** Bordes de 1px en azul acero con opacidad baja: simulan pantallas HUD. */
-export let TACTICAL_BORDER = "rgba(91, 132, 177, 0.28)";
-export let TACTICAL_BORDER_SOFT = "rgba(91, 132, 177, 0.18)";
-export let TACTICAL_GRID_LINE = "rgba(91, 132, 177, 0.07)";
+/** Bordes de 1px en cian de sonar con opacidad baja. */
+export let TACTICAL_BORDER = "rgba(62, 224, 198, 0.28)";
+export let TACTICAL_BORDER_SOFT = "rgba(62, 224, 198, 0.16)";
+export let TACTICAL_GRID_LINE = "rgba(62, 224, 198, 0.06)";
 
-/** Radios casi angulares: estética militar / robótica. */
+/** Radios casi nulos: chasis de consola, no card de producto. */
 export const TACTICAL_RADIUS = {
-  sharp: 2,
-  panel: 4,
+  sharp: 1,
+  panel: 2,
 } as const;
 
-/** Glow sutil del acento para estados activos. */
+/** Glow del acento para estados activos. */
 export const TACTICAL_GLOW = {
   shadowColor: DARK_COLORS.accent,
-  shadowOpacity: 0.45,
-  shadowRadius: 12,
+  shadowOpacity: 0.55,
+  shadowRadius: 10,
   shadowOffset: { width: 0, height: 0 },
   elevation: 8,
 };
 
+/**
+ * Cuerpo UI — Rajdhani (condensada, menús de FPS).
+ * El nombre `POPPINS` se mantiene para no romper imports.
+ */
 export const POPPINS = {
-  regular: "Poppins_400Regular",
-  medium: "Poppins_500Medium",
-  semibold: "Poppins_600SemiBold",
-  bold: "Poppins_700Bold",
+  regular: "Rajdhani_400Regular",
+  medium: "Rajdhani_500Medium",
+  semibold: "Rajdhani_600SemiBold",
+  bold: "Rajdhani_700Bold",
 } as const;
 
-/** Monoespaciada para datos numéricos y etiquetas tácticas en mayúsculas. */
+/** Readouts HUD — Share Tech Mono (terminal de operaciones). */
 export const MONO = {
-  regular: "JetBrainsMono_400Regular",
-  medium: "JetBrainsMono_500Medium",
-  bold: "JetBrainsMono_700Bold",
+  regular: "ShareTechMono_400Regular",
+  medium: "ShareTechMono_400Regular",
+  bold: "ShareTechMono_400Regular",
+} as const;
+
+/** Títulos cortos de mando — Black Ops One. */
+export const DISPLAY = {
+  regular: "BlackOpsOne_400Regular",
 } as const;
 
 const DARK_CHROME = {
-  border: "rgba(91, 132, 177, 0.28)",
-  borderSoft: "rgba(91, 132, 177, 0.18)",
-  gridLine: "rgba(91, 132, 177, 0.07)",
+  border: "rgba(62, 224, 198, 0.28)",
+  borderSoft: "rgba(62, 224, 198, 0.16)",
+  gridLine: "rgba(62, 224, 198, 0.06)",
   glowColor: DARK_COLORS.accent,
-  glowOpacity: 0.45,
+  glowOpacity: 0.55,
 } as const;
 
 const LIGHT_CHROME = {
-  border: "#E2E8F0",
-  borderSoft: "#E8EEF4",
-  gridLine: "rgba(15, 23, 42, 0.05)",
+  border: "rgba(10, 107, 95, 0.35)",
+  borderSoft: "rgba(10, 107, 95, 0.18)",
+  gridLine: "rgba(20, 26, 28, 0.06)",
   glowColor: LIGHT_COLORS.accent,
-  glowOpacity: 0.18,
+  glowOpacity: 0.22,
 } as const;
 
 /** Aplica la paleta viva. Las pantallas que leen estos tokens en render se actualizan. */

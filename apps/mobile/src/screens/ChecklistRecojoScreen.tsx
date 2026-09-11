@@ -17,6 +17,7 @@ import {
   type DamageMark,
 } from "../components/CarDamageCanvas";
 import { UiButton, UiCard, UiInput } from "../components/ui";
+import { HelpFab } from "../components/HelpFab";
 import {
   TacticalLabel,
   TacticalText,
@@ -54,6 +55,10 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedOk, setSavedOk] = useState(false);
+  const hasLoadedOnce = useRef(false);
+  if (checklist !== undefined) {
+    hasLoadedOnce.current = true;
+  }
 
   useEffect(() => {
     if (checklist === null || checklist === undefined) return;
@@ -116,7 +121,7 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
     }
   }
 
-  if (checklist === undefined) {
+  if (checklist === undefined && !hasLoadedOnce.current) {
     return (
       <View
         className="flex-1 items-center justify-center"
@@ -135,8 +140,8 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
         paddingTop: insets.top,
         backgroundColor: TACTICAL_COLORS.base,
       }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
     >
       <View
         className="flex-row items-center px-4 py-3"
@@ -154,14 +159,14 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
         <TacticalTitle size={16} className="flex-1">
           Checklist de recojo
         </TacticalTitle>
+        <HelpFab />
       </View>
 
       <ScrollView
         ref={scrollRef}
         className="flex-1"
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        automaticallyAdjustKeyboardInsets
+        keyboardDismissMode="none"
         contentContainerStyle={{
           padding: 16,
           paddingBottom: insets.bottom + 48,

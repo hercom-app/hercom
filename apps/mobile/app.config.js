@@ -1,18 +1,28 @@
 const base = require("./app.json");
 
+function invokedByEasCli() {
+  return process.argv.some(
+    (arg) =>
+      arg.includes("eas-cli") || /(?:^|[\\/])eas(?:\.cmd)?$/i.test(arg),
+  );
+}
+
 /**
- * En desarrollo con Expo Go, omitir owner + EAS projectId evita que Metro pida
- * login interactivo para firmar el manifiesto (causa "Something went wrong").
- * EAS Build sigue usando app.json completo vía EAS_BUILD=true.
+ * En Expo Go, omitir `owner` y apagar updates evita que Metro pida login
+ * para firmar el manifiesto. El `projectId` se deja siempre: `eas build`
+ * lo necesita incluso cuando evalúa esta config fuera del worker de EAS.
  */
 module.exports = () => {
   const expo = { ...base.expo };
-  if (process.env.EAS_BUILD !== "true") {
+  const keepEasRuntime =
+    process.env.EAS_BUILD === "true" || invokedByEasCli();
+
+  if (!keepEasRuntime) {
     delete expo.owner;
-    if (expo.extra?.eas) {
-      const { eas: _eas, ...restExtra } = expo.extra;
-      expo.extra = Object.keys(restExtra).length > 0 ? restExtra : undefined;
-    }
+    expo.updates = {
+      ...(expo.updates ?? {}),
+      enabled: false,
+    };
   }
   return { expo };
 };

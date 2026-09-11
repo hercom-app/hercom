@@ -15,7 +15,6 @@ import { AvailabilityToggle } from "../components/AvailabilityToggle";
 import { DriverPayoutConfig } from "../components/DriverPayoutConfig";
 import { DriverEarningsView } from "../components/DriverEarningsView";
 import { HamburgerButton } from "../components/HamburgerButton";
-import { HelpFab } from "../components/HelpFab";
 import { ServiceCard } from "../components/ServiceCard";
 import { SideDrawer } from "../components/SideDrawer";
 import { SupportChatScreen } from "./SupportChatScreen";
@@ -265,7 +264,6 @@ export function DriverDashboard() {
           <TacticalLabel size={9}>Panel de conductor</TacticalLabel>
           <TacticalTitle size={19}>{title}</TacticalTitle>
         </View>
-        <HelpFab />
       </View>
 
       <View className="flex-1 px-4">
@@ -690,6 +688,9 @@ export function DriverDashboard() {
               <FlatList
                 data={activeServices}
                 keyExtractor={(item) => item._id}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="none"
+                removeClippedSubviews={false}
                 renderItem={({ item }) => (
                   <ServiceCard
                     service={item}

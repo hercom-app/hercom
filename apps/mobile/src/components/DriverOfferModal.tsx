@@ -18,9 +18,6 @@ export type DriverOfferInfo = {
   driverName: string;
   driverRating: number;
   driverTrips: number;
-  driverPlate?: string;
-  driverVehicle?: string;
-  driverColor?: string;
 };
 
 type DriverOfferModalProps = {
@@ -83,20 +80,8 @@ export function DriverOfferModal({
             </View>
           </TacticalPanel>
 
-          <View className="mt-3">
-            {offer.driverVehicle !== undefined && offer.driverVehicle !== "" && (
-              <Info label="Vehículo" value={offer.driverVehicle} />
-            )}
-            {offer.driverColor !== undefined && offer.driverColor !== "" && (
-              <Info label="Color" value={offer.driverColor} />
-            )}
-            {offer.driverPlate !== undefined && offer.driverPlate !== "" && (
-              <Info label="Placa" value={offer.driverPlate} />
-            )}
-          </View>
-
           <View
-            className="mt-1 flex-row items-end justify-between px-4 py-3"
+            className="mt-3 flex-row items-end justify-between px-4 py-3"
             style={{
               backgroundColor: "rgba(161, 196, 253, 0.1)",
               borderRadius: TACTICAL_RADIUS.sharp,
@@ -121,20 +106,5 @@ export function DriverOfferModal({
         </View>
       )}
     </AppModal>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <View
-      className="mb-2 flex-row items-center justify-between px-3 py-2.5"
-      style={{
-        backgroundColor: TACTICAL_COLORS.surfaceSunken,
-        borderRadius: TACTICAL_RADIUS.sharp,
-      }}
-    >
-      <TacticalLabel size={9}>{label}</TacticalLabel>
-      <TacticalValue size={13}>{value}</TacticalValue>
-    </View>
   );
 }

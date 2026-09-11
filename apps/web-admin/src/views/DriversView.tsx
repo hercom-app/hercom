@@ -7,6 +7,7 @@ import type { DistrictScopeOption } from "../components/AdminRegionFilters";
 import {
   DriverDossierPanel,
   type DriverApplicationForAdmin,
+  type DriverFinanceInfo,
 } from "../components/DriverDossierPanel";
 import { AdminPagination, usePagedItems } from "../components/AdminPagination";
 import {
@@ -71,6 +72,7 @@ type ChoferRow = {
   documentsLabel: string;
   registeredAt: number;
   application: DriverApplicationForAdmin | null;
+  finance: DriverFinanceInfo;
 };
 
 export function DriversView({
@@ -86,6 +88,10 @@ export function DriversView({
 
   const drivers = useQuery(api.drivers.listAll, {});
   const applications = useQuery(api.driverApplications.listForAdmin, {});
+  const wallets = useQuery(
+    api.driverWallets.listForAdmin,
+    isFullAdmin ? {} : "skip",
+  );
 
   const applicationByUserId = useMemo(() => {
     const map = new Map<
@@ -105,6 +111,9 @@ export function DriversView({
       return undefined;
     }
 
+    const walletByDriverId = new Map(
+      (wallets ?? []).map((wallet) => [wallet.driverId, wallet.balance]),
+    );
     const driverUserIds = new Set(drivers.map((driver) => driver.userId));
     const fromDrivers: ChoferRow[] = drivers.map((driver) => {
       const application = applicationByUserId.get(driver.userId);
@@ -129,6 +138,17 @@ export function DriversView({
               ].join(" · "),
         registeredAt: driver._creationTime,
         application: application ?? null,
+        finance: {
+          hasProfile: true,
+          fullName: driver.fullName,
+          dni: driver.dni,
+          yape: driver.yape,
+          plin: driver.plin,
+          bankAccount1: driver.bankAccount1,
+          bankAccount2: driver.bankAccount2,
+          bankAccount3: driver.bankAccount3,
+          walletBalance: walletByDriverId.get(driver._id),
+        },
       };
     });
 
@@ -157,10 +177,21 @@ export function DriversView({
         ].join(" · "),
         registeredAt: application.submittedAt,
         application,
+        finance: {
+          hasProfile: false,
+          fullName: undefined,
+          dni: undefined,
+          yape: undefined,
+          plin: undefined,
+          bankAccount1: undefined,
+          bankAccount2: undefined,
+          bankAccount3: undefined,
+          walletBalance: undefined,
+        },
       }));
 
     return [...pendingOnly, ...fromDrivers];
-  }, [drivers, applications, applicationByUserId]);
+  }, [drivers, applications, applicationByUserId, wallets]);
 
   const filteredRows = useMemo(() => {
     if (rows === undefined) {
@@ -244,6 +275,7 @@ export function DriversView({
           <DriverDossierPanel
             application={selectedRow.application}
             userName={selectedRow.fullName}
+            finance={selectedRow.finance}
           />
         )}
       </AdminPage>

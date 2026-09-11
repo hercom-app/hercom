@@ -36,11 +36,11 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 async function loadStoredScheme(): Promise<AppColorScheme> {
   const stored = await SecureStore.getItemAsync(SCHEME_KEY);
-  return stored === "light" ? "light" : "dark";
+  return stored === "dark" ? "dark" : "light";
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [scheme, setSchemeState] = useState<AppColorScheme>("dark");
+  const [scheme, setSchemeState] = useState<AppColorScheme>("light");
 
   useEffect(() => {
     void (async () => {
@@ -84,7 +84,7 @@ export function useAppTheme(): ThemeContextValue {
   const context = useContext(ThemeContext);
   if (context === null) {
     return {
-      scheme: "dark",
+      scheme: "light",
       colors: TACTICAL_COLORS,
       border: TACTICAL_BORDER,
       borderSoft: TACTICAL_BORDER_SOFT,

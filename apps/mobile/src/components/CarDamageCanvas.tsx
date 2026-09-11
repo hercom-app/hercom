@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -39,7 +39,10 @@ type Props = {
  * Diagrama de daños tipo taller (planta + laterales + frente + trasera).
  * Vista embebida grande + modal a pantalla completa para marcar con precisión.
  */
-export function CarDamageCanvas({ marks, onChange }: Props) {
+export const CarDamageCanvas = memo(function CarDamageCanvas({
+  marks,
+  onChange,
+}: Props) {
   const [expanded, setExpanded] = useState(false);
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = Dimensions.get("window");
@@ -137,7 +140,7 @@ export function CarDamageCanvas({ marks, onChange }: Props) {
       </Modal>
     </View>
   );
-}
+});
 
 function DiagramPad({
   width,
@@ -155,7 +158,13 @@ function DiagramPad({
 
   function onLayout(e: LayoutChangeEvent) {
     const { width: w, height: h } = e.nativeEvent.layout;
-    setSize({ w: Math.max(w, 1), h: Math.max(h, 1) });
+    const nextW = Math.max(w, 1);
+    const nextH = Math.max(h, 1);
+    setSize((prev) =>
+      Math.abs(prev.w - nextW) < 0.5 && Math.abs(prev.h - nextH) < 0.5
+        ? prev
+        : { w: nextW, h: nextH },
+    );
   }
 
   function handlePress(locationX: number, locationY: number) {

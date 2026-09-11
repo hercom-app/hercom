@@ -378,6 +378,39 @@ Convex logs + prueba en modo desarrollo para capturar el error de JavaScript.
 
 ---
 
+## EAS Update (JS por aire, sin rebuild nativo)
+
+Después de **una** build que ya traiga `expo-updates`, los cambios de JS, estilos
+y fuentes se publican con:
+
+```powershell
+cd apps/mobile
+npx eas-cli update --channel preview --message "Tipografía Black Ops"
+```
+
+o, desde la raíz:
+
+```powershell
+pnpm --filter @proyecto/mobile update:preview -- --message "Tipografía Black Ops"
+```
+
+| Canal | Perfil EAS | Quién lo recibe |
+| --- | --- | --- |
+| `preview` | APK interno | Testers / dueño con el APK preview |
+| `production` | AAB Play Store | Usuarios de la tienda |
+| `development` | Dev client | Solo ese binario |
+
+**Importante:** los APK instalados **antes** de esta config no reciben updates.
+Hay que generar un `preview` (o `production`) nuevo una vez. A partir de ahí,
+`eas update` basta. Cerrar la app y abrirla **dos veces** aplica el paquete.
+
+`runtimeVersion` usa la política `appVersion` (`1.0.0` hoy). Si cambia el código
+nativo o se sube `version` en `app.json`, hace falta otra build.
+
+Expo Go **no** usa este canal: sigue siendo Metro (`pnpm mobile`).
+
+---
+
 ## Notas
 
 - El login con **Google OAuth** necesita configuración extra para producción

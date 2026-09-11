@@ -71,8 +71,16 @@
           "defaultChannel": "default"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-updates"
     ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d19ae84f-d2a4-4dbc-a727-6c4935de3906",
+      "enabled": true
+    },
     "extra": {
       "eas": {
         "projectId": "d19ae84f-d2a4-4dbc-a727-6c4935de3906"

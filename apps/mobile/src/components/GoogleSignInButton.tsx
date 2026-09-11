@@ -10,6 +10,7 @@ import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { useAuthActions } from "@convex-dev/auth/react";
 import {
+  HERCOM_COLORS,
   MONO,
   TACTICAL_BORDER,
   TACTICAL_COLORS,
@@ -22,8 +23,8 @@ type GoogleSignInButtonProps = {
   disabled?: boolean;
   label?: string;
   onError?: (message: string) => void;
-  /** `tactical` adapta el botón al HUD oscuro. */
-  variant?: "light" | "tactical";
+  /** `tactical` es ghost HUD; `ops` es CTA lleno (login tipo CoD). */
+  variant?: "light" | "tactical" | "ops";
 };
 
 function getRedirectTo(): string {
@@ -98,6 +99,44 @@ export function GoogleSignInButton({
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (variant === "ops") {
+    return (
+      <TouchableOpacity
+        onPress={() => void handlePress()}
+        disabled={disabled || submitting}
+        activeOpacity={0.82}
+        className="h-14 flex-row items-center justify-center disabled:opacity-60"
+        style={{
+          backgroundColor: HERCOM_COLORS.primary,
+          borderRadius: 12,
+          shadowColor: HERCOM_COLORS.primary,
+          shadowOpacity: 0.45,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 0 },
+          elevation: 8,
+        }}
+      >
+        {submitting ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <>
+            <GoogleGlyph />
+            <Text
+              style={{
+                fontFamily: MONO.bold,
+                fontSize: 13,
+                letterSpacing: 1.6,
+                color: "#FFFFFF",
+              }}
+            >
+              {label.toUpperCase()}
+            </Text>
+          </>
+        )}
+      </TouchableOpacity>
+    );
   }
 
   if (variant === "tactical") {

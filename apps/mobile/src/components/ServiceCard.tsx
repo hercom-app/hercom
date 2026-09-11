@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Text, View } from "react-native";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Doc, Id } from "@proyecto/backend/dataModel";
+import { HelpFab } from "./HelpFab";
 import { SlideToConfirm } from "./SlideToConfirm";
 import {
   TacticalButton,
@@ -36,7 +37,7 @@ type Props = {
   onOpenLiveMap?: (serviceId: Id<"services">) => void;
 };
 
-export function ServiceCard({
+export const ServiceCard = memo(function ServiceCard({
   service,
   onOpenChecklist,
   onOpenLiveMap,
@@ -181,6 +182,17 @@ export function ServiceCard({
         </TacticalValue>
       </View>
 
+      {canShowLive ? (
+        <View className="mb-3 items-end">
+          <HelpFab
+            fallbackCenter={{
+              lat: service.origin.lat,
+              lng: service.origin.lng,
+            }}
+          />
+        </View>
+      ) : null}
+
       <View className="mb-3">
         <View className="flex-row">
           <TacticalLabel size={9} className="w-16">
@@ -313,11 +325,14 @@ export function ServiceCard({
             keyboardType="number-pad"
             placeholder="000000"
             maxLength={6}
+            blurOnSubmit={false}
+            autoCorrect={false}
+            autoComplete="off"
           />
           <SlideToConfirm
             label="Desliza para iniciar viaje"
             onSlideComplete={handleSlideStartTrip}
-            disabled={!canStartTrip || !checklistComplete}
+            disabled={!checklistComplete}
             loading={tripStarting}
             resetSignal={slideResetCounter}
           />
@@ -364,4 +379,4 @@ export function ServiceCard({
       )}
     </TacticalPanel>
   );
-}
+});

@@ -45,7 +45,6 @@ export function AppModal({
         >
           <View className="mb-3 flex-row items-start justify-between gap-3">
             <View className="flex-1">
-              <TacticalLabel size={9}>Hercom · Ops</TacticalLabel>
               <TacticalTitle size={18}>{title}</TacticalTitle>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={12} className="px-2 py-1">

@@ -301,9 +301,6 @@ function ClientServiceCard({
                       driverName: offer.driverName,
                       driverRating: offer.driverRating,
                       driverTrips: offer.driverTrips,
-                      driverPlate: offer.driverPlate,
-                      driverVehicle: offer.driverVehicle,
-                      driverColor: offer.driverColor,
                     });
                   }}
                   className="mb-2 p-3"

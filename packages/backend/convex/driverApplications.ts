@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { normalizeCountryCode } from "./data/countryCatalog";
@@ -393,5 +393,121 @@ export const listForAdmin = query({
         };
       }),
     );
+  },
+});
+
+async function findUserByEmail(
+  ctx: MutationCtx,
+  email: string,
+): Promise<Doc<"users"> | null> {
+  const trimmed = email.trim();
+  const normalized = trimmed.toLowerCase();
+  const byNormalized = await ctx.db
+    .query("users")
+    .withIndex("email", (q) => q.eq("email", normalized))
+    .unique();
+  if (byNormalized !== null) {
+    return byNormalized;
+  }
+  if (trimmed !== normalized) {
+    const byExact = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", trimmed))
+      .unique();
+    if (byExact !== null) {
+      return byExact;
+    }
+  }
+  const users = await ctx.db.query("users").collect();
+  return (
+    users.find((user) => (user.email ?? "").trim().toLowerCase() === normalized) ??
+    null
+  );
+}
+
+/**
+ * Habilita modo chofer para un Gmail que ya inició sesión en la app.
+ * No cambia users.role: el permiso real es una fila en `drivers`.
+ *
+ *   npx convex run driverApplications:grantByEmail --prod '{"email":"correo@gmail.com"}'
+ */
+export const grantByEmail = internalMutation({
+  args: {
+    email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await findUserByEmail(ctx, args.email);
+    if (user === null) {
+      throw new Error(
+        "No hay usuario con ese correo. Tiene que haber iniciado sesión en la app al menos una vez.",
+      );
+    }
+
+    const existingDriver = await ctx.db
+      .query("drivers")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .unique();
+    if (existingDriver !== null) {
+      await ensureWallet(ctx, existingDriver._id);
+      return {
+        alreadyDriver: true,
+        userId: user._id,
+        driverId: existingDriver._id,
+        email: user.email ?? args.email,
+      };
+    }
+
+    const application = await ctx.db
+      .query("driverApplications")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .first();
+
+    if (application !== null && application.status !== "rejected") {
+      const driverId = await createDriverFromApplication(ctx, application);
+      if (application.status === "pending") {
+        await ctx.db.patch(application._id, {
+          status: "approved",
+          reviewedAt: Date.now(),
+        });
+      }
+      return {
+        alreadyDriver: false,
+        fromApplication: true,
+        userId: user._id,
+        driverId,
+        applicationId: application._id,
+        email: user.email ?? args.email,
+      };
+    }
+
+    const driverId = await ctx.db.insert("drivers", {
+      userId: user._id,
+      status: "offline",
+      vehicle: {
+        make: "Por completar",
+        model: "Por completar",
+        plate: "PENDIENTE",
+        year: new Date().getFullYear(),
+      },
+      licenseNumber: "PENDIENTE",
+      licenseExpiry: Date.now() + 365 * 24 * 60 * 60 * 1000,
+      rating: 5,
+      totalTrips: 0,
+      countryCode: "PE",
+      department: "Lima",
+      province: "Lima",
+      district: "Miraflores",
+      ...(user.name !== undefined ? { fullName: user.name } : {}),
+      ...(user.dni !== undefined ? { dni: user.dni } : {}),
+    });
+    await ensureWallet(ctx, driverId);
+    return {
+      alreadyDriver: false,
+      fromApplication: false,
+      userId: user._id,
+      driverId,
+      email: user.email ?? args.email,
+    };
   },
 });

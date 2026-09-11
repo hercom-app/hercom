@@ -58,14 +58,28 @@ function formatRegion(application: DriverApplicationForAdmin): string {
   return parts.join(" · ");
 }
 
+export type DriverFinanceInfo = {
+  hasProfile: boolean;
+  fullName: string | undefined;
+  dni: string | undefined;
+  yape: string | undefined;
+  plin: string | undefined;
+  bankAccount1: string | undefined;
+  bankAccount2: string | undefined;
+  bankAccount3: string | undefined;
+  walletBalance: number | undefined;
+};
+
 type DriverDossierPanelProps = {
   application: DriverApplicationForAdmin | null;
   userName: string;
+  finance: DriverFinanceInfo;
 };
 
 export function DriverDossierPanel({
   application,
   userName,
+  finance,
 }: DriverDossierPanelProps) {
   const approveApplication = useMutation(api.driverApplications.approve);
   const rejectApplication = useMutation(api.driverApplications.reject);
@@ -76,8 +90,12 @@ export function DriverDossierPanel({
 
   if (application === null) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-        {userName} no tiene solicitud de registro (brevete, CUL ni récord de conductor) cargada.
+      <div className="space-y-4">
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+          {userName} no tiene solicitud de registro (brevete, CUL ni récord de
+          conductor) cargada.
+        </div>
+        <DriverFinanceCard finance={finance} />
       </div>
     );
   }
@@ -133,6 +151,7 @@ export function DriverDossierPanel({
   }
 
   return (
+    <div className="space-y-4">
     <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <p className="font-display text-base font-bold text-slate-900">
@@ -282,6 +301,76 @@ export function DriverDossierPanel({
           fileLabel="Abrir PDF del CUL"
         />
       </div>
+    </div>
+    <DriverFinanceCard finance={finance} />
+    </div>
+  );
+}
+
+function displayValue(value: string | undefined): string {
+  const trimmed = value?.trim() ?? "";
+  return trimmed === "" ? "—" : trimmed;
+}
+
+function DriverFinanceCard({ finance }: { finance: DriverFinanceInfo }) {
+  const bankAccounts = [
+    finance.bankAccount1,
+    finance.bankAccount2,
+    finance.bankAccount3,
+  ]
+    .map((value) => value?.trim() ?? "")
+    .filter((value) => value !== "");
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+      <p className="mb-1 font-display text-base font-bold text-slate-900">
+        Información financiera
+      </p>
+      <p className="mb-4 text-sm text-slate-500">
+        Datos de cobro para el anticipo del 25% (Yape, Plin y cuentas).
+      </p>
+
+      {!finance.hasProfile ? (
+        <p className="text-sm text-slate-500">
+          Aún no hay perfil de chofer. Estos datos se cargan en la app después
+          de aprobar el registro.
+        </p>
+      ) : (
+        <>
+          <div className="grid gap-3 md:grid-cols-2">
+            <InfoRow
+              label="Titular"
+              value={displayValue(finance.fullName)}
+            />
+            <InfoRow label="DNI de cobro" value={displayValue(finance.dni)} />
+            <InfoRow label="Yape" value={displayValue(finance.yape)} />
+            <InfoRow label="Plin" value={displayValue(finance.plin)} />
+            {finance.walletBalance !== undefined ? (
+              <InfoRow
+                label="Saldo de recarga"
+                value={`S/${finance.walletBalance.toFixed(2)}`}
+              />
+            ) : null}
+          </div>
+          <div className="mt-4">
+            <p className={labelClass}>Cuentas bancarias</p>
+            {bankAccounts.length === 0 ? (
+              <p className="text-sm text-slate-500">Sin cuentas cargadas.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {bankAccounts.map((account, index) => (
+                  <li
+                    key={`${index}-${account}`}
+                    className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-900"
+                  >
+                    {account}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

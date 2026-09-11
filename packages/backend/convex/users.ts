@@ -1,10 +1,9 @@
 import { createAccount, modifyAccountCredentials } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { districtScopeValidator, userRoleValidator } from "./schema";
 import {
   districtScopeKey,
-  filterServicesByAccess,
   getAccessContext,
   listDistrictScopes,
 } from "./lib/adminAccess";
@@ -262,7 +261,8 @@ export const setRole = mutation({
 });
 
 /**
- * Lista todos los usuarios (panel admin / superadmin).
+ * Lista usuarios del panel. Clientes = quienes iniciaron sesión en la app
+ * (rol client), aunque aún no hayan pedido un servicio.
  */
 export const listAll = query({
   args: {
@@ -276,14 +276,7 @@ export const listAll = query({
       users = users.filter((item) => item.role === args.role);
     }
     if (!access.isFullAdmin) {
-      const services = filterServicesByAccess(
-        await ctx.db.query("services").collect(),
-        access,
-      );
-      const allowedIds = new Set(services.map((service) => service.clientId));
-      users = users.filter(
-        (item) => item.role === "client" && allowedIds.has(item._id),
-      );
+      users = users.filter((item) => item.role === "client");
     }
     return users;
   },
@@ -420,5 +413,50 @@ export const setAdminPassword = mutation({
       account: { id: email, secret: args.password },
     });
     return args.userId;
+  },
+});
+
+/**
+ * Asegura que un Gmail ya logueado figure en Clientes (rol client + email).
+ *
+ *   npx convex run users:ensureVisibleClientByEmail --prod '{"email":"correo@gmail.com"}'
+ */
+export const ensureVisibleClientByEmail = internalMutation({
+  args: {
+    email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const trimmed = args.email.trim();
+    const normalized = trimmed.toLowerCase();
+    const users = await ctx.db.query("users").collect();
+    const user =
+      users.find(
+        (row) => (row.email ?? "").trim().toLowerCase() === normalized,
+      ) ?? null;
+    if (user === null) {
+      throw new Error(
+        "No hay usuario con ese correo. Tiene que haber iniciado sesión en la app.",
+      );
+    }
+
+    const patch: { email?: string; role?: "client" } = {};
+    if ((user.email ?? "").trim() === "") {
+      patch.email = normalized;
+    }
+    if (user.role !== "admin" && user.role !== "superadmin" && user.role !== "client") {
+      patch.role = "client";
+    }
+    if (Object.keys(patch).length > 0) {
+      await ctx.db.patch(user._id, patch);
+    }
+
+    const next = await ctx.db.get(user._id);
+    return {
+      userId: user._id,
+      email: next?.email ?? user.email ?? normalized,
+      role: next?.role ?? user.role,
+      name: next?.name ?? user.name ?? null,
+      patched: Object.keys(patch),
+    };
   },
 });

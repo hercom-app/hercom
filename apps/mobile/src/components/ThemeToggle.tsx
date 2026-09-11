@@ -3,7 +3,7 @@ import { useAppTheme } from "../contexts/ThemeContext";
 import { TacticalLabel } from "./tactical";
 import { UiChip } from "./ui";
 
-/** Interruptor de apariencia: el HUD actual es oscuro; el claro usa fondo blanco. */
+/** Interruptor de apariencia. El default de la app es claro (navy ANA). */
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const { scheme, setScheme } = useAppTheme();
 

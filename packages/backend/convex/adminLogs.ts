@@ -11,8 +11,9 @@ function clip(value: string, max: number): string {
 }
 
 /**
- * Persiste un error del panel. Se llama desde el cliente después de un
+ * Persiste un error de app o panel. Se llama desde el cliente después de un
  * fallo: si se logueara en la misma mutation que falló, Convex revierte el write.
+ * La consola del servidor (Convex Dashboard → Logs) siempre lo imprime.
  */
 export const record = mutation({
   args: {
@@ -27,9 +28,9 @@ export const record = mutation({
     const detail =
       args.detail === undefined ? undefined : clip(args.detail, 4000);
 
-    console.error(`[adminLog] ${action}: ${message}`, detail ?? "");
+    console.error(`[appLog] ${action}: ${message}`, detail ?? "");
 
-    if (user === null || (user.role !== "admin" && user.role !== "superadmin")) {
+    if (user === null) {
       return null;
     }
 

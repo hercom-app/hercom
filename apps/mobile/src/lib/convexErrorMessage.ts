@@ -10,6 +10,8 @@ export function convexErrorMessage(
         ? error
         : fallback;
 
+  console.error("[hercom]", raw, error);
+
   const uncaught = raw.match(/Uncaught Error:\s*(.+?)(?:\n|$)/i);
   if (uncaught?.[1] !== undefined && uncaught[1].trim() !== "") {
     return uncaught[1].trim();

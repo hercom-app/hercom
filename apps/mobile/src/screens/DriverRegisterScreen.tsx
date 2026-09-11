@@ -55,6 +55,7 @@ import {
   type PendingDriverRegistration,
 } from "../lib/driverRegistration";
 import { composeBirthDate, isAtLeast18 } from "../lib/age";
+import { convexErrorMessage } from "../lib/convexErrorMessage";
 
 type LicenseFormat = "physical" | "digital";
 type VehicleBodyType = "auto" | "camioneta";
@@ -528,10 +529,10 @@ export function DriverRegisterScreen({
         setSubmitted(true);
         onSubmitSuccess?.();
       } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "No se pudo enviar la solicitud de chofer.";
+        const message = convexErrorMessage(
+          error,
+          "No se pudo enviar la solicitud de chofer.",
+        );
         setFormError(message);
         onError?.(message);
       } finally {

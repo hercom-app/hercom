@@ -1,13 +1,15 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import {
   clearPendingDriverRegistration,
   loadPendingDriverRegistration,
   submitDriverApplicationFromPending,
 } from "../lib/driverRegistration";
+import { convexErrorMessage } from "../lib/convexErrorMessage";
 import {
+  TacticalButton,
   TacticalLabel,
   TacticalPanel,
   TacticalScreen,
@@ -15,6 +17,13 @@ import {
   TacticalText,
 } from "./tactical";
 import { TACTICAL_COLORS } from "../constants/theme";
+
+function errorDetail(error: unknown): string {
+  if (error instanceof Error) {
+    return [error.message, error.stack].filter(Boolean).join("\n");
+  }
+  return String(error);
+}
 
 /** Tras Google OAuth, sube archivos y envía la solicitud de chofer pendiente. */
 export function PendingRegistrationSubmit({
@@ -26,14 +35,38 @@ export function PendingRegistrationSubmit({
     api.driverApplications.generateUploadUrl,
   );
   const submitApplication = useMutation(api.driverApplications.submit);
+  const recordLog = useMutation(api.adminLogs.record);
+  const driver = useQuery(api.drivers.getMyDriverProfile);
+  const application = useQuery(api.driverApplications.getMyApplication);
   const [processing, setProcessing] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (driver === undefined || application === undefined) {
+      return;
+    }
+
+    let cancelled = false;
+
     void (async () => {
       const pending = await loadPendingDriverRegistration();
+      if (cancelled) {
+        return;
+      }
       if (pending === null) {
         setProcessing(false);
+        return;
+      }
+
+      if (
+        driver !== null ||
+        application?.status === "pending" ||
+        application?.status === "approved"
+      ) {
+        await clearPendingDriverRegistration();
+        if (!cancelled) {
+          setProcessing(false);
+        }
         return;
       }
 
@@ -43,19 +76,39 @@ export function PendingRegistrationSubmit({
           () => generateUploadUrl({}),
           (args) => submitApplication(args),
         );
-
         await clearPendingDriverRegistration();
-      } catch (e) {
-        const message =
-          e instanceof Error
-            ? e.message
-            : "No se pudo enviar la solicitud de chofer.";
-        setError(message);
+      } catch (submitError) {
+        const message = convexErrorMessage(
+          submitError,
+          "No se pudo enviar la solicitud de chofer.",
+        );
+        void recordLog({
+          action: "driverApplications.submit",
+          message,
+          detail: errorDetail(submitError),
+        }).catch((logError) => {
+          console.error("[hercom] no se pudo guardar el log", logError);
+        });
+        if (!cancelled) {
+          setError(message);
+        }
       } finally {
-        setProcessing(false);
+        if (!cancelled) {
+          setProcessing(false);
+        }
       }
     })();
-  }, [generateUploadUrl, submitApplication]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    application,
+    driver,
+    generateUploadUrl,
+    recordLog,
+    submitApplication,
+  ]);
 
   if (processing) {
     return (
@@ -81,6 +134,16 @@ export function PendingRegistrationSubmit({
           <TacticalText size={12} tone="text" className="mt-3">
             {error}
           </TacticalText>
+          <View className="mt-5">
+            <TacticalButton
+              label="Entrar a la app"
+              variant="secondary"
+              onPress={() => {
+                void clearPendingDriverRegistration();
+                setError(null);
+              }}
+            />
+          </View>
         </TacticalPanel>
       </TacticalScreen>
     );

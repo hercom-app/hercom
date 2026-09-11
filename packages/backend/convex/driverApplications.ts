@@ -90,7 +90,16 @@ export const submit = mutation({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .unique();
     if (existingDriver !== null) {
-      throw new Error("Ya tienes un perfil de chofer activo.");
+      const existingApp = await ctx.db
+        .query("driverApplications")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .order("desc")
+        .first();
+      console.log("driverApplications.submit: ya es chofer, no reenviar", {
+        userId: user._id,
+        applicationId: existingApp?._id,
+      });
+      return existingApp?._id ?? null;
     }
 
     const pending = await ctx.db
@@ -99,7 +108,11 @@ export const submit = mutation({
       .filter((q) => q.eq(q.field("status"), "pending"))
       .first();
     if (pending !== null) {
-      throw new Error("Ya tienes una solicitud en revisión.");
+      console.log("driverApplications.submit: solicitud ya en revisión", {
+        userId: user._id,
+        applicationId: pending._id,
+      });
+      return pending._id;
     }
 
     const dni = args.dni.trim();

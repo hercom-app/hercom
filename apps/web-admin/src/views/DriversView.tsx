@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
@@ -8,7 +8,6 @@ import {
   DriverDossierPanel,
   type DriverApplicationForAdmin,
 } from "../components/DriverDossierPanel";
-import { AdminErrorLogCard } from "../components/AdminErrorLogCard";
 import { AdminPagination, usePagedItems } from "../components/AdminPagination";
 import {
   EMPTY_REGION_FILTER,
@@ -28,6 +27,7 @@ import {
 } from "../components/AdminLayout";
 import {
   btnGhostClass,
+  btnSecondaryClass,
   rowClass,
   tableClass,
   tableHeadClass,
@@ -80,7 +80,7 @@ export function DriversView({
   const [region, setRegion] = useState<RegionFilter>(EMPTY_REGION_FILTER);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [expandedUserId, setExpandedUserId] = useState<Id<"users"> | null>(
+  const [selectedUserId, setSelectedUserId] = useState<Id<"users"> | null>(
     null,
   );
 
@@ -205,6 +205,51 @@ export function DriversView({
     `${region.department}|${region.province}|${region.district}|${search}|${statusFilter}`,
   );
 
+  const selectedRow =
+    selectedUserId === null
+      ? null
+      : (rows ?? []).find((row) => row.userId === selectedUserId) ?? null;
+
+  if (selectedUserId !== null) {
+    return (
+      <AdminPage>
+        <AdminPageHeader
+          title={selectedRow?.fullName ?? "Registro del chofer"}
+          {...(selectedRow !== null
+            ? {
+                description: [selectedRow.dni, selectedRow.zone]
+                  .filter(Boolean)
+                  .join(" · "),
+              }
+            : {})}
+          actions={
+            <button
+              type="button"
+              className={`${btnSecondaryClass} w-full sm:w-auto`}
+              onClick={() => setSelectedUserId(null)}
+            >
+              Volver a choferes
+            </button>
+          }
+        />
+        {rows === undefined ? (
+          <AdminCard>
+            <AdminLoading message="Cargando registro…" />
+          </AdminCard>
+        ) : selectedRow === null ? (
+          <AdminCard>
+            <AdminEmpty message="No se encontró este chofer." />
+          </AdminCard>
+        ) : (
+          <DriverDossierPanel
+            application={selectedRow.application}
+            userName={selectedRow.fullName}
+          />
+        )}
+      </AdminPage>
+    );
+  }
+
   return (
     <AdminPage>
       <AdminPageHeader title="Choferes" />
@@ -257,54 +302,33 @@ export function DriversView({
                 </tr>
               </thead>
               <tbody>
-                {(paged ?? []).map((row) => {
-                  const isExpanded = expandedUserId === row.userId;
-                  return (
-                    <Fragment key={row.key}>
-                      <tr className={rowClass}>
-                        <td className={`${tdClass} font-medium text-slate-900`}>
-                          {row.fullName}
-                        </td>
-                        <td className={tdClass}>{row.dni ?? "—"}</td>
-                        <td className={tdClass}>{row.zone || "—"}</td>
-                        <td className={`${tdClass} capitalize`}>
-                          {row.statusLabel}
-                        </td>
-                        <td className={`${tdClass} text-xs text-slate-600`}>
-                          {row.documentsLabel}
-                        </td>
-                        <td className={`${tdClass} text-slate-500`}>
-                          {formatDate(row.registeredAt)}
-                        </td>
-                        <td className={tdClass}>
-                          <button
-                            type="button"
-                            className={btnGhostClass}
-                            onClick={() =>
-                              setExpandedUserId(
-                                isExpanded ? null : row.userId,
-                              )
-                            }
-                          >
-                            {isExpanded ? "Ocultar" : "Ver registro"}
-                          </button>
-                        </td>
-                      </tr>
-                      {isExpanded ? (
-                        <tr>
-                          <td colSpan={7} className="px-0 pb-4 pt-1">
-                            <div className="sticky left-0 w-[min(52rem,calc(100vw-2.5rem))] lg:w-full lg:max-w-4xl">
-                              <DriverDossierPanel
-                                application={row.application}
-                                userName={row.fullName}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      ) : null}
-                    </Fragment>
-                  );
-                })}
+                {(paged ?? []).map((row) => (
+                  <tr key={row.key} className={rowClass}>
+                    <td className={`${tdClass} font-medium text-slate-900`}>
+                      {row.fullName}
+                    </td>
+                    <td className={tdClass}>{row.dni ?? "—"}</td>
+                    <td className={tdClass}>{row.zone || "—"}</td>
+                    <td className={`${tdClass} capitalize`}>
+                      {row.statusLabel}
+                    </td>
+                    <td className={`${tdClass} text-xs text-slate-600`}>
+                      {row.documentsLabel}
+                    </td>
+                    <td className={`${tdClass} text-slate-500`}>
+                      {formatDate(row.registeredAt)}
+                    </td>
+                    <td className={tdClass}>
+                      <button
+                        type="button"
+                        className={btnGhostClass}
+                        onClick={() => setSelectedUserId(row.userId)}
+                      >
+                        Ver registro
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </AdminTableWrap>
@@ -317,8 +341,6 @@ export function DriversView({
           </>
         )}
       </AdminCard>
-
-      <AdminErrorLogCard />
     </AdminPage>
   );
 }

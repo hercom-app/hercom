@@ -3,9 +3,11 @@ import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@proyecto/backend";
 import { btnPrimaryClass, btnSecondaryClass, labelClass } from "../lib/adminUi";
+import { errorDetail, formatConvexError } from "../lib/convexError";
 import {
   CONDUCTOR_RECORD_URL,
   CUL_INFO_URL,
+  DIGITAL_LICENSE_URL,
 } from "../lib/officialDocuments";
 
 export type DriverApplicationForAdmin = FunctionReturnType<
@@ -67,6 +69,7 @@ export function DriverDossierPanel({
 }: DriverDossierPanelProps) {
   const approveApplication = useMutation(api.driverApplications.approve);
   const rejectApplication = useMutation(api.driverApplications.reject);
+  const recordAdminLog = useMutation(api.adminLogs.record);
   const [acting, setActing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -87,11 +90,18 @@ export function DriverDossierPanel({
       await approveApplication({ applicationId: application!._id });
       setMessage("Solicitud aprobada. Perfil de chofer creado.");
     } catch (approveError) {
-      setError(
-        approveError instanceof Error
-          ? approveError.message
-          : "No se pudo aprobar la solicitud.",
+      const message = formatConvexError(
+        approveError,
+        "No se pudo aprobar la solicitud.",
       );
+      void recordAdminLog({
+        action: "driverApplications.approve",
+        message,
+        detail: errorDetail(approveError),
+      }).catch((logError) => {
+        console.error("[hercom-admin] no se pudo guardar el log", logError);
+      });
+      setError(message);
     } finally {
       setActing(false);
     }
@@ -105,11 +115,18 @@ export function DriverDossierPanel({
       await rejectApplication({ applicationId: application!._id });
       setMessage("Solicitud rechazada.");
     } catch (rejectError) {
-      setError(
-        rejectError instanceof Error
-          ? rejectError.message
-          : "No se pudo rechazar la solicitud.",
+      const message = formatConvexError(
+        rejectError,
+        "No se pudo rechazar la solicitud.",
       );
+      void recordAdminLog({
+        action: "driverApplications.reject",
+        message,
+        detail: errorDetail(rejectError),
+      }).catch((logError) => {
+        console.error("[hercom-admin] no se pudo guardar el log", logError);
+      });
+      setError(message);
     } finally {
       setActing(false);
     }
@@ -151,10 +168,10 @@ export function DriverDossierPanel({
           label="Formato brevete"
           value={
             application.licenseFormat === "digital"
-              ? "Digital (PDF + selfie)"
+              ? "Digital"
               : application.licenseFormat === "physical"
-                ? "Físico (anverso, reverso, selfie)"
-                : "Físico (legacy)"
+                ? "Físico"
+                : "Físico"
           }
         />
         <InfoRow
@@ -240,35 +257,29 @@ export function DriverDossierPanel({
             })}
           </div>
         )}
-        {application.licensePdfUrl !== null &&
-          application.licensePdfUrl !== undefined && (
-            <a
-              href={application.licensePdfUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-block text-sm font-semibold text-brand hover:underline"
-            >
-              Abrir PDF del brevete digital
-            </a>
-          )}
       </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-2">
+      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {application.licensePdfUrl !== null &&
+        application.licensePdfUrl !== undefined ? (
+          <DocumentFileCard
+            title="Brevete digital"
+            officialUrl={DIGITAL_LICENSE_URL}
+            fileUrl={application.licensePdfUrl}
+            fileLabel="Abrir PDF del brevete"
+          />
+        ) : null}
         <DocumentFileCard
-          title="CUL (Certificado Único Laboral)"
-          description="PDF que subió el chofer."
-          officialLabel="Abrir sitio oficial"
-          officialUrl={CUL_INFO_URL}
-          fileUrl={application.culPdfUrl}
-          fileLabel="Abrir PDF del CUL"
-        />
-        <DocumentFileCard
-          title="Récord de conductor (MTC)"
-          description="PDF que subió el chofer."
-          officialLabel="Abrir sitio oficial"
+          title="Récord de conductor"
           officialUrl={CONDUCTOR_RECORD_URL}
           fileUrl={application.conductorRecordPdfUrl}
           fileLabel="Abrir PDF del récord"
+        />
+        <DocumentFileCard
+          title="CUL"
+          officialUrl={CUL_INFO_URL}
+          fileUrl={application.culPdfUrl}
+          fileLabel="Abrir PDF del CUL"
         />
       </div>
     </div>
@@ -277,15 +288,11 @@ export function DriverDossierPanel({
 
 function DocumentFileCard({
   title,
-  description,
-  officialLabel,
   officialUrl,
   fileUrl,
   fileLabel,
 }: {
   title: string;
-  description: string;
-  officialLabel: string;
   officialUrl: string;
   fileUrl: string | null;
   fileLabel: string;
@@ -293,22 +300,21 @@ function DocumentFileCard({
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
       <p className="text-sm font-semibold text-slate-900">{title}</p>
-      <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
       <div className="mt-3 flex flex-col gap-2">
         <a
           href={officialUrl}
           target="_blank"
           rel="noreferrer"
-          className={`${btnSecondaryClass} w-full sm:w-auto`}
+          className={`${btnSecondaryClass} w-full`}
         >
-          {officialLabel}
+          Abrir sitio oficial
         </a>
         {fileUrl !== null ? (
           <a
             href={fileUrl}
             target="_blank"
             rel="noreferrer"
-            className={`${btnPrimaryClass} w-full sm:w-auto`}
+            className={`${btnPrimaryClass} w-full`}
           >
             {fileLabel}
           </a>

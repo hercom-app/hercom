@@ -4,7 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { normalizeCountryCode } from "./data/countryCatalog";
 import { driverApplicationStatusValidator, sexValidator } from "./schema";
-import { getCurrentUser, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
+import { getCurrentUser, requireStaff, requireStaffForRegion, requireUser } from "./lib/auth";
 import { assertDniAvailable } from "./lib/identity";
 import { getAccessContext, originMatchesDistrictScopes } from "./lib/adminAccess";
 import { ensureWallet } from "./driverWallets";
@@ -212,12 +212,26 @@ export const approve = mutation({
     applicationId: v.id("driverApplications"),
   },
   handler: async (ctx, args) => {
-    await requireFullAdmin(ctx);
     const application = await ctx.db.get(args.applicationId);
     if (application === null) {
+      console.error("driverApplications.approve: solicitud no encontrada", args.applicationId);
       throw new Error("Solicitud no encontrada.");
     }
+    try {
+      await requireStaffForRegion(ctx, application);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("driverApplications.approve: no autorizado", {
+        applicationId: args.applicationId,
+        message,
+      });
+      throw error;
+    }
     if (application.status !== "pending") {
+      console.error("driverApplications.approve: estado inválido", {
+        applicationId: args.applicationId,
+        status: application.status,
+      });
       throw new Error("Solo se pueden aprobar solicitudes pendientes.");
     }
 
@@ -226,6 +240,10 @@ export const approve = mutation({
       .withIndex("by_user", (q) => q.eq("userId", application.userId))
       .unique();
     if (existingDriver !== null) {
+      console.error("driverApplications.approve: ya tiene perfil", {
+        applicationId: args.applicationId,
+        userId: application.userId,
+      });
       throw new Error("Este usuario ya tiene perfil de chofer.");
     }
 
@@ -245,10 +263,20 @@ export const reject = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireFullAdmin(ctx);
     const application = await ctx.db.get(args.applicationId);
     if (application === null) {
+      console.error("driverApplications.reject: solicitud no encontrada", args.applicationId);
       throw new Error("Solicitud no encontrada.");
+    }
+    try {
+      await requireStaffForRegion(ctx, application);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("driverApplications.reject: no autorizado", {
+        applicationId: args.applicationId,
+        message,
+      });
+      throw error;
     }
     if (application.status !== "pending") {
       throw new Error("Solo se pueden rechazar solicitudes pendientes.");
@@ -265,12 +293,19 @@ export const reject = mutation({
 export const listPending = query({
   args: {},
   handler: async (ctx) => {
-    await requireFullAdmin(ctx);
-    return await ctx.db
+    const user = await requireStaff(ctx);
+    const access = await getAccessContext(ctx, user);
+    let applications = await ctx.db
       .query("driverApplications")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
       .order("desc")
       .collect();
+    if (!access.isFullAdmin) {
+      applications = applications.filter((application) =>
+        originMatchesDistrictScopes(application, access.districtScopes),
+      );
+    }
+    return applications;
   },
 });
 

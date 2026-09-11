@@ -116,3 +116,20 @@ export function filterServicesByAccess<T extends { origin: GeoRegion }>(
     originMatchesDistrictScopes(service.origin, access.districtScopes),
   );
 }
+
+export function canAccessRegion(
+  access: { isFullAdmin: boolean; districtScopes: DistrictScope[] },
+  region: GeoRegion,
+): boolean {
+  if (access.isFullAdmin) {
+    return true;
+  }
+  return originMatchesDistrictScopes(region, access.districtScopes);
+}
+
+export function formatScopeLabel(scope: DistrictScope): string {
+  if (scope.district.trim() === "") {
+    return `Toda ${scope.province} (${scope.department})`;
+  }
+  return `${scope.district}, ${scope.province}`;
+}

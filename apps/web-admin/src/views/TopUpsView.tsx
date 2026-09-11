@@ -10,6 +10,7 @@ import {
   AdminPage,
   AdminPageHeader,
 } from "../components/AdminLayout";
+import { AdminPagination, usePagedItems } from "../components/AdminPagination";
 import {
   EMPTY_REGION_FILTER,
   hasRegionFilter,
@@ -81,6 +82,11 @@ export function TopUpsView() {
     });
   }, [topUps, regionalServices, region, driverStatus, search]);
 
+  const { page, setPage, pageCount, total, paged } = usePagedItems(
+    filteredItems,
+    `${region.department}|${period}|${driverStatus}|${search}`,
+  );
+
   const filteredTotal =
     filteredItems?.reduce((sum, item) => sum + item.amount, 0) ?? 0;
 
@@ -129,7 +135,7 @@ export function TopUpsView() {
             {PERIOD_LABELS[period]}
           </h2>
           <span className="text-xs font-medium text-slate-500">
-            {filteredItems?.length ?? 0} movimientos
+            {total} movimientos
           </span>
         </div>
 
@@ -147,8 +153,9 @@ export function TopUpsView() {
         ) : filteredItems.length === 0 ? (
           <AdminEmpty message="No hay recargas con estos filtros." />
         ) : (
+          <>
           <ul className="divide-y divide-slate-100">
-            {filteredItems.map((tx) => (
+            {(paged ?? []).map((tx) => (
               <li key={tx._id} className="py-3 first:pt-0 last:pb-0">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
@@ -167,6 +174,13 @@ export function TopUpsView() {
               </li>
             ))}
           </ul>
+          <AdminPagination
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            onPageChange={setPage}
+          />
+          </>
         )}
       </AdminCard>
     </AdminPage>

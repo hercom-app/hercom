@@ -10,6 +10,7 @@ import {
   AdminPage,
   AdminPageHeader,
 } from "../components/AdminLayout";
+import { AdminPagination, usePagedItems } from "../components/AdminPagination";
 import {
   btnPrimaryClass,
   btnSecondaryClass,
@@ -236,6 +237,7 @@ export function CreateAdminUserForm({
 
 export function TeamView() {
   const admins = useQuery(api.users.listAdmins);
+  const { page, setPage, pageCount, total, paged } = usePagedItems(admins);
   const updateDistricts = useMutation(api.users.updateAdminDistricts);
   const setPassword = useMutation(api.users.setAdminPassword);
   const [error, setError] = useState<string | null>(null);
@@ -298,8 +300,9 @@ export function TeamView() {
         ) : admins.length === 0 ? (
           <AdminEmpty message="Todavía no hay admins operativos." />
         ) : (
+          <>
           <ul className="mt-4 divide-y divide-zinc-100">
-            {admins.map((admin) => {
+            {(paged ?? []).map((admin) => {
               const isEditing = editingId === admin._id;
               return (
                 <li key={admin._id} className="py-4 first:pt-0 last:pb-0">
@@ -380,6 +383,13 @@ export function TeamView() {
               );
             })}
           </ul>
+          <AdminPagination
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            onPageChange={setPage}
+          />
+          </>
         )}
       </AdminCard>
     </AdminPage>

@@ -510,4 +510,17 @@ export default defineSchema({
     body: v.string(),
     createdAt: v.number(),
   }).index("by_thread", ["threadId", "createdAt"]),
+
+  /**
+   * Errores del panel interno. La consola del navegador + Convex Logs
+   * también los muestran; esta tabla los deja persistidos.
+   */
+  adminLogs: defineTable({
+    actorId: v.optional(v.id("users")),
+    action: v.string(),
+    level: v.union(v.literal("info"), v.literal("error")),
+    message: v.string(),
+    detail: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_createdAt", ["createdAt"]),
 });

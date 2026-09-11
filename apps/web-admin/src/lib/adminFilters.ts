@@ -14,6 +14,17 @@ export const EMPTY_REGION_FILTER: RegionFilter = {
   district: "",
 };
 
+export function formatAdminScopeLabel(scope: {
+  department: string;
+  province: string;
+  district: string;
+}): string {
+  if (scope.district.trim() === "") {
+    return `Toda ${scope.province} (${scope.department})`;
+  }
+  return `${scope.district}, ${scope.province}`;
+}
+
 export function hasRegionFilter(filter: RegionFilter): boolean {
   return filter.department !== "";
 }

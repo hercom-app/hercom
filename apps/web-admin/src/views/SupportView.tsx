@@ -8,6 +8,7 @@ import {
   AdminLoading,
   AdminPage,
 } from "../components/AdminLayout";
+import { AdminPagination, usePagedItems } from "../components/AdminPagination";
 import { btnPrimaryClass, inputClass } from "../lib/adminUi";
 
 function formatWhen(timestamp: number): string {
@@ -27,6 +28,10 @@ const ROLE_LABEL: Record<string, string> = {
 /** Bandeja de mensajería interna con usuarios de la app. */
 export function SupportView() {
   const threads = useQuery(api.support.listThreadsForAdmin);
+  const { page, setPage, pageCount, total, paged } = usePagedItems(
+    threads,
+    String(threads?.length ?? "loading"),
+  );
   const markAdminRead = useMutation(api.support.markAdminRead);
   const sendFromAdmin = useMutation(api.support.sendFromAdmin);
   const [selectedId, setSelectedId] = useState<Id<"supportThreads"> | null>(
@@ -101,8 +106,9 @@ export function SupportView() {
               <AdminEmpty message="Nadie ha escrito todavía." />
             </div>
           ) : (
+            <>
             <ul className="max-h-[70vh] overflow-y-auto">
-              {threads.map((thread) => {
+              {(paged ?? []).map((thread) => {
                 const active = thread._id === selectedId;
                 return (
                   <li key={thread._id}>
@@ -154,6 +160,15 @@ export function SupportView() {
                 );
               })}
             </ul>
+            <div className="px-4 pb-3">
+              <AdminPagination
+                page={page}
+                pageCount={pageCount}
+                total={total}
+                onPageChange={setPage}
+              />
+            </div>
+            </>
           )}
         </AdminCard>
 

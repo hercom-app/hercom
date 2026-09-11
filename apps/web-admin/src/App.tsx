@@ -7,9 +7,10 @@ import {
 } from "convex/react";
 import { api } from "@proyecto/backend";
 import { SignInForm } from "./components/SignInForm";
+import { AdminCard } from "./components/AdminLayout";
 import { AdminSidebar, SECTION_META } from "./components/AdminSidebar";
 import type { AdminSection } from "./components/AdminNav";
-import { AdminCard } from "./components/AdminLayout";
+import { formatAdminScopeLabel } from "./lib/adminFilters";
 import { AccountsView } from "./views/AccountsView";
 import { DriversView } from "./views/DriversView";
 import { TopUpsView } from "./views/TopUpsView";
@@ -118,7 +119,7 @@ function Dashboard() {
                   {isFullAdmin
                     ? meta.description
                     : me.districtScopes
-                        .map((scope) => scope.district)
+                        .map(formatAdminScopeLabel)
                         .join(" · ") || meta.description}
                 </p>
               </div>

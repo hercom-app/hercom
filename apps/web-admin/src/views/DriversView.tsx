@@ -8,11 +8,14 @@ import {
   DriverDossierPanel,
   type DriverApplicationForAdmin,
 } from "../components/DriverDossierPanel";
+import { AdminErrorLogCard } from "../components/AdminErrorLogCard";
+import { AdminPagination, usePagedItems } from "../components/AdminPagination";
 import {
   EMPTY_REGION_FILTER,
   hasRegionFilter,
   inputClass,
   matchesTextSearch,
+  selectClass,
   type RegionFilter,
 } from "../lib/adminFilters";
 import {
@@ -76,6 +79,7 @@ export function DriversView({
 }: DriversViewProps) {
   const [region, setRegion] = useState<RegionFilter>(EMPTY_REGION_FILTER);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [expandedUserId, setExpandedUserId] = useState<Id<"users"> | null>(
     null,
   );
@@ -118,10 +122,10 @@ export function DriversView({
           application === undefined
             ? "Sin solicitud"
             : [
-                application.culPdfUrl !== null ? "CUL" : "CUL pendiente",
                 application.conductorRecordPdfUrl !== null
                   ? "Récord"
                   : "Récord pendiente",
+                application.culPdfUrl !== null ? "CUL" : "CUL pendiente",
               ].join(" · "),
         registeredAt: driver._creationTime,
         application: application ?? null,
@@ -146,10 +150,10 @@ export function DriversView({
         zone: zoneLabel(application),
         statusLabel: "Pendiente de revisión",
         documentsLabel: [
-          application.culPdfUrl !== null ? "CUL" : "CUL pendiente",
           application.conductorRecordPdfUrl !== null
             ? "Récord"
             : "Récord pendiente",
+          application.culPdfUrl !== null ? "CUL" : "CUL pendiente",
         ].join(" · "),
         registeredAt: application.submittedAt,
         application,
@@ -172,21 +176,34 @@ export function DriversView({
       ) {
         return false;
       }
-      if (!hasRegionFilter(region)) {
-        return true;
+      if (hasRegionFilter(region)) {
+        if (region.department !== "" && row.department !== region.department) {
+          return false;
+        }
+        if (region.province !== "" && row.province !== region.province) {
+          return false;
+        }
+        if (region.district !== "" && row.district !== region.district) {
+          return false;
+        }
       }
-      if (region.department !== "" && row.department !== region.department) {
-        return false;
+      if (statusFilter === "pending") {
+        return row.application?.status === "pending";
       }
-      if (region.province !== "" && row.province !== region.province) {
-        return false;
+      if (statusFilter === "approved") {
+        return row.application?.status === "approved";
       }
-      if (region.district !== "" && row.district !== region.district) {
-        return false;
+      if (statusFilter === "rejected") {
+        return row.application?.status === "rejected";
       }
       return true;
     });
-  }, [rows, search, region]);
+  }, [rows, search, region, statusFilter]);
+
+  const { page, setPage, pageCount, total, paged } = usePagedItems(
+    filteredRows,
+    `${region.department}|${region.province}|${region.district}|${search}|${statusFilter}`,
+  );
 
   return (
     <AdminPage>
@@ -196,6 +213,10 @@ export function DriversView({
         value={region}
         onChange={setRegion}
         allowedScopes={isFullAdmin ? undefined : districtScopes}
+        onClear={() => {
+          setSearch("");
+          setStatusFilter("");
+        }}
       >
         <input
           value={search}
@@ -203,6 +224,16 @@ export function DriversView({
           placeholder="Buscar nombre, DNI o placa"
           className={inputClass}
         />
+        <select
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value)}
+          className={selectClass}
+        >
+          <option value="">Estado: todos</option>
+          <option value="pending">Pendiente de revisión</option>
+          <option value="approved">Aprobada</option>
+          <option value="rejected">Rechazada</option>
+        </select>
       </AdminRegionFilters>
 
       <AdminCard>
@@ -211,6 +242,7 @@ export function DriversView({
         ) : filteredRows.length === 0 ? (
           <AdminEmpty message="No hay choferes ni solicitudes con estos filtros." />
         ) : (
+          <>
           <AdminTableWrap>
             <table className={tableClass}>
               <thead className={tableHeadClass}>
@@ -225,7 +257,7 @@ export function DriversView({
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map((row) => {
+                {(paged ?? []).map((row) => {
                   const isExpanded = expandedUserId === row.userId;
                   return (
                     <Fragment key={row.key}>
@@ -276,8 +308,17 @@ export function DriversView({
               </tbody>
             </table>
           </AdminTableWrap>
+          <AdminPagination
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            onPageChange={setPage}
+          />
+          </>
         )}
       </AdminCard>
+
+      <AdminErrorLogCard />
     </AdminPage>
   );
 }

@@ -1,7 +1,12 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
-import { getAccessContext, isStaffRole } from "./adminAccess";
+import {
+  canAccessRegion,
+  getAccessContext,
+  isStaffRole,
+} from "./adminAccess";
+import type { GeoRegion } from "./regionFilters";
 
 /**
  * Devuelve el usuario autenticado o `null` si no hay sesión.
@@ -60,6 +65,21 @@ export async function requireFullAdmin(ctx: QueryCtx): Promise<Doc<"users">> {
     throw new Error("No autorizado: se requiere superadmin.");
   }
   return user;
+}
+
+/**
+ * Staff con permiso sobre una zona (superadmin, o admin de esa provincia/distrito).
+ */
+export async function requireStaffForRegion(
+  ctx: QueryCtx,
+  region: GeoRegion,
+): Promise<Doc<"users">> {
+  const user = await requireStaff(ctx);
+  const access = await getAccessContext(ctx, user);
+  if (canAccessRegion(access, region)) {
+    return user;
+  }
+  throw new Error("No autorizado: esta solicitud está fuera de tu zona.");
 }
 
 /**

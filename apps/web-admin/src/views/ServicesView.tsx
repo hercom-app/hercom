@@ -13,6 +13,7 @@ import { PaymentsPanel } from "../components/PaymentsPanel";
 import { PayoutsPanel } from "../components/PayoutsPanel";
 import { ServicesBoard } from "../components/ServicesBoard";
 import { ServiceLivePanel } from "../components/ServiceLivePanel";
+import { AdminPagination, usePagedItems } from "../components/AdminPagination";
 import { liveStatusLabel } from "../lib/liveTrip";
 import {
   EMPTY_REGION_FILTER,
@@ -54,6 +55,13 @@ export function ServicesView({
 
   const services = useQuery(api.services.listAllForAdmin, queryArgs);
   const liveTrips = useQuery(api.serviceTracking.listLiveForAdmin);
+  const {
+    page: livePage,
+    setPage: setLivePage,
+    pageCount: livePageCount,
+    total: liveTotal,
+    paged: pagedLive,
+  } = usePagedItems(liveTrips);
 
   return (
     <AdminPage>
@@ -66,15 +74,16 @@ export function ServicesView({
         <h2 className="mb-3 font-display text-lg font-bold tracking-tight text-slate-900">
           En ruta ahora
         </h2>
-        {liveTrips === undefined ? (
+        {liveTrips === undefined || pagedLive === undefined ? (
           <AdminLoading message="Cargando viajes en vivo…" />
-        ) : liveTrips.length === 0 ? (
+        ) : liveTotal === 0 ? (
           <p className="text-sm text-slate-500">
             No hay choferes en recojo o en viaje en este momento.
           </p>
         ) : (
+          <>
           <ul className="divide-y divide-slate-100">
-            {liveTrips.map((trip) => (
+            {pagedLive.map((trip) => (
               <li key={trip.serviceId} className="py-3 first:pt-0 last:pb-0">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
@@ -97,6 +106,13 @@ export function ServicesView({
               </li>
             ))}
           </ul>
+          <AdminPagination
+            page={livePage}
+            pageCount={livePageCount}
+            total={liveTotal}
+            onPageChange={setLivePage}
+          />
+          </>
         )}
       </AdminCard>
 
@@ -156,6 +172,7 @@ export function ServicesView({
         services={services}
         selectedId={selectedServiceId}
         onSelect={setSelectedServiceId}
+        resetKey={`${region.department}|${region.province}|${region.district}|${statusFilter}|${typeFilter}|${channelFilter}`}
       />
 
       {isFullAdmin ? (

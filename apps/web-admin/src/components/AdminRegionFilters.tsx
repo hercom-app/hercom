@@ -1,7 +1,12 @@
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
-import type { RegionFilter } from "../lib/adminFilters";
-import { selectClass } from "../lib/adminUi";
+import {
+  EMPTY_REGION_FILTER,
+  formatAdminScopeLabel,
+  type RegionFilter,
+} from "../lib/adminFilters";
+import { btnPrimaryClass, btnSecondaryClass, selectClass } from "../lib/adminUi";
 
 export type DistrictScopeOption = {
   countryCode: string;
@@ -13,8 +18,9 @@ export type DistrictScopeOption = {
 type AdminRegionFiltersProps = {
   value: RegionFilter;
   onChange: (value: RegionFilter) => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
   allowedScopes?: DistrictScopeOption[] | undefined;
+  onClear?: () => void;
 };
 
 function unique(values: string[]): string[] {
@@ -26,30 +32,37 @@ export function AdminRegionFilters({
   onChange,
   children,
   allowedScopes,
+  onClear,
 }: AdminRegionFiltersProps) {
+  const [draft, setDraft] = useState<RegionFilter>(value);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
   const scoped = allowedScopes !== undefined && allowedScopes.length > 0;
   const countries = useQuery(api.geo.listCountries, {});
   const geoConfig = useQuery(api.geo.getCountryConfig, {
-    countryCode: value.countryCode,
+    countryCode: draft.countryCode,
   });
   const level1 = useQuery(
     api.geo.listLevel1,
-    scoped ? "skip" : { countryCode: value.countryCode },
+    scoped ? "skip" : { countryCode: draft.countryCode },
   );
   const level2 = useQuery(
     api.geo.listLevel2,
-    scoped || value.department === ""
+    scoped || draft.department === ""
       ? "skip"
-      : { countryCode: value.countryCode, level1: value.department },
+      : { countryCode: draft.countryCode, level1: draft.department },
   );
   const level3 = useQuery(
     api.geo.listLevel3,
-    scoped || value.department === "" || value.province === ""
+    scoped || draft.department === "" || draft.province === ""
       ? "skip"
       : {
-          countryCode: value.countryCode,
-          level1: value.department,
-          level2: value.province,
+          countryCode: draft.countryCode,
+          level1: draft.department,
+          level2: draft.province,
         },
   );
 
@@ -63,7 +76,7 @@ export function AdminRegionFilters({
   const level1Options = scoped
     ? unique(
         allowedScopes
-          .filter((scope) => scope.countryCode === value.countryCode)
+          .filter((scope) => scope.countryCode === draft.countryCode)
           .map((scope) => scope.department),
       )
     : (level1 ?? []);
@@ -72,8 +85,8 @@ export function AdminRegionFilters({
         allowedScopes
           .filter(
             (scope) =>
-              scope.countryCode === value.countryCode &&
-              scope.department === value.department,
+              scope.countryCode === draft.countryCode &&
+              scope.department === draft.department,
           )
           .map((scope) => scope.province),
       )
@@ -83,9 +96,10 @@ export function AdminRegionFilters({
         allowedScopes
           .filter(
             (scope) =>
-              scope.countryCode === value.countryCode &&
-              scope.department === value.department &&
-              scope.province === value.province,
+              scope.countryCode === draft.countryCode &&
+              scope.department === draft.department &&
+              scope.province === draft.province &&
+              scope.district.trim() !== "",
           )
           .map((scope) => scope.district),
       )
@@ -98,19 +112,18 @@ export function AdminRegionFilters({
   return (
     <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {scoped ? "Zonas asignadas" : "Filtro geográfico"}
+        {scoped ? "Zonas asignadas" : "Filtros"}
       </p>
       {scoped ? (
         <p className="text-xs text-slate-500">
-          Solo puedes ver{" "}
-          {allowedScopes.map((scope) => scope.district).join(", ")}.
+          Solo ves {allowedScopes.map(formatAdminScopeLabel).join(" · ")}.
         </p>
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <select
-          value={value.countryCode}
+          value={draft.countryCode}
           onChange={(event) =>
-            onChange({
+            setDraft({
               countryCode: event.target.value,
               department: "",
               province: "",
@@ -131,10 +144,10 @@ export function AdminRegionFilters({
           </label>
           <select
             id="filter-department"
-            value={value.department}
+            value={draft.department}
             onChange={(event) =>
-              onChange({
-                ...value,
+              setDraft({
+                ...draft,
                 department: event.target.value,
                 province: "",
                 district: "",
@@ -151,16 +164,16 @@ export function AdminRegionFilters({
           </select>
         </div>
         <select
-          value={value.province}
+          value={draft.province}
           onChange={(event) =>
-            onChange({
-              ...value,
+            setDraft({
+              ...draft,
               province: event.target.value,
               district: "",
             })
           }
           className={selectClass}
-          disabled={value.department === ""}
+          disabled={draft.department === ""}
         >
           <option value="">Todas las {level2Label.toLowerCase()}s</option>
           {level2Options.map((item) => (
@@ -170,12 +183,12 @@ export function AdminRegionFilters({
           ))}
         </select>
         <select
-          value={value.district}
+          value={draft.district}
           onChange={(event) =>
-            onChange({ ...value, district: event.target.value })
+            setDraft({ ...draft, district: event.target.value })
           }
           className={selectClass}
-          disabled={value.department === "" || value.province === ""}
+          disabled={draft.department === "" || draft.province === ""}
         >
           <option value="">Todos los {level3Label.toLowerCase()}s</option>
           {level3Options.map((item) => (
@@ -186,8 +199,28 @@ export function AdminRegionFilters({
         </select>
       </div>
       {children !== undefined && (
-        <div className="grid gap-3 sm:grid-cols-2">{children}</div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
       )}
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          className={`${btnSecondaryClass} w-full sm:w-auto`}
+          onClick={() => {
+            setDraft(EMPTY_REGION_FILTER);
+            onChange(EMPTY_REGION_FILTER);
+            onClear?.();
+          }}
+        >
+          Limpiar
+        </button>
+        <button
+          type="button"
+          className={`${btnPrimaryClass} w-full sm:w-auto`}
+          onClick={() => onChange(draft)}
+        >
+          Filtrar
+        </button>
+      </div>
     </div>
   );
 }

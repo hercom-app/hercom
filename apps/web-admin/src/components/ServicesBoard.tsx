@@ -9,6 +9,7 @@ import {
   AdminLoading,
   AdminTableWrap,
 } from "./AdminLayout";
+import { AdminPagination, usePagedItems } from "./AdminPagination";
 import {
   rowClass,
   tableClass,
@@ -34,6 +35,7 @@ type ServicesBoardProps = {
   title?: string;
   selectedId?: Id<"services"> | null;
   onSelect?: (serviceId: Id<"services">) => void;
+  resetKey?: string;
 };
 
 export function ServicesBoard({
@@ -41,8 +43,14 @@ export function ServicesBoard({
   title = "Servicios",
   selectedId,
   onSelect,
+  resetKey,
 }: ServicesBoardProps) {
-  if (services === undefined) {
+  const { page, setPage, pageCount, total, paged } = usePagedItems(
+    services,
+    resetKey ?? String(services?.length ?? "loading"),
+  );
+
+  if (services === undefined || paged === undefined) {
     return (
       <AdminCard>
         <AdminLoading message="Cargando servicios…" />
@@ -57,13 +65,14 @@ export function ServicesBoard({
           {title}
         </h2>
         <span className="text-xs font-medium text-slate-500">
-          {services.length} {services.length === 1 ? "registro" : "registros"}
+          {total} {total === 1 ? "registro" : "registros"}
         </span>
       </div>
 
-      {services.length === 0 ? (
+      {total === 0 ? (
         <AdminEmpty message="No hay servicios con estos filtros." />
       ) : (
+        <>
         <AdminTableWrap>
           <table className={tableClass}>
             <thead className={tableHeadClass}>
@@ -82,7 +91,7 @@ export function ServicesBoard({
               </tr>
             </thead>
             <tbody>
-              {services.map((service) => {
+              {paged.map((service) => {
                 const advanceAmount =
                   service.advanceAmount ??
                   (service.offeredPrice !== undefined
@@ -163,6 +172,13 @@ export function ServicesBoard({
             </tbody>
           </table>
         </AdminTableWrap>
+        <AdminPagination
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          onPageChange={setPage}
+        />
+        </>
       )}
     </AdminCard>
   );

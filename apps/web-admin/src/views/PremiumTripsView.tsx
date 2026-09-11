@@ -70,7 +70,11 @@ export function PremiumTripsView() {
 
       <PremiumServiceForm />
 
-      <ServicesBoard services={services} title="Viajes premium registrados" />
+      <ServicesBoard
+        services={services}
+        title="Viajes premium registrados"
+        resetKey={`${region.department}|${region.province}|${region.district}|${channelFilter}|${statusFilter}`}
+      />
     </AdminPage>
   );
 }

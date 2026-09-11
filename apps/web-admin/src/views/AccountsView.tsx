@@ -20,6 +20,7 @@ import {
   AdminPageHeader,
   AdminTableWrap,
 } from "../components/AdminLayout";
+import { AdminPagination, usePagedItems } from "../components/AdminPagination";
 import {
   btnPrimaryClass,
   btnSecondaryClass,
@@ -107,6 +108,11 @@ export function AccountsView({
 
     return result;
   }, [users, regionalServices, region, search, isClients]);
+
+  const { page, setPage, pageCount, total, paged } = usePagedItems(
+    filteredUsers,
+    `${isClients}|${roleFilter}|${search}|${region.department}|${region.province}|${region.district}`,
+  );
 
   async function handleRoleChange(
     userId: Id<"users">,
@@ -197,6 +203,7 @@ export function AccountsView({
             }
           />
         ) : (
+          <>
           <AdminTableWrap>
             <table className={tableClass}>
               <thead className={tableHeadClass}>
@@ -209,7 +216,7 @@ export function AccountsView({
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => (
+                {(paged ?? []).map((user) => (
                   <tr key={user._id} className={rowClass}>
                     <td className={`${tdClass} font-medium text-slate-900`}>
                       {user.name ?? "Sin nombre"}
@@ -247,6 +254,13 @@ export function AccountsView({
               </tbody>
             </table>
           </AdminTableWrap>
+          <AdminPagination
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            onPageChange={setPage}
+          />
+          </>
         )}
       </AdminCard>
     </AdminPage>

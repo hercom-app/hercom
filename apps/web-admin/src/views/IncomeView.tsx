@@ -12,6 +12,7 @@ import {
 } from "../components/AdminLayout";
 import { limaDaysAgo, limaToday, liveStatusLabel } from "../lib/liveTrip";
 import { AdminRegionFilters } from "../components/AdminRegionFilters";
+import { AdminPagination, usePagedItems } from "../components/AdminPagination";
 import {
   EMPTY_REGION_FILTER,
   hasRegionFilter,
@@ -67,6 +68,10 @@ export function IncomeView({
     ...(typeFilter !== "all" ? { serviceType: typeFilter } : {}),
     ...(hasRegionFilter(region) ? regionToQueryArgs(region) : {}),
   });
+  const { page, setPage, pageCount, total, paged } = usePagedItems(
+    report?.rows,
+    `${fromDate}|${toDate}|${statusFilter}|${typeFilter}|${region.department}|${region.province}|${region.district}`,
+  );
 
   return (
     <AdminPage>
@@ -177,9 +182,10 @@ export function IncomeView({
                 {report.rows.length} registros
               </span>
             </div>
-            {report.rows.length === 0 ? (
+            {report.rows.length === 0 || paged === undefined ? (
               <AdminEmpty message="No hay viajes con estos filtros." />
             ) : (
+              <>
               <AdminTableWrap>
                 <table className={`${tableClass} min-w-[860px]`}>
                   <thead className={tableHeadClass}>
@@ -196,7 +202,7 @@ export function IncomeView({
                     </tr>
                   </thead>
                   <tbody>
-                    {report.rows.map((row) => (
+                    {paged.map((row) => (
                       <tr key={row.serviceId} className={rowClass}>
                         <td className={tdClass}>
                           {formatDateTime(row.activityAt)}
@@ -230,6 +236,13 @@ export function IncomeView({
                   </tbody>
                 </table>
               </AdminTableWrap>
+              <AdminPagination
+                page={page}
+                pageCount={pageCount}
+                total={total}
+                onPageChange={setPage}
+              />
+              </>
             )}
           </AdminCard>
         </>

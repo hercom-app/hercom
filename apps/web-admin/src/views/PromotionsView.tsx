@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import { AdminRegionFilters } from "../components/AdminRegionFilters";
 import { AdminCard, AdminEmpty, AdminLoading, AdminPage, AdminPageHeader } from "../components/AdminLayout";
+import { AdminPagination, usePagedItems } from "../components/AdminPagination";
 import { RegionFields, inputClass } from "../components/RegionFields";
 import { btnPrimaryClass } from "../lib/adminUi";
 import {
@@ -99,6 +100,11 @@ export function PromotionsView() {
       ]);
     });
   }, [promotions, listRegion, activeFilter, search]);
+
+  const { page, setPage, pageCount, total, paged } = usePagedItems(
+    filteredPromotions,
+    `${listRegion.department}|${activeFilter}|${search}`,
+  );
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -252,8 +258,9 @@ export function PromotionsView() {
         ) : filteredPromotions.length === 0 ? (
           <AdminEmpty message="No hay promociones con estos filtros." />
         ) : (
+          <>
           <div className="space-y-2">
-            {filteredPromotions.map((promotion) => (
+            {(paged ?? []).map((promotion) => (
               <div
                 key={promotion._id}
                 className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -302,6 +309,13 @@ export function PromotionsView() {
               </div>
             ))}
           </div>
+          <AdminPagination
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            onPageChange={setPage}
+          />
+          </>
         )}
       </AdminCard>
     </AdminPage>

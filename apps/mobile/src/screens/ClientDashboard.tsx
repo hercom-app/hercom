@@ -23,7 +23,6 @@ import { DriverOfferModal, type DriverOfferInfo } from "../components/DriverOffe
 import { EditTripLocationsModal } from "../components/EditTripLocationsModal";
 import { HamburgerButton } from "../components/HamburgerButton";
 import { HelpFab } from "../components/HelpFab";
-import { ChauffeurIllustration } from "../components/ChauffeurIllustration";
 import { RateServiceStars } from "../components/RateServiceStars";
 import { SideDrawer } from "../components/SideDrawer";
 import { ClientSecurityScreen } from "./ClientSecurityScreen";
@@ -31,6 +30,15 @@ import { ClientSettingsScreen } from "./ClientSettingsScreen";
 import { ClientIdentityForm } from "./ClientIdentityForm";
 import { SupportChatScreen } from "./SupportChatScreen";
 import { UiButton, UiCard, UiChip, UiEmpty, SHEET_SHADOW } from "../components/ui";
+import {
+  TacticalInput,
+  TacticalLabel,
+  TacticalPanel,
+  TacticalStatus,
+  TacticalText,
+  TacticalTitle,
+  TacticalValue,
+} from "../components/tactical";
 import { LiveTripMapModal } from "../components/LiveTripMapModal";
 import {
   addressDraftFromText,
@@ -47,7 +55,7 @@ import {
 } from "../lib/pickupLocation";
 import { formatServiceStopsLabel } from "../lib/wazeNavigation";
 import { useAppMode } from "../contexts/AppModeContext";
-import { HERCOM_COLORS } from "../constants/theme";
+import { HERCOM_COLORS, TACTICAL_BORDER, TACTICAL_COLORS, TACTICAL_RADIUS, MONO } from "../constants/theme";
 import { useAndroidBackHandler } from "../hooks/useAndroidBackHandler";
 import { convexErrorMessage } from "../lib/convexErrorMessage";
 import * as Location from "expo-location";
@@ -166,31 +174,31 @@ function ClientServiceCard({
           <UiChip label={STATUS_LABELS[service.status]} />
           {(service.serviceType ?? "app") === "app" && <UiChip label="App" />}
         </View>
-        <Text className="text-base font-bold text-slate-900">
+        <TacticalValue size={16} tone="accent">
           {service.offeredPrice !== undefined
             ? `S/${agreedPrice.toFixed(2)}`
             : "Sin acordar"}
-        </Text>
+        </TacticalValue>
       </View>
-      <Text className="mb-1 text-sm text-slate-500">
+      <TacticalText size={12} className="mb-1">
         {service.offeredPrice !== undefined
           ? `Tarifa acordada: S/${service.offeredPrice.toFixed(2)}`
           : "Esperando acuerdo de tarifa"}
-      </Text>
-      <Text className="mb-1 text-sm font-medium text-slate-800">
+      </TacticalText>
+      <TacticalText size={12} tone="text" className="mb-1">
         {service.driverName !== undefined
           ? `Chofer: ${service.driverName}`
           : "Sin chofer asignado"}
-      </Text>
+      </TacticalText>
       {service.promotionName !== undefined && (
-        <Text className="mb-1 text-sm font-semibold text-slate-700">
-          Promo: {service.promotionName}
-        </Text>
+        <TacticalLabel size={10} className="mb-1">
+          {`Promo: ${service.promotionName}`}
+        </TacticalLabel>
       )}
-      <Text className="text-sm text-slate-700">
+      <TacticalText size={12} tone="text">
         {service.origin.address} →{" "}
         {formatServiceStopsLabel(service.destination, service.extraDestinations)}
-      </Text>
+      </TacticalText>
       {canShowLive && (
         <View className="mt-3">
           <UiButton
@@ -214,13 +222,21 @@ function ClientServiceCard({
         </View>
       )}
       {service.status === "assigned" && service.offeredPrice !== undefined && (
-        <View className="mt-3 rounded-2xl bg-slate-50 p-4">
-          <Text className="text-lg font-bold text-slate-900">
-            Anticipo: S/{advanceAmount.toFixed(2)}
-          </Text>
-          <Text className="mt-1 text-sm text-slate-500">
+        <View
+          className="mt-3 p-4"
+          style={{
+            backgroundColor: TACTICAL_COLORS.surfaceSunken,
+            borderRadius: TACTICAL_RADIUS.sharp,
+            borderLeftWidth: 2,
+            borderLeftColor: TACTICAL_COLORS.accent,
+          }}
+        >
+          <TacticalValue size={18} tone="accent">
+            {`Anticipo: S/${advanceAmount.toFixed(2)}`}
+          </TacticalValue>
+          <TacticalText size={12} className="mt-1">
             Transfiere el 25% de la tarifa al chofer antes de que salga.
-          </Text>
+          </TacticalText>
           <View className="mt-3">
             <UiButton
               label="Ver datos para transferir"
@@ -230,33 +246,47 @@ function ClientServiceCard({
             />
           </View>
           {advanceConfirmed && (
-            <Text className="mt-3 text-sm font-semibold text-success">
-              ✓ El chofer confirmó que recibió el anticipo
-            </Text>
+            <View className="mt-3">
+              <TacticalStatus label="Anticipo confirmado por el chofer" tone="success" />
+            </View>
           )}
         </View>
       )}
       {service.securityCode !== undefined &&
         service.status !== "finished" &&
         service.status !== "cancelled" && (
-          <View className="mt-3 rounded-2xl bg-hercom-soft p-4">
-            <Text className="text-sm text-hercom-dark">
-              Código de seguridad para iniciar viaje:{" "}
-              <Text className="font-bold text-slate-900">{service.securityCode}</Text>
-            </Text>
+          <View
+            className="mt-3 p-4"
+            style={{
+              backgroundColor: "rgba(161, 196, 253, 0.1)",
+              borderRadius: TACTICAL_RADIUS.sharp,
+              borderLeftWidth: 2,
+              borderLeftColor: TACTICAL_COLORS.accent,
+            }}
+          >
+            <TacticalLabel size={9}>Código de seguridad</TacticalLabel>
+            <TacticalValue size={20} tone="accent" className="mt-1">
+              {service.securityCode}
+            </TacticalValue>
           </View>
         )}
       {service.status === "pending" && (
-        <View className="mt-3 rounded-2xl bg-slate-50 p-3">
-          <Text className="mb-2 text-sm font-semibold text-slate-700">
+        <View
+          className="mt-3 p-3"
+          style={{
+            backgroundColor: TACTICAL_COLORS.surfaceSunken,
+            borderRadius: TACTICAL_RADIUS.sharp,
+          }}
+        >
+          <TacticalLabel size={10} className="mb-2">
             Ofertas de choferes
-          </Text>
+          </TacticalLabel>
           {offers === undefined ? (
-            <Text className="text-sm text-slate-500">Cargando ofertas...</Text>
+            <TacticalText size={12}>Cargando ofertas...</TacticalText>
           ) : offers.length === 0 ? (
-            <Text className="text-sm text-slate-500">
+            <TacticalText size={12}>
               Aún no hay ofertas para este servicio.
-            </Text>
+            </TacticalText>
           ) : (
             offers
               .filter((offer) => offer.status === "pending")
@@ -276,25 +306,37 @@ function ClientServiceCard({
                       driverColor: offer.driverColor,
                     });
                   }}
-                  className="mb-2 rounded-2xl bg-white p-3"
+                  className="mb-2 p-3"
+                  style={{
+                    backgroundColor: TACTICAL_COLORS.surface,
+                    borderRadius: TACTICAL_RADIUS.sharp,
+                    borderWidth: 1,
+                    borderColor: TACTICAL_BORDER,
+                  }}
                 >
-                  <Text className="text-sm font-semibold text-slate-800">
-                    {offer.driverName} · {offer.driverRating.toFixed(1)}★
-                    {offer.driverTrips > 0
-                      ? ` · ${offer.driverTrips} viajes`
-                      : ""}
-                  </Text>
-                  <Text className="mt-1 text-lg font-bold text-slate-900">
-                    S/{offer.offeredPrice.toFixed(2)}
-                  </Text>
-                  <Text className="mt-1 text-sm font-semibold text-hercom">
+                  <TacticalLabel size={10} tone="text">
+                    {`${offer.driverName} · ${offer.driverRating.toFixed(1)}★${
+                      offer.driverTrips > 0
+                        ? ` · ${offer.driverTrips} viajes`
+                        : ""
+                    }`}
+                  </TacticalLabel>
+                  <TacticalValue size={18} tone="accent" className="mt-1">
+                    {`S/${offer.offeredPrice.toFixed(2)}`}
+                  </TacticalValue>
+                  <TacticalLabel size={9} tone="accent" className="mt-1">
                     Ver chofer
-                  </Text>
+                  </TacticalLabel>
                 </TouchableOpacity>
               ))
           )}
           {offerError !== null && selectedOffer === null && (
-            <Text className="mt-1 text-sm font-medium text-red-600">{offerError}</Text>
+            <Text
+              className="mt-1 text-xs"
+              style={{ fontFamily: MONO.medium, color: TACTICAL_COLORS.danger }}
+            >
+              {offerError}
+            </Text>
           )}
         </View>
       )}
@@ -322,18 +364,31 @@ function ClientServiceCard({
         />
       )}
       {service.status === "finished" && service.clientRating !== undefined && (
-        <Text className="mt-3 text-sm font-semibold text-slate-700">
-          Valoraste este viaje con {service.clientRating}★
-        </Text>
+        <TacticalText size={12} tone="text" className="mt-3">
+          {`Valoraste este viaje con ${service.clientRating}★`}
+        </TacticalText>
       )}
       {canCancel && (
         <TouchableOpacity
           onPress={() => void handleCancel()}
           disabled={cancelling}
-          className="mt-3 rounded-2xl border border-red-200 py-3 disabled:opacity-60"
+          className="mt-3 py-3 disabled:opacity-60"
+          style={{
+            borderRadius: TACTICAL_RADIUS.sharp,
+            borderWidth: 1,
+            borderColor: TACTICAL_COLORS.danger,
+          }}
         >
-          <Text className="text-center text-sm font-semibold text-red-600">
-            {cancelling ? "Cancelando..." : "Cancelar solicitud"}
+          <Text
+            className="text-center"
+            style={{
+              fontFamily: MONO.bold,
+              fontSize: 12,
+              letterSpacing: 1.4,
+              color: TACTICAL_COLORS.danger,
+            }}
+          >
+            {cancelling ? "CANCELANDO..." : "CANCELAR SOLICITUD"}
           </Text>
         </TouchableOpacity>
       )}
@@ -822,17 +877,23 @@ export function ClientDashboard() {
 
   if (menuSection === "historial" || menuSection === "notificaciones") {
     return (
-      <View className="flex-1 bg-canvas">
+      <View className="flex-1" style={{ backgroundColor: TACTICAL_COLORS.base }}>
         <View
-          style={{ paddingTop: insets.top + 8, paddingBottom: 12 }}
-          className="flex-row items-center gap-3 border-b border-slate-100 bg-white px-4"
+          className="flex-row items-center gap-3 px-4"
+          style={{
+            paddingTop: insets.top + 8,
+            paddingBottom: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: TACTICAL_BORDER,
+            backgroundColor: TACTICAL_COLORS.baseElevated,
+          }}
         >
-          <HamburgerButton onPress={() => setMenuOpen(true)} />
-          <Text className="flex-1 text-lg font-bold text-slate-900">
+          <HamburgerButton onPress={() => setMenuOpen(true)} variant="tactical" />
+          <TacticalTitle size={17} className="flex-1">
             {menuSection === "notificaciones"
               ? "Notificaciones"
               : "Mis servicios"}
-          </Text>
+          </TacticalTitle>
         </View>
 
         <ScrollView
@@ -852,15 +913,16 @@ export function ClientDashboard() {
           {menuSection === "notificaciones" ? (
             <UiCard>
               <View className="mb-3 flex-row items-center justify-between">
-                <Text className="text-sm font-semibold text-slate-900">
-                  {unreadNotifications} sin leer
-                </Text>
+                <TacticalStatus
+                  label={`${unreadNotifications} sin leer`}
+                  tone={unreadNotifications > 0 ? "active" : "idle"}
+                />
                 <TouchableOpacity
                   onPress={() => void markAllNotificationsAsRead()}
                 >
-                  <Text className="text-xs font-semibold text-slate-500">
+                  <TacticalLabel size={9} tone="accent">
                     Marcar leídas
-                  </Text>
+                  </TacticalLabel>
                 </TouchableOpacity>
               </View>
               {(notifications ?? []).length === 0 ? (
@@ -869,20 +931,24 @@ export function ClientDashboard() {
                 (notifications ?? []).map((notification) => (
                   <View
                     key={notification._id}
-                    className="mb-2 rounded-2xl bg-slate-50 p-3"
+                    className="mb-2 p-3"
+                    style={{
+                      backgroundColor: TACTICAL_COLORS.surfaceSunken,
+                      borderRadius: TACTICAL_RADIUS.sharp,
+                    }}
                   >
-                    <Text className="text-xs font-semibold text-slate-800">
+                    <TacticalLabel size={9} tone="text">
                       {notification.title}
-                    </Text>
-                    <Text className="mt-1 text-xs text-slate-600">
+                    </TacticalLabel>
+                    <TacticalText size={11} className="mt-1">
                       {notification.message}
-                    </Text>
+                    </TacticalText>
                   </View>
                 ))
               )}
             </UiCard>
           ) : services === undefined ? (
-            <ActivityIndicator color="#64748B" />
+            <ActivityIndicator color={TACTICAL_COLORS.accent} />
           ) : services.length === 0 ? (
             <UiEmpty
               title="Aún no tienes solicitudes."
@@ -901,8 +967,11 @@ export function ClientDashboard() {
 
   if (me === undefined) {
     return (
-      <View className="flex-1 items-center justify-center bg-canvas">
-        <ActivityIndicator color="#64748B" />
+      <View
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: TACTICAL_COLORS.base }}
+      >
+        <ActivityIndicator color={TACTICAL_COLORS.accent} />
         {drawer}
       </View>
     );
@@ -926,18 +995,29 @@ export function ClientDashboard() {
       onPress: () => void,
     ) => (
       <View>
-        <Text className="mb-1.5 text-xs font-semibold text-slate-500">
+        <TacticalLabel size={9} className="mb-1.5">
           {label}
-        </Text>
+        </TacticalLabel>
         <Pressable
           onPress={onPress}
           disabled={submitting}
-          className="rounded-2xl bg-slate-100 px-4 py-3.5 active:bg-slate-200"
+          className="px-4 py-3.5"
+          style={{
+            backgroundColor: TACTICAL_COLORS.surfaceSunken,
+            borderRadius: TACTICAL_RADIUS.sharp,
+            borderWidth: 1,
+            borderColor: TACTICAL_BORDER,
+          }}
         >
           <Text
-            className={`text-base ${
-              value.trim() !== "" ? "text-slate-900" : "text-slate-400"
-            }`}
+            style={{
+              fontFamily: "Poppins_400Regular",
+              fontSize: 15,
+              color:
+                value.trim() !== ""
+                  ? TACTICAL_COLORS.textStrong
+                  : TACTICAL_COLORS.steel,
+            }}
             numberOfLines={2}
           >
             {value.trim() !== "" ? value : placeholder}
@@ -947,12 +1027,12 @@ export function ClientDashboard() {
     );
 
     return (
-      <View className="flex-1 bg-canvas">
+      <View className="flex-1" style={{ backgroundColor: TACTICAL_COLORS.base }}>
         <View
           style={{ paddingTop: insets.top + 8 }}
           className="z-10 flex-row items-center px-4 pb-2"
         >
-          <HamburgerButton onPress={() => setMenuOpen(true)} />
+          <HamburgerButton onPress={() => setMenuOpen(true)} variant="tactical" />
         </View>
 
         {!addressSearchActive ? (
@@ -965,9 +1045,9 @@ export function ClientDashboard() {
               paddingBottom: insets.bottom + 28,
             }}
           >
-            <Text className="mb-6 text-2xl font-bold leading-8 text-slate-900">
-              ¿Dónde necesitas un Chofer para Remplazo?
-            </Text>
+            <TacticalTitle size={22} className="mb-6">
+              Nuevo servicio
+            </TacticalTitle>
 
             <UiCard className="gap-3 overflow-hidden pb-0">
               {addressFieldButton(
@@ -1010,9 +1090,22 @@ export function ClientDashboard() {
                         previous.filter((_, itemIndex) => itemIndex !== index),
                       );
                     }}
-                    className="mt-6 h-12 w-12 items-center justify-center rounded-2xl bg-slate-100"
+                    className="mt-6 h-12 w-12 items-center justify-center"
+                    style={{
+                      backgroundColor: TACTICAL_COLORS.surfaceSunken,
+                      borderRadius: TACTICAL_RADIUS.sharp,
+                      borderWidth: 1,
+                      borderColor: TACTICAL_BORDER,
+                    }}
                   >
-                    <Text className="text-sm font-semibold text-slate-500">✕</Text>
+                    <Text
+                      style={{
+                        fontFamily: MONO.bold,
+                        color: TACTICAL_COLORS.steel,
+                      }}
+                    >
+                      ✕
+                    </Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -1027,9 +1120,9 @@ export function ClientDashboard() {
                 disabled={submitting}
                 className="rounded-2xl py-2.5 disabled:opacity-60"
               >
-                <Text className="text-center text-sm font-semibold text-slate-500">
+                <TacticalLabel size={10} className="text-center">
                   + Agregar parada
-                </Text>
+                </TacticalLabel>
               </TouchableOpacity>
 
               <UiButton
@@ -1038,15 +1131,16 @@ export function ClientDashboard() {
                 disabled={!canContinue || submitting}
               />
 
-              <View className="-mx-5 mt-1 items-center border-t border-slate-100 pt-3">
-                <ChauffeurIllustration />
-              </View>
             </UiCard>
 
             {error !== null && (
-              <Text className="mt-3 text-center text-sm text-red-600">
+              <TacticalText
+                size={13}
+                className="mt-3 text-center"
+                style={{ color: TACTICAL_COLORS.danger }}
+              >
                 {error}
-              </Text>
+              </TacticalText>
             )}
           </ScrollView>
         ) : (
@@ -1055,18 +1149,40 @@ export function ClientDashboard() {
             style={{ paddingBottom: keyboardHeight }}
           >
             <View
-              className="mx-2 overflow-hidden rounded-t-[28px] bg-white"
-              style={[{ height: addressSheetHeight }, SHEET_SHADOW]}
+              className="mx-2 overflow-hidden"
+              style={[
+                {
+                  height: addressSheetHeight,
+                  backgroundColor: TACTICAL_COLORS.base,
+                  borderTopWidth: 1,
+                  borderTopColor: TACTICAL_COLORS.accent,
+                },
+                SHEET_SHADOW,
+              ]}
             >
               <View className="flex-row items-center justify-between px-4 pb-1 pt-3">
                 <View className="w-10" />
-                <View className="h-1 w-10 rounded-full bg-slate-300" />
+                <View
+                  className="h-1 w-10"
+                  style={{
+                    backgroundColor: TACTICAL_COLORS.steel,
+                    borderRadius: TACTICAL_RADIUS.sharp,
+                  }}
+                />
                 <TouchableOpacity
                   onPress={closeAddressSearch}
                   className="h-10 w-10 items-center justify-center"
                   hitSlop={8}
                 >
-                  <Text className="text-lg font-semibold text-slate-500">✕</Text>
+                  <Text
+                    style={{
+                      fontFamily: MONO.bold,
+                      fontSize: 16,
+                      color: TACTICAL_COLORS.steel,
+                    }}
+                  >
+                    ✕
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -1082,14 +1198,14 @@ export function ClientDashboard() {
                   paddingBottom: insets.bottom + 24,
                 }}
               >
-                <Text className="mb-3 text-lg font-bold text-slate-900">
-                  Busca tu dirección
-                </Text>
+                <TacticalTitle size={18} className="mb-3">
+                  Dirección
+                </TacticalTitle>
 
                 <View className="mb-3">
-                  <Text className="mb-1.5 text-xs font-semibold text-slate-600">
+                  <TacticalLabel size={10} className="mb-1.5">
                     Punto de recojo
-                  </Text>
+                  </TacticalLabel>
                   <AddressAutocomplete
                     value={origin}
                     onChangeText={(value) => {
@@ -1132,9 +1248,9 @@ export function ClientDashboard() {
                 </View>
 
                 <View className="mb-3">
-                  <Text className="mb-1.5 text-xs font-semibold text-slate-600">
+                  <TacticalLabel size={10} className="mb-1.5">
                     Destino
-                  </Text>
+                  </TacticalLabel>
                   <AddressAutocomplete
                     value={destination.address}
                     onChangeText={(value) => {
@@ -1228,9 +1344,21 @@ export function ClientDashboard() {
                           setAddressSearchField("destination");
                         }
                       }}
-                      className="h-12 w-12 items-center justify-center rounded-2xl bg-slate-100"
+                      className="h-12 w-12 items-center justify-center"
+                      style={{
+                        backgroundColor: TACTICAL_COLORS.surfaceSunken,
+                        borderRadius: TACTICAL_RADIUS.sharp,
+                        borderWidth: 1,
+                        borderColor: TACTICAL_BORDER,
+                      }}
                     >
-                      <Text className="text-sm font-semibold text-slate-500">
+                      <Text
+                        style={{
+                          fontFamily: MONO.bold,
+                          fontSize: 14,
+                          color: TACTICAL_COLORS.steel,
+                        }}
+                      >
                         ✕
                       </Text>
                     </TouchableOpacity>
@@ -1257,7 +1385,7 @@ export function ClientDashboard() {
 
   // ——— Paso 2: mapa + horas / tarifa ———
   return (
-    <View className="flex-1 bg-canvas">
+    <View className="flex-1" style={{ backgroundColor: TACTICAL_COLORS.base }}>
       <MapView
         key={`map-${originLat}-${originLng}-${destination.lat}-${destination.lng}`}
         style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
@@ -1305,16 +1433,23 @@ export function ClientDashboard() {
               setFlowStep("compose");
               setError(null);
             }}
-            className="h-12 w-12 items-center justify-center rounded-full bg-white"
+            className="h-12 w-12 items-center justify-center"
             style={{
-              shadowColor: "#0F172A",
-              shadowOpacity: 0.12,
-              shadowRadius: 8,
-              shadowOffset: { width: 0, height: 2 },
-              elevation: 3,
+              backgroundColor: TACTICAL_COLORS.surface,
+              borderRadius: TACTICAL_RADIUS.sharp,
+              borderWidth: 1,
+              borderColor: TACTICAL_BORDER,
             }}
           >
-            <Text className="text-xl text-slate-800">←</Text>
+            <Text
+              style={{
+                fontFamily: MONO.bold,
+                fontSize: 18,
+                color: TACTICAL_COLORS.accent,
+              }}
+            >
+              ←
+            </Text>
           </TouchableOpacity>
           <View className="flex-1" />
           <HelpFab
@@ -1328,8 +1463,13 @@ export function ClientDashboard() {
       </View>
 
       <View
-        className="absolute bottom-0 left-0 right-0 z-20 overflow-hidden rounded-t-[28px] bg-white"
+        className="absolute bottom-0 left-0 right-0 z-20 overflow-hidden"
         style={[
+          {
+            backgroundColor: TACTICAL_COLORS.base,
+            borderTopWidth: 1,
+            borderTopColor: TACTICAL_COLORS.accent,
+          },
           {
             height: confirmSheetHeight,
             paddingBottom: insets.bottom + 8,
@@ -1338,7 +1478,13 @@ export function ClientDashboard() {
         ]}
       >
         <View className="items-center pb-1 pt-3">
-          <View className="h-1 w-10 rounded-full bg-slate-300" />
+          <View
+            className="h-1 w-10"
+            style={{
+              backgroundColor: TACTICAL_COLORS.steel,
+              borderRadius: TACTICAL_RADIUS.sharp,
+            }}
+          />
         </View>
 
         <ScrollView
@@ -1349,11 +1495,11 @@ export function ClientDashboard() {
             paddingBottom: 20,
           }}
         >
-          <Text className="mb-3 text-lg font-bold text-slate-900">
-            Confirma tu servicio
-          </Text>
+          <TacticalTitle size={18} className="mb-3">
+            Confirmar
+          </TacticalTitle>
 
-          <View className="mb-4 rounded-2xl bg-slate-50 p-4">
+          <TacticalPanel tone="sunken" className="mb-4">
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => {
@@ -1362,17 +1508,15 @@ export function ClientDashboard() {
                 setAddressSearchField("origin");
               }}
             >
-              <Text className="text-[11px] font-semibold uppercase text-slate-500">
-                De · tocar para editar
-              </Text>
-              <Text
-                className="mt-0.5 text-sm font-medium text-slate-900"
-                numberOfLines={2}
-              >
+              <TacticalLabel size={10}>De · tocar para editar</TacticalLabel>
+              <TacticalText size={13} tone="text" className="mt-0.5" numberOfLines={2}>
                 {origin}
-              </Text>
+              </TacticalText>
             </TouchableOpacity>
-            <View className="my-2 h-px bg-slate-200" />
+            <View
+              className="my-2 h-px"
+              style={{ backgroundColor: TACTICAL_BORDER }}
+            />
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => {
@@ -1381,29 +1525,24 @@ export function ClientDashboard() {
                 setAddressSearchField("destination");
               }}
             >
-              <Text className="text-[11px] font-semibold uppercase text-slate-500">
-                A · tocar para editar
-              </Text>
-              <Text
-                className="mt-0.5 text-sm font-medium text-slate-900"
-                numberOfLines={2}
-              >
+              <TacticalLabel size={10}>A · tocar para editar</TacticalLabel>
+              <TacticalText size={13} tone="text" className="mt-0.5" numberOfLines={2}>
                 {formatServiceStopsLabel(
                   toServiceLocation(destination),
                   extraDestinations.map((stop) => toServiceLocation(stop)),
                 )}
-              </Text>
+              </TacticalText>
             </TouchableOpacity>
-          </View>
+          </TacticalPanel>
 
-          <Text className="mb-2 text-xs font-semibold text-slate-600">
+          <TacticalLabel size={10} className="mb-2">
             ¿Cuánto tiempo necesitas?
-          </Text>
-          <Text className="mb-3 text-xs text-slate-500">
+          </TacticalLabel>
+          <TacticalText size={11} className="mb-3">
             Tarifa {currencySymbol}
             {hourlyRate}/h · mínimo {minServiceHours}h = {currencySymbol}
             {minServicePrice}
-          </Text>
+          </TacticalText>
 
           <ScrollView
             horizontal
@@ -1417,67 +1556,83 @@ export function ClientDashboard() {
                 <TouchableOpacity
                   key={hours}
                   onPress={() => setServiceHours(hours)}
-                  className={`rounded-2xl px-4 py-3 ${
-                    selected ? "bg-hercom" : "bg-slate-100"
-                  }`}
+                  className="px-4 py-3"
+                  style={{
+                    backgroundColor: selected
+                      ? TACTICAL_COLORS.accent
+                      : TACTICAL_COLORS.surfaceSunken,
+                    borderRadius: TACTICAL_RADIUS.panel,
+                    borderWidth: 1,
+                    borderColor: selected
+                      ? TACTICAL_COLORS.accent
+                      : TACTICAL_BORDER,
+                  }}
                 >
-                  <Text
-                    className={`text-center text-sm font-bold ${
-                      selected ? "text-white" : "text-slate-900"
-                    }`}
+                  <TacticalValue
+                    size={14}
+                    tone={selected ? "steel" : "text"}
+                    className="text-center"
+                    style={{
+                      color: selected
+                        ? TACTICAL_COLORS.base
+                        : TACTICAL_COLORS.textStrong,
+                    }}
                   >
                     {hours}h
-                  </Text>
-                  <Text
-                    className={`mt-0.5 text-center text-[11px] ${
-                      selected ? "text-white/90" : "text-slate-500"
-                    }`}
+                  </TacticalValue>
+                  <TacticalText
+                    size={11}
+                    className="mt-0.5 text-center"
+                    style={{
+                      color: selected
+                        ? TACTICAL_COLORS.base
+                        : TACTICAL_COLORS.steel,
+                    }}
                   >
                     {currencySymbol}
                     {hours * hourlyRate}
-                  </Text>
+                  </TacticalText>
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
 
-          <View className="mb-3 flex-row items-end justify-between rounded-2xl bg-hercom px-4 py-3">
+          <TacticalPanel active className="mb-3 flex-row items-end justify-between">
             <View>
-              <Text className="text-xs font-medium text-white/80">
+              <TacticalLabel size={10} tone="accent">
                 Tarifa estimada
-              </Text>
-              <Text className="text-2xl font-bold text-white">
+              </TacticalLabel>
+              <TacticalValue size={26} tone="accent" className="mt-0.5">
                 {currencySymbol}
                 {listPrice.toFixed(0)}
-              </Text>
+              </TacticalValue>
             </View>
-            <Text className="pb-1 text-xs text-white/75">
+            <TacticalText size={11} className="pb-1">
               {serviceHours}h × {currencySymbol}
               {hourlyRate}
-            </Text>
-          </View>
+            </TacticalText>
+          </TacticalPanel>
 
           {promoPreview !== undefined && promoPreview !== null && (
-            <View className="mb-3 rounded-2xl bg-hercom-soft px-3 py-2.5">
-              <Text className="text-xs font-semibold text-hercom-dark">
+            <TacticalPanel tone="sunken" className="mb-3">
+              <TacticalLabel size={10} tone="accent">
                 Promo: {promoPreview.promotionName} (
                 {(promoPreview.discountRate * 100).toFixed(0)}% off)
-              </Text>
-              <Text className="mt-1 text-xs text-slate-500">
+              </TacticalLabel>
+              <TacticalText size={11} className="mt-1">
                 Pagas {currencySymbol}
                 {promoPreview.basePrice.toFixed(2)} (lista {currencySymbol}
                 {promoPreview.catalogBasePrice.toFixed(2)}).
-              </Text>
-            </View>
+              </TacticalText>
+            </TacticalPanel>
           )}
 
-          <TextInput
+          <TacticalInput
             value={notes}
             onChangeText={setNotes}
             placeholder="Notas (opcional)"
-            placeholderTextColor="#94A3B8"
             multiline
-            className="mb-3 rounded-2xl bg-slate-100 px-4 py-3.5 text-base text-slate-900"
+            containerClassName="mb-3"
           />
 
           <UiButton
@@ -1488,7 +1643,13 @@ export function ClientDashboard() {
           />
 
           {error !== null && (
-            <Text className="mt-3 text-center text-sm text-red-600">{error}</Text>
+            <TacticalText
+              size={13}
+              className="mt-3 text-center"
+              style={{ color: TACTICAL_COLORS.danger }}
+            >
+              {error}
+            </TacticalText>
           )}
         </ScrollView>
       </View>

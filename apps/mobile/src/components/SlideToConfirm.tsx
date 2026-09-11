@@ -7,6 +7,7 @@ import {
   View,
   type LayoutChangeEvent,
 } from "react-native";
+import { MONO, TACTICAL_COLORS, TACTICAL_RADIUS } from "../constants/theme";
 
 type SlideToConfirmProps = {
   label: string;
@@ -89,14 +90,29 @@ export function SlideToConfirm({
   return (
     <View
       onLayout={handleTrackLayout}
-      className={`h-14 w-full rounded-full px-1 ${
-        disabled ? "bg-slate-200" : "bg-hercom-soft"
-      }`}
-      style={{ justifyContent: "center" }}
+      className="h-14 w-full px-1"
+      style={{
+        justifyContent: "center",
+        backgroundColor: disabled
+          ? "rgba(91, 132, 177, 0.12)"
+          : "rgba(161, 196, 253, 0.14)",
+        borderRadius: TACTICAL_RADIUS.sharp,
+        borderWidth: 1,
+        borderColor: disabled
+          ? "rgba(91, 132, 177, 0.28)"
+          : TACTICAL_COLORS.accent,
+      }}
     >
       <View className="absolute left-0 right-0 items-center">
-        <Text className={`text-sm font-semibold ${disabled ? "text-slate-500" : "text-hercom-dark"}`}>
-          {loading ? "Procesando..." : label}
+        <Text
+          style={{
+            fontFamily: MONO.medium,
+            fontSize: 11,
+            letterSpacing: 1.4,
+            color: disabled ? TACTICAL_COLORS.steel : TACTICAL_COLORS.accent,
+          }}
+        >
+          {(loading ? "Procesando..." : label).toUpperCase()}
         </Text>
       </View>
       <Animated.View
@@ -105,17 +121,27 @@ export function SlideToConfirm({
           transform: [{ translateX }],
           width: KNOB_SIZE,
           height: KNOB_SIZE,
-          borderRadius: KNOB_SIZE / 2,
+          borderRadius: TACTICAL_RADIUS.sharp,
           marginLeft: TRACK_PADDING,
-          backgroundColor: disabled ? "#94A3B8" : "#007AFF",
+          backgroundColor: disabled
+            ? TACTICAL_COLORS.steel
+            : TACTICAL_COLORS.accent,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
         {loading ? (
-          <ActivityIndicator color="#FFFFFF" />
+          <ActivityIndicator color={TACTICAL_COLORS.base} />
         ) : (
-          <Text className="text-xl font-bold text-white">›</Text>
+          <Text
+            style={{
+              fontFamily: MONO.bold,
+              fontSize: 18,
+              color: TACTICAL_COLORS.base,
+            }}
+          >
+            ›
+          </Text>
         )}
       </Animated.View>
     </View>

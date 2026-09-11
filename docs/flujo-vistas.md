@@ -1,5 +1,9 @@
 # Flujo de vistas y funcionalidades — Hercom Choferes
 
+> **Actualizado (app móvil actual):** [flujo-ui-cliente-chofer.md](./flujo-ui-cliente-chofer.md)
+> — tabla cliente | momento | chofer, con archivo debajo de cada pantalla.
+> Lo que sigue en este archivo describe un corte anterior (web comercial + admin + móvil solo chofer).
+
 Guía orientada a alguien **ajeno al código** que necesita entender qué pantallas existen,
 quién las usa, qué hace cada una y cómo se conectan entre sí.
 

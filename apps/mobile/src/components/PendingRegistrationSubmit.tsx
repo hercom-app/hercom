@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
 import {
@@ -7,6 +7,14 @@ import {
   loadPendingDriverRegistration,
   submitDriverApplicationFromPending,
 } from "../lib/driverRegistration";
+import {
+  TacticalLabel,
+  TacticalPanel,
+  TacticalScreen,
+  TacticalStatus,
+  TacticalText,
+} from "./tactical";
+import { TACTICAL_COLORS } from "../constants/theme";
 
 /** Tras Google OAuth, sube archivos y envía la solicitud de chofer pendiente. */
 export function PendingRegistrationSubmit({
@@ -51,26 +59,30 @@ export function PendingRegistrationSubmit({
 
   if (processing) {
     return (
-      <View className="flex-1 items-center justify-center bg-canvas px-6">
-        <ActivityIndicator color="#64748B" size="large" />
-        <Text className="mt-4 text-center text-sm text-slate-600">
-          Enviando tu solicitud de chofer…
-        </Text>
-        <Text className="mt-2 text-center text-xs text-slate-500">
+      <TacticalScreen className="items-center justify-center px-6">
+        <ActivityIndicator color={TACTICAL_COLORS.accent} size="large" />
+        <TacticalLabel size={11} tone="text" className="mt-5 text-center">
+          Enviando solicitud de chofer
+        </TacticalLabel>
+        <TacticalText size={11} className="mt-2 text-center">
           Hercom validará tu registro antes de habilitar el modo conductor.
-        </Text>
-      </View>
+        </TacticalText>
+      </TacticalScreen>
     );
   }
 
   if (error !== null) {
     return (
-      <View className="flex-1 items-center justify-center bg-canvas px-6">
-        <Text className="mb-2 text-center text-base font-semibold text-red-600">
-          Error al registrar
-        </Text>
-        <Text className="text-center text-sm text-slate-600">{error}</Text>
-      </View>
+      <TacticalScreen className="items-center justify-center px-6">
+        <TacticalPanel corners className="w-full max-w-sm">
+          <View className="flex-row">
+            <TacticalStatus label="Error al registrar" tone="danger" />
+          </View>
+          <TacticalText size={12} tone="text" className="mt-3">
+            {error}
+          </TacticalText>
+        </TacticalPanel>
+      </TacticalScreen>
     );
   }
 

@@ -5,13 +5,18 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
+import { TacticalLabel, TacticalText, TacticalTitle, TacticalValue } from "./tactical";
+import {
+  TACTICAL_BORDER,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 
 const DEFAULT_COUNTRY_CODE = "PE";
 
@@ -116,58 +121,67 @@ export function DriverRegionFields({
     countries?.find((country) => country.code === countryCode)?.name ??
     countryCode;
 
+  const fieldStyle = {
+    backgroundColor: TACTICAL_COLORS.surfaceSunken,
+    borderRadius: TACTICAL_RADIUS.sharp,
+    borderWidth: 1,
+    borderColor: TACTICAL_BORDER,
+  };
+
   return (
     <View className="mb-4 gap-2">
       <TouchableOpacity
         onPress={() => setPicker("country")}
-        className="rounded-2xl bg-slate-100 px-4 py-3"
+        className="px-4 py-3"
+        style={fieldStyle}
       >
-        <Text className="text-xs text-slate-500">País</Text>
-        <Text className="mt-0.5 text-base font-medium text-slate-900">
+        <TacticalLabel size={9}>País (*)</TacticalLabel>
+        <TacticalValue size={14} className="mt-0.5">
           {countryName}
-        </Text>
+        </TacticalValue>
       </TouchableOpacity>
 
       <TouchableOpacity
         onPress={() => setPicker("level1")}
-        className="rounded-2xl bg-slate-100 px-4 py-3"
+        className="px-4 py-3"
+        style={fieldStyle}
       >
-        <Text className="text-xs text-slate-500">{level1Label}</Text>
-        <Text className="mt-0.5 text-base font-medium text-slate-900">
+        <TacticalLabel size={9}>{`${level1Label} (*)`}</TacticalLabel>
+        <TacticalValue size={14} className="mt-0.5">
           {department !== ""
             ? department
             : `Selecciona ${level1Label.toLowerCase()}`}
-        </Text>
+        </TacticalValue>
       </TouchableOpacity>
 
       <TouchableOpacity
         onPress={() => department !== "" && setPicker("level2")}
         disabled={department === ""}
-        className={`rounded-2xl bg-slate-100 px-4 py-3 ${
-          department === "" ? "opacity-50" : ""
-        }`}
+        className={`px-4 py-3 ${department === "" ? "opacity-50" : ""}`}
+        style={fieldStyle}
       >
-        <Text className="text-xs text-slate-500">{level2Label}</Text>
-        <Text className="mt-0.5 text-base font-medium text-slate-900">
+        <TacticalLabel size={9}>{`${level2Label} (*)`}</TacticalLabel>
+        <TacticalValue size={14} className="mt-0.5">
           {province !== ""
             ? province
             : `Selecciona ${level2Label.toLowerCase()}`}
-        </Text>
+        </TacticalValue>
       </TouchableOpacity>
 
       <TouchableOpacity
         onPress={() => province !== "" && setPicker("level3")}
         disabled={department === "" || province === ""}
-        className={`rounded-2xl bg-slate-100 px-4 py-3 ${
+        className={`px-4 py-3 ${
           department === "" || province === "" ? "opacity-50" : ""
         }`}
+        style={fieldStyle}
       >
-        <Text className="text-xs text-slate-500">{level3Label}</Text>
-        <Text className="mt-0.5 text-base font-medium text-slate-900">
+        <TacticalLabel size={9}>{`${level3Label} (*)`}</TacticalLabel>
+        <TacticalValue size={14} className="mt-0.5">
           {district !== ""
             ? district
             : `Selecciona ${level3Label.toLowerCase()}`}
-        </Text>
+        </TacticalValue>
       </TouchableOpacity>
 
       <Modal
@@ -184,41 +198,60 @@ export function DriverRegionFields({
               {
                 maxHeight: sheetMaxHeight,
                 paddingBottom: Math.max(insets.bottom, 16),
+                backgroundColor: TACTICAL_COLORS.base,
+                borderTopColor: TACTICAL_COLORS.accent,
               },
             ]}
           >
             <View className="mb-2 items-center">
-              <View className="h-1 w-10 rounded-full bg-slate-300" />
+              <View
+                className="h-1 w-10"
+                style={{
+                  backgroundColor: TACTICAL_COLORS.steel,
+                  borderRadius: TACTICAL_RADIUS.sharp,
+                }}
+              />
             </View>
-            <Text className="mb-3 text-center text-base font-bold text-slate-900">
+            <TacticalTitle size={16} className="mb-3 text-center">
               {pickerTitle}
-            </Text>
+            </TacticalTitle>
             <ScrollView
               keyboardShouldPersistTaps="handled"
               nestedScrollEnabled
               style={{ maxHeight: sheetMaxHeight - 88 }}
             >
               {pickerOptions.length === 0 ? (
-                <Text className="py-6 text-center text-sm text-slate-500">
+                <TacticalText size={13} className="py-6 text-center">
                   Cargando opciones…
-                </Text>
+                </TacticalText>
               ) : (
                 pickerOptions.map((option) => (
                   <TouchableOpacity
                     key={option.value}
                     onPress={() => handleSelect(option.value)}
-                    className="border-b border-slate-100 py-3.5"
+                    className="py-3.5"
+                    style={{ borderBottomWidth: 1, borderBottomColor: TACTICAL_BORDER }}
                   >
-                    <Text className="text-base text-slate-800">{option.label}</Text>
+                    <TacticalText size={15} tone="text">
+                      {option.label}
+                    </TacticalText>
                   </TouchableOpacity>
                 ))
               )}
             </ScrollView>
             <TouchableOpacity
               onPress={() => setPicker(null)}
-              className="mt-3 items-center rounded-2xl bg-slate-100 py-3"
+              className="mt-3 items-center py-3"
+              style={{
+                backgroundColor: TACTICAL_COLORS.surfaceSunken,
+                borderRadius: TACTICAL_RADIUS.sharp,
+                borderWidth: 1,
+                borderColor: TACTICAL_BORDER,
+              }}
             >
-              <Text className="font-semibold text-slate-700">Cerrar</Text>
+              <TacticalLabel size={11} tone="accent">
+                Cerrar
+              </TacticalLabel>
             </TouchableOpacity>
           </View>
         </View>
@@ -231,12 +264,10 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(15, 23, 42, 0.45)",
+    backgroundColor: "rgba(17, 22, 34, 0.72)",
   },
   sheet: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopWidth: 1,
     paddingHorizontal: 16,
     paddingTop: 12,
   },

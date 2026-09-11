@@ -1,7 +1,5 @@
 import Svg, { Circle, Path, Polyline, Rect } from "react-native-svg";
-
-const MUTED = "#64748B";
-const ACTIVE = "#007AFF";
+import { TACTICAL_COLORS } from "../constants/theme";
 
 export type DrawerIconName =
   | "mapPin"
@@ -24,7 +22,7 @@ type DrawerIconProps = {
 };
 
 function strokeOf(selected: boolean | undefined): string {
-  return selected === true ? ACTIVE : MUTED;
+  return selected === true ? TACTICAL_COLORS.accent : TACTICAL_COLORS.steel;
 }
 
 /** Iconos de trazo gris, mismo lenguaje visual que Seguridad / Configuración. */

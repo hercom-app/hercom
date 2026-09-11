@@ -13,7 +13,15 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AccountScreenShell } from "../components/AccountScreenShell";
+import { TacticalLabel } from "../components/tactical";
 import { convexErrorMessage } from "../lib/convexErrorMessage";
+import {
+  MONO,
+  POPPINS,
+  TACTICAL_BORDER,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 
 type SupportChatScreenProps = {
   onOpenMenu: () => void;
@@ -70,23 +78,27 @@ export function SupportChatScreen({ onOpenMenu }: SupportChatScreenProps) {
 
   return (
     <AccountScreenShell
-        title="Mensajería a Soporte Técnico"
-        subtitle="Escribe tu consulta, en breve un asesor se contactará contigo"
-        onOpenMenu={onOpenMenu}
-      >
+      variant="tactical"
+      title="Soporte"
+      onOpenMenu={onOpenMenu}
+    >
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
       >
         {messages === undefined ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator color="#64748B" />
+          <View
+            className="flex-1 items-center justify-center"
+            style={{ backgroundColor: TACTICAL_COLORS.base }}
+          >
+            <ActivityIndicator color={TACTICAL_COLORS.accent} />
           </View>
         ) : (
           <FlatList
             ref={listRef}
             className="flex-1"
+            style={{ backgroundColor: TACTICAL_COLORS.base }}
             data={rows}
             keyExtractor={(item) => item._id}
             contentContainerStyle={{
@@ -105,28 +117,43 @@ export function SupportChatScreen({ onOpenMenu }: SupportChatScreenProps) {
               const mine = item.isMine;
               return (
                 <View
-                  className={`mb-2 max-w-[82%] rounded-2xl px-3.5 py-2.5 ${
-                    mine
-                      ? "self-end bg-hercom"
-                      : "self-start bg-white"
+                  className={`mb-2 max-w-[82%] px-3.5 py-2.5 ${
+                    mine ? "self-end" : "self-start"
                   }`}
+                  style={{
+                    borderRadius: TACTICAL_RADIUS.sharp,
+                    borderWidth: 1,
+                    borderColor: mine
+                      ? TACTICAL_COLORS.accent
+                      : TACTICAL_BORDER,
+                    backgroundColor: mine
+                      ? "rgba(161, 196, 253, 0.16)"
+                      : TACTICAL_COLORS.surface,
+                  }}
                 >
                   {!mine && (
-                    <Text className="mb-0.5 text-[11px] font-semibold text-slate-400">
+                    <TacticalLabel size={9} className="mb-0.5">
                       Hercom
-                    </Text>
+                    </TacticalLabel>
                   )}
                   <Text
-                    className={`text-[15px] leading-5 ${
-                      mine ? "text-white" : "text-slate-800"
-                    }`}
+                    style={{
+                      fontFamily: POPPINS.regular,
+                      fontSize: 14,
+                      lineHeight: 20,
+                      color: TACTICAL_COLORS.text,
+                    }}
                   >
                     {item.body}
                   </Text>
                   <Text
-                    className={`mt-1 text-[10px] ${
-                      mine ? "text-white/70" : "text-slate-400"
-                    }`}
+                    className="mt-1"
+                    style={{
+                      fontFamily: MONO.regular,
+                      fontSize: 10,
+                      letterSpacing: 0.8,
+                      color: TACTICAL_COLORS.steel,
+                    }}
                   >
                     {formatTime(item.createdAt)}
                   </Text>
@@ -137,31 +164,64 @@ export function SupportChatScreen({ onOpenMenu }: SupportChatScreenProps) {
         )}
 
         {error !== null && (
-          <Text className="px-4 pb-1 text-xs text-red-600">{error}</Text>
+          <Text
+            className="px-4 pb-1 text-xs"
+            style={{ fontFamily: MONO.medium, color: TACTICAL_COLORS.danger }}
+          >
+            {error}
+          </Text>
         )}
 
         <View
-          className="flex-row items-end gap-2 border-t border-slate-200 bg-white px-3 pt-2"
-          style={{ paddingBottom: Math.max(insets.bottom, 10) }}
+          className="flex-row items-end gap-2 px-3 pt-2"
+          style={{
+            paddingBottom: Math.max(insets.bottom, 10),
+            borderTopWidth: 1,
+            borderTopColor: TACTICAL_BORDER,
+            backgroundColor: TACTICAL_COLORS.baseElevated,
+          }}
         >
           <TextInput
             value={draft}
             onChangeText={setDraft}
             placeholder="Escribe tu consulta…"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor="rgba(91, 132, 177, 0.7)"
             multiline
             maxLength={1500}
-            className="max-h-28 flex-1 rounded-2xl bg-slate-100 px-3.5 py-2.5 text-[15px] text-slate-900"
+            className="max-h-28 flex-1 px-3.5 py-2.5"
+            style={{
+              backgroundColor: TACTICAL_COLORS.surfaceSunken,
+              borderRadius: TACTICAL_RADIUS.sharp,
+              borderWidth: 1,
+              borderColor: TACTICAL_BORDER,
+              fontFamily: POPPINS.regular,
+              fontSize: 15,
+              color: TACTICAL_COLORS.textStrong,
+            }}
           />
           <TouchableOpacity
             onPress={() => void handleSend()}
             disabled={sending || draft.trim() === ""}
-            className="mb-0.5 h-11 items-center justify-center rounded-2xl bg-hercom px-4 disabled:opacity-40"
+            className="mb-0.5 h-11 items-center justify-center px-4"
+            style={{
+              backgroundColor: TACTICAL_COLORS.accent,
+              borderRadius: TACTICAL_RADIUS.sharp,
+              opacity: sending || draft.trim() === "" ? 0.4 : 1,
+            }}
           >
             {sending ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={TACTICAL_COLORS.base} />
             ) : (
-              <Text className="text-sm font-bold text-white">Enviar</Text>
+              <Text
+                style={{
+                  fontFamily: MONO.bold,
+                  fontSize: 11,
+                  letterSpacing: 1.6,
+                  color: TACTICAL_COLORS.base,
+                }}
+              >
+                ENVIAR
+              </Text>
             )}
           </TouchableOpacity>
         </View>

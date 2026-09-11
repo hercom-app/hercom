@@ -54,7 +54,23 @@ Código: [`packages/backend/convex/reniec.ts`](../packages/backend/convex/reniec
 
 ---
 
-## Datos guardados
+## Inventario — qué debe entregar el chofer (alta)
+
+Todo obligatorio en `DriverRegisterScreen.tsx`. Lo ve el admin en `DriverDossierPanel.tsx`.
+
+- [ ] DNI (8 dígitos) validado RENIEC
+- [ ] Sexo
+- [ ] Zona: país, departamento, provincia, distrito
+- [ ] Número de brevete
+- [ ] Categoría de brevete
+- [ ] Tipo de vehículo: auto o camioneta
+- [ ] Brevete físico: foto anverso + reverso + selfie **o** brevete digital: PDF/imagen + selfie con impreso
+- [ ] Récord de conductor (MTC) PDF
+- [ ] CUL (MTPE) PDF
+
+Tabla chofer ↔ admin: [flujo-ui-chofer-admin.md](./flujo-ui-chofer-admin.md)
+
+---
 
 Tabla **`driverApplications`** en Convex:
 

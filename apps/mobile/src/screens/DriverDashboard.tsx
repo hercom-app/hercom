@@ -32,12 +32,23 @@ import { ChecklistRecojoScreen } from "./ChecklistRecojoScreen";
 import { useDriverLiveTracking } from "../hooks/useDriverLiveTracking";
 import { LiveTripMapModal } from "../components/LiveTripMapModal";
 import {
-  UiButton,
-  UiCard,
-  UiChip,
-  UiEmpty,
-  UiInput,
-} from "../components/ui";
+  GridBackdrop,
+  TacticalButton,
+  TacticalEmpty,
+  TacticalInput,
+  TacticalLabel,
+  TacticalPanel,
+  TacticalStatus,
+  TacticalText,
+  TacticalTitle,
+  TacticalValue,
+} from "../components/tactical";
+import {
+  MONO,
+  TACTICAL_BORDER,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 
 const MIN_OFFER_PRICE = 80;
 
@@ -112,8 +123,11 @@ export function DriverDashboard() {
 
   if (driver === undefined) {
     return (
-      <View className="flex-1 items-center justify-center bg-canvas">
-        <ActivityIndicator color="#64748B" />
+      <View
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: TACTICAL_COLORS.base }}
+      >
+        <ActivityIndicator color={TACTICAL_COLORS.accent} />
       </View>
     );
   }
@@ -237,11 +251,19 @@ export function DriverDashboard() {
   }
 
   return (
-    <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top + 8 }}>
+    <View
+      className="flex-1"
+      style={{
+        paddingTop: insets.top + 8,
+        backgroundColor: TACTICAL_COLORS.base,
+      }}
+    >
+      <GridBackdrop />
       <View className="mb-4 flex-row items-center gap-3 px-4">
-        <HamburgerButton onPress={() => setMenuOpen(true)} />
+        <HamburgerButton onPress={() => setMenuOpen(true)} variant="tactical" />
         <View className="flex-1">
-          <Text className="text-xl font-bold text-slate-900">{title}</Text>
+          <TacticalLabel size={9}>Panel de conductor</TacticalLabel>
+          <TacticalTitle size={19}>{title}</TacticalTitle>
         </View>
         <HelpFab />
       </View>
@@ -251,56 +273,95 @@ export function DriverDashboard() {
           <DriverEarningsView />
         ) : menuSection === "saldo" ? (
           <ScrollView showsVerticalScrollIndicator={false}>
-            <UiCard>
-              <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Saldo de app
-              </Text>
-              <Text className="mt-1 text-2xl font-bold text-slate-900">
-                S/{(wallet?.balance ?? 0).toFixed(2)}
-              </Text>
-              <Text className="mt-1 text-xs text-slate-500">
-                La app descuenta 25% por servicio finalizado. Límite mínimo: S/-10.
-              </Text>
+            <TacticalPanel corners>
+              <TacticalLabel tone="accent">Saldo de app</TacticalLabel>
+              <TacticalValue size={30} className="mt-1">
+                {`S/${(wallet?.balance ?? 0).toFixed(2)}`}
+              </TacticalValue>
+              <TacticalText size={11} className="mt-1">
+                La app descuenta 25% por servicio finalizado. Límite mínimo:
+                S/-10.
+              </TacticalText>
               {(wallet?.balance ?? 0) <= -10 && (
-                <Text className="mt-1 text-xs font-semibold text-red-600">
-                  Saldo al límite. Recarga para seguir ofertando.
-                </Text>
+                <View className="mt-2">
+                  <TacticalStatus
+                    label="Saldo al límite · recarga"
+                    tone="danger"
+                  />
+                </View>
               )}
 
               <View className="mt-4">
-                <Text className="mb-2 text-xs font-semibold text-slate-500">
-                  Monto a recargar
-                </Text>
+                <TacticalLabel className="mb-2">Monto a recargar</TacticalLabel>
                 <View className="mb-3 flex-row gap-2">
                   {[10, 20, 50].map((quickAmount) => (
-                    <UiChip
+                    <TouchableOpacity
                       key={quickAmount}
-                      label={`S/${quickAmount}`}
-                      selected={topUpAmount === String(quickAmount)}
+                      activeOpacity={0.8}
                       onPress={() => setTopUpAmount(String(quickAmount))}
-                    />
+                      className="px-3.5 py-2"
+                      style={{
+                        borderRadius: TACTICAL_RADIUS.sharp,
+                        borderWidth: 1,
+                        borderColor:
+                          topUpAmount === String(quickAmount)
+                            ? TACTICAL_COLORS.accent
+                            : TACTICAL_BORDER,
+                        backgroundColor:
+                          topUpAmount === String(quickAmount)
+                            ? "rgba(161, 196, 253, 0.14)"
+                            : "transparent",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: MONO.bold,
+                          fontSize: 12,
+                          letterSpacing: 1,
+                          color:
+                            topUpAmount === String(quickAmount)
+                              ? TACTICAL_COLORS.accent
+                              : TACTICAL_COLORS.steel,
+                        }}
+                      >
+                        {`S/${quickAmount}`}
+                      </Text>
+                    </TouchableOpacity>
                   ))}
                 </View>
-                <UiInput
+                <TacticalInput
+                  mono
                   value={topUpAmount}
                   onChangeText={setTopUpAmount}
-                  placeholder="Monto en S/"
+                  placeholder="0.00"
                   keyboardType="decimal-pad"
-                  className="mb-3"
+                  containerClassName="mb-3"
                 />
-                <UiButton
+                <TacticalButton
                   label="Recargar"
                   onPress={() => void handleTopUp()}
                   disabled={topUpSubmitting}
                   loading={topUpSubmitting}
                 />
                 {topUpMessage !== null && (
-                  <Text className="mt-2 text-xs font-medium text-success">
+                  <Text
+                    className="mt-2 text-xs"
+                    style={{
+                      fontFamily: MONO.medium,
+                      color: TACTICAL_COLORS.success,
+                    }}
+                  >
                     {topUpMessage}
                   </Text>
                 )}
                 {topUpError !== null && (
-                  <Text className="mt-2 text-xs font-medium text-red-600">
+                  <Text
+                    className="mt-2 text-xs"
+                    style={{
+                      fontFamily: MONO.medium,
+                      color: TACTICAL_COLORS.danger,
+                    }}
+                  >
                     {topUpError}
                   </Text>
                 )}
@@ -308,79 +369,101 @@ export function DriverDashboard() {
 
               {(walletTransactions ?? []).length > 0 && (
                 <View className="mt-5">
-                  <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <TacticalLabel className="mb-2" size={10}>
                     Movimientos recientes
-                  </Text>
+                  </TacticalLabel>
                   {(walletTransactions ?? []).map((tx) => (
-                    <View key={tx._id} className="flex-row justify-between py-1.5">
-                      <Text className="text-xs text-slate-600">
+                    <View
+                      key={tx._id}
+                      className="flex-row items-center justify-between py-1.5"
+                    >
+                      <TacticalText size={11}>
                         {tx.type === "top_up" ? "Recarga" : "Comisión"}
-                      </Text>
-                      <Text className="text-xs font-semibold text-slate-800">
-                        {tx.type === "commission_debit" ? "- " : "+ "}S/
-                        {tx.amount.toFixed(2)}
-                      </Text>
+                      </TacticalText>
+                      <TacticalValue
+                        size={12}
+                        tone={tx.type === "commission_debit" ? "steel" : "accent"}
+                      >
+                        {`${tx.type === "commission_debit" ? "-" : "+"} S/${tx.amount.toFixed(2)}`}
+                      </TacticalValue>
                     </View>
                   ))}
                 </View>
               )}
-            </UiCard>
+            </TacticalPanel>
           </ScrollView>
         ) : menuSection === "configuracion" ? (
           <DriverPayoutConfig driver={driver} fallbackName={userName} />
         ) : menuSection === "notificaciones" ? (
           <ScrollView showsVerticalScrollIndicator={false}>
-            <UiCard>
+            <TacticalPanel corners>
               <View className="mb-3 flex-row items-center justify-between">
-                <Text className="text-sm font-bold text-slate-900">
-                  {unreadNotifications} sin leer
-                </Text>
+                <TacticalStatus
+                  label={`${unreadNotifications} sin leer`}
+                  tone={unreadNotifications > 0 ? "active" : "idle"}
+                />
                 <TouchableOpacity onPress={() => void markAllNotificationsAsRead()}>
-                  <Text className="text-xs font-semibold text-slate-500">
+                  <TacticalLabel size={9} tone="accent">
                     Marcar todo leído
-                  </Text>
+                  </TacticalLabel>
                 </TouchableOpacity>
               </View>
               {(notifications ?? []).length === 0 ? (
-                <UiEmpty title="Aún no tienes notificaciones." />
+                <TacticalEmpty title="Sin notificaciones" />
               ) : (
                 (notifications ?? []).map((notification) => (
-                  <View
+                  <TacticalPanel
                     key={notification._id}
-                    className="mb-2 rounded-2xl bg-slate-50 p-3"
+                    tone="sunken"
+                    className="mb-2 p-3"
+                    style={{
+                      borderLeftWidth: 2,
+                      borderLeftColor:
+                        notification.readAt === undefined
+                          ? TACTICAL_COLORS.accent
+                          : TACTICAL_COLORS.steel,
+                    }}
                   >
-                    <Text className="text-xs font-semibold text-slate-800">
+                    <TacticalLabel size={9} tone="text">
                       {notification.title}
-                    </Text>
-                    <Text className="mt-1 text-xs text-slate-600">
+                    </TacticalLabel>
+                    <TacticalText size={11} className="mt-1">
                       {notification.message}
-                    </Text>
-                  </View>
+                    </TacticalText>
+                  </TacticalPanel>
                 ))
               )}
-            </UiCard>
+            </TacticalPanel>
           </ScrollView>
         ) : (
           <>
             <AvailabilityToggle status={driver.status} />
 
-            <View className="mb-3 flex-row items-center justify-between rounded-3xl bg-white px-4 py-3">
-              <Text className="text-sm text-slate-500">Saldo</Text>
-              <TouchableOpacity onPress={() => setMenuSection("saldo")}>
-                <Text className="text-base font-bold text-slate-900">
-                  S/{(wallet?.balance ?? 0).toFixed(2)} ›
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setMenuSection("saldo")}
+              className="mb-3 flex-row items-center justify-between px-4 py-3"
+              style={{
+                backgroundColor: TACTICAL_COLORS.baseElevated,
+                borderRadius: TACTICAL_RADIUS.sharp,
+                borderWidth: 1,
+                borderColor: TACTICAL_BORDER,
+              }}
+            >
+              <TacticalLabel size={10}>Saldo disponible</TacticalLabel>
+              <TacticalValue size={15} tone="accent">
+                {`S/${(wallet?.balance ?? 0).toFixed(2)} ›`}
+              </TacticalValue>
+            </TouchableOpacity>
 
             {(menuSection === "ofertas" || menuSection === "servicios") && (
               <View className="mb-4 overflow-hidden">
-                <UiCard>
-                  <Text className="mb-2 text-sm font-bold text-slate-900">
+                <TacticalPanel corners>
+                  <TacticalLabel tone="accent" className="mb-2">
                     Solicitudes para ofertar
-                  </Text>
+                  </TacticalLabel>
                 {(openServices ?? []).length === 0 ? (
-                  <UiEmpty title="No hay solicitudes pendientes para ofertar." />
+                  <TacticalEmpty title="Sin solicitudes abiertas" />
                 ) : (
                   <View className="relative">
                     <View
@@ -398,36 +481,51 @@ export function DriverDashboard() {
                           minPrice,
                         );
                         return (
-                          <View
+                          <TacticalPanel
                             key={service._id}
-                            className="mb-2 rounded-2xl bg-slate-50 p-3"
+                            tone="sunken"
+                            className="mb-2 p-3"
                           >
-                            <Text className="text-xs text-slate-600">
-                              Tarifa lista: S/{minPrice.toFixed(2)}
-                              {service.discountRate !== undefined &&
-                              service.discountRate > 0
-                                ? ` · Cliente paga S/${service.basePrice.toFixed(2)}`
-                                : ""}
-                            </Text>
-                            <Text className="mt-1 text-xs text-slate-700">
+                            <View className="flex-row items-center justify-between">
+                              <TacticalLabel size={9}>Tarifa lista</TacticalLabel>
+                              <TacticalValue size={13} tone="accent">
+                                {`S/${minPrice.toFixed(2)}`}
+                              </TacticalValue>
+                            </View>
+                            {service.discountRate !== undefined &&
+                              service.discountRate > 0 && (
+                                <TacticalText size={10} className="mt-0.5">
+                                  {`Cliente paga S/${service.basePrice.toFixed(2)}`}
+                                </TacticalText>
+                              )}
+                            <TacticalText size={11} tone="text" className="mt-1.5">
                               {service.origin.address} →{" "}
                               {formatServiceStopsLabel(
                                 service.destination,
                                 service.extraDestinations,
                               )}
-                            </Text>
+                            </TacticalText>
                             {alreadyOffered !== undefined ? (
-                              <View className="mt-2 rounded-2xl border border-hercom/30 bg-hercom-soft px-3 py-2">
-                                <Text className="text-xs font-semibold text-hercom">
-                                  Ya ofertaste S/{alreadyOffered.toFixed(2)}
-                                </Text>
-                                <Text className="mt-0.5 text-[11px] text-slate-500">
+                              <View
+                                className="mt-2 px-3 py-2"
+                                style={{
+                                  borderRadius: TACTICAL_RADIUS.sharp,
+                                  borderWidth: 1,
+                                  borderColor: TACTICAL_COLORS.accent,
+                                  backgroundColor: "rgba(161, 196, 253, 0.1)",
+                                }}
+                              >
+                                <TacticalValue size={12} tone="accent">
+                                  {`Ofertaste S/${alreadyOffered.toFixed(2)}`}
+                                </TacticalValue>
+                                <TacticalText size={10} className="mt-0.5">
                                   Esperando respuesta del cliente
-                                </Text>
+                                </TacticalText>
                               </View>
                             ) : (
                               <View className="mt-2 flex-row items-center gap-2">
-                                <UiInput
+                                <TacticalInput
+                                  mono
                                   value={
                                     offerByService[service._id] ?? defaultOffer
                                   }
@@ -455,10 +553,10 @@ export function DriverDashboard() {
                                   editable={canAfford && isAvailable}
                                   placeholder={`Oferta >= S/${floorPrice.toFixed(0)}`}
                                   keyboardType="decimal-pad"
-                                  className="flex-1 py-2.5"
+                                  containerClassName="flex-1"
                                 />
                                 <View>
-                                  <UiButton
+                                  <TacticalButton
                                     label="Ofertar"
                                     size="md"
                                     onPress={() => {
@@ -540,19 +638,29 @@ export function DriverDashboard() {
                                 </View>
                               </View>
                             )}
-                          </View>
+                          </TacticalPanel>
                         );
                       })}
                     </View>
                     {offersLocked && (
-                      <View className="absolute inset-0 items-center justify-center rounded-xl bg-slate-900/55 px-4">
-                        <Text className="text-center text-sm font-semibold text-white">
+                      <View
+                        className="absolute inset-0 items-center justify-center px-4"
+                        style={{
+                          backgroundColor: "rgba(17, 22, 34, 0.86)",
+                          borderRadius: TACTICAL_RADIUS.sharp,
+                        }}
+                      >
+                        <TacticalLabel
+                          size={10}
+                          tone="text"
+                          className="text-center"
+                        >
                           {offersLockReason}
-                        </Text>
+                        </TacticalLabel>
                         {lacksBalance && isAvailable && (
                           <View className="mt-3">
-                            <UiButton
-                              label="Ir a recargar saldo"
+                            <TacticalButton
+                              label="Recargar saldo"
                               variant="secondary"
                               size="md"
                               onPress={() => setMenuSection("saldo")}
@@ -564,11 +672,17 @@ export function DriverDashboard() {
                   </View>
                 )}
                 {offerError !== null && (
-                  <Text className="mt-2 text-xs font-medium text-red-600">
+                  <Text
+                    className="mt-2 text-xs"
+                    style={{
+                      fontFamily: MONO.medium,
+                      color: TACTICAL_COLORS.danger,
+                    }}
+                  >
                     {offerError}
                   </Text>
                 )}
-                </UiCard>
+                </TacticalPanel>
               </View>
             )}
 
@@ -584,8 +698,8 @@ export function DriverDashboard() {
                   />
                 )}
                 ListEmptyComponent={
-                  <UiEmpty
-                    title="No tienes servicios activos por ahora."
+                  <TacticalEmpty
+                    title="Sin servicios activos"
                     subtitle="Cuando acepten una oferta, el viaje aparece aquí."
                   />
                 }

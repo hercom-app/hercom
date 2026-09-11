@@ -1,6 +1,14 @@
-import { Modal, Text, TouchableOpacity, View, Image, StyleSheet } from "react-native";
+import { Modal, View, Image, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
+import {
+  HudCorners,
+  TacticalButton,
+  TacticalLabel,
+  TacticalText,
+  TacticalValue,
+} from "./tactical";
+import { TACTICAL_BORDER, TACTICAL_RADIUS } from "../constants/theme";
 
 export type PreviewFile = {
   uri: string;
@@ -41,35 +49,44 @@ export function DocumentPreviewModal({
             { paddingBottom: Math.max(insets.bottom, 16), paddingTop: insets.top + 12 },
           ]}
         >
-          <Text className="mb-1 text-center text-base font-bold text-white">
-            {file?.name ?? "Vista previa"}
-          </Text>
+          <View className="items-center">
+            <TacticalLabel size={9}>Vista previa de documento</TacticalLabel>
+            <TacticalValue size={12} tone="accent" className="mt-1 text-center">
+              {file?.name ?? "Sin archivo"}
+            </TacticalValue>
+          </View>
+
           {file?.kind === "image" ? (
-            <Image
-              source={{ uri: file.uri }}
-              style={styles.image}
-              resizeMode="contain"
-            />
+            <View style={styles.imageFrame}>
+              <Image
+                source={{ uri: file.uri }}
+                style={styles.image}
+                resizeMode="contain"
+              />
+              <HudCorners size={12} opacity={0.7} />
+            </View>
           ) : (
             <View className="flex-1 items-center justify-center px-6">
-              <Text className="mb-4 text-center text-sm leading-6 text-slate-200">
+              <TacticalText size={12} tone="text" className="mb-5 text-center">
                 Vista previa del PDF. Ábrelo en el visor del dispositivo para
                 revisarlo completo.
-              </Text>
-              <TouchableOpacity
+              </TacticalText>
+              <TacticalButton
+                label="Abrir PDF"
+                size="md"
                 onPress={() => void openPdfExternally()}
-                className="rounded-2xl bg-hercom px-5 py-3"
-              >
-                <Text className="font-bold text-white">Abrir PDF</Text>
-              </TouchableOpacity>
+                className="px-6"
+              />
             </View>
           )}
-          <TouchableOpacity
+
+          <TacticalButton
+            label="Cerrar"
+            variant="secondary"
+            size="md"
             onPress={onClose}
-            className="mt-4 items-center rounded-2xl bg-white/15 py-3"
-          >
-            <Text className="font-semibold text-white">Cerrar</Text>
-          </TouchableOpacity>
+            className="mt-4"
+          />
         </View>
       </View>
     </Modal>
@@ -79,15 +96,21 @@ export function DocumentPreviewModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.92)",
+    backgroundColor: "rgba(17, 22, 34, 0.94)",
   },
   sheet: {
     flex: 1,
     paddingHorizontal: 16,
   },
+  imageFrame: {
+    flex: 1,
+    marginVertical: 12,
+    borderWidth: 1,
+    borderColor: TACTICAL_BORDER,
+    borderRadius: TACTICAL_RADIUS.sharp,
+  },
   image: {
     flex: 1,
     width: "100%",
-    marginVertical: 12,
   },
 });

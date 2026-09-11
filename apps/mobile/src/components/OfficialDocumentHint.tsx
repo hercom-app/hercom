@@ -1,4 +1,12 @@
 import { Linking, Text, TouchableOpacity, View } from "react-native";
+import { TacticalLabel, TacticalText } from "./tactical";
+import {
+  MONO,
+  TACTICAL_BORDER,
+  TACTICAL_BORDER_SOFT,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 
 type OfficialDocumentHintProps = {
   title: string;
@@ -7,7 +15,7 @@ type OfficialDocumentHintProps = {
   url: string;
 };
 
-/** Bloque informativo con enlace oficial — estilo tarjeta, sin subrayado suelto. */
+/** Bloque informativo con enlace oficial — panel HUD con fila de enlace al pie. */
 export function OfficialDocumentHint({
   title,
   description,
@@ -15,22 +23,54 @@ export function OfficialDocumentHint({
   url,
 }: OfficialDocumentHintProps) {
   return (
-    <View className="mb-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-      <View className="px-4 pb-2 pt-3">
-        <Text className="text-sm font-semibold text-slate-900">{title}</Text>
-        <Text className="mt-1 text-xs leading-5 text-slate-500">{description}</Text>
+    <View
+      className="mb-3 overflow-hidden"
+      style={{
+        backgroundColor: TACTICAL_COLORS.surfaceSunken,
+        borderRadius: TACTICAL_RADIUS.panel,
+        borderWidth: 1,
+        borderColor: TACTICAL_BORDER,
+      }}
+    >
+      <View className="px-4 pb-2.5 pt-3">
+        <TacticalLabel size={10} tone="text">
+          {title}
+        </TacticalLabel>
+        <TacticalText size={11} className="mt-1">
+          {description}
+        </TacticalText>
       </View>
       <TouchableOpacity
         onPress={() => void Linking.openURL(url)}
         accessibilityRole="link"
         activeOpacity={0.75}
-        className="flex-row items-center justify-between border-t border-slate-100 bg-hercom-soft/40 px-4 py-3"
+        className="flex-row items-center justify-between px-4 py-3"
+        style={{
+          borderTopWidth: 1,
+          borderTopColor: TACTICAL_BORDER_SOFT,
+          backgroundColor: "rgba(161, 196, 253, 0.08)",
+        }}
       >
-        <Text className="flex-1 pr-3 text-sm font-semibold text-hercom-dark">
+        <TacticalLabel size={10} tone="accent" className="flex-1 pr-3">
           {linkLabel}
-        </Text>
-        <View className="h-8 w-8 items-center justify-center rounded-full bg-white">
-          <Text className="text-base font-semibold text-hercom">↗</Text>
+        </TacticalLabel>
+        <View
+          className="h-7 w-7 items-center justify-center"
+          style={{
+            borderRadius: TACTICAL_RADIUS.sharp,
+            borderWidth: 1,
+            borderColor: TACTICAL_COLORS.accent,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: MONO.bold,
+              fontSize: 13,
+              color: TACTICAL_COLORS.accent,
+            }}
+          >
+            ↗
+          </Text>
         </View>
       </TouchableOpacity>
     </View>

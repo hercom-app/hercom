@@ -4,8 +4,17 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Doc, Id } from "@proyecto/backend/dataModel";
 import { SlideToConfirm } from "./SlideToConfirm";
-import { UiButton, UiCard, UiChip, UiInput } from "./ui";
+import {
+  TacticalButton,
+  TacticalInput,
+  TacticalLabel,
+  TacticalPanel,
+  TacticalStatus,
+  TacticalText,
+  TacticalValue,
+} from "./tactical";
 import { formatServiceStopsLabel, openWazeNavigation } from "../lib/wazeNavigation";
+import { MONO, TACTICAL_COLORS } from "../constants/theme";
 
 const CLIENT_ADVANCE_RATE = 0.25;
 
@@ -157,40 +166,58 @@ export function ServiceCard({
     }
   }
 
+  const isRunning =
+    service.status === "in_progress" || service.status === "en_route";
+
   return (
-    <UiCard className="mb-3">
+    <TacticalPanel corners active={isRunning} className="mb-3">
       <View className="mb-3 flex-row items-center justify-between gap-2">
-        <UiChip label={STATUS_LABELS[service.status]} />
-        <Text className="text-sm font-bold text-slate-900">
-          {service.offeredPrice !== undefined
-            ? `Tarifa S/${service.offeredPrice.toFixed(2)}`
-            : `Tarifa S/${service.totalPrice.toFixed(2)}`}
-        </Text>
+        <TacticalStatus
+          label={STATUS_LABELS[service.status]}
+          tone={isRunning ? "active" : "idle"}
+        />
+        <TacticalValue size={14} tone="accent">
+          {`S/${(service.offeredPrice ?? service.totalPrice).toFixed(2)}`}
+        </TacticalValue>
       </View>
 
-      <Text className="text-sm text-slate-700">
-        Origen: {service.origin.address}
-      </Text>
-      <Text
-        className={`text-sm text-slate-700 ${
-          service.status === "in_progress" || service.status === "en_route"
-            ? "mb-1"
-            : "mb-3"
-        }`}
-      >
-        {totalStops > 1 ? "Paradas:" : "Destino:"}{" "}
-        {formatServiceStopsLabel(service.destination, service.extraDestinations)}
-      </Text>
-      {(service.status === "in_progress" || service.status === "en_route") && (
-        <Text className="mb-3 text-xs font-semibold text-hercom-dark">
-          Navegando parada {currentStopIndex + 1} de {totalStops}: {currentStop.address}
-        </Text>
+      <View className="mb-3">
+        <View className="flex-row">
+          <TacticalLabel size={9} className="w-16">
+            Origen
+          </TacticalLabel>
+          <TacticalText size={12} tone="text" className="flex-1">
+            {service.origin.address}
+          </TacticalText>
+        </View>
+        <View className="mt-1.5 flex-row">
+          <TacticalLabel size={9} className="w-16">
+            {totalStops > 1 ? "Paradas" : "Destino"}
+          </TacticalLabel>
+          <TacticalText size={12} tone="text" className="flex-1">
+            {formatServiceStopsLabel(
+              service.destination,
+              service.extraDestinations,
+            )}
+          </TacticalText>
+        </View>
+      </View>
+
+      {isRunning && (
+        <TacticalPanel tone="sunken" className="mb-3 p-2.5">
+          <TacticalLabel size={9} tone="accent">
+            {`Navegando ${currentStopIndex + 1} / ${totalStops}`}
+          </TacticalLabel>
+          <TacticalText size={12} tone="text" className="mt-1">
+            {currentStop.address}
+          </TacticalText>
+        </TacticalPanel>
       )}
 
       {canShowLive && onOpenLiveMap !== undefined && (
         <View className="mb-3">
-          <UiButton
-            label="Ver / compartir ubicación en vivo"
+          <TacticalButton
+            label="Ubicación en vivo"
             variant="secondary"
             size="md"
             onPress={() => onOpenLiveMap(service._id)}
@@ -199,37 +226,44 @@ export function ServiceCard({
       )}
 
       {service.securityCode !== undefined && service.status !== "finished" && (
-        <View className="mb-3 rounded-2xl bg-hercom-soft p-3">
-          <Text className="text-xs text-hercom-dark">
-            Código de seguridad:{" "}
-            <Text className="font-bold text-slate-900">{service.securityCode}</Text>
-          </Text>
+        <View className="mb-3 flex-row items-center justify-between px-3 py-2.5"
+          style={{
+            backgroundColor: "rgba(161, 196, 253, 0.1)",
+            borderLeftWidth: 2,
+            borderLeftColor: TACTICAL_COLORS.accent,
+          }}
+        >
+          <TacticalLabel size={9}>Código de seguridad</TacticalLabel>
+          <TacticalValue size={15} tone="accent">
+            {service.securityCode}
+          </TacticalValue>
         </View>
       )}
 
       {service.status === "assigned" && (
         <View className="gap-2">
-          <View className="rounded-2xl bg-slate-50 p-3">
-            <Text className="text-xs font-semibold text-slate-900">
-              Anticipo requerido: S/{advanceAmount.toFixed(2)}
-            </Text>
-            <Text className="mt-1 text-xs text-slate-500">
+          <TacticalPanel tone="sunken" className="p-3">
+            <View className="flex-row items-center justify-between">
+              <TacticalLabel size={9}>Anticipo requerido</TacticalLabel>
+              <TacticalValue size={14} tone="accent">
+                {`S/${advanceAmount.toFixed(2)}`}
+              </TacticalValue>
+            </View>
+            <TacticalText size={11} className="mt-1.5">
               El cliente debe pagarte antes de que salgas. Confirma cuando lo
               recibas.
-            </Text>
+            </TacticalText>
             {advanceConfirmed && (
-              <Text className="mt-2 text-xs font-semibold text-success">
-                ✓ Anticipo confirmado
-              </Text>
+              <View className="mt-2">
+                <TacticalStatus label="Anticipo confirmado" tone="success" />
+              </View>
             )}
-          </View>
+          </TacticalPanel>
 
           {!advanceConfirmed && (
-            <UiButton
+            <TacticalButton
               label={
-                advanceConfirming
-                  ? "Confirmando..."
-                  : "Confirmo que recibí el anticipo"
+                advanceConfirming ? "Confirmando..." : "Confirmo que lo recibí"
               }
               size="md"
               onPress={() => void handleConfirmAdvance()}
@@ -238,7 +272,7 @@ export function ServiceCard({
             />
           )}
 
-          <UiButton
+          <TacticalButton
             label="Salir a recoger"
             size="md"
             onPress={() => void handleHeadingToPickup()}
@@ -248,7 +282,7 @@ export function ServiceCard({
       )}
 
       {service.status === "heading_to_pickup" && (
-        <UiButton
+        <TacticalButton
           label="Llegué al punto de partida"
           size="md"
           onPress={() => void handleArrivedPickup()}
@@ -257,27 +291,27 @@ export function ServiceCard({
 
       {service.status === "arrived_pickup" && (
         <View className="gap-2">
-          <UiButton
+          <TacticalButton
             label="Abrir checklist"
+            variant="secondary"
             size="md"
             onPress={() => onOpenChecklist?.(service._id)}
           />
 
-          {checklistComplete ? (
-            <Text className="text-center text-xs font-semibold text-success">
-              ✓ Checklist listo
-            </Text>
-          ) : (
-            <Text className="text-center text-xs text-slate-500">
-              Completá el checklist para poder iniciar
-            </Text>
-          )}
+          <View className="items-center">
+            <TacticalStatus
+              label={checklistComplete ? "Checklist listo" : "Checklist pendiente"}
+              tone={checklistComplete ? "success" : "warning"}
+            />
+          </View>
 
-          <UiInput
+          <TacticalInput
+            label="Código del cliente"
+            mono
             value={securityCodeInput}
             onChangeText={setSecurityCodeInput}
             keyboardType="number-pad"
-            placeholder="Ingresa código del cliente"
+            placeholder="000000"
             maxLength={6}
           />
           <SlideToConfirm
@@ -290,18 +324,18 @@ export function ServiceCard({
         </View>
       )}
 
-      {(service.status === "in_progress" || service.status === "en_route") && (
+      {isRunning && (
         <View className="gap-2">
-          <UiButton
-            label={`Abrir Waze a parada ${currentStopIndex + 1}`}
+          <TacticalButton
+            label={`Waze · parada ${currentStopIndex + 1}`}
             variant="secondary"
             size="md"
             onPress={() => void openWazeNavigation(currentStop)}
           />
-          <UiButton
+          <TacticalButton
             label={
               currentStopIndex < totalStops - 1
-                ? `Llegué a parada ${currentStopIndex + 1} · ir a la siguiente`
+                ? `Llegué a parada ${currentStopIndex + 1}`
                 : "Llegué al destino final"
             }
             size="md"
@@ -311,7 +345,7 @@ export function ServiceCard({
       )}
 
       {service.status === "arrived_destination" && (
-        <UiButton
+        <TacticalButton
           label="Finalizar viaje"
           size="md"
           onPress={() =>
@@ -321,8 +355,13 @@ export function ServiceCard({
       )}
 
       {actionError !== null && (
-        <Text className="mt-2 text-xs font-semibold text-red-600">{actionError}</Text>
+        <Text
+          className="mt-2 text-xs"
+          style={{ fontFamily: MONO.medium, color: TACTICAL_COLORS.danger }}
+        >
+          {actionError}
+        </Text>
       )}
-    </UiCard>
+    </TacticalPanel>
   );
 }

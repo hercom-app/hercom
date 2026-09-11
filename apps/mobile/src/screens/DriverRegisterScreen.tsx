@@ -27,8 +27,22 @@ import { HamburgerButton } from "../components/HamburgerButton";
 import { OfficialDocumentHint } from "../components/OfficialDocumentHint";
 import { SideDrawer } from "../components/SideDrawer";
 import { UiButton, UiCard, UiChip, UiInput } from "../components/ui";
+import {
+  TacticalLabel,
+  TacticalPanel,
+  TacticalScreen,
+  TacticalText,
+  TacticalTitle,
+  TacticalValue,
+} from "../components/tactical";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppMode } from "../contexts/AppModeContext";
+import {
+  MONO,
+  TACTICAL_BORDER,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 import {
   CONDUCTOR_RECORD_URL,
   CUL_INFO_URL,
@@ -40,6 +54,7 @@ import {
   submitDriverApplicationFromPending,
   type PendingDriverRegistration,
 } from "../lib/driverRegistration";
+import { composeBirthDate, isAtLeast18 } from "../lib/age";
 
 type LicenseFormat = "physical" | "digital";
 type VehicleBodyType = "auto" | "camioneta";
@@ -74,6 +89,9 @@ export function DriverRegisterScreen({
   const [dniValidated, setDniValidated] = useState(false);
   const [validatingDni, setValidatingDni] = useState(false);
   const [sex, setSex] = useState<"M" | "F" | null>(null);
+  const [birthDay, setBirthDay] = useState("");
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthYear, setBirthYear] = useState("");
 
   const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
   const [department, setDepartment] = useState("");
@@ -316,10 +334,18 @@ export function DriverRegisterScreen({
   ) {
     return (
       <View className="mb-3">
-        <Text className="mb-1.5 text-xs font-semibold text-slate-600">{label}</Text>
+        <TacticalLabel size={10} className="mb-1.5">
+          {`${label} (*)`}
+        </TacticalLabel>
         <TouchableOpacity
           onPress={() => choosePhotoSource(onPicked)}
-          className="overflow-hidden rounded-2xl bg-slate-100"
+          className="overflow-hidden"
+          style={{
+            backgroundColor: TACTICAL_COLORS.surfaceSunken,
+            borderRadius: TACTICAL_RADIUS.panel,
+            borderWidth: 1,
+            borderColor: TACTICAL_BORDER,
+          }}
         >
           {photo !== null ? (
             <Image
@@ -329,12 +355,12 @@ export function DriverRegisterScreen({
             />
           ) : (
             <View className="items-center py-6">
-              <Text className="text-sm font-semibold text-slate-800">
+              <TacticalLabel size={11} tone="accent">
                 + Agregar foto
-              </Text>
-              <Text className="mt-1 text-xs text-slate-500">
+              </TacticalLabel>
+              <TacticalText size={11} className="mt-1">
                 Cámara o galería
-              </Text>
+              </TacticalText>
             </View>
           )}
         </TouchableOpacity>
@@ -345,9 +371,9 @@ export function DriverRegisterScreen({
             }
             className="mt-2"
           >
-            <Text className="text-center text-xs font-semibold text-hercom">
+            <TacticalLabel size={10} tone="accent" className="text-center">
               Vista previa
-            </Text>
+            </TacticalLabel>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -364,11 +390,17 @@ export function DriverRegisterScreen({
       <View className="mb-6">
         <TouchableOpacity
           onPress={onPick}
-          className="rounded-2xl bg-slate-100 py-4"
+          className="py-4"
+          style={{
+            backgroundColor: TACTICAL_COLORS.surfaceSunken,
+            borderRadius: TACTICAL_RADIUS.sharp,
+            borderWidth: 1,
+            borderColor: TACTICAL_BORDER,
+          }}
         >
-          <Text className="text-center text-sm font-semibold text-slate-800">
+          <TacticalLabel size={11} tone="accent" className="text-center">
             {doc !== null ? `✓ ${doc.name}` : emptyLabel}
-          </Text>
+          </TacticalLabel>
         </TouchableOpacity>
         {doc !== null ? (
           <TouchableOpacity
@@ -377,9 +409,9 @@ export function DriverRegisterScreen({
             }
             className="mt-2"
           >
-            <Text className="text-center text-xs font-semibold text-hercom">
+            <TacticalLabel size={10} tone="accent" className="text-center">
               Vista previa {label}
-            </Text>
+            </TacticalLabel>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -392,6 +424,13 @@ export function DriverRegisterScreen({
     }
     if (sex === null) {
       return "Selecciona tu sexo.";
+    }
+    const birthDate = composeBirthDate(birthDay, birthMonth, birthYear);
+    if (birthDate === null) {
+      return "Ingresa tu fecha de nacimiento.";
+    }
+    if (!isAtLeast18(birthDate)) {
+      return "Debes ser mayor de 18 años para registrarte como chofer.";
     }
     if (department === "" || province === "" || district === "") {
       return "Selecciona país, departamento, provincia y distrito.";
@@ -457,6 +496,7 @@ export function DriverRegisterScreen({
       firstLastName,
       secondLastName,
       sex: sex as "M" | "F",
+      birthDate: composeBirthDate(birthDay, birthMonth, birthYear)!,
       licenseNumber: licenseNumber.trim(),
       licenseCategory,
       licenseFormat,
@@ -503,13 +543,15 @@ export function DriverRegisterScreen({
     setReadyForGoogle(true);
   }
 
+  const formComplete = validateForm() === null;
+
   return (
-    <View className="flex-1 bg-canvas">
+    <TacticalScreen>
       <View
         style={{ paddingTop: insets.top + 8 }}
         className="z-10 flex-row items-center px-4 pb-2"
       >
-        <HamburgerButton onPress={() => setMenuOpen(true)} />
+        <HamburgerButton onPress={() => setMenuOpen(true)} variant="tactical" />
       </View>
 
       <ScrollView
@@ -520,30 +562,32 @@ export function DriverRegisterScreen({
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text className="mb-2 text-2xl font-bold text-slate-900">
-          Registro de chofer
-        </Text>
-        <Text className="mb-6 text-sm leading-5 text-slate-500">
-          Valida tu DNI y adjunta tus documentos. Hercom revisará tu solicitud.
-        </Text>
+        <TacticalTitle size={24} className="mb-2">
+          Alta conductor
+        </TacticalTitle>
+        <TacticalText size={13} className="mb-6">
+          Campos obligatorios (*)
+        </TacticalText>
 
         {submitted ? (
           <UiCard>
-            <Text className="text-center text-lg font-bold text-slate-900">
+            <TacticalTitle size={18} className="text-center">
               Solicitud enviada
-            </Text>
-            <Text className="mt-3 text-center text-sm leading-6 text-slate-500">
+            </TacticalTitle>
+            <TacticalText size={13} className="mt-3 text-center">
               Recibimos tu registro. El equipo de Hercom revisará tu información
               y documentos. Te avisaremos cuando tu perfil de chofer esté
               habilitado.
-            </Text>
+            </TacticalText>
             <View className="mt-6">
               <UiButton label="Volver al inicio" onPress={onBack} />
             </View>
           </UiCard>
         ) : (
           <UiCard>
-            <Text className="mb-2 text-sm font-semibold text-slate-500">DNI</Text>
+            <TacticalLabel size={10} className="mb-2">
+              DNI (*)
+            </TacticalLabel>
             <View className="mb-3 flex-row gap-2">
               <UiInput
                 value={dni}
@@ -555,28 +599,84 @@ export function DriverRegisterScreen({
               <TouchableOpacity
                 onPress={() => void handleValidateDni()}
                 disabled={validatingDni || dni.length !== 8}
-                className="h-[52px] items-center justify-center rounded-2xl bg-hercom px-4 disabled:opacity-45"
+                className="h-[52px] items-center justify-center px-4 disabled:opacity-45"
+                style={{
+                  backgroundColor: TACTICAL_COLORS.accent,
+                  borderRadius: TACTICAL_RADIUS.sharp,
+                }}
               >
                 {validatingDni ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color={TACTICAL_COLORS.base} />
                 ) : (
-                  <Text className="font-bold text-white">Validar</Text>
+                  <Text
+                    style={{
+                      fontFamily: MONO.bold,
+                      fontSize: 12,
+                      letterSpacing: 2,
+                      color: TACTICAL_COLORS.base,
+                    }}
+                  >
+                    VALIDAR
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
 
             {dniValidated && (
               <View className="mb-4 gap-2">
-                <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <TacticalLabel size={10} tone="accent">
                   Según RENIEC
-                </Text>
+                </TacticalLabel>
                 <ReniecRow label="Nombres" value={firstName} />
                 <ReniecRow label="Apellido paterno" value={firstLastName} />
                 <ReniecRow label="Apellido materno" value={secondLastName} />
               </View>
             )}
 
-            <Text className="mb-2 text-sm font-semibold text-slate-500">Sexo</Text>
+            <TacticalLabel size={10} className="mb-2">
+              Fecha de nacimiento (*)
+            </TacticalLabel>
+            <View className="mb-4 flex-row gap-2">
+              <UiInput
+                value={birthDay}
+                onChangeText={(v) => setBirthDay(v.replace(/\D/g, "").slice(0, 2))}
+                placeholder="DD"
+                keyboardType="number-pad"
+                className="flex-1"
+              />
+              <UiInput
+                value={birthMonth}
+                onChangeText={(v) =>
+                  setBirthMonth(v.replace(/\D/g, "").slice(0, 2))
+                }
+                placeholder="MM"
+                keyboardType="number-pad"
+                className="flex-1"
+              />
+              <UiInput
+                value={birthYear}
+                onChangeText={(v) =>
+                  setBirthYear(v.replace(/\D/g, "").slice(0, 4))
+                }
+                placeholder="AAAA"
+                keyboardType="number-pad"
+                className="flex-1"
+              />
+            </View>
+            {composeBirthDate(birthDay, birthMonth, birthYear) !== null &&
+            !isAtLeast18(composeBirthDate(birthDay, birthMonth, birthYear)!) ? (
+              <TacticalText
+                size={12}
+                className="mb-4"
+                style={{ color: TACTICAL_COLORS.danger }}
+              >
+                Debes ser mayor de 18 años.
+              </TacticalText>
+            ) : null}
+
+            <TacticalLabel size={10} className="mb-2">
+              Sexo (*)
+            </TacticalLabel>
             <View className="mb-4 flex-row gap-2">
               {(["M", "F"] as const).map((value) => (
                 <UiChip
@@ -599,9 +699,9 @@ export function DriverRegisterScreen({
               onDistrictChange={setDistrict}
             />
 
-            <Text className="mb-2 text-sm font-semibold text-slate-500">
-              Número de brevete
-            </Text>
+            <TacticalLabel size={10} className="mb-2">
+              Número de brevete (*)
+            </TacticalLabel>
             <UiInput
               value={licenseNumber}
               onChangeText={setLicenseNumber}
@@ -609,9 +709,9 @@ export function DriverRegisterScreen({
               className="mb-4"
             />
 
-            <Text className="mb-2 text-sm font-semibold text-slate-500">
-              Categoría de brevete
-            </Text>
+            <TacticalLabel size={10} className="mb-2">
+              Categoría de brevete (*)
+            </TacticalLabel>
             <View className="mb-4 flex-row flex-wrap gap-2">
               {PERU_LICENSE_CLASS_A.map((cat) => (
                 <UiChip
@@ -623,9 +723,9 @@ export function DriverRegisterScreen({
               ))}
             </View>
 
-            <Text className="mb-2 text-sm font-semibold text-slate-500">
-              Tipo de vehículo
-            </Text>
+            <TacticalLabel size={10} className="mb-2">
+              Tipo de vehículo (*)
+            </TacticalLabel>
             <View className="mb-4 flex-row gap-2">
               <UiChip
                 label="Auto"
@@ -639,9 +739,9 @@ export function DriverRegisterScreen({
               />
             </View>
 
-            <Text className="mb-2 text-sm font-semibold text-slate-500">
-              Tipo de brevete
-            </Text>
+            <TacticalLabel size={10} className="mb-2">
+              Tipo de brevete (*)
+            </TacticalLabel>
             <View className="mb-3 flex-row gap-2">
               <UiChip
                 label="Físico (tarjeta)"
@@ -662,11 +762,11 @@ export function DriverRegisterScreen({
               />
             </View>
 
-            <Text className="mb-2 text-sm font-semibold text-slate-500">
+            <TacticalLabel size={10} className="mb-2">
               {licenseFormat === "physical"
-                ? "Fotos del brevete físico"
-                : "Brevete digital + selfie"}
-            </Text>
+                ? "Fotos del brevete físico (*)"
+                : "Brevete digital + selfie (*)"}
+            </TacticalLabel>
             {licenseFormat === "physical" ? (
               <>
                 {renderLicensePhotoSlot(
@@ -693,21 +793,27 @@ export function DriverRegisterScreen({
                   linkLabel="Abrir licencias.mtc.gob.pe"
                   url={DIGITAL_LICENSE_URL}
                 />
-                <View className="mb-3 rounded-2xl bg-amber-50 px-4 py-3">
-                  <Text className="text-xs leading-5 text-amber-900">
+                <TacticalPanel tone="sunken" className="mb-3">
+                  <TacticalText size={12} style={{ color: TACTICAL_COLORS.warning }}>
                     Si tu brevete es digital, imprímelo en tamaño real antes de la
                     selfie. Debes sostener el documento impreso junto a tu rostro.
-                  </Text>
-                </View>
+                  </TacticalText>
+                </TacticalPanel>
                 <TouchableOpacity
                   onPress={chooseDigitalLicenseSource}
-                  className="mb-2 rounded-2xl bg-slate-100 py-4"
+                  className="mb-2 py-4"
+                  style={{
+                    backgroundColor: TACTICAL_COLORS.surfaceSunken,
+                    borderRadius: TACTICAL_RADIUS.sharp,
+                    borderWidth: 1,
+                    borderColor: TACTICAL_BORDER,
+                  }}
                 >
-                  <Text className="text-center text-sm font-semibold text-slate-800">
+                  <TacticalLabel size={11} tone="accent" className="text-center">
                     {licenseDigital !== null
                       ? `✓ ${licenseDigital.name}`
-                      : "+ Subir PDF o imagen del brevete"}
-                  </Text>
+                      : "+ Subir PDF o imagen del brevete (*)"}
+                  </TacticalLabel>
                 </TouchableOpacity>
                 {licenseDigital !== null ? (
                   <TouchableOpacity
@@ -720,9 +826,9 @@ export function DriverRegisterScreen({
                     }
                     className="mb-3"
                   >
-                    <Text className="text-center text-xs font-semibold text-hercom">
+                    <TacticalLabel size={10} tone="accent" className="text-center">
                       Vista previa brevete
-                    </Text>
+                    </TacticalLabel>
                   </TouchableOpacity>
                 ) : null}
                 {renderLicensePhotoSlot(
@@ -741,7 +847,7 @@ export function DriverRegisterScreen({
             />
             {renderPdfSlot(
               "récord",
-              "+ Subir PDF del récord de conductor",
+              "+ Subir PDF del récord de conductor (*)",
               conductorRecordPdf,
               () => void handlePickPdf(setConductorRecordPdf),
             )}
@@ -752,35 +858,52 @@ export function DriverRegisterScreen({
               linkLabel="Cómo obtener el CUL"
               url={CUL_INFO_URL}
             />
-            {renderPdfSlot("CUL", "+ Subir PDF del CUL", culPdf, () =>
+            {renderPdfSlot("CUL", "+ Subir PDF del CUL (*)", culPdf, () =>
               void handlePickPdf(setCulPdf),
             )}
 
             {formError !== null && (
-              <View className="mb-4 rounded-xl bg-red-50 px-3 py-2">
-                <Text className="text-center text-sm text-red-600">{formError}</Text>
-              </View>
+              <TacticalPanel
+                tone="sunken"
+                className="mb-4"
+                style={{ borderColor: TACTICAL_COLORS.danger }}
+              >
+                <TacticalText
+                  size={13}
+                  className="text-center"
+                  style={{ color: TACTICAL_COLORS.danger }}
+                >
+                  {formError}
+                </TacticalText>
+              </TacticalPanel>
             )}
 
             {!readyForGoogle && !submitAsAuthenticated ? (
               <UiButton
                 label="Continuar"
                 onPress={() => void handlePrepareSubmit()}
-                disabled={submitting}
+                disabled={submitting || !formComplete}
               />
             ) : submitAsAuthenticated ? (
               <UiButton
                 label="Enviar solicitud de chofer"
                 onPress={() => void handlePrepareSubmit()}
-                disabled={submitting}
+                disabled={submitting || !formComplete}
                 loading={submitting}
+              />
+            ) : !formComplete ? (
+              <UiButton
+                label="Continuar"
+                onPress={() => void handlePrepareSubmit()}
+                disabled
               />
             ) : (
               <View>
-                <Text className="mb-3 text-center text-sm text-slate-500">
+                <TacticalText size={13} className="mb-3 text-center">
                   Crea tu cuenta con Google para enviar la solicitud.
-                </Text>
+                </TacticalText>
                 <GoogleSignInButton
+                  variant="tactical"
                   label="Registrarse con Google y enviar"
                   onError={(message) => {
                     setFormError(message);
@@ -794,15 +917,25 @@ export function DriverRegisterScreen({
       </ScrollView>
       {drawer}
       <DocumentPreviewModal file={preview} onClose={() => setPreview(null)} />
-    </View>
+    </TacticalScreen>
   );
 }
 
 function ReniecRow({ label, value }: { label: string; value: string }) {
   return (
-    <View className="rounded-2xl bg-slate-50 px-4 py-3">
-      <Text className="text-xs text-slate-400">{label}</Text>
-      <Text className="mt-0.5 text-base font-medium text-slate-900">{value}</Text>
+    <View
+      className="px-4 py-3"
+      style={{
+        backgroundColor: TACTICAL_COLORS.surfaceSunken,
+        borderRadius: TACTICAL_RADIUS.sharp,
+        borderWidth: 1,
+        borderColor: TACTICAL_BORDER,
+      }}
+    >
+      <TacticalLabel size={9}>{label}</TacticalLabel>
+      <TacticalValue size={14} className="mt-0.5">
+        {value}
+      </TacticalValue>
     </View>
   );
 }

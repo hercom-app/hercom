@@ -12,22 +12,31 @@ import * as ImagePicker from "expo-image-picker";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import { AccountScreenShell } from "../components/AccountScreenShell";
-import { UiButton, UiCard, UiChip } from "../components/ui";
+import {
+  TacticalButton,
+  TacticalLabel,
+  TacticalPanel,
+  TacticalStatus,
+  TacticalValue,
+} from "../components/tactical";
 import { convexErrorMessage } from "../lib/convexErrorMessage";
 import { uploadToConvex } from "../lib/driverRegistration";
+import {
+  MONO,
+  TACTICAL_BORDER,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 
 type ClientIdentityFormProps = {
   onOpenMenu: () => void;
   title?: string;
 };
 
-const inputClass =
-  "rounded-2xl bg-slate-100 px-4 py-3.5 text-base text-slate-900";
-
 /** DNI vía RENIEC + selfie. Bloquea pedir servicio hasta completarlo. */
 export function ClientIdentityForm({
   onOpenMenu,
-  title = "Valida tu identidad",
+  title = "Identidad",
 }: ClientIdentityFormProps) {
   const me = useQuery(api.users.getMe);
   const lookupDni = useAction(api.reniec.lookupDni);
@@ -177,10 +186,14 @@ export function ClientIdentityForm({
 
   const dniTaken = dniCheck?.registered === true && dniCheck.isMine !== true;
 
+  const hasSelfie =
+    selfieUri !== null ||
+    (me?.selfieUrl !== null && me?.selfieUrl !== undefined);
+
   return (
     <AccountScreenShell
+      variant="tactical"
       title={title}
-      subtitle="Para pedir un servicio valida tu DNI y toma una selfie."
       onOpenMenu={onOpenMenu}
     >
       <ScrollView
@@ -189,114 +202,155 @@ export function ClientIdentityForm({
         keyboardShouldPersistTaps="handled"
       >
         <View className="mb-4 flex-row gap-2">
-          <UiChip label="1 · DNI" selected={dniValidated && !dniTaken} />
-          <UiChip
-            label="2 · Selfie"
-            selected={
-              selfieUri !== null ||
-              (me?.selfieUrl !== null && me?.selfieUrl !== undefined)
-            }
+          <TacticalStatus
+            label="01 · DNI"
+            tone={dniValidated && !dniTaken ? "success" : "idle"}
+          />
+          <TacticalStatus
+            label="02 · Selfie"
+            tone={hasSelfie ? "success" : "idle"}
           />
         </View>
 
-        <UiCard>
-          <Text className="mb-2 text-sm font-semibold text-slate-500">
-            DNI
-          </Text>
-          <View className="mb-4 flex-row gap-2">
+        <TacticalPanel corners>
+          <TacticalLabel tone="accent">DNI</TacticalLabel>
+
+          <View className="mb-4 mt-2 flex-row gap-2">
             <TextInput
               value={dni}
               onChangeText={(value) => setDni(value.replace(/\D/g, "").slice(0, 8))}
-              placeholder="8 dígitos"
-              placeholderTextColor="#94A3B8"
+              placeholder="00000000"
+              placeholderTextColor="rgba(91, 132, 177, 0.6)"
               keyboardType="number-pad"
-              className={`${inputClass} flex-1`}
+              className="flex-1"
+              style={{
+                backgroundColor: TACTICAL_COLORS.surfaceSunken,
+                borderRadius: TACTICAL_RADIUS.sharp,
+                borderWidth: 1,
+                borderColor: dniValidated
+                  ? TACTICAL_COLORS.accent
+                  : TACTICAL_BORDER,
+                paddingHorizontal: 14,
+                paddingVertical: 13,
+                fontFamily: MONO.medium,
+                fontSize: 17,
+                letterSpacing: 4,
+                color: TACTICAL_COLORS.textStrong,
+              }}
             />
-            <TouchableOpacity
+            <TacticalButton
+              label={validatingDni ? "..." : "Validar"}
+              size="md"
               onPress={() => void handleValidateDni()}
               disabled={validatingDni || dni.length !== 8}
-              className="h-[52px] items-center justify-center rounded-2xl bg-hercom px-4 disabled:opacity-45"
-            >
-              {validatingDni ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text className="font-bold text-white">Validar</Text>
-              )}
-            </TouchableOpacity>
+              loading={validatingDni}
+              className="h-[52px] px-5"
+            />
           </View>
 
           {dniTaken && (
-            <Text className="mb-3 text-sm font-semibold text-red-600">
-              Este DNI ya está registrado.
+            <Text
+              className="mb-3 text-xs"
+              style={{ fontFamily: MONO.medium, color: TACTICAL_COLORS.danger }}
+            >
+              DNI YA REGISTRADO EN EL SISTEMA
             </Text>
           )}
 
           {dniValidated && !dniTaken && (
-            <View className="mb-5 gap-2">
-              <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Según RENIEC
-              </Text>
-              <ReniecRow label="Nombres" value={firstName} />
-              <ReniecRow label="Apellido paterno" value={firstLastName} />
-              <ReniecRow label="Apellido materno" value={secondLastName} />
-            </View>
+            <TacticalPanel tone="sunken" className="mb-5 p-3">
+              <TacticalLabel size={10}>Verificado · RENIEC</TacticalLabel>
+              <View className="mt-2">
+                <ReniecRow label="Nombres" value={firstName} />
+                <ReniecRow label="Apellido paterno" value={firstLastName} />
+                <ReniecRow label="Apellido materno" value={secondLastName} />
+              </View>
+            </TacticalPanel>
           )}
 
-          <Text className="mb-3 text-sm font-semibold text-slate-500">
-            Foto selfie
-          </Text>
+          <TacticalLabel tone="accent" className="mb-3">
+            Selfie
+          </TacticalLabel>
           <TouchableOpacity
             onPress={() => void handleTakeSelfie()}
-            activeOpacity={0.85}
+            activeOpacity={0.8}
             className="mb-5 items-center"
-            accessibilityLabel={
-              selfieUri !== null || me?.selfieUrl
-                ? "Volver a tomar selfie"
-                : "Tomar selfie"
-            }
+            accessibilityLabel={hasSelfie ? "Volver a tomar selfie" : "Tomar selfie"}
           >
-            {selfieUri !== null ||
-            (me?.selfieUrl !== null && me?.selfieUrl !== undefined) ? (
-              <View className="overflow-hidden rounded-3xl bg-slate-200">
+            {hasSelfie ? (
+              <View
+                className="overflow-hidden"
+                style={{
+                  borderRadius: TACTICAL_RADIUS.sharp,
+                  borderWidth: 1,
+                  borderColor: TACTICAL_COLORS.accent,
+                }}
+              >
                 <Image
                   source={{ uri: selfieUri ?? me?.selfieUrl ?? "" }}
                   style={{ width: 168, height: 224 }}
                 />
-                <View className="absolute inset-x-0 bottom-0 bg-black/45 px-3 py-2">
-                  <Text className="text-center text-xs font-semibold text-white">
-                    Toca para volver a tomar
-                  </Text>
+                <View
+                  className="absolute inset-x-0 bottom-0 px-3 py-2"
+                  style={{ backgroundColor: "rgba(17, 22, 34, 0.82)" }}
+                >
+                  <TacticalLabel size={9} tone="accent" className="text-center">
+                    Tocar para recapturar
+                  </TacticalLabel>
                 </View>
               </View>
             ) : (
               <View
-                className="items-center justify-center rounded-3xl bg-slate-100 px-6"
-                style={{ width: 168, height: 224 }}
+                className="items-center justify-center px-6"
+                style={{
+                  width: 168,
+                  height: 224,
+                  backgroundColor: TACTICAL_COLORS.surfaceSunken,
+                  borderRadius: TACTICAL_RADIUS.sharp,
+                  borderWidth: 1,
+                  borderColor: TACTICAL_BORDER,
+                }}
               >
-                <View className="mb-3 h-12 w-12 items-center justify-center rounded-full bg-white">
-                  <View className="h-5 w-7 rounded-md border-2 border-slate-400" />
+                <View
+                  className="mb-3 h-12 w-12 items-center justify-center"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: TACTICAL_COLORS.steel,
+                    borderRadius: TACTICAL_RADIUS.sharp,
+                  }}
+                >
+                  <View
+                    className="h-5 w-7"
+                    style={{
+                      borderWidth: 2,
+                      borderColor: TACTICAL_COLORS.accent,
+                      borderRadius: TACTICAL_RADIUS.sharp,
+                    }}
+                  />
                 </View>
-                <Text className="text-center text-sm font-semibold text-slate-800">
-                  Tomar selfie
-                </Text>
-                <Text className="mt-1 text-center text-xs text-slate-500">
-                  Toca para abrir la cámara
-                </Text>
+                <TacticalLabel size={10} tone="text" className="text-center">
+                  Capturar
+                </TacticalLabel>
               </View>
             )}
           </TouchableOpacity>
 
           {formError !== null && (
-            <Text className="mb-3 text-sm text-red-600">{formError}</Text>
+            <Text
+              className="mb-3 text-xs"
+              style={{ fontFamily: MONO.medium, color: TACTICAL_COLORS.danger }}
+            >
+              {formError}
+            </Text>
           )}
 
-          <UiButton
+          <TacticalButton
             label="Guardar y continuar"
             onPress={() => void handleSubmit()}
             loading={submitting}
             disabled={submitting}
           />
-        </UiCard>
+        </TacticalPanel>
       </ScrollView>
     </AccountScreenShell>
   );
@@ -304,9 +358,17 @@ export function ClientIdentityForm({
 
 function ReniecRow({ label, value }: { label: string; value: string }) {
   return (
-    <View className="rounded-2xl bg-slate-50 px-4 py-3">
-      <Text className="text-xs text-slate-400">{label}</Text>
-      <Text className="mt-0.5 text-base font-medium text-slate-900">{value}</Text>
+    <View
+      className="mb-1.5 flex-row items-center justify-between px-3 py-2.5"
+      style={{
+        backgroundColor: "rgba(42, 59, 92, 0.55)",
+        borderRadius: TACTICAL_RADIUS.sharp,
+        borderLeftWidth: 2,
+        borderLeftColor: TACTICAL_COLORS.accent,
+      }}
+    >
+      <TacticalLabel size={9}>{label}</TacticalLabel>
+      <TacticalValue size={12}>{value}</TacticalValue>
     </View>
   );
 }

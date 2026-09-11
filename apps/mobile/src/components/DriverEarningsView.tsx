@@ -1,7 +1,17 @@
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, View } from "react-native";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import { UiCard, UiEmpty } from "./ui";
+import {
+  TacticalLabel,
+  TacticalText,
+  TacticalValue,
+} from "./tactical";
+import {
+  TACTICAL_BORDER,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 
 function soles(amount: number): string {
   return `S/${amount.toFixed(2)}`;
@@ -30,7 +40,7 @@ export function DriverEarningsView() {
   if (earnings === undefined) {
     return (
       <View className="flex-1 items-center justify-center">
-        <ActivityIndicator color="#64748B" />
+        <ActivityIndicator color={TACTICAL_COLORS.accent} />
       </View>
     );
   }
@@ -38,20 +48,20 @@ export function DriverEarningsView() {
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
       <UiCard className="mb-4">
-        <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <TacticalLabel size={10} tone="accent">
           Hoy
-        </Text>
-        <Text className="mt-1 text-3xl font-bold text-slate-900">
+        </TacticalLabel>
+        <TacticalValue size={32} tone="accent" className="mt-1">
           {soles(earnings.today.net)}
-        </Text>
-        <Text className="mt-2 text-sm text-slate-600">
+        </TacticalValue>
+        <TacticalText size={13} className="mt-2">
           Ganado {soles(earnings.today.fare)} · Descuento app{" "}
           {soles(earnings.today.commission)}
-        </Text>
-        <Text className="mt-1 text-sm text-slate-500">
+        </TacticalText>
+        <TacticalText size={12} className="mt-1">
           {earnings.today.trips.length}{" "}
           {earnings.today.trips.length === 1 ? "viaje" : "viajes"}
-        </Text>
+        </TacticalText>
       </UiCard>
 
       {earnings.today.trips.length === 0 ? (
@@ -59,52 +69,56 @@ export function DriverEarningsView() {
       ) : (
         earnings.today.trips.map((trip) => (
           <UiCard key={trip.serviceId} className="mb-3">
-            <Text className="text-sm font-semibold text-slate-900">
+            <TacticalText size={13} tone="text">
               {formatTime(trip.finishedAt)} · {trip.origin} → {trip.destination}
-            </Text>
-            <Text className="mt-2 text-lg font-bold text-slate-900">
+            </TacticalText>
+            <TacticalValue size={18} tone="accent" className="mt-2">
               Ganaste {soles(trip.net)}
-            </Text>
-            <Text className="mt-1 text-sm text-slate-500">
+            </TacticalValue>
+            <TacticalText size={12} className="mt-1">
               Viaje {soles(trip.fare)} · Descuento {soles(trip.commission)}
-            </Text>
+            </TacticalText>
           </UiCard>
         ))
       )}
 
       <UiCard className="mb-4 mt-2">
-        <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <TacticalLabel size={10} tone="accent">
           Semana
-        </Text>
-        <Text className="mt-1 text-2xl font-bold text-slate-900">
+        </TacticalLabel>
+        <TacticalValue size={26} tone="accent" className="mt-1">
           {soles(earnings.week.net)}
-        </Text>
-        <Text className="mt-1 text-sm text-slate-600">
+        </TacticalValue>
+        <TacticalText size={13} className="mt-1">
           {earnings.week.trips} viajes · Descuento{" "}
           {soles(earnings.week.commission)}
-        </Text>
+        </TacticalText>
       </UiCard>
 
       {earnings.week.days.map((day) => (
         <View
           key={day.dayKey}
-          className="mb-2 flex-row items-center justify-between rounded-2xl bg-white px-4 py-3"
+          className="mb-2 flex-row items-center justify-between px-4 py-3"
+          style={{
+            backgroundColor: TACTICAL_COLORS.surfaceSunken,
+            borderRadius: TACTICAL_RADIUS.panel,
+            borderWidth: 1,
+            borderColor: TACTICAL_BORDER,
+          }}
         >
           <View>
-            <Text className="text-base font-semibold text-slate-800">
-              {formatDay(day.dayKey)}
-            </Text>
-            <Text className="text-base text-slate-500">
+            <TacticalValue size={14}>{formatDay(day.dayKey)}</TacticalValue>
+            <TacticalText size={12} className="mt-0.5">
               {day.trips} {day.trips === 1 ? "viaje" : "viajes"}
-            </Text>
+            </TacticalText>
           </View>
           <View className="items-end">
-            <Text className="text-lg font-bold text-slate-900">
+            <TacticalValue size={16} tone="accent">
               {soles(day.net)}
-            </Text>
-            <Text className="text-base text-slate-500">
+            </TacticalValue>
+            <TacticalText size={12} className="mt-0.5">
               Desc. {soles(day.commission)}
-            </Text>
+            </TacticalText>
           </View>
         </View>
       ))}

@@ -17,7 +17,15 @@ import { api } from "@proyecto/backend";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppMode } from "../contexts/AppModeContext";
 import { DrawerIcon, type DrawerIconName } from "./DrawerIcons";
+import { ThemeToggle } from "./ThemeToggle";
 import { UiBadge, UiButton, UiChip } from "./ui";
+import { GridBackdrop, TacticalLabel } from "./tactical";
+import { useAppTheme } from "../contexts/ThemeContext";
+import {
+  MONO,
+  POPPINS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 
 const DRAWER_WIDTH = Math.min(Dimensions.get("window").width * 0.82, 340);
 
@@ -73,26 +81,42 @@ function MenuRow({
   badge?: number;
   onPress: () => void;
 }) {
+  const { colors, borderSoft } = useAppTheme();
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`mx-3 mb-1 flex-row items-center gap-3 rounded-2xl px-3 py-2.5 ${
-        selected ? "bg-hercom-soft" : ""
-      }`}
+      activeOpacity={0.8}
+      className="mx-3 mb-1 flex-row items-center gap-3 px-3 py-2.5"
+      style={{
+        borderRadius: TACTICAL_RADIUS.sharp,
+        backgroundColor: selected ? `${colors.accent}1F` : "transparent",
+        borderLeftWidth: 2,
+        borderLeftColor: selected ? colors.accent : "transparent",
+      }}
     >
       <View
-        className={`h-9 w-9 items-center justify-center rounded-xl ${
-          selected ? "bg-white" : "bg-slate-50"
-        }`}
+        className="h-9 w-9 items-center justify-center"
+        style={{
+          borderRadius: TACTICAL_RADIUS.sharp,
+          borderWidth: 1,
+          borderColor: selected ? colors.accent : borderSoft,
+          backgroundColor: selected
+            ? `${colors.accent}1A`
+            : colors.surfaceSunken,
+        }}
       >
         <DrawerIcon name={item.icon} selected={selected} />
       </View>
       <Text
-        className={`flex-1 text-[15px] ${
-          selected ? "font-semibold text-hercom-dark" : "font-medium text-slate-600"
-        }`}
+        className="flex-1"
+        style={{
+          fontFamily: selected ? MONO.bold : MONO.regular,
+          fontSize: 12,
+          letterSpacing: 1.2,
+          color: selected ? colors.accent : colors.text,
+        }}
       >
-        {item.label}
+        {item.label.toUpperCase()}
       </Text>
       <UiBadge count={badge ?? 0} />
     </TouchableOpacity>
@@ -110,6 +134,7 @@ export function SideDrawer({
   onSelectItem,
 }: SideDrawerProps) {
   const insets = useSafeAreaInsets();
+  const { scheme, colors, border, borderSoft } = useAppTheme();
   const { signOut } = useAuthActions();
   const {
     mode,
@@ -183,43 +208,78 @@ export function SideDrawer({
     >
       <View className="flex-1 flex-row">
         <Animated.View
+          className="h-full"
           style={{
             width: DRAWER_WIDTH,
             transform: [{ translateX: slide }],
             paddingTop: insets.top + 8,
             paddingBottom: insets.bottom + 12,
+            backgroundColor: colors.base,
+            borderRightWidth: 1,
+            borderRightColor: border,
           }}
-          className="h-full bg-white"
         >
+          {scheme === "dark" ? <GridBackdrop /> : null}
           <View className="flex-1">
-            <View className="mb-3 flex-row items-center gap-2 px-4 py-3">
+            <View
+              className="mb-3 flex-row items-center gap-2 px-4 py-3"
+              style={{
+                backgroundColor: colors.baseElevated,
+                borderBottomWidth: 1,
+                borderBottomColor: border,
+              }}
+            >
               <View className="flex-1 flex-row items-center gap-3 py-1">
                 {avatarUrl !== undefined &&
                 avatarUrl !== null &&
                 avatarUrl !== "" ? (
                   <Image
                     source={{ uri: avatarUrl }}
-                    className="bg-slate-200"
-                    style={{ width: 56, height: 56, borderRadius: 28 }}
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: TACTICAL_RADIUS.sharp,
+                      borderWidth: 1,
+                      borderColor: colors.accent,
+                      backgroundColor: colors.surface,
+                    }}
                   />
                 ) : (
-                  <View className="h-14 w-14 items-center justify-center rounded-full bg-hercom">
-                    <Text className="text-xl font-semibold text-white">
+                  <View
+                    className="h-[52px] w-[52px] items-center justify-center"
+                    style={{
+                      borderRadius: TACTICAL_RADIUS.sharp,
+                      borderWidth: 1,
+                      borderColor: colors.accent,
+                      backgroundColor: `${colors.accent}1F`,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: MONO.bold,
+                        fontSize: 20,
+                        color: colors.accent,
+                      }}
+                    >
                       {(userName.trim()[0] ?? "H").toUpperCase()}
                     </Text>
                   </View>
                 )}
                 <View className="min-w-0 flex-1">
                   <Text
-                    className="text-base font-semibold text-slate-900"
                     numberOfLines={1}
+                    style={{
+                      fontFamily: POPPINS.semibold,
+                      fontSize: 15,
+                      color: colors.textStrong,
+                    }}
                   >
                     {userName.trim() !== "" ? userName : "Usuario Hercom"}
                   </Text>
-                  <View className="mt-1.5">
+                  <View className="mt-1.5 flex-row">
                     <UiChip
                       label={mode === "driver" ? "Chofer" : "Pasajero"}
-                      selected={false}
+                      selected
                     />
                   </View>
                 </View>
@@ -228,7 +288,13 @@ export function SideDrawer({
                 onPress={onClose}
                 accessibilityLabel="Cerrar menú"
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                className="h-10 w-10 items-center justify-center rounded-full bg-slate-100"
+                className="h-10 w-10 items-center justify-center"
+                style={{
+                  borderRadius: TACTICAL_RADIUS.sharp,
+                  borderWidth: 1,
+                  borderColor: border,
+                  backgroundColor: colors.surfaceSunken,
+                }}
               >
                 <DrawerIcon name="close" />
               </TouchableOpacity>
@@ -249,7 +315,19 @@ export function SideDrawer({
                 />
               ))}
 
-              <View className="mx-6 my-3 h-px bg-slate-100" />
+              <View className="mx-6 my-3 flex-row items-center">
+                <View
+                  className="flex-1"
+                  style={{ height: 1, backgroundColor: borderSoft }}
+                />
+                <TacticalLabel className="mx-2" size={9}>
+                  Cuenta
+                </TacticalLabel>
+                <View
+                  className="flex-1"
+                  style={{ height: 1, backgroundColor: borderSoft }}
+                />
+              </View>
 
               {account.map((item) => (
                 <MenuRow
@@ -266,18 +344,48 @@ export function SideDrawer({
                   onClose();
                   void signOut();
                 }}
-                className="mx-3 mt-1 flex-row items-center gap-3 rounded-2xl px-3 py-2.5"
+                className="mx-3 mt-1 flex-row items-center gap-3 px-3 py-2.5"
+                style={{ borderRadius: TACTICAL_RADIUS.sharp }}
               >
-                <View className="h-9 w-9 items-center justify-center rounded-xl bg-slate-50">
+                <View
+                  className="h-9 w-9 items-center justify-center"
+                  style={{
+                    borderRadius: TACTICAL_RADIUS.sharp,
+                    borderWidth: 1,
+                    borderColor: borderSoft,
+                    backgroundColor: colors.surfaceSunken,
+                  }}
+                >
                   <DrawerIcon name="logout" />
                 </View>
-                <Text className="flex-1 text-[15px] font-medium text-slate-600">
-                  Cerrar sesión
+                <Text
+                  className="flex-1"
+                  style={{
+                    fontFamily: MONO.regular,
+                    fontSize: 12,
+                    letterSpacing: 1.2,
+                    color: colors.steel,
+                  }}
+                >
+                  CERRAR SESIÓN
                 </Text>
               </TouchableOpacity>
             </ScrollView>
 
-            <View className="border-t border-slate-100 px-4 pt-4">
+            <View
+              className="px-4 pt-4"
+              style={{
+                borderTopWidth: 1,
+                borderTopColor: border,
+                backgroundColor: colors.baseElevated,
+              }}
+            >
+              <View className="mb-3">
+                <ThemeToggle />
+              </View>
+              <TacticalLabel className="mb-2" size={9}>
+                Cambiar de modo
+              </TacticalLabel>
               <UiButton
                 label={modeButtonLabel}
                 onPress={() => void handleModeSwitch()}
@@ -286,7 +394,11 @@ export function SideDrawer({
           </View>
         </Animated.View>
 
-        <Pressable className="flex-1 bg-black/35" onPress={onClose} />
+        <Pressable
+          className="flex-1"
+          style={{ backgroundColor: "rgba(17, 22, 34, 0.72)" }}
+          onPress={onClose}
+        />
       </View>
     </Modal>
   );

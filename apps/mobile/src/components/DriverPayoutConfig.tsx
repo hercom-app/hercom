@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
 import { UiButton, UiCard, UiInput } from "./ui";
+import { TacticalLabel, TacticalText, TacticalTitle } from "./tactical";
+import { TACTICAL_COLORS } from "../constants/theme";
 
 type DriverPayoutFields = {
   fullName?: string;
@@ -34,7 +36,9 @@ function Field({
 }) {
   return (
     <View className="mb-3">
-      <Text className="mb-1.5 text-xs font-semibold text-slate-500">{label}</Text>
+      <TacticalLabel size={10} className="mb-1.5">
+        {label}
+      </TacticalLabel>
       <UiInput
         value={value}
         onChangeText={onChangeText}
@@ -108,12 +112,12 @@ export function DriverPayoutConfig({
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
       <UiCard className="mb-4">
-        <Text className="mb-1 text-sm font-bold text-slate-900">
+        <TacticalTitle size={16} className="mb-1">
           Datos para el anticipo
-        </Text>
-        <Text className="mb-4 text-xs text-slate-500">
+        </TacticalTitle>
+        <TacticalText size={12} className="mb-4">
           El cliente verá estos datos para transferirte el 25% antes del viaje.
-        </Text>
+        </TacticalText>
 
         <Field
           label="Nombres"
@@ -168,14 +172,22 @@ export function DriverPayoutConfig({
           loading={saving}
         />
         {message !== null && (
-          <Text className="mt-2 text-center text-xs font-medium text-success">
+          <TacticalText
+            size={12}
+            className="mt-2 text-center"
+            style={{ color: TACTICAL_COLORS.success }}
+          >
             {message}
-          </Text>
+          </TacticalText>
         )}
         {error !== null && (
-          <Text className="mt-2 text-center text-xs font-medium text-red-600">
+          <TacticalText
+            size={12}
+            className="mt-2 text-center"
+            style={{ color: TACTICAL_COLORS.danger }}
+          >
             {error}
-          </Text>
+          </TacticalText>
         )}
       </UiCard>
     </ScrollView>

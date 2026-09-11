@@ -26,6 +26,19 @@ const SEX_LABELS: Record<DriverApplicationForAdmin["sex"], string> = {
   F: "Femenino",
 };
 
+function formatBirthDate(isoDate: string | undefined): string {
+  if (isoDate === undefined || isoDate.trim() === "") {
+    return "—";
+  }
+  const parsed = new Date(`${isoDate}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return isoDate;
+  }
+  return new Intl.DateTimeFormat("es-PE", { dateStyle: "medium" }).format(
+    parsed,
+  );
+}
+
 function formatDateTime(timestamp: number): string {
   return new Intl.DateTimeFormat("es-PE", {
     dateStyle: "medium",
@@ -125,6 +138,13 @@ export function DriverDossierPanel({
         <InfoRow label="Nombre (RENIEC)" value={application.fullName} />
         <InfoRow label="DNI" value={application.dni} />
         <InfoRow label="Sexo" value={SEX_LABELS[application.sex]} />
+        <InfoRow
+          label="Fecha de nacimiento"
+          value={formatBirthDate(
+            (application as DriverApplicationForAdmin & { birthDate?: string })
+              .birthDate,
+          )}
+        />
         <InfoRow label="N.° brevete" value={application.licenseNumber} />
         <InfoRow label="Categoría brevete" value={application.licenseCategory} />
         <InfoRow

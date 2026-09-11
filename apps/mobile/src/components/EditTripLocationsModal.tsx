@@ -2,8 +2,13 @@ import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { AddressAutocomplete } from "./AddressAutocomplete";
 import { AppModal } from "./AppModal";
-import { UiButton } from "./ui";
+import {
+  TacticalButton,
+  TacticalLabel,
+  TacticalText,
+} from "./tactical";
 import type { SelectedPlace } from "../lib/googlePlaces";
+import { MONO, TACTICAL_COLORS } from "../constants/theme";
 
 type LocationValue = {
   address: string;
@@ -106,7 +111,7 @@ export function EditTripLocationsModal({
       onClose={onClose}
       footer={
         <View className="mt-3">
-          <UiButton
+          <TacticalButton
             label={saving ? "Guardando..." : "Guardar cambios"}
             onPress={handleSave}
             disabled={saving || (originPlace === null && destPlace === null)}
@@ -115,12 +120,12 @@ export function EditTripLocationsModal({
         </View>
       }
     >
-      <Text className="mb-4 text-base text-slate-600">
+      <TacticalText size={12} className="mb-4">
         Solo puedes cambiar partida o destino mientras el viaje está en curso.
-      </Text>
-      <Text className="mb-2 text-base font-semibold text-slate-700">
+      </TacticalText>
+      <TacticalLabel tone="accent" className="mb-2">
         Punto de partida
-      </Text>
+      </TacticalLabel>
       <AddressAutocomplete
         value={originText}
         onChangeText={(value) => {
@@ -135,7 +140,9 @@ export function EditTripLocationsModal({
         region={region}
       />
       <View className="h-4" />
-      <Text className="mb-2 text-base font-semibold text-slate-700">Destino</Text>
+      <TacticalLabel tone="accent" className="mb-2">
+        Destino
+      </TacticalLabel>
       <AddressAutocomplete
         value={destText}
         onChangeText={(value) => {
@@ -150,12 +157,17 @@ export function EditTripLocationsModal({
         region={region}
       />
       {error !== null && (
-        <Text className="mt-3 text-base font-medium text-red-600">{error}</Text>
+        <Text
+          className="mt-3 text-xs"
+          style={{ fontFamily: MONO.medium, color: TACTICAL_COLORS.danger }}
+        >
+          {error}
+        </Text>
       )}
       {originPlace === null && destPlace === null && (
-        <Text className="mt-3 text-base text-slate-500">
+        <TacticalText size={12} className="mt-3">
           Elige una dirección de la lista para partida y/o destino.
-        </Text>
+        </TacticalText>
       )}
     </AppModal>
   );

@@ -199,6 +199,8 @@ export default defineSchema({
     firstLastName: v.string(),
     secondLastName: v.string(),
     sex: sexValidator,
+    /** Fecha de nacimiento ISO `YYYY-MM-DD`. Ausente en solicitudes antiguas. */
+    birthDate: v.optional(v.string()),
     licenseNumber: v.string(),
     licenseCategory: v.string(),
     licenseFormat: v.optional(

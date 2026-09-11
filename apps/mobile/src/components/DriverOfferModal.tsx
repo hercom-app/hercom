@@ -1,7 +1,16 @@
 import type { Id } from "@proyecto/backend/dataModel";
 import { Text, View } from "react-native";
 import { AppModal } from "./AppModal";
-import { UiButton } from "./ui";
+import {
+  TacticalButton,
+  TacticalEmpty,
+  TacticalLabel,
+  TacticalPanel,
+  TacticalStatus,
+  TacticalTitle,
+  TacticalValue,
+} from "./tactical";
+import { MONO, TACTICAL_COLORS, TACTICAL_RADIUS } from "../constants/theme";
 
 export type DriverOfferInfo = {
   _id: Id<"serviceOffers">;
@@ -39,7 +48,7 @@ export function DriverOfferModal({
       footer={
         offer !== null ? (
           <View className="mt-3">
-            <UiButton
+            <TacticalButton
               label={accepting ? "Confirmando..." : "Elegir este chofer"}
               onPress={onAccept}
               disabled={accepting}
@@ -50,37 +59,64 @@ export function DriverOfferModal({
       }
     >
       {offer === null ? (
-        <Text className="text-base text-slate-600">Sin oferta seleccionada.</Text>
+        <TacticalEmpty title="Sin oferta seleccionada" />
       ) : (
         <View>
-          <Text className="mb-1 text-2xl font-bold text-slate-900">
-            {offer.driverName}
-          </Text>
-          <Text className="mb-4 text-lg text-slate-600">
-            {offer.driverRating.toFixed(1)} ★
-            {offer.driverTrips > 0
-              ? ` · ${offer.driverTrips} ${offer.driverTrips === 1 ? "viaje" : "viajes"}`
-              : " · Chofer nuevo"}
-          </Text>
-          {offer.driverVehicle !== undefined && offer.driverVehicle !== "" && (
-            <Info label="Vehículo" value={offer.driverVehicle} />
-          )}
-          {offer.driverColor !== undefined && offer.driverColor !== "" && (
-            <Info label="Color" value={offer.driverColor} />
-          )}
-          {offer.driverPlate !== undefined && offer.driverPlate !== "" && (
-            <Info label="Placa" value={offer.driverPlate} />
-          )}
-          <View className="mt-2 rounded-2xl bg-hercom-soft p-4">
-            <Text className="text-sm font-semibold text-slate-600">
-              Tarifa ofertada
-            </Text>
-            <Text className="text-2xl font-bold text-hercom">
-              S/{offer.offeredPrice.toFixed(2)}
-            </Text>
+          <TacticalPanel corners active>
+            <TacticalLabel size={9}>Operador</TacticalLabel>
+            <TacticalTitle size={22} className="mt-1">
+              {offer.driverName}
+            </TacticalTitle>
+            <View className="mt-3 flex-row flex-wrap items-center gap-2">
+              <TacticalStatus
+                label={`${offer.driverRating.toFixed(1)} ★`}
+                tone="warning"
+              />
+              <TacticalStatus
+                label={
+                  offer.driverTrips > 0
+                    ? `${offer.driverTrips} ${offer.driverTrips === 1 ? "viaje" : "viajes"}`
+                    : "Chofer nuevo"
+                }
+                tone={offer.driverTrips > 0 ? "active" : "idle"}
+              />
+            </View>
+          </TacticalPanel>
+
+          <View className="mt-3">
+            {offer.driverVehicle !== undefined && offer.driverVehicle !== "" && (
+              <Info label="Vehículo" value={offer.driverVehicle} />
+            )}
+            {offer.driverColor !== undefined && offer.driverColor !== "" && (
+              <Info label="Color" value={offer.driverColor} />
+            )}
+            {offer.driverPlate !== undefined && offer.driverPlate !== "" && (
+              <Info label="Placa" value={offer.driverPlate} />
+            )}
           </View>
+
+          <View
+            className="mt-1 flex-row items-end justify-between px-4 py-3"
+            style={{
+              backgroundColor: "rgba(161, 196, 253, 0.1)",
+              borderRadius: TACTICAL_RADIUS.sharp,
+              borderLeftWidth: 2,
+              borderLeftColor: TACTICAL_COLORS.accent,
+            }}
+          >
+            <TacticalLabel size={10}>Tarifa ofertada</TacticalLabel>
+            <TacticalValue size={24} tone="accent">
+              {`S/${offer.offeredPrice.toFixed(2)}`}
+            </TacticalValue>
+          </View>
+
           {error !== null && (
-            <Text className="mt-3 text-base font-medium text-red-600">{error}</Text>
+            <Text
+              className="mt-3 text-xs"
+              style={{ fontFamily: MONO.medium, color: TACTICAL_COLORS.danger }}
+            >
+              {error}
+            </Text>
           )}
         </View>
       )}
@@ -90,9 +126,15 @@ export function DriverOfferModal({
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <View className="mb-3">
-      <Text className="text-sm font-semibold text-slate-500">{label}</Text>
-      <Text className="text-lg font-semibold text-slate-900">{value}</Text>
+    <View
+      className="mb-2 flex-row items-center justify-between px-3 py-2.5"
+      style={{
+        backgroundColor: TACTICAL_COLORS.surfaceSunken,
+        borderRadius: TACTICAL_RADIUS.sharp,
+      }}
+    >
+      <TacticalLabel size={9}>{label}</TacticalLabel>
+      <TacticalValue size={13}>{value}</TacticalValue>
     </View>
   );
 }

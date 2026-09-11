@@ -18,6 +18,7 @@ import type * as drivers from "../drivers.js";
 import type * as geo from "../geo.js";
 import type * as http from "../http.js";
 import type * as lib_adminAccess from "../lib/adminAccess.js";
+import type * as lib_age from "../lib/age.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_constants from "../lib/constants.js";
 import type * as lib_identity from "../lib/identity.js";
@@ -61,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   geo: typeof geo;
   http: typeof http;
   "lib/adminAccess": typeof lib_adminAccess;
+  "lib/age": typeof lib_age;
   "lib/auth": typeof lib_auth;
   "lib/constants": typeof lib_constants;
   "lib/identity": typeof lib_identity;

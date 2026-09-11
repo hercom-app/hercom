@@ -4,7 +4,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -18,6 +17,16 @@ import {
   type DamageMark,
 } from "../components/CarDamageCanvas";
 import { UiButton, UiCard, UiInput } from "../components/ui";
+import {
+  TacticalLabel,
+  TacticalText,
+  TacticalTitle,
+} from "../components/tactical";
+import {
+  TACTICAL_BORDER,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 
 type Props = {
   serviceId: Id<"services">;
@@ -109,26 +118,42 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
 
   if (checklist === undefined) {
     return (
-      <View className="flex-1 items-center justify-center bg-canvas">
-        <ActivityIndicator color="#64748B" />
+      <View
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: TACTICAL_COLORS.base }}
+      >
+        <ActivityIndicator color={TACTICAL_COLORS.accent} />
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-canvas"
-      style={{ flex: 1, paddingTop: insets.top }}
+      className="flex-1"
+      style={{
+        flex: 1,
+        paddingTop: insets.top,
+        backgroundColor: TACTICAL_COLORS.base,
+      }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
     >
-      <View className="flex-row items-center border-b border-slate-200 bg-white px-4 py-3">
+      <View
+        className="flex-row items-center px-4 py-3"
+        style={{
+          borderBottomWidth: 1,
+          borderBottomColor: TACTICAL_BORDER,
+          backgroundColor: TACTICAL_COLORS.baseElevated,
+        }}
+      >
         <TouchableOpacity onPress={onBack} className="mr-3 py-1 pr-2">
-          <Text className="text-sm font-semibold text-slate-500">← Volver</Text>
+          <TacticalLabel size={11} tone="accent">
+            ← Volver
+          </TacticalLabel>
         </TouchableOpacity>
-        <Text className="flex-1 text-base font-bold text-slate-900">
+        <TacticalTitle size={16} className="flex-1">
           Checklist de recojo
-        </Text>
+        </TacticalTitle>
       </View>
 
       <ScrollView
@@ -195,9 +220,18 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
                 ? "Describe las marcas que señalaste"
                 : "Estado general del vehículo"
             }
+            placeholderTextColor="rgba(91, 132, 177, 0.7)"
             multiline
-            className="min-h-[88px] rounded-2xl bg-slate-100 px-4 py-3.5 text-base text-slate-900"
             textAlignVertical="top"
+            className="min-h-[88px] px-4 py-3.5"
+            style={{
+              backgroundColor: TACTICAL_COLORS.surfaceSunken,
+              borderRadius: TACTICAL_RADIUS.sharp,
+              borderWidth: 1,
+              borderColor: TACTICAL_BORDER,
+              color: TACTICAL_COLORS.textStrong,
+              fontSize: 15,
+            }}
           />
         </Section>
 
@@ -212,18 +246,37 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
               value={insuranceNotes}
               onChangeText={setInsuranceNotes}
               placeholder="Póliza o nota"
-              className="mt-2 rounded-2xl bg-slate-100 px-4 py-3.5 text-base text-slate-900"
+              placeholderTextColor="rgba(91, 132, 177, 0.7)"
+              className="mt-2 px-4 py-3.5"
+              style={{
+                backgroundColor: TACTICAL_COLORS.surfaceSunken,
+                borderRadius: TACTICAL_RADIUS.sharp,
+                borderWidth: 1,
+                borderColor: TACTICAL_BORDER,
+                color: TACTICAL_COLORS.textStrong,
+                fontSize: 15,
+              }}
             />
           )}
         </Section>
 
         {error !== null && (
-          <Text className="mb-2 text-xs font-semibold text-red-600">{error}</Text>
+          <TacticalText
+            size={12}
+            className="mb-2"
+            style={{ color: TACTICAL_COLORS.danger }}
+          >
+            {error}
+          </TacticalText>
         )}
         {savedOk && (
-          <Text className="mb-2 text-xs font-semibold text-success">
+          <TacticalText
+            size={12}
+            className="mb-2"
+            style={{ color: TACTICAL_COLORS.success }}
+          >
             Checklist guardado. Volvé a Servicios para iniciar el viaje.
-          </Text>
+          </TacticalText>
         )}
 
         <UiButton
@@ -257,16 +310,10 @@ function Section({
   flush?: boolean;
 }) {
   return (
-    <UiCard
-      className={`mb-5 ${flush ? "overflow-hidden p-3" : ""}`.trim()}
-    >
-      <Text
-        className={`mb-3 text-xs font-bold uppercase tracking-wide text-slate-500 ${
-          flush ? "px-1" : ""
-        }`}
-      >
+    <UiCard className={`mb-5 ${flush ? "overflow-hidden p-3" : ""}`.trim()}>
+      <TacticalLabel size={10} tone="accent" className={`mb-3 ${flush ? "px-1" : ""}`}>
         {title}
-      </Text>
+      </TacticalLabel>
       {children}
     </UiCard>
   );
@@ -284,18 +331,20 @@ function DocToggle({
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`mb-2 rounded-2xl px-3 py-3 ${
-        value ? "bg-hercom-soft" : "bg-slate-100"
-      }`}
+      className="mb-2 px-3 py-3"
+      style={{
+        backgroundColor: value
+          ? "rgba(161, 196, 253, 0.14)"
+          : TACTICAL_COLORS.surfaceSunken,
+        borderRadius: TACTICAL_RADIUS.sharp,
+        borderWidth: 1,
+        borderColor: value ? TACTICAL_COLORS.accent : TACTICAL_BORDER,
+      }}
     >
-      <Text
-        className={`text-sm font-semibold ${
-          value ? "text-hercom-dark" : "text-slate-700"
-        }`}
-      >
+      <TacticalText size={13} tone={value ? "text" : "steel"}>
         {value ? "✓ " : "○ "}
         {label}
-      </Text>
+      </TacticalText>
     </TouchableOpacity>
   );
 }
@@ -315,7 +364,9 @@ function Field({
 }) {
   return (
     <View className="mb-2">
-      <Text className="mb-1.5 text-xs font-semibold text-slate-500">{label}</Text>
+      <TacticalLabel size={10} className="mb-1.5">
+        {label}
+      </TacticalLabel>
       <UiInput
         value={value}
         onChangeText={onChangeText}

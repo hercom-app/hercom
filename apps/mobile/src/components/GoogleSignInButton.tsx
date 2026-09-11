@@ -9,6 +9,12 @@ import {
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { useAuthActions } from "@convex-dev/auth/react";
+import {
+  MONO,
+  TACTICAL_BORDER,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -16,6 +22,8 @@ type GoogleSignInButtonProps = {
   disabled?: boolean;
   label?: string;
   onError?: (message: string) => void;
+  /** `tactical` adapta el botón al HUD oscuro. */
+  variant?: "light" | "tactical";
 };
 
 function getRedirectTo(): string {
@@ -44,6 +52,7 @@ export function GoogleSignInButton({
   disabled = false,
   label = "Continuar con Google",
   onError,
+  variant = "light",
 }: GoogleSignInButtonProps) {
   const { signIn } = useAuthActions();
   const [submitting, setSubmitting] = useState(false);
@@ -89,6 +98,41 @@ export function GoogleSignInButton({
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (variant === "tactical") {
+    return (
+      <TouchableOpacity
+        onPress={() => void handlePress()}
+        disabled={disabled || submitting}
+        activeOpacity={0.75}
+        className="h-14 flex-row items-center justify-center disabled:opacity-60"
+        style={{
+          backgroundColor: TACTICAL_COLORS.surfaceSunken,
+          borderRadius: TACTICAL_RADIUS.sharp,
+          borderWidth: 1,
+          borderColor: TACTICAL_BORDER,
+        }}
+      >
+        {submitting ? (
+          <ActivityIndicator color={TACTICAL_COLORS.accent} />
+        ) : (
+          <>
+            <GoogleGlyph />
+            <Text
+              style={{
+                fontFamily: MONO.bold,
+                fontSize: 12,
+                letterSpacing: 1.8,
+                color: TACTICAL_COLORS.text,
+              }}
+            >
+              {label.toUpperCase()}
+            </Text>
+          </>
+        )}
+      </TouchableOpacity>
+    );
   }
 
   return (

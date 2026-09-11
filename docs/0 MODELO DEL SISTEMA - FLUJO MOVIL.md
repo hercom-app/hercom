@@ -1,10 +1,38 @@
 # Flujo móvil Hercom (cómo funciona hoy)
 
-> Cómo ver los diagramas: abre este archivo en Cursor → clic derecho → **Open Preview**,
-> o usa la extensión Mermaid. Los bloques ` ```mermaid ` se dibujan solos.
->
-> En el IDE lo habitual es **Markdown + Mermaid**. Otras opciones gráficas (Excalidraw, draw.io)
-> son plugins aparte; un Canvas de Cursor sirve para explorar, no para versionar el modelo del repo.
+Hay **3 flujos UI**. Detalle y archivos: [3-flujos-ui.md](./3-flujos-ui.md).
+
+## 1. Inscripción del chofer
+
+| Momento | Chofer (app) | Web interna |
+| --- | --- | --- |
+| **Inscripción** | Alta conductor<br>`DriverRegisterScreen.tsx` | Lista + expediente<br>`DriversView.tsx` + `DriverDossierPanel.tsx` |
+| **Revisión** | Expediente enviado<br>`DriverApplicationPendingScreen.tsx` | Aprobar / Rechazar<br>`DriverDossierPanel.tsx` |
+
+## 2. Recarga de saldo del chofer
+
+| Momento | Chofer (app) | Web interna |
+| --- | --- | --- |
+| **Recarga** | Recargar saldo<br>`DriverDashboard.tsx` | Recargas de billetera<br>`TopUpsView.tsx` |
+
+## 3. Flujo de servicio
+
+| Momento | Cliente | Chofer | Web interna |
+| --- | --- | --- | --- |
+| **Pedir viaje** | Pedir servicio<br>`ClientDashboard.tsx` | — | Tablero · Pendiente<br>`ServicesView.tsx` + `ServicesBoard.tsx` |
+| **Entregar oferta** | Ofertas recibidas<br>`ClientDashboard.tsx` | Solicitudes abiertas<br>`DriverDashboard.tsx` | Tablero · Pendiente<br>`ServicesBoard.tsx` |
+| **Aceptar oferta** | Aceptar chofer<br>`DriverOfferModal.tsx` | Espera asignación<br>`DriverDashboard.tsx` | Tablero · Asignado<br>`ServicesBoard.tsx` |
+| **Adelanto** | Transferir 25%<br>`AdvancePayoutModal.tsx` | Confirmar anticipo<br>`ServiceCard.tsx` | Columna Anticipo<br>`ServicesBoard.tsx` |
+| **Salida del chofer** | Chofer en camino<br>`ClientDashboard.tsx` | Voy a recoger<br>`ServiceCard.tsx` | Yendo a recoger + mapa<br>`ServicesBoard.tsx` + `ServiceLivePanel.tsx` |
+| **Llegada del chofer** | Chofer en el punto<br>`ClientDashboard.tsx` | Llegué al recojo<br>`ServiceCard.tsx` | Llegó al punto<br>`ServicesBoard.tsx` |
+| **Checklist** | — | Checklist de recojo<br>`ChecklistRecojoScreen.tsx` | — |
+| **Inicio de viaje** | Viaje en vivo<br>`LiveTripMapModal.tsx` | Código e iniciar<br>`ServiceCard.tsx` | En viaje + mapa<br>`ServicesBoard.tsx` + `ServiceLivePanel.tsx` |
+| **Fin de viaje** | Calificar<br>`RateServiceStars.tsx` | Finalizar viaje<br>`ServiceCard.tsx` | Finalizado + pagos<br>`ServicesBoard.tsx` + `PaymentsPanel.tsx` + `PayoutsPanel.tsx` |
+
+Inventario de documentos del chofer: [flujo-ui-chofer-admin.md](./flujo-ui-chofer-admin.md)
+
+> Cómo ver los diagramas de más abajo: clic derecho → **Open Preview**.
+> Detalle de estados Convex: sigue en las secciones 2–5.
 
 ---
 

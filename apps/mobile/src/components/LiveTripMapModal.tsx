@@ -13,7 +13,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
-import { HERCOM_COLORS } from "../constants/theme";
+import {
+  HERCOM_COLORS,
+  MONO,
+  TACTICAL_BORDER,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
+import { TacticalLabel, TacticalText, TacticalTitle } from "./tactical";
 import { buildLiveShareMessage, buildLiveShareUrl } from "../lib/liveShareUrl";
 
 type LiveTripMapModalProps = {
@@ -149,21 +156,45 @@ export function LiveTripMapModal({
       onRequestClose={onClose}
       presentationStyle="fullScreen"
     >
-      <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top }}>
-        <View className="flex-row items-center gap-3 px-4 pb-3">
+      <View
+        className="flex-1"
+        style={{ backgroundColor: TACTICAL_COLORS.base, paddingTop: insets.top }}
+      >
+        <View
+          className="flex-row items-center gap-3 px-4 pb-3"
+          style={{
+            borderBottomWidth: 1,
+            borderBottomColor: TACTICAL_BORDER,
+            backgroundColor: TACTICAL_COLORS.baseElevated,
+          }}
+        >
           <TouchableOpacity
             onPress={onClose}
-            className="h-11 w-11 items-center justify-center rounded-full bg-white"
+            className="h-11 w-11 items-center justify-center"
+            style={{
+              backgroundColor: TACTICAL_COLORS.surface,
+              borderRadius: TACTICAL_RADIUS.sharp,
+              borderWidth: 1,
+              borderColor: TACTICAL_BORDER,
+            }}
           >
-            <Text className="text-xl text-slate-800">←</Text>
+            <Text
+              style={{
+                fontFamily: MONO.bold,
+                fontSize: 18,
+                color: TACTICAL_COLORS.accent,
+              }}
+            >
+              ←
+            </Text>
           </TouchableOpacity>
           <View className="flex-1">
-            <Text className="text-lg font-bold text-slate-900">{title}</Text>
+            <TacticalTitle size={17}>{title}</TacticalTitle>
             {live !== null && live !== undefined && (
-              <Text className="text-xs text-slate-500">
+              <TacticalText size={11} className="mt-0.5">
                 {statusLabel(live.status)}
                 {lastUpdated !== null ? ` · act. ${lastUpdated}` : ""}
-              </Text>
+              </TacticalText>
             )}
           </View>
           {live?.shareToken !== null &&
@@ -171,28 +202,34 @@ export function LiveTripMapModal({
             live.isLive && (
               <TouchableOpacity
                 onPress={() => void handleShare()}
-                className="rounded-full bg-hercom px-3 py-2"
+                className="px-3 py-2"
+                style={{
+                  backgroundColor: TACTICAL_COLORS.accent,
+                  borderRadius: TACTICAL_RADIUS.sharp,
+                }}
               >
-                <Text className="text-xs font-bold text-white">Compartir</Text>
+                <TacticalLabel size={10} style={{ color: TACTICAL_COLORS.base }}>
+                  Compartir
+                </TacticalLabel>
               </TouchableOpacity>
             )}
         </View>
 
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator color="#64748B" />
-            <Text className="mt-3 text-sm text-slate-500">
+            <ActivityIndicator color={TACTICAL_COLORS.accent} />
+            <TacticalText size={13} className="mt-3">
               Cargando ubicación…
-            </Text>
+            </TacticalText>
           </View>
         ) : live == null ? (
           <View className="flex-1 items-center justify-center px-8">
-            <Text className="text-center text-base font-semibold text-slate-800">
+            <TacticalTitle size={16} className="text-center">
               No encontramos este viaje
-            </Text>
-            <Text className="mt-2 text-center text-sm text-slate-500">
+            </TacticalTitle>
+            <TacticalText size={13} className="mt-2 text-center">
               El enlace puede haber expirado o el código es incorrecto.
-            </Text>
+            </TacticalText>
           </View>
         ) : (
           <View className="flex-1">
@@ -240,31 +277,36 @@ export function LiveTripMapModal({
             </MapView>
 
             <View
-              className="border-t border-slate-200 bg-white px-4 pt-3"
-              style={{ paddingBottom: insets.bottom + 12 }}
+              className="px-4 pt-3"
+              style={{
+                paddingBottom: insets.bottom + 12,
+                backgroundColor: TACTICAL_COLORS.baseElevated,
+                borderTopWidth: 1,
+                borderTopColor: TACTICAL_BORDER,
+              }}
             >
               {!live.isLive && (
-                <Text className="mb-2 text-center text-sm font-semibold text-slate-600">
+                <TacticalText size={13} className="mb-2 text-center" tone="text">
                   {live.status === "finished"
                     ? "El viaje ya terminó. Se muestra el rastro recorrido."
                     : "El seguimiento en vivo no está activo."}
-                </Text>
+                </TacticalText>
               )}
               {live.lat === null && live.isLive && (
-                <Text className="mb-2 text-center text-sm text-slate-500">
+                <TacticalText size={13} className="mb-2 text-center">
                   Esperando la primera señal GPS del chofer…
-                </Text>
+                </TacticalText>
               )}
-              <Text className="text-xs text-slate-500" numberOfLines={2}>
+              <TacticalText size={11} numberOfLines={2}>
                 De: {live.origin.address}
-              </Text>
-              <Text className="mt-1 text-xs text-slate-500" numberOfLines={2}>
+              </TacticalText>
+              <TacticalText size={11} className="mt-1" numberOfLines={2}>
                 A: {live.destination.address}
-              </Text>
+              </TacticalText>
               {live.shareToken !== null && (
-                <Text className="mt-2 text-center text-[11px] text-slate-400">
+                <TacticalLabel size={10} className="mt-2 text-center">
                   Código: {live.shareToken}
-                </Text>
+                </TacticalLabel>
               )}
             </View>
           </View>

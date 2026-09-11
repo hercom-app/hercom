@@ -1,6 +1,18 @@
 import { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { UiButton, UiInput } from "./ui";
+import {
+  TacticalButton,
+  TacticalInput,
+  TacticalLabel,
+  TacticalPanel,
+  TacticalText,
+} from "./tactical";
+import {
+  MONO,
+  TACTICAL_BORDER,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 
 type RateServiceStarsProps = {
   submitting: boolean;
@@ -17,48 +29,72 @@ export function RateServiceStars({
   const [comment, setComment] = useState("");
 
   return (
-    <View className="mt-3 rounded-2xl bg-slate-50 p-4">
-      <Text className="mb-2 text-base font-bold text-slate-900">
-        ¿Cómo estuvo el servicio?
-      </Text>
-      <Text className="mb-3 text-sm text-slate-500">
+    <TacticalPanel tone="sunken" className="mt-3">
+      <TacticalLabel tone="accent">¿Cómo estuvo el servicio?</TacticalLabel>
+      <TacticalText size={11} className="mb-3 mt-1">
         Tu valoración queda en el perfil del chofer.
-      </Text>
+      </TacticalText>
+
       <View className="mb-3 flex-row justify-between">
-        {[1, 2, 3, 4, 5].map((value) => (
-          <TouchableOpacity
-            key={value}
-            onPress={() => setScore(value)}
-            className="h-12 w-12 items-center justify-center rounded-full bg-white"
-          >
-            <Text
-              className={`text-2xl ${
-                value <= score ? "text-amber-400" : "text-slate-300"
-              }`}
+        {[1, 2, 3, 4, 5].map((value) => {
+          const filled = value <= score;
+          return (
+            <TouchableOpacity
+              key={value}
+              onPress={() => setScore(value)}
+              activeOpacity={0.75}
+              accessibilityLabel={`Valorar con ${value}`}
+              className="h-12 w-12 items-center justify-center"
+              style={{
+                backgroundColor: filled
+                  ? "rgba(251, 191, 36, 0.12)"
+                  : TACTICAL_COLORS.surface,
+                borderRadius: TACTICAL_RADIUS.sharp,
+                borderWidth: 1,
+                borderColor: filled ? TACTICAL_COLORS.warning : TACTICAL_BORDER,
+              }}
             >
-              ★
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={{
+                  fontSize: 22,
+                  color: filled
+                    ? TACTICAL_COLORS.warning
+                    : TACTICAL_COLORS.steel,
+                }}
+              >
+                ★
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
-      <UiInput
+
+      <TacticalInput
         value={comment}
         onChangeText={setComment}
         placeholder="Comentario (opcional)"
-        className="mb-3 min-h-[56px]"
+        containerClassName="mb-3"
+        style={{ minHeight: 56 }}
         textAlignVertical="top"
         multiline
       />
+
       {error !== null && (
-        <Text className="mb-2 text-sm font-medium text-red-600">{error}</Text>
+        <Text
+          className="mb-2 text-xs"
+          style={{ fontFamily: MONO.medium, color: TACTICAL_COLORS.danger }}
+        >
+          {error}
+        </Text>
       )}
-      <UiButton
+
+      <TacticalButton
         label={submitting ? "Enviando..." : "Enviar valoración"}
         size="md"
         onPress={() => onSubmit(score, comment)}
         disabled={submitting || score < 1}
         loading={submitting}
       />
-    </View>
+    </TacticalPanel>
   );
 }

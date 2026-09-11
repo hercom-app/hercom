@@ -8,6 +8,7 @@ import { getCurrentUser, requireFullAdmin, requireStaff, requireUser } from "./l
 import { assertDniAvailable } from "./lib/identity";
 import { getAccessContext, originMatchesDistrictScopes } from "./lib/adminAccess";
 import { ensureWallet } from "./driverWallets";
+import { requireAdultBirthDate } from "./lib/age";
 
 /** URL temporal para subir archivos (fotos brevete, CUL PDF). */
 export const generateUploadUrl = mutation({
@@ -64,6 +65,7 @@ export const submit = mutation({
     firstLastName: v.string(),
     secondLastName: v.string(),
     sex: sexValidator,
+    birthDate: v.string(),
     licenseNumber: v.string(),
     licenseCategory: v.string(),
     licenseFormat: v.optional(
@@ -127,6 +129,7 @@ export const submit = mutation({
     const firstName = args.firstName.trim();
     const firstLastName = args.firstLastName.trim();
     const secondLastName = args.secondLastName.trim();
+    const birthDate = requireAdultBirthDate(args.birthDate);
     const fullName = `${firstLastName} ${secondLastName} ${firstName}`.trim();
 
     await ctx.db.patch(user._id, {
@@ -144,6 +147,7 @@ export const submit = mutation({
       firstLastName,
       secondLastName,
       sex: args.sex,
+      birthDate,
       licenseNumber: args.licenseNumber.trim(),
       licenseCategory: args.licenseCategory,
       licenseFormat,

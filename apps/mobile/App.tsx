@@ -18,15 +18,21 @@ import {
   Poppins_600SemiBold,
   Poppins_700Bold,
 } from "@expo-google-fonts/poppins";
+import {
+  JetBrainsMono_400Regular,
+  JetBrainsMono_500Medium,
+  JetBrainsMono_700Bold,
+} from "@expo-google-fonts/jetbrains-mono";
 import { AppErrorBoundary } from "./src/components/AppErrorBoundary";
 import { AuthSessionGuard } from "./src/components/AuthSessionGuard";
 import { LiveShareLinkListener } from "./src/components/LiveShareLinkListener";
 import { NotificationBridge } from "./src/components/NotificationBridge";
 import { PendingRegistrationSubmit } from "./src/components/PendingRegistrationSubmit";
 import { AppModeProvider } from "./src/contexts/AppModeContext";
+import { ThemeProvider, useAppTheme } from "./src/contexts/ThemeContext";
 import { SignInScreen } from "./src/screens/SignInScreen";
 import { HomeScreen } from "./src/screens/HomeScreen";
-import { POPPINS } from "./src/constants/theme";
+import { POPPINS, TACTICAL_COLORS } from "./src/constants/theme";
 
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -66,6 +72,9 @@ export default function App() {
     Poppins_500Medium,
     Poppins_600SemiBold,
     Poppins_700Bold,
+    JetBrainsMono_400Regular,
+    JetBrainsMono_500Medium,
+    JetBrainsMono_700Bold,
   });
 
   useEffect(() => {
@@ -76,40 +85,60 @@ export default function App() {
 
   if (!fontsLoaded) {
     return (
-      <View className="flex-1 items-center justify-center bg-canvas">
-        <ActivityIndicator color="#64748B" />
+      <View
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: TACTICAL_COLORS.base }}
+      >
+        <ActivityIndicator color={TACTICAL_COLORS.accent} />
       </View>
     );
   }
 
   return (
     <AppErrorBoundary>
-      <ConvexAuthProvider client={convex} storage={secureStorage}>
-        <SafeAreaProvider>
-          <SafeAreaView className="flex-1 bg-canvas" edges={["left", "right"]}>
-            <LiveShareLinkListener />
-            <AuthLoading>
-              <View className="flex-1 items-center justify-center bg-canvas">
-                <ActivityIndicator color="#64748B" />
-              </View>
-            </AuthLoading>
-            <Unauthenticated>
-              <SignInScreen />
-            </Unauthenticated>
-            <Authenticated>
-              <AuthSessionGuard>
-                <PendingRegistrationSubmit>
-                  <AppModeProvider>
-                    <NotificationBridge />
-                    <HomeScreen />
-                  </AppModeProvider>
-                </PendingRegistrationSubmit>
-              </AuthSessionGuard>
-            </Authenticated>
-            <StatusBar style="dark" />
-          </SafeAreaView>
-        </SafeAreaProvider>
-      </ConvexAuthProvider>
+      <ThemeProvider>
+        <ThemedApp />
+      </ThemeProvider>
     </AppErrorBoundary>
+  );
+}
+
+function ThemedApp() {
+  const { scheme, colors } = useAppTheme();
+
+  return (
+    <ConvexAuthProvider client={convex} storage={secureStorage}>
+      <SafeAreaProvider>
+        <SafeAreaView
+          className="flex-1"
+          style={{ backgroundColor: colors.base }}
+          edges={["left", "right"]}
+        >
+          <LiveShareLinkListener />
+          <AuthLoading>
+            <View
+              className="flex-1 items-center justify-center"
+              style={{ backgroundColor: colors.base }}
+            >
+              <ActivityIndicator color={colors.accent} />
+            </View>
+          </AuthLoading>
+          <Unauthenticated>
+            <SignInScreen />
+          </Unauthenticated>
+          <Authenticated>
+            <AuthSessionGuard>
+              <PendingRegistrationSubmit>
+                <AppModeProvider>
+                  <NotificationBridge />
+                  <HomeScreen />
+                </AppModeProvider>
+              </PendingRegistrationSubmit>
+            </AuthSessionGuard>
+          </Authenticated>
+          <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </ConvexAuthProvider>
   );
 }

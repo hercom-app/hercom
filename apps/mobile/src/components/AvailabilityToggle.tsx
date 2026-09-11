@@ -2,7 +2,12 @@ import { useRef, useState } from "react";
 import { PanResponder, Text, View } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
-import { UiCard } from "./ui";
+import { TacticalLabel, TacticalPanel, TacticalStatus } from "./tactical";
+import {
+  MONO,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 
 type DriverStatus = "available" | "busy" | "offline";
 
@@ -63,81 +68,91 @@ export function AvailabilityToggle({ status }: { status: DriverStatus }) {
   const busy = status === "busy";
   const isAvailable = status === "available";
   const slideLabel = busy
-    ? "En servicio — no puedes cambiar el estado"
+    ? "En servicio — estado bloqueado"
     : isAvailable
       ? "Desliza para desconectarte"
-      : "Desliza para ponerte disponible";
+      : "Desliza para activar";
+
+  const trackColor = busy
+    ? "rgba(91, 132, 177, 0.18)"
+    : isAvailable
+      ? "rgba(74, 222, 128, 0.16)"
+      : "rgba(161, 196, 253, 0.14)";
+  const trackBorder = busy
+    ? TACTICAL_COLORS.steel
+    : isAvailable
+      ? TACTICAL_COLORS.success
+      : TACTICAL_COLORS.accent;
 
   return (
-    <UiCard className="mb-4">
+    <TacticalPanel corners active={isAvailable} className="mb-3">
       <View className="mb-3 flex-row items-center justify-between">
-        <Text className="text-base font-semibold text-slate-800">Estado</Text>
-        <View
-          className={`rounded-full px-3 py-1 ${
-            isAvailable
-              ? "bg-success-soft"
-              : busy
-                ? "bg-warning-soft"
-                : "bg-slate-200"
-          }`}
-        >
-          <Text
-            className={`text-xs font-semibold ${
-              isAvailable
-                ? "text-success"
-                : busy
-                  ? "text-warning"
-                  : "text-slate-600"
-            }`}
-          >
-            {STATUS_LABELS[status]}
-          </Text>
-        </View>
+        <TacticalLabel tone="accent">Estado operativo</TacticalLabel>
+        <TacticalStatus
+          label={STATUS_LABELS[status]}
+          tone={isAvailable ? "success" : busy ? "warning" : "idle"}
+        />
       </View>
 
       {/* track = riel */}
       <View
         onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
-        className={`overflow-hidden rounded-full ${
-          busy ? "bg-slate-300" : isAvailable ? "bg-success" : "bg-hercom"
-        }`}
-        style={{ height: TRACK_H, position: "relative" }}
+        className="overflow-hidden"
+        style={{
+          height: TRACK_H,
+          position: "relative",
+          backgroundColor: trackColor,
+          borderRadius: TACTICAL_RADIUS.sharp,
+          borderWidth: 1,
+          borderColor: `${trackBorder}59`,
+        }}
       >
         <Text
           pointerEvents="none"
-          className="absolute left-0 right-0 text-center text-sm font-semibold text-white/95"
+          className="absolute left-0 right-0 text-center"
           style={{
             top: 0,
             height: TRACK_H,
             lineHeight: TRACK_H,
             paddingLeft: THUMB + INSET,
             paddingRight: INSET,
+            fontFamily: MONO.medium,
+            fontSize: 11,
+            letterSpacing: 1.5,
+            color: busy ? TACTICAL_COLORS.steel : TACTICAL_COLORS.text,
           }}
         >
-          {slideLabel}
+          {slideLabel.toUpperCase()}
         </Text>
 
         {/* thumb = control / perilla */}
         {!busy && (
           <View
             {...pan.panHandlers}
-            className="absolute items-center justify-center rounded-full bg-white"
+            className="absolute items-center justify-center"
             style={{
               width: THUMB,
               height: THUMB,
               left: INSET + thumbX,
               top: INSET,
-              elevation: 3,
-              shadowColor: "#0F172A",
-              shadowOpacity: 0.2,
-              shadowRadius: 3,
-              shadowOffset: { width: 0, height: 1 },
+              backgroundColor: isAvailable
+                ? TACTICAL_COLORS.success
+                : TACTICAL_COLORS.accent,
+              borderRadius: TACTICAL_RADIUS.sharp,
             }}
           >
-            <Text className="text-base font-bold text-slate-600">››</Text>
+            <Text
+              style={{
+                fontFamily: MONO.bold,
+                fontSize: 15,
+                color: TACTICAL_COLORS.base,
+              }}
+            >
+              {"››"}
+            </Text>
           </View>
         )}
       </View>
-    </UiCard>
+    </TacticalPanel>
   );
 }

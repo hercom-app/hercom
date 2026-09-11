@@ -18,6 +18,15 @@ import {
   type PlaceSuggestion,
   type SelectedPlace,
 } from "../lib/googlePlaces";
+import { TacticalLabel, TacticalText } from "./tactical";
+import {
+  MONO,
+  POPPINS,
+  TACTICAL_BORDER,
+  TACTICAL_BORDER_SOFT,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 
 type AddressAutocompleteProps = {
   value: string;
@@ -234,7 +243,7 @@ export function AddressAutocomplete({
         value={value}
         onChangeText={handleChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#94A3B8"
+        placeholderTextColor="rgba(91, 132, 177, 0.7)"
         editable={!disabled}
         autoFocus={autoFocus}
         onFocus={() => {
@@ -254,29 +263,56 @@ export function AddressAutocomplete({
             endSearch();
           }, 220);
         }}
-        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
+        style={{
+          backgroundColor: TACTICAL_COLORS.surfaceSunken,
+          borderRadius: TACTICAL_RADIUS.sharp,
+          borderWidth: 1,
+          borderColor:
+            selectedPlaceId !== null ? TACTICAL_COLORS.accent : TACTICAL_BORDER,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+          fontFamily: POPPINS.regular,
+          fontSize: 15,
+          color: disabled
+            ? TACTICAL_COLORS.steel
+            : TACTICAL_COLORS.textStrong,
+        }}
       />
 
       {!placesEnabled && (
-        <Text className="mt-1 text-[11px] text-warning">
+        <Text
+          className="mt-1.5 text-[11px]"
+          style={{ fontFamily: MONO.medium, color: TACTICAL_COLORS.warning }}
+        >
           Sin API key de Google: puedes escribir la dirección manualmente.
         </Text>
       )}
 
       {loading && searchActive && (
         <View className="mt-2 flex-row items-center gap-2">
-          <ActivityIndicator color="#64748B" size="small" />
-          <Text className="text-xs text-slate-500">Buscando direcciones...</Text>
+          <ActivityIndicator color={TACTICAL_COLORS.accent} size="small" />
+          <TacticalLabel size={9}>Buscando direcciones...</TacticalLabel>
         </View>
       )}
 
       {searchError !== null && !loading && searchActive && (
-        <Text className="mt-1 text-xs text-warning">{searchError}</Text>
+        <Text
+          className="mt-1.5 text-[11px]"
+          style={{ fontFamily: MONO.medium, color: TACTICAL_COLORS.warning }}
+        >
+          {searchError}
+        </Text>
       )}
 
       {showSuggestions && (
         <View
-          className="mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white"
+          className="mt-2 overflow-hidden"
+          style={{
+            backgroundColor: TACTICAL_COLORS.surface,
+            borderRadius: TACTICAL_RADIUS.panel,
+            borderWidth: 1,
+            borderColor: TACTICAL_BORDER,
+          }}
           onTouchStart={() => {
             interactingWithListRef.current = true;
             clearBlurTimeout();
@@ -301,15 +337,29 @@ export function AddressAutocomplete({
                   clearBlurTimeout();
                 }}
                 onPress={() => void handleSelectSuggestion(suggestion)}
-                className="border-b border-slate-100 px-4 py-3 active:bg-slate-50"
+                style={({ pressed }) => ({
+                  borderBottomWidth: 1,
+                  borderBottomColor: TACTICAL_BORDER_SOFT,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  backgroundColor: pressed
+                    ? "rgba(161, 196, 253, 0.12)"
+                    : "transparent",
+                })}
               >
-                <Text className="text-sm font-semibold text-slate-900">
+                <Text
+                  style={{
+                    fontFamily: POPPINS.medium,
+                    fontSize: 14,
+                    color: TACTICAL_COLORS.text,
+                  }}
+                >
                   {suggestion.mainText}
                 </Text>
                 {suggestion.secondaryText !== undefined && (
-                  <Text className="mt-0.5 text-xs text-slate-500">
+                  <TacticalText size={11} className="mt-0.5">
                     {suggestion.secondaryText}
-                  </Text>
+                  </TacticalText>
                 )}
               </Pressable>
             ))}

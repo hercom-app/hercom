@@ -9,26 +9,53 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from "react-native";
-import { POPPINS } from "../constants/theme";
+import { useAppTheme } from "../contexts/ThemeContext";
+import {
+  MONO,
+  POPPINS,
+  TACTICAL_BORDER,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
+
+/**
+ * Primitivos base de la app, ya en estética táctica (HUD oscuro).
+ * Para piezas nuevas preferí los componentes de `tactical.tsx`, que exponen
+ * corchetes de mira, telemetría y etiquetas monoespaciadas.
+ */
 
 export const CARD_SHADOW = {
-  shadowColor: "#0F172A",
-  shadowOpacity: 0.06,
-  shadowRadius: 16,
-  shadowOffset: { width: 0, height: 8 },
-  elevation: 3,
+  shadowColor: "#000000",
+  shadowOpacity: 0.35,
+  shadowRadius: 14,
+  shadowOffset: { width: 0, height: 6 },
+  elevation: 4,
 } as const;
 
 export const SHEET_SHADOW = {
-  shadowColor: "#0F172A",
-  shadowOpacity: 0.14,
-  shadowRadius: 20,
+  shadowColor: "#000000",
+  shadowOpacity: 0.5,
+  shadowRadius: 22,
   shadowOffset: { width: 0, height: -6 },
-  elevation: 16,
+  elevation: 18,
 } as const;
 
-export const FILLED_INPUT_CLASS =
-  "rounded-2xl bg-slate-100 px-4 py-3.5 text-base text-slate-900";
+/** Campo relleno del HUD (fondo hundido + borde acero). */
+export const FILLED_INPUT_CLASS = "px-4 py-3.5 text-base";
+
+export function getFilledInputStyle() {
+  return {
+    backgroundColor: TACTICAL_COLORS.surfaceSunken,
+    borderRadius: TACTICAL_RADIUS.sharp,
+    borderWidth: 1,
+    borderColor: TACTICAL_BORDER,
+    color: TACTICAL_COLORS.textStrong,
+    fontFamily: POPPINS.regular,
+  };
+}
+
+/** @deprecated Usa getFilledInputStyle() — el valor estático no sigue el tema. */
+export const FILLED_INPUT_STYLE = getFilledInputStyle();
 
 type UiButtonProps = {
   label: string;
@@ -48,37 +75,47 @@ export function UiButton({
   variant = "primary",
   size = "lg",
 }: UiButtonProps) {
-  const tone =
-    variant === "primary"
-      ? "bg-hercom"
-      : variant === "secondary"
-        ? "border border-hercom/30 bg-hercom-soft"
-        : "bg-transparent";
-  const labelTone =
-    variant === "primary"
-      ? "text-white"
-      : variant === "secondary"
-        ? "text-hercom-dark"
-        : "text-hercom-dark";
+  const { colors, border, glow } = useAppTheme();
+  const isPrimary = variant === "primary";
+  const background = isPrimary
+    ? colors.accent
+    : variant === "secondary"
+      ? `${colors.steel}1F`
+      : "transparent";
+  const borderColor = isPrimary ? colors.accent : border;
+  const labelColor = isPrimary ? colors.base : colors.accent;
   const height = size === "lg" ? "h-14" : "h-12";
-  const labelSize = size === "lg" ? "text-base" : "text-sm";
+
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.88}
-      className={`${height} items-center justify-center rounded-2xl px-4 disabled:opacity-45 ${tone}`}
+      activeOpacity={0.75}
+      className={`${height} items-center justify-center px-4 ${
+        disabled || loading ? "opacity-45" : ""
+      }`}
+      style={[
+        {
+          backgroundColor: background,
+          borderRadius: TACTICAL_RADIUS.sharp,
+          borderWidth: 1,
+          borderColor,
+        },
+        isPrimary && !disabled && !loading ? glow : null,
+      ]}
     >
       {loading ? (
-        <ActivityIndicator
-          color={variant === "primary" ? "#FFFFFF" : "#0062CC"}
-        />
+        <ActivityIndicator color={labelColor} />
       ) : (
         <Text
-          className={`${labelSize} ${labelTone}`}
-          style={{ fontFamily: POPPINS.bold }}
+          style={{
+            fontFamily: MONO.bold,
+            fontSize: size === "lg" ? 13 : 12,
+            letterSpacing: 2,
+            color: labelColor,
+          }}
         >
-          {label}
+          {label.toUpperCase()}
         </Text>
       )}
     </TouchableOpacity>
@@ -92,10 +129,28 @@ type UiCardProps = {
 };
 
 export function UiCard({ children, className = "", style }: UiCardProps) {
+  const { colors, border, scheme } = useAppTheme();
   return (
     <View
-      className={`rounded-3xl bg-white p-5 ${className}`.trim()}
-      style={[CARD_SHADOW, style]}
+      className={`p-5 ${className}`.trim()}
+      style={[
+        {
+          backgroundColor: colors.surface,
+          borderRadius: TACTICAL_RADIUS.panel,
+          borderWidth: 1,
+          borderColor: border,
+        },
+        scheme === "light"
+          ? {
+              shadowColor: "#0F172A",
+              shadowOpacity: 0.08,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 2,
+            }
+          : CARD_SHADOW,
+        style,
+      ]}
     >
       {children}
     </View>
@@ -109,18 +164,26 @@ type UiChipProps = {
 };
 
 export function UiChip({ label, selected = false, onPress }: UiChipProps) {
+  const { colors, border } = useAppTheme();
   const body = (
     <View
-      className={`rounded-full px-3.5 py-1.5 ${
-        selected ? "bg-hercom" : "bg-slate-100"
-      }`}
+      className="px-3 py-1.5"
+      style={{
+        borderRadius: TACTICAL_RADIUS.sharp,
+        borderWidth: 1,
+        borderColor: selected ? colors.accent : border,
+        backgroundColor: selected ? `${colors.accent}24` : "transparent",
+      }}
     >
       <Text
-        className={`text-xs font-semibold ${
-          selected ? "text-white" : "text-slate-600"
-        }`}
+        style={{
+          fontFamily: MONO.medium,
+          fontSize: 10,
+          letterSpacing: 1.3,
+          color: selected ? colors.accent : colors.steel,
+        }}
       >
-        {label}
+        {label.toUpperCase()}
       </Text>
     </View>
   );
@@ -128,7 +191,7 @@ export function UiChip({ label, selected = false, onPress }: UiChipProps) {
     return body;
   }
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
       {body}
     </TouchableOpacity>
   );
@@ -139,12 +202,25 @@ type UiBadgeProps = {
 };
 
 export function UiBadge({ count }: UiBadgeProps) {
+  const { colors } = useAppTheme();
   if (count <= 0) {
     return null;
   }
   return (
-    <View className="min-w-[20px] items-center rounded-full bg-hercom px-1.5 py-0.5">
-      <Text className="text-[10px] font-bold text-white">
+    <View
+      className="min-w-[20px] items-center px-1.5 py-0.5"
+      style={{
+        backgroundColor: colors.accent,
+        borderRadius: TACTICAL_RADIUS.sharp,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: MONO.bold,
+          fontSize: 10,
+          color: colors.base,
+        }}
+      >
         {count > 99 ? "99+" : String(count)}
       </Text>
     </View>
@@ -155,12 +231,24 @@ type UiInputProps = TextInputProps & {
   className?: string;
 };
 
-export function UiInput({ className = "", ...props }: UiInputProps) {
+export function UiInput({ className = "", style, ...props }: UiInputProps) {
+  const { colors, border } = useAppTheme();
   return (
     <TextInput
-      placeholderTextColor="#94A3B8"
+      placeholderTextColor={`${colors.steel}B3`}
       {...props}
       className={`${FILLED_INPUT_CLASS} ${className}`.trim()}
+      style={[
+        {
+          backgroundColor: colors.surfaceSunken,
+          borderRadius: TACTICAL_RADIUS.sharp,
+          borderWidth: 1,
+          borderColor: border,
+          color: colors.textStrong,
+          fontFamily: POPPINS.regular,
+        },
+        style,
+      ]}
     />
   );
 }
@@ -172,13 +260,40 @@ export function UiEmpty({
   title: string;
   subtitle?: string;
 }) {
+  const { colors, borderSoft } = useAppTheme();
   return (
-    <View className="items-center px-4 py-10">
-      <Text className="text-center text-base font-semibold text-slate-800">
-        {title}
+    <View
+      className="items-center px-4 py-8"
+      style={{
+        borderWidth: 1,
+        borderColor: borderSoft,
+        borderStyle: "dashed",
+        borderRadius: TACTICAL_RADIUS.sharp,
+      }}
+    >
+      <Text
+        className="text-center"
+        style={{
+          fontFamily: MONO.medium,
+          fontSize: 11,
+          letterSpacing: 1.4,
+          color: colors.text,
+        }}
+      >
+        {title.toUpperCase()}
       </Text>
       {subtitle !== undefined && subtitle !== "" && (
-        <Text className="mt-1 text-center text-sm text-slate-500">{subtitle}</Text>
+        <Text
+          className="mt-1.5 text-center"
+          style={{
+            fontFamily: POPPINS.regular,
+            fontSize: 11,
+            lineHeight: 17,
+            color: colors.steel,
+          }}
+        >
+          {subtitle}
+        </Text>
       )}
     </View>
   );

@@ -12,6 +12,7 @@ import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Doc } from "@proyecto/backend/dataModel";
 import { loadAppMode, saveAppMode, type AppMode } from "../lib/appMode";
+import { TACTICAL_COLORS } from "../constants/theme";
 
 type DriverApplicationStatus = Doc<"driverApplications">["status"] | null;
 
@@ -116,8 +117,11 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
     !ready
   ) {
     return (
-      <View className="flex-1 items-center justify-center bg-canvas">
-        <ActivityIndicator color="#64748B" />
+      <View
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: TACTICAL_COLORS.base }}
+      >
+        <ActivityIndicator color={TACTICAL_COLORS.accent} />
       </View>
     );
   }

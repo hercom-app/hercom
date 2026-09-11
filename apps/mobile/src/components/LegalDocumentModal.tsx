@@ -1,5 +1,7 @@
-import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Modal, ScrollView, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TacticalLabel, TacticalText, TacticalTitle } from "./tactical";
+import { TACTICAL_BORDER, TACTICAL_COLORS } from "../constants/theme";
 
 type LegalDocumentModalProps = {
   visible: boolean;
@@ -25,13 +27,28 @@ export function LegalDocumentModal({
       onRequestClose={onClose}
     >
       <View
-        className="flex-1 bg-white"
-        style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }}
+        className="flex-1"
+        style={{
+          backgroundColor: TACTICAL_COLORS.base,
+          paddingTop: insets.top + 8,
+          paddingBottom: insets.bottom + 8,
+        }}
       >
-        <View className="mb-2 flex-row items-center justify-between border-b border-slate-100 px-5 pb-3">
-          <Text className="flex-1 text-lg font-bold text-slate-900">{title}</Text>
+        <View
+          className="mb-2 flex-row items-center justify-between px-5 pb-3"
+          style={{
+            borderBottomWidth: 1,
+            borderBottomColor: TACTICAL_BORDER,
+            backgroundColor: TACTICAL_COLORS.baseElevated,
+          }}
+        >
+          <TacticalTitle size={17} className="flex-1 pr-3">
+            {title}
+          </TacticalTitle>
           <TouchableOpacity onPress={onClose} hitSlop={12} className="px-2 py-1">
-            <Text className="text-sm font-semibold text-hercom">Cerrar</Text>
+            <TacticalLabel tone="accent" size={10}>
+              Cerrar
+            </TacticalLabel>
           </TouchableOpacity>
         </View>
         <ScrollView
@@ -39,7 +56,9 @@ export function LegalDocumentModal({
           showsVerticalScrollIndicator
           contentContainerStyle={{ paddingBottom: 32 }}
         >
-          <Text className="mt-2 text-[15px] leading-6 text-slate-700">{body}</Text>
+          <TacticalText size={13} tone="text" className="mt-2">
+            {body}
+          </TacticalText>
         </ScrollView>
       </View>
     </Modal>

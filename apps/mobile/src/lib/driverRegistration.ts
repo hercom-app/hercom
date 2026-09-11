@@ -9,6 +9,7 @@ export type PendingDriverRegistration = {
   firstLastName: string;
   secondLastName: string;
   sex: "M" | "F";
+  birthDate: string;
   licenseNumber: string;
   licenseCategory: string;
   licenseFormat: "physical" | "digital";
@@ -38,7 +39,12 @@ export async function loadPendingDriverRegistration(): Promise<PendingDriverRegi
     return null;
   }
   try {
-    return JSON.parse(raw) as PendingDriverRegistration;
+    const parsed = JSON.parse(raw) as PendingDriverRegistration;
+    if (typeof parsed.birthDate !== "string" || parsed.birthDate.trim() === "") {
+      await SecureStore.deleteItemAsync(PENDING_KEY);
+      return null;
+    }
+    return parsed;
   } catch {
     await SecureStore.deleteItemAsync(PENDING_KEY);
     return null;
@@ -55,6 +61,7 @@ type SubmitDriverApplicationArgs = {
   firstLastName: string;
   secondLastName: string;
   sex: "M" | "F";
+  birthDate: string;
   licenseNumber: string;
   licenseCategory: string;
   licenseFormat: "physical" | "digital";
@@ -116,6 +123,7 @@ export async function submitDriverApplicationFromPending(
     firstLastName: pending.firstLastName,
     secondLastName: pending.secondLastName,
     sex: pending.sex,
+    birthDate: pending.birthDate,
     licenseNumber: pending.licenseNumber,
     licenseCategory: pending.licenseCategory,
     licenseFormat: pending.licenseFormat,

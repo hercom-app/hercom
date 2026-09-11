@@ -1,11 +1,53 @@
-import { Text, TouchableOpacity, View } from "react-native";
+import { TouchableOpacity, View } from "react-native";
+import {
+  TACTICAL_BORDER,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 
 type HamburgerButtonProps = {
   onPress: () => void;
+  /** `tactical` usa el cuadro angular del HUD en lugar del círculo blanco. */
+  variant?: "light" | "tactical";
 };
 
-/** Botón circular con 3 rayitas (estilo inDrive / Yango). */
-export function HamburgerButton({ onPress }: HamburgerButtonProps) {
+/** Botón de menú: círculo blanco (institucional) o cuadro HUD (táctico). */
+export function HamburgerButton({
+  onPress,
+  variant = "tactical",
+}: HamburgerButtonProps) {
+  if (variant === "tactical") {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        accessibilityLabel="Abrir menú"
+        activeOpacity={0.75}
+        className="h-11 w-11 items-center justify-center"
+        style={{
+          backgroundColor: TACTICAL_COLORS.surface,
+          borderRadius: TACTICAL_RADIUS.sharp,
+          borderWidth: 1,
+          borderColor: TACTICAL_BORDER,
+        }}
+      >
+        <View className="gap-1.5">
+          <View
+            className="h-0.5 w-5"
+            style={{ backgroundColor: TACTICAL_COLORS.accent }}
+          />
+          <View
+            className="h-0.5 w-5"
+            style={{ backgroundColor: TACTICAL_COLORS.accent }}
+          />
+          <View
+            className="h-0.5 w-3.5"
+            style={{ backgroundColor: TACTICAL_COLORS.steel }}
+          />
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <TouchableOpacity
       onPress={onPress}

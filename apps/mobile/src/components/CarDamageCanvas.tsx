@@ -10,6 +10,12 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TacticalLabel, TacticalText, TacticalTitle } from "./tactical";
+import {
+  TACTICAL_BORDER,
+  TACTICAL_COLORS,
+  TACTICAL_RADIUS,
+} from "../constants/theme";
 
 export type CarView = "front" | "rear" | "side" | "diagram";
 
@@ -49,10 +55,10 @@ export function CarDamageCanvas({ marks, onChange }: Props) {
 
   return (
     <View>
-      <Text className="mb-2 text-xs text-slate-500">
+      <TacticalText size={12} className="mb-2">
         Tocá el vehículo para marcar abolladuras. Tocá una marca para
         quitarla.
-      </Text>
+      </TacticalText>
 
       <DiagramPad
         width={embedW}
@@ -63,11 +69,15 @@ export function CarDamageCanvas({ marks, onChange }: Props) {
 
       <TouchableOpacity
         onPress={() => setExpanded(true)}
-        className="mt-3 rounded-xl bg-hercom py-3"
+        className="mt-3 items-center py-3"
+        style={{
+          backgroundColor: TACTICAL_COLORS.accent,
+          borderRadius: TACTICAL_RADIUS.sharp,
+        }}
       >
-        <Text className="text-center text-sm font-bold text-white">
+        <TacticalLabel size={11} style={{ color: TACTICAL_COLORS.base }}>
           Ampliar diagrama a pantalla completa
-        </Text>
+        </TacticalLabel>
       </TouchableOpacity>
 
       {marks.filter((m) => m.view === "diagram").length > 0 && (
@@ -77,9 +87,9 @@ export function CarDamageCanvas({ marks, onChange }: Props) {
           }
           className="mt-2 py-1"
         >
-          <Text className="text-center text-xs font-semibold text-red-600">
+          <TacticalLabel size={10} className="text-center" style={{ color: TACTICAL_COLORS.danger }}>
             Limpiar marcas
-          </Text>
+          </TacticalLabel>
         </TouchableOpacity>
       )}
 
@@ -90,26 +100,31 @@ export function CarDamageCanvas({ marks, onChange }: Props) {
         onRequestClose={() => setExpanded(false)}
       >
         <View
-          className="flex-1 bg-slate-100"
+          className="flex-1"
           style={{
+            backgroundColor: TACTICAL_COLORS.base,
             paddingTop: insets.top + 8,
             paddingBottom: insets.bottom + 8,
           }}
         >
           <View className="mb-3 flex-row items-center justify-between px-4">
-            <Text className="text-base font-bold text-slate-900">
-              Marcar abolladuras
-            </Text>
+            <TacticalTitle size={16}>Marcar abolladuras</TacticalTitle>
             <TouchableOpacity
               onPress={() => setExpanded(false)}
-              className="rounded-xl bg-brand px-4 py-2"
+              className="px-4 py-2"
+              style={{
+                backgroundColor: TACTICAL_COLORS.accent,
+                borderRadius: TACTICAL_RADIUS.sharp,
+              }}
             >
-              <Text className="text-sm font-bold text-white">Listo</Text>
+              <TacticalLabel size={11} style={{ color: TACTICAL_COLORS.base }}>
+                Listo
+              </TacticalLabel>
             </TouchableOpacity>
           </View>
-          <Text className="mb-3 px-4 text-xs text-slate-500">
+          <TacticalText size={12} className="mb-3 px-4">
             Tocá el vehículo. Tocá una marca roja para quitarla.
-          </Text>
+          </TacticalText>
           <View className="flex-1 items-center justify-center px-2">
             <DiagramPad
               width={fullWFinal}
@@ -164,8 +179,16 @@ function DiagramPad({
       onPress={(e) =>
         handlePress(e.nativeEvent.locationX, e.nativeEvent.locationY)
       }
-      className="overflow-hidden rounded-xl border border-slate-300 bg-white"
-      style={{ width, height, alignSelf: "center" }}
+      className="overflow-hidden"
+      style={{
+        width,
+        height,
+        alignSelf: "center",
+        backgroundColor: TACTICAL_COLORS.surfaceSunken,
+        borderRadius: TACTICAL_RADIUS.panel,
+        borderWidth: 1,
+        borderColor: TACTICAL_BORDER,
+      }}
     >
       <View pointerEvents="none" style={{ width, height }}>
         <Image
@@ -186,8 +209,21 @@ function DiagramPad({
             height: 28,
           }}
         >
-          <View className="h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-red-600">
-            <Text className="text-xs font-bold text-white">×</Text>
+          <View
+            className="h-7 w-7 items-center justify-center"
+            style={{
+              borderRadius: 14,
+              borderWidth: 2,
+              borderColor: TACTICAL_COLORS.textStrong,
+              backgroundColor: TACTICAL_COLORS.danger,
+            }}
+          >
+            <Text
+              className="text-xs font-bold"
+              style={{ color: TACTICAL_COLORS.textStrong }}
+            >
+              ×
+            </Text>
           </View>
         </View>
       ))}

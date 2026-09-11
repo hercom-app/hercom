@@ -1,5 +1,13 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { View } from "react-native";
+import {
+  TacticalButton,
+  TacticalPanel,
+  TacticalScreen,
+  TacticalStatus,
+  TacticalText,
+  TacticalTitle,
+} from "./tactical";
 
 type AppErrorBoundaryProps = {
   children: ReactNode;
@@ -40,24 +48,22 @@ export class AppErrorBoundary extends Component<
     }
 
     return (
-      <View className="flex-1 items-center justify-center bg-canvas px-6">
-        <View className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-lg">
-          <Text className="mb-2 text-center text-lg font-bold text-slate-900">
+      <TacticalScreen className="items-center justify-center px-6">
+        <TacticalPanel corners className="w-full max-w-sm">
+          <View className="flex-row">
+            <TacticalStatus label="Falla de sistema" tone="danger" />
+          </View>
+          <TacticalTitle size={18} className="mt-3">
             Ocurrió un error
-          </Text>
-          <Text className="text-center text-sm text-slate-600">
+          </TacticalTitle>
+          <TacticalText size={12} className="mt-2">
             {this.state.message}
-          </Text>
-          <TouchableOpacity
-            onPress={this.handleRetry}
-            className="mt-5 h-14 items-center justify-center rounded-2xl bg-hercom"
-          >
-            <Text className="text-center text-base font-bold text-white">
-              Reintentar
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+          </TacticalText>
+          <View className="mt-5">
+            <TacticalButton label="Reintentar" onPress={this.handleRetry} />
+          </View>
+        </TacticalPanel>
+      </TacticalScreen>
     );
   }
 }

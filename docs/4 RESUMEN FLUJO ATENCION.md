@@ -1,78 +1,134 @@
-# Resumen del flujo de atención
+# Resumen del flujo de atención — web interna
 
-Este documento describe el recorrido completo de un servicio en Hercom: desde que alguien pide un chofer hasta que el viaje queda cerrado y registrado el pago. Para detalle de archivos y métodos, ver `docs/3 FLUJO TECNICO LOGIN VIAJE CIERRE.md`.
+Revisión del panel `apps/web-admin` y cómo se conecta con la app.
+Los **3 flujos UI** (inscripción, recarga, servicio) están en [`3-flujos-ui.md`](./3-flujos-ui.md).
 
----
+Login: `SignInForm.tsx`. Sin rol `admin` / `superadmin` no entra.
 
-## Antes del viaje
-
-El chofer entra a la app, se registra con DNI y documentos, y queda con perfil en `drivers` y wallet en `driverWallets`. Recarga saldo solo (botones S/10, S/20, S/50 o monto libre). Sin saldo suficiente no puede ofertar: la comisión de la app es 25% del precio ofertado y el piso de saldo es S/-10.
-
-El cliente inicia sesión y pide servicio con recojo, destino y tarifa base (mínimo S/80 = S/40/h × 2 h). El servicio nace en estado `pending` y queda etiquetado como **App** (`serviceType=app`, canal app móvil).
-
-En la **web comercial** o por **teléfono** (registro admin), las solicitudes quedan como **Premium**.
-
-Operaciones puede activar **promociones festivas** por departamento/provincia/distrito en el panel admin. El descuento lo absorbe Hercom (tope 25%); el chofer mantiene su neto del 75% sobre la tarifa de lista.
-
-Choferes disponibles ven la solicitud y envían oferta (tarifa ≥ base). El cliente recibe notificación. Cuando elige una oferta, el servicio pasa a `assigned`, el chofer queda `busy`, se calcula el anticipo del 25% sobre la tarifa ofertada y se genera un código de seguridad de 4 dígitos.
-
-Antes de salir, el cliente entrega el anticipo al chofer y el chofer lo confirma en la app (`confirmAdvanceReceived`). Solo entonces puede pulsar **Salir a recoger**.
+| Rol | Qué ve |
+| --- | --- |
+| Superadmin | Todo el menú |
+| Admin zonal | Solo Choferes, Servicios, Clientes, Soporte (filtrado por distrito) |
 
 ---
 
-## Atención en ruta
+## Inventario del menú
 
-El chofer marca que sale a recoger (`heading_to_pickup`). La app abre Waze al punto de recojo y el cliente recibe aviso.
+| Sección | Archivo | Qué hace |
+| --- | --- | --- |
+| Choferes | `DriversView.tsx` + `DriverDossierPanel.tsx` | Solicitudes de alta, DNI/RENIEC, brevete, CUL, récord; **Aprobar / Rechazar** |
+| Servicios | `ServicesView.tsx` | Tablero de viajes, **En ruta ahora**, mapa en vivo, anticipo, código, pagos |
+| Recargas | `TopUpsView.tsx` | Recargas de wallet que el chofer hizo en la app |
+| Promociones | `PromotionsView.tsx` | Campañas por región (descuento lo absorbe Hercom) |
+| Moneda y tipo de cambio | `MarketsView.tsx` | Tarifa/hora, mínimo de horas, comisión, FX |
+| Clientes | `AccountsView.tsx` (`audience=clients`) | Usuarios de la app |
+| Cuentas de usuario | `AccountsView.tsx` (`audience=staff`) | Admins internos |
+| Soporte | `SupportView.tsx` | Chat de **Ayuda** de la app (no es el FAB de emergencia) |
 
-Al llegar (`arrived_pickup`), el cliente recibe otro aviso. El chofer completa checklist: observaciones del vehículo, Tarjeta de Propiedad y SOAT. Luego ingresa el código que le da el cliente y confirma con slide (no es un botón simple, para evitar toques accidentales). Si el código y el checklist están bien, el viaje pasa a `in_progress` y Waze abre ruta al destino.
-
-En camino, el chofer marca llegada a cada parada con `arriveAtCurrentStop` (origen → paradas extra → destino). Al último punto queda en `arrived_destination` y después finaliza (`finished`). Esos dos últimos pasos no disparan notificación al cliente; el admin los ve en el tablero interno.
-
-Desde que el chofer sale a recoger (`heading_to_pickup`) hasta que termina, la app publica **GPS en vivo** (`serviceTracking`). El cliente (o el chofer) puede **compartir el viaje** con un link. Hoy el link es `choferes://live/{token}` (solo con app instalada). El objetivo acordado es publicarlo también en la **web comercial** como `https://www.hercom.pe/live/{token}` usando la query pública `getByShareToken`.
-
----
-
-## Dinero al cerrar
-
-Al finalizar, la app descuenta del wallet del chofer la comisión (25% sobre la tarifa ofertada). Queda un movimiento `commission_debit` y el chofer vuelve a `available`.
-
-En paralelo se crea un registro de pago del cliente en `payments` con estado `pending` por el **saldo restante** (`totalPrice - advanceAmount`), ya que el 25% se pagó en efectivo al chofer al inicio. Hoy no hay pasarela: el cobro del saldo y el marcado como pagado lo hace admin en web. La recarga del chofer también es manual/demo por ahora.
+Código que **existe y no está en el menú**: `PremiumTripsView.tsx` (alta premium/teléfono) e `IncomeView.tsx`.
 
 ---
 
-## Valoración del chofer (cliente)
+## 1. Inscripción del chofer
 
-Cuando el servicio está en `finished`:
+| Momento | Chofer (app) | Web interna |
+| --- | --- | --- |
+| **Inscripción** | `DriverRegisterScreen.tsx` | Choferes → fila + expediente `DriverDossierPanel.tsx` |
+| **Revisión** | `DriverApplicationPendingScreen.tsx` | **Aprobar** (crea perfil `drivers`) o **Rechazar** |
 
-1. En la app del cliente aparece el bloque **“Valorar viaje”** (estrellas 1–5 y comentario opcional).
-2. El cliente envía la valoración una sola vez (`serviceRatings.rateService`).
-3. El sistema guarda la calificación y **recalcula el promedio** (`drivers.rating`) del chofer.
-4. Si ya valoró, solo ve el mensaje “Valoraste este viaje con X★”.
-
-Reglas clave: solo el cliente dueño del servicio; solo viajes finalizados; una valoración por servicio.
+Al enviar el alta hoy la app vuelve a Home; la pantalla de “expediente enviado” no se abre.
 
 ---
 
-## Notificaciones (cliente / chofer)
+## 2. Recarga de saldo del chofer
+
+| Momento | Chofer (app) | Web interna |
+| --- | --- | --- |
+| **Recarga** | `DriverDashboard.tsx` (menú Recargar saldo) | Recargas `TopUpsView.tsx` |
+
+Sin saldo suficiente el chofer no oferta (comisión 25%, piso S/-10).
+
+---
+
+## 3. Flujo de servicio (momento · cliente · chofer · web interna)
+
+| Momento | Cliente | Chofer | Web interna |
+| --- | --- | --- | --- |
+| **Pedir viaje** | `ClientDashboard.tsx` | — | Servicios · Pendiente `ServicesBoard.tsx` |
+| **Entregar oferta** | `ClientDashboard.tsx` | `DriverDashboard.tsx` | Tablero · Pendiente |
+| **Aceptar oferta** | `DriverOfferModal.tsx` | `DriverDashboard.tsx` | Tablero · Asignado + código 4 dígitos |
+| **Adelanto** | `AdvancePayoutModal.tsx` | `ServiceCard.tsx` | Columna Anticipo (✓ al confirmar) |
+| **Salida del chofer** | `ClientDashboard.tsx` | `ServiceCard.tsx` | Estado *Yendo a recoger* + **En ruta ahora** |
+| **Llegada del chofer** | `ClientDashboard.tsx` | `ServiceCard.tsx` | Estado *Llegó al punto* |
+| **Checklist** | — | `ChecklistRecojoScreen.tsx` | — (no hay vista) |
+| **Inicio de viaje** | `LiveTripMapModal.tsx` | `ServiceCard.tsx` | *En viaje* + mapa `ServiceLivePanel.tsx` |
+| **Fin de viaje** | `RateServiceStars.tsx` | `ServiceCard.tsx` | *Finalizado* + `PaymentsPanel.tsx` + `PayoutsPanel.tsx` |
+| **Compartir viaje** | `LiveTripMapModal.tsx` (Compartir) | `LiveTripMapModal.tsx` | Mapa admin + token `/live/{token}` |
+| **Emergencia** | `HelpFab.tsx` | `HelpFab.tsx` | — (no llega al panel) |
+| **Ayuda (chat)** | `SupportChatScreen.tsx` | `SupportChatScreen.tsx` | Soporte `SupportView.tsx` |
+
+Estados: `pending` → `assigned` → *(anticipo)* → `heading_to_pickup` → `arrived_pickup` → `in_progress` → `arrived_destination` → `finished`. También `cancelled`.
+
+---
+
+## Compartir viaje — tres superficies del mismo GPS
+
+Desde `heading_to_pickup` la app publica `serviceTracking` (token `shareToken`).
+
+| Quién | Dónde se abre | Archivo |
+| --- | --- | --- |
+| Cliente / chofer en la app | Modal **Viaje en vivo** + botón Compartir | `LiveTripMapModal.tsx` |
+| Familiar / cualquiera con el link | Landing **pública** | `apps/landing-page/app/live/[token]/page.tsx` |
+| Operaciones | Panel **Servicios** → En ruta ahora o **Ver mapa** | `ServiceLivePanel.tsx` |
+
+URL que arma la app (`liveShareUrl.ts`):
+
+- Web: `{EXPO_PUBLIC_LIVE_SHARE_BASE_URL}/live/{token}`  
+  fallback: `https://hercom-landing.vercel.app/live/{token}`  
+  prod objetivo: `https://www.hercom.pe/live/{token}`
+- Deep link de app: `choferes://live/{token}` (`LiveShareLinkListener.tsx`)
+
+El admin **no necesita el link** para ver el mapa: usa `serviceTracking.getForAdmin` sobre el `serviceId`. El panel muestra el path comercial `/live/{token}` para copiarlo.
+
+---
+
+## Emergencia vs soporte (no es lo mismo)
+
+| | Emergencia (FAB AYUDA) | Ayuda del menú ☰ |
+| --- | --- | --- |
+| Archivo app | `HelpFab.tsx` | `SupportChatScreen.tsx` |
+| Qué hace | Llama **105** (policía) o Waze a hospital/clínica cerca (Places) | Chat con operaciones |
+| ¿Web interna? | **No.** No hay ticket ni vista admin | **Sí.** `SupportView.tsx` |
+
+---
+
+## Dinero al cerrar (lo que opera el panel)
+
+Al `finished`: comisión 25% debitada del wallet del chofer; queda **saldo restante** del cliente (`totalPrice - advanceAmount`) en `payments` pendiente.
+
+En **Servicios** (solo superadmin):
+
+- `PaymentsPanel.tsx` — marcar pago del cliente
+- `PayoutsPanel.tsx` — marcar comisión liquidada
+
+No hay pasarela: el marcado es manual.
+
+---
+
+## Notificaciones (app; el admin no las envía a mano)
 
 | Momento | Quién recibe |
 | --- | --- |
-| Llega o se actualiza una oferta | Cliente |
-| Cliente confirma chofer | Chofer y cliente (incluye código y monto de anticipo) |
-| Chofer confirma anticipo recibido | Cliente |
+| Oferta nueva o actualizada | Cliente |
+| Cliente confirma chofer | Chofer y cliente (código + monto de anticipo) |
+| Chofer confirma anticipo | Cliente |
 | Chofer sale a recoger | Cliente |
-| Chofer llega al punto de recojo | Cliente |
+| Chofer llega al recojo | Cliente |
+
+`arrived_destination` y `finished` no disparan aviso al cliente; se ven en el tablero.
 
 ---
 
-## Estados del servicio (orden habitual)
+## Valoración
 
-`pending` → `assigned` → *(anticipo confirmado)* → `heading_to_pickup` → `arrived_pickup` → `in_progress` → `arrived_destination` → `finished`
-
-También existe `cancelled` si cliente o admin cancelan antes de terminar.
-
----
-
-## Dónde ocurre cada cosa
-
-Cliente: app móvil o web comercial (`ClientDashboard`, `MyServices`). Chofer: app móvil (`DriverDashboard`, `ServiceCard` — botón de confirmación de anticipo). Operación interna: web admin (`ServicesBoard` con tipo/canal/anticipo, `PremiumServiceForm` para teléfono). Backend: Convex (`services.confirmAdvanceReceived`, `services.createPremiumServiceAsAdmin`, `services`, `serviceOffers`, `driverWallets`, `notifications`, `serviceChecklists`, `payments`).
+Solo en `finished`, una vez, dueño del servicio: `RateServiceStars.tsx` → `serviceRatings.rateService` → promedio en `drivers.rating`. La web interna no tiene pantalla de valoraciones.

@@ -10,143 +10,46 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { HamburgerButton } from "./HamburgerButton";
 import { useAppTheme } from "../contexts/ThemeContext";
 import {
-  DISPLAY,
   MONO,
   POPPINS,
   TACTICAL_BORDER,
   TACTICAL_BORDER_SOFT,
   TACTICAL_COLORS,
-  TACTICAL_GLOW,
-  TACTICAL_GRID_LINE,
   TACTICAL_RADIUS,
 } from "../constants/theme";
 
 /**
- * Primitivos de interfaz táctica (HUD de operaciones).
- *
- * Reglas del sistema:
- * - Esquinas casi angulares (2-4 px), nunca pill salvo indicadores de estado.
- * - Bordes de 1 px en azul acero con opacidad baja.
- * - Etiquetas y datos numéricos en Share Tech Mono, mayúsculas y tracking amplio.
- * - Títulos de mando en Black Ops One.
- * - Cuerpo en Rajdhani (condensada).
+ * Primitivos Field Service — navy camo + azul Hercom.
+ * Sobrio, legible, sin cuadrícula ni HUD de videojuego.
  */
 
-/** Corchetes en las esquinas, como miras de una pantalla de mando. */
-export function HudCorners({
-  color = TACTICAL_COLORS.accent,
-  size = 10,
-  thickness = 1.5,
-  opacity = 0.85,
-}: {
+/** @deprecated Sin efecto visual; se mantiene por compatibilidad. */
+export function HudCorners(_props: {
   color?: string;
   size?: number;
   thickness?: number;
   opacity?: number;
 }) {
-  const base: ViewStyle = {
-    position: "absolute",
-    width: size,
-    height: size,
-    borderColor: color,
-    opacity,
-  };
-  return (
-    <View pointerEvents="none" style={StyleSheetAbsoluteFill}>
-      <View
-        style={[
-          base,
-          { top: 0, left: 0, borderTopWidth: thickness, borderLeftWidth: thickness },
-        ]}
-      />
-      <View
-        style={[
-          base,
-          { top: 0, right: 0, borderTopWidth: thickness, borderRightWidth: thickness },
-        ]}
-      />
-      <View
-        style={[
-          base,
-          {
-            bottom: 0,
-            left: 0,
-            borderBottomWidth: thickness,
-            borderLeftWidth: thickness,
-          },
-        ]}
-      />
-      <View
-        style={[
-          base,
-          {
-            bottom: 0,
-            right: 0,
-            borderBottomWidth: thickness,
-            borderRightWidth: thickness,
-          },
-        ]}
-      />
-    </View>
-  );
+  return null;
 }
 
-const StyleSheetAbsoluteFill: ViewStyle = {
-  position: "absolute",
-  top: 0,
-  right: 0,
-  bottom: 0,
-  left: 0,
-};
-
-/** Cuadrícula tenue de fondo; puramente decorativa. */
-export function GridBackdrop({
-  spacing = 28,
-  rows = 26,
-  columns = 14,
-}: {
+/** @deprecated Sin efecto visual; se mantiene por compatibilidad. */
+export function GridBackdrop(_props?: {
   spacing?: number;
   rows?: number;
   columns?: number;
 }) {
-  return (
-    <View pointerEvents="none" style={StyleSheetAbsoluteFill}>
-      {Array.from({ length: rows }).map((_, index) => (
-        <View
-          key={`h-${index}`}
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            top: index * spacing,
-            height: 1,
-            backgroundColor: TACTICAL_GRID_LINE,
-          }}
-        />
-      ))}
-      {Array.from({ length: columns }).map((_, index) => (
-        <View
-          key={`v-${index}`}
-          style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            left: index * spacing,
-            width: 1,
-            backgroundColor: TACTICAL_GRID_LINE,
-          }}
-        />
-      ))}
-    </View>
-  );
+  return null;
 }
 
-/** Lienzo de pantalla: fondo del tema + cuadrícula solo en oscuro. */
+/** Lienzo de pantalla: fondo canvas / navy camo, sin grilla. */
 export function TacticalScreen({
   children,
-  grid = true,
+  grid: _grid = false,
   className = "",
   style,
 }: {
@@ -155,44 +58,157 @@ export function TacticalScreen({
   className?: string;
   style?: StyleProp<ViewStyle>;
 }) {
-  const { scheme, colors } = useAppTheme();
+  const { colors } = useAppTheme();
   return (
     <View
       className={`flex-1 ${className}`.trim()}
       style={[{ backgroundColor: colors.base }, style]}
     >
-      {grid && scheme === "dark" ? <GridBackdrop /> : null}
       {children}
+    </View>
+  );
+}
+
+/** Barra superior navy con título (estilo Military Pay). */
+export function FieldScreenHeader({
+  title,
+  subtitle,
+  onOpenMenu,
+  trailing,
+}: {
+  title: string;
+  subtitle?: string;
+  onOpenMenu: () => void;
+  trailing?: ReactNode;
+}) {
+  const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
+
+  return (
+    <View
+      style={{
+        paddingTop: insets.top + 8,
+        paddingBottom: 12,
+        paddingHorizontal: 16,
+        backgroundColor: colors.headerBg,
+        borderBottomWidth: 1,
+        borderBottomColor: "rgba(255,255,255,0.12)",
+      }}
+    >
+      <View className="flex-row items-center gap-3">
+        <HamburgerButton onPress={onOpenMenu} variant="navy" />
+        <View className="min-w-0 flex-1">
+          <Text
+            style={{
+              fontFamily: POPPINS.bold,
+              fontSize: 18,
+              color: colors.headerText,
+            }}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+          {subtitle !== undefined && subtitle !== "" && (
+            <Text
+              style={{
+                fontFamily: POPPINS.regular,
+                fontSize: 13,
+                color: colors.headerMuted,
+                marginTop: 2,
+              }}
+              numberOfLines={2}
+            >
+              {subtitle}
+            </Text>
+          )}
+        </View>
+        {trailing}
+      </View>
+    </View>
+  );
+}
+
+/** Banda negra para cifra destacada (tarifa, saldo). */
+export function FieldDataBand({
+  label,
+  value,
+  footer,
+}: {
+  label?: string;
+  value: string;
+  footer?: string;
+}) {
+  const { colors } = useAppTheme();
+  return (
+    <View
+      className="px-4 py-4"
+      style={{
+        backgroundColor: colors.dataBandBg,
+        borderRadius: TACTICAL_RADIUS.panel,
+      }}
+    >
+      {label !== undefined && label !== "" && (
+        <Text
+          style={{
+            fontFamily: POPPINS.medium,
+            fontSize: 12,
+            color: colors.headerMuted,
+            marginBottom: 4,
+          }}
+        >
+          {label}
+        </Text>
+      )}
+      <Text
+        style={{
+          fontFamily: MONO.regular,
+          fontSize: 28,
+          color: colors.dataBandText,
+          letterSpacing: 0.5,
+        }}
+      >
+        {value}
+      </Text>
+      {footer !== undefined && footer !== "" && (
+        <Text
+          style={{
+            fontFamily: POPPINS.regular,
+            fontSize: 12,
+            color: colors.headerMuted,
+            marginTop: 6,
+          }}
+        >
+          {footer}
+        </Text>
+      )}
     </View>
   );
 }
 
 type TacticalPanelProps = {
   children: ReactNode;
-  /** Corchetes de mira en las esquinas. */
   corners?: boolean;
-  /** Estado activo: borde y glow en azul cielo. */
   active?: boolean;
-  /** `sunken` para bloques embebidos dentro de otro panel. */
   tone?: "surface" | "sunken" | "transparent";
   className?: string;
   style?: StyleProp<ViewStyle>;
 };
 
-/** Contenedor base: borde HUD de 1 px y esquinas angulares. */
+/** Card blanca / navy con borde gris. */
 export function TacticalPanel({
   children,
-  corners = false,
+  corners: _corners = false,
   active = false,
   tone = "surface",
   className = "",
   style,
 }: TacticalPanelProps) {
+  const { colors, border, scheme } = useAppTheme();
   const background =
     tone === "surface"
-      ? TACTICAL_COLORS.surface
+      ? colors.surface
       : tone === "sunken"
-        ? TACTICAL_COLORS.surfaceSunken
+        ? colors.surfaceSunken
         : "transparent";
   return (
     <View
@@ -202,23 +218,30 @@ export function TacticalPanel({
           backgroundColor: background,
           borderRadius: TACTICAL_RADIUS.panel,
           borderWidth: 1,
-          borderColor: active ? TACTICAL_COLORS.accent : TACTICAL_BORDER,
+          borderColor: active ? colors.accent : border,
         },
-        active && TACTICAL_GLOW,
+        scheme === "light" && tone === "surface"
+          ? {
+              shadowColor: "#0F172A",
+              shadowOpacity: 0.06,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 1,
+            }
+          : null,
         style,
       ]}
     >
-      {corners && <HudCorners opacity={active ? 1 : 0.55} />}
       {children}
     </View>
   );
 }
 
-/** Etiqueta táctica: monoespaciada, mayúsculas, tracking amplio. */
+/** Etiqueta de formulario — sentence case, sans. */
 export function TacticalLabel({
   children,
   tone = "steel",
-  size = 11,
+  size = 12,
   className = "",
   style,
 }: {
@@ -228,31 +251,31 @@ export function TacticalLabel({
   className?: string;
   style?: StyleProp<TextStyle>;
 }) {
+  const { colors } = useAppTheme();
   const color =
     tone === "accent"
-      ? TACTICAL_COLORS.accent
+      ? colors.accent
       : tone === "text"
-        ? TACTICAL_COLORS.text
-        : TACTICAL_COLORS.steel;
+        ? colors.text
+        : colors.steel;
   return (
     <Text
       className={className}
       style={[
         {
-          fontFamily: MONO.medium,
+          fontFamily: POPPINS.semibold,
           fontSize: size,
-          letterSpacing: 1.6,
           color,
         },
         style,
       ]}
     >
-      {typeof children === "string" ? children.toUpperCase() : children}
+      {children}
     </Text>
   );
 }
 
-/** Dato numérico o código: monoespaciada, alta legibilidad. */
+/** Montos y códigos — mono. */
 export function TacticalValue({
   children,
   size = 18,
@@ -266,17 +289,18 @@ export function TacticalValue({
   className?: string;
   style?: StyleProp<TextStyle>;
 }) {
+  const { colors } = useAppTheme();
   const color =
     tone === "accent"
-      ? TACTICAL_COLORS.accent
+      ? colors.accent
       : tone === "steel"
-        ? TACTICAL_COLORS.steel
-        : TACTICAL_COLORS.textStrong;
+        ? colors.steel
+        : colors.textStrong;
   return (
     <Text
       className={className}
       style={[
-        { fontFamily: MONO.bold, fontSize: size, letterSpacing: 0.5, color },
+        { fontFamily: MONO.regular, fontSize: size, color },
         style,
       ]}
     >
@@ -285,36 +309,42 @@ export function TacticalValue({
   );
 }
 
-/** Título de pantalla: Black Ops One, mayúsculas, tracking de mando. */
+/** Título de sección — Rajdhani bold, sin mayúsculas forzadas. */
 export function TacticalTitle({
   children,
-  size = 20,
+  size = 18,
   className = "",
+  style,
+  onHeader = false,
 }: {
   children: ReactNode;
   size?: number;
   className?: string;
+  style?: StyleProp<TextStyle>;
+  /** Texto sobre barra navy. */
+  onHeader?: boolean;
 }) {
+  const { colors } = useAppTheme();
   return (
     <Text
       className={className}
-      style={{
-        fontFamily: DISPLAY.regular,
-        fontSize: size,
-        letterSpacing: 0.8,
-        color: TACTICAL_COLORS.textStrong,
-        textTransform: "uppercase",
-      }}
+      style={[
+        {
+          fontFamily: POPPINS.bold,
+          fontSize: size,
+          color: onHeader ? colors.headerText : colors.textStrong,
+        },
+        style,
+      ]}
     >
-      {typeof children === "string" ? children.toUpperCase() : children}
+      {children}
     </Text>
   );
 }
 
-/** Texto de apoyo sobre fondo oscuro. */
 export function TacticalText({
   children,
-  size = 13,
+  size = 14,
   tone = "steel",
   className = "",
   style,
@@ -327,6 +357,7 @@ export function TacticalText({
   style?: StyleProp<TextStyle>;
   numberOfLines?: number;
 }) {
+  const { colors } = useAppTheme();
   return (
     <Text
       className={className}
@@ -335,9 +366,8 @@ export function TacticalText({
         {
           fontFamily: POPPINS.regular,
           fontSize: size,
-          lineHeight: size * 1.5,
-          color:
-            tone === "text" ? TACTICAL_COLORS.text : TACTICAL_COLORS.steel,
+          lineHeight: size * 1.45,
+          color: tone === "text" ? colors.text : colors.steel,
         },
         style,
       ]}
@@ -357,7 +387,7 @@ type TacticalButtonProps = {
   className?: string;
 };
 
-/** CTA táctico: relleno cian sonar en primario, contorno acero en secundario. */
+/** CTA — azul Hercom sólido, sin glow. */
 export function TacticalButton({
   label,
   onPress,
@@ -367,56 +397,53 @@ export function TacticalButton({
   size = "lg",
   className = "",
 }: TacticalButtonProps) {
+  const { colors, border } = useAppTheme();
   const isPrimary = variant === "primary";
   const isDanger = variant === "danger";
   const background = isPrimary
-    ? TACTICAL_COLORS.accent
+    ? colors.accent
     : isDanger
-      ? `${TACTICAL_COLORS.danger}1F`
+      ? `${colors.danger}14`
       : variant === "secondary"
-        ? `${TACTICAL_COLORS.steel}1F`
+        ? colors.surface
         : "transparent";
   const borderColor = isPrimary
-    ? TACTICAL_COLORS.accent
+    ? colors.accent
     : isDanger
-      ? TACTICAL_COLORS.danger
-      : TACTICAL_BORDER;
+      ? colors.danger
+      : border;
   const labelColor = isPrimary
-    ? TACTICAL_COLORS.base
+    ? colors.onAccent
     : isDanger
-      ? TACTICAL_COLORS.danger
-      : TACTICAL_COLORS.accent;
+      ? colors.danger
+      : colors.accent;
 
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.75}
+      activeOpacity={0.82}
       className={`items-center justify-center px-4 ${
         size === "lg" ? "h-14" : "h-12"
       } ${disabled || loading ? "opacity-45" : ""} ${className}`.trim()}
-      style={[
-        {
-          backgroundColor: background,
-          borderRadius: TACTICAL_RADIUS.sharp,
-          borderWidth: 1,
-          borderColor,
-        },
-        isPrimary && !disabled && !loading ? TACTICAL_GLOW : null,
-      ]}
+      style={{
+        backgroundColor: background,
+        borderRadius: TACTICAL_RADIUS.panel,
+        borderWidth: isPrimary ? 0 : 1,
+        borderColor,
+      }}
     >
       {loading ? (
         <ActivityIndicator color={labelColor} />
       ) : (
         <Text
           style={{
-            fontFamily: MONO.bold,
-            fontSize: size === "lg" ? 13 : 12,
-            letterSpacing: 2,
+            fontFamily: POPPINS.bold,
+            fontSize: size === "lg" ? 16 : 15,
             color: labelColor,
           }}
         >
-          {label.toUpperCase()}
+          {label}
         </Text>
       )}
     </TouchableOpacity>
@@ -424,14 +451,11 @@ export function TacticalButton({
 }
 
 type TacticalInputProps = TextInputProps & {
-  /** Etiqueta táctica encima del campo. */
   label?: string;
-  /** Fuerza monoespaciada (DNI, códigos, placas). */
   mono?: boolean;
   containerClassName?: string;
 };
 
-/** Campo de datos: fondo hundido, borde HUD y foco en azul cielo. */
 export function TacticalInput({
   label,
   mono = false,
@@ -439,26 +463,26 @@ export function TacticalInput({
   style,
   ...props
 }: TacticalInputProps) {
+  const { colors, border } = useAppTheme();
   return (
     <View className={containerClassName}>
       {label !== undefined && (
-        <TacticalLabel className="mb-2">{label}</TacticalLabel>
+        <TacticalLabel className="mb-1.5">{label}</TacticalLabel>
       )}
       <TextInput
-        placeholderTextColor={`${TACTICAL_COLORS.steel}B3`}
+        placeholderTextColor={colors.steel}
         {...props}
         style={[
           {
-            backgroundColor: TACTICAL_COLORS.surfaceSunken,
+            backgroundColor: colors.surface,
             borderRadius: TACTICAL_RADIUS.sharp,
             borderWidth: 1,
-            borderColor: TACTICAL_BORDER,
+            borderColor: border,
             paddingHorizontal: 14,
             paddingVertical: 12,
             fontSize: mono ? 16 : 15,
-            letterSpacing: mono ? 2 : 0,
-            fontFamily: mono ? MONO.medium : POPPINS.regular,
-            color: TACTICAL_COLORS.textStrong,
+            fontFamily: mono ? MONO.regular : POPPINS.regular,
+            color: colors.textStrong,
           },
           style,
         ]}
@@ -472,51 +496,50 @@ type TacticalStatusProps = {
   tone?: "idle" | "active" | "success" | "warning" | "danger";
 };
 
-/** Indicador de estado con punto, como telemetría de misión. */
 export function TacticalStatus({ label, tone = "idle" }: TacticalStatusProps) {
+  const { colors } = useAppTheme();
   const color =
     tone === "active"
-      ? TACTICAL_COLORS.accent
+      ? colors.accent
       : tone === "success"
-        ? TACTICAL_COLORS.success
+        ? colors.success
         : tone === "warning"
-          ? TACTICAL_COLORS.warning
+          ? colors.warning
           : tone === "danger"
-            ? TACTICAL_COLORS.danger
-            : TACTICAL_COLORS.steel;
+            ? colors.danger
+            : colors.steel;
   return (
     <View
       className="flex-row items-center px-2.5 py-1"
       style={{
         borderRadius: TACTICAL_RADIUS.sharp,
         borderWidth: 1,
-        borderColor: `${color}66`,
-        backgroundColor: `${color}1A`,
+        borderColor: `${color}55`,
+        backgroundColor: `${color}12`,
       }}
     >
       <View
         style={{
           width: 6,
           height: 6,
+          borderRadius: 3,
           backgroundColor: color,
           marginRight: 7,
         }}
       />
       <Text
         style={{
-          fontFamily: MONO.medium,
-          fontSize: 10,
-          letterSpacing: 1.4,
+          fontFamily: POPPINS.medium,
+          fontSize: 12,
           color,
         }}
       >
-        {label.toUpperCase()}
+        {label}
       </Text>
     </View>
   );
 }
 
-/** Separador con etiqueta opcional al centro. */
 export function TacticalDivider({ label }: { label?: string }) {
   if (label === undefined) {
     return (
@@ -532,7 +555,7 @@ export function TacticalDivider({ label }: { label?: string }) {
         className="flex-1"
         style={{ height: 1, backgroundColor: TACTICAL_BORDER_SOFT }}
       />
-      <TacticalLabel className="mx-3" size={10}>
+      <TacticalLabel className="mx-3" size={11}>
         {label}
       </TacticalLabel>
       <View
@@ -543,7 +566,6 @@ export function TacticalDivider({ label }: { label?: string }) {
   );
 }
 
-/** Estado vacío con marco punteado del HUD. */
 export function TacticalEmpty({
   title,
   subtitle,
@@ -551,21 +573,22 @@ export function TacticalEmpty({
   title: string;
   subtitle?: string;
 }) {
+  const { borderSoft } = useAppTheme();
   return (
     <View
       className="items-center px-4 py-8"
       style={{
         borderWidth: 1,
-        borderColor: TACTICAL_BORDER_SOFT,
+        borderColor: borderSoft,
         borderStyle: "dashed",
-        borderRadius: TACTICAL_RADIUS.sharp,
+        borderRadius: TACTICAL_RADIUS.panel,
       }}
     >
-      <TacticalLabel size={10} tone="text" className="text-center">
+      <TacticalLabel size={13} tone="text" className="text-center">
         {title}
       </TacticalLabel>
       {subtitle !== undefined && subtitle !== "" && (
-        <TacticalText size={11} className="mt-1.5 text-center">
+        <TacticalText size={13} className="mt-1.5 text-center">
           {subtitle}
         </TacticalText>
       )}
@@ -573,7 +596,6 @@ export function TacticalEmpty({
   );
 }
 
-/** Fila de telemetría: etiqueta a la izquierda, dato a la derecha. */
 export function TacticalReadout({
   label,
   value,
@@ -585,8 +607,8 @@ export function TacticalReadout({
 }) {
   return (
     <View className="flex-row items-center justify-between py-2">
-      <TacticalLabel size={10}>{label}</TacticalLabel>
-      <TacticalValue size={13} tone={tone}>
+      <TacticalLabel size={12}>{label}</TacticalLabel>
+      <TacticalValue size={14} tone={tone}>
         {value}
       </TacticalValue>
     </View>

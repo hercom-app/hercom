@@ -48,7 +48,7 @@ module.exports = {
         medium: ["Rajdhani_500Medium"],
         semibold: ["Rajdhani_600SemiBold"],
         bold: ["Rajdhani_700Bold"],
-        display: ["BlackOpsOne_400Regular"],
+        display: ["Rajdhani_700Bold"],
         mono: ["ShareTechMono_400Regular"],
         "mono-medium": ["ShareTechMono_400Regular"],
         "mono-bold": ["ShareTechMono_400Regular"],
@@ -64,9 +64,8 @@ module.exports = {
       },
       borderRadius: {
         card: "1.5rem",
-        // Esquinas casi angulares del rediseño táctico.
-        hud: "1px",
-        panel: "2px",
+        hud: "6px",
+        panel: "8px",
       },
     },
   },

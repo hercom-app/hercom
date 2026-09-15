@@ -8,13 +8,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import { AvailabilityToggle } from "../components/AvailabilityToggle";
 import { DriverPayoutConfig } from "../components/DriverPayoutConfig";
 import { DriverEarningsView } from "../components/DriverEarningsView";
-import { HamburgerButton } from "../components/HamburgerButton";
 import { ServiceCard } from "../components/ServiceCard";
 import { SideDrawer } from "../components/SideDrawer";
 import { SupportChatScreen } from "./SupportChatScreen";
@@ -31,7 +29,8 @@ import { ChecklistRecojoScreen } from "./ChecklistRecojoScreen";
 import { useDriverLiveTracking } from "../hooks/useDriverLiveTracking";
 import { LiveTripMapModal } from "../components/LiveTripMapModal";
 import {
-  GridBackdrop,
+  FieldDataBand,
+  FieldScreenHeader,
   TacticalButton,
   TacticalEmpty,
   TacticalInput,
@@ -39,7 +38,6 @@ import {
   TacticalPanel,
   TacticalStatus,
   TacticalText,
-  TacticalTitle,
   TacticalValue,
 } from "../components/tactical";
 import {
@@ -52,7 +50,6 @@ import {
 const MIN_OFFER_PRICE = 80;
 
 export function DriverDashboard() {
-  const insets = useSafeAreaInsets();
   const { userName } = useAppMode();
   const topUpMine = useMutation(api.driverWallets.topUpMine);
   const submitMyOffer = useMutation(api.serviceOffers.submitMyOffer);
@@ -250,32 +247,23 @@ export function DriverDashboard() {
   }
 
   return (
-    <View
-      className="flex-1"
-      style={{
-        paddingTop: insets.top + 8,
-        backgroundColor: TACTICAL_COLORS.base,
-      }}
-    >
-      <GridBackdrop />
-      <View className="mb-4 flex-row items-center gap-3 px-4">
-        <HamburgerButton onPress={() => setMenuOpen(true)} variant="tactical" />
-        <View className="flex-1">
-          <TacticalLabel size={9}>Panel de conductor</TacticalLabel>
-          <TacticalTitle size={19}>{title}</TacticalTitle>
-        </View>
-      </View>
+    <View className="flex-1" style={{ backgroundColor: TACTICAL_COLORS.base }}>
+      <FieldScreenHeader
+        title={title}
+        subtitle="Panel de conductor"
+        onOpenMenu={() => setMenuOpen(true)}
+      />
 
-      <View className="flex-1 px-4">
+      <View className="flex-1 px-4 pt-4">
         {menuSection === "ganancias" ? (
           <DriverEarningsView />
         ) : menuSection === "saldo" ? (
           <ScrollView showsVerticalScrollIndicator={false}>
-            <TacticalPanel corners>
-              <TacticalLabel tone="accent">Saldo de app</TacticalLabel>
-              <TacticalValue size={30} className="mt-1">
-                {`S/${(wallet?.balance ?? 0).toFixed(2)}`}
-              </TacticalValue>
+            <TacticalPanel>
+              <FieldDataBand
+                label="Saldo de app"
+                value={`S/${(wallet?.balance ?? 0).toFixed(2)}`}
+              />
               <TacticalText size={11} className="mt-1">
                 La app descuenta 25% por servicio finalizado. Límite mínimo:
                 S/-10.

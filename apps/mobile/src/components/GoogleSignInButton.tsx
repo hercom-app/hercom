@@ -12,6 +12,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import {
   HERCOM_COLORS,
   MONO,
+  POPPINS,
   TACTICAL_BORDER,
   TACTICAL_COLORS,
   TACTICAL_RADIUS,
@@ -110,12 +111,7 @@ export function GoogleSignInButton({
         className="h-14 flex-row items-center justify-center disabled:opacity-60"
         style={{
           backgroundColor: HERCOM_COLORS.primary,
-          borderRadius: 12,
-          shadowColor: HERCOM_COLORS.primary,
-          shadowOpacity: 0.45,
-          shadowRadius: 14,
-          shadowOffset: { width: 0, height: 0 },
-          elevation: 8,
+          borderRadius: 8,
         }}
       >
         {submitting ? (
@@ -125,13 +121,12 @@ export function GoogleSignInButton({
             <GoogleGlyph />
             <Text
               style={{
-                fontFamily: MONO.bold,
-                fontSize: 13,
-                letterSpacing: 1.6,
+                fontFamily: POPPINS.bold,
+                fontSize: 16,
                 color: "#FFFFFF",
               }}
             >
-              {label.toUpperCase()}
+              {label}
             </Text>
           </>
         )}
@@ -160,13 +155,12 @@ export function GoogleSignInButton({
             <GoogleGlyph />
             <Text
               style={{
-                fontFamily: MONO.bold,
-                fontSize: 12,
-                letterSpacing: 1.8,
+                fontFamily: POPPINS.semibold,
+                fontSize: 15,
                 color: TACTICAL_COLORS.text,
               }}
             >
-              {label.toUpperCase()}
+              {label}
             </Text>
           </>
         )}

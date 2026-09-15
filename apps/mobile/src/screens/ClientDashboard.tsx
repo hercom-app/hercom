@@ -31,6 +31,7 @@ import { ClientIdentityForm } from "./ClientIdentityForm";
 import { SupportChatScreen } from "./SupportChatScreen";
 import { UiButton, UiCard, UiChip, UiEmpty, SHEET_SHADOW } from "../components/ui";
 import {
+  FieldScreenHeader,
   TacticalInput,
   TacticalLabel,
   TacticalPanel,
@@ -875,23 +876,12 @@ export function ClientDashboard() {
   if (menuSection === "historial" || menuSection === "notificaciones") {
     return (
       <View className="flex-1" style={{ backgroundColor: TACTICAL_COLORS.base }}>
-        <View
-          className="flex-row items-center gap-3 px-4"
-          style={{
-            paddingTop: insets.top + 8,
-            paddingBottom: 12,
-            borderBottomWidth: 1,
-            borderBottomColor: TACTICAL_BORDER,
-            backgroundColor: TACTICAL_COLORS.baseElevated,
-          }}
-        >
-          <HamburgerButton onPress={() => setMenuOpen(true)} variant="tactical" />
-          <TacticalTitle size={17} className="flex-1">
-            {menuSection === "notificaciones"
-              ? "Notificaciones"
-              : "Mis servicios"}
-          </TacticalTitle>
-        </View>
+        <FieldScreenHeader
+          title={
+            menuSection === "notificaciones" ? "Notificaciones" : "Mis servicios"
+          }
+          onOpenMenu={() => setMenuOpen(true)}
+        />
 
         <ScrollView
           className="flex-1"
@@ -1025,12 +1015,11 @@ export function ClientDashboard() {
 
     return (
       <View className="flex-1" style={{ backgroundColor: TACTICAL_COLORS.base }}>
-        <View
-          style={{ paddingTop: insets.top + 8 }}
-          className="z-10 flex-row items-center px-4 pb-2"
-        >
-          <HamburgerButton onPress={() => setMenuOpen(true)} variant="tactical" />
-        </View>
+        <FieldScreenHeader
+          title="Nuevo servicio"
+          subtitle="Pedir un chofer de reemplazo"
+          onOpenMenu={() => setMenuOpen(true)}
+        />
 
         {!addressSearchActive ? (
           <ScrollView
@@ -1039,12 +1028,10 @@ export function ClientDashboard() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{
               paddingHorizontal: 16,
+              paddingTop: 16,
               paddingBottom: insets.bottom + 28,
             }}
           >
-            <TacticalTitle size={22} className="mb-6">
-              Nuevo servicio
-            </TacticalTitle>
 
             <UiCard className="gap-3 overflow-hidden pb-0">
               {addressFieldButton(

@@ -1,6 +1,6 @@
 /** Paleta institucional Hercom — sobria, pocos acentos funcionales. */
 export const HERCOM_COLORS = {
-  /** Azul institucional — coincide con el fondo de hercom-logo.png (#0B70FE). */
+  /** Azul institucional — acento de marca en CTAs y estados activos. */
   primary: "#0B70FE",
   primaryDark: "#0959CC",
   primarySoft: "#E8F2FF",
@@ -16,13 +16,10 @@ export const HERCOM_COLORS = {
 
   border: "#E2E8F0",
 
-  /** Éxito / disponible (verde sobrio, no neón). */
   success: "#15803D",
   successSoft: "#DCFCE7",
-  /** Atención / anticipo (ámbar sobrio, no amarillo). */
   warning: "#B45309",
   warningSoft: "#FEF3C7",
-  /** Error / ayuda urgente. */
   danger: "#DC2626",
   dangerSoft: "#FEE2E2",
 
@@ -32,8 +29,8 @@ export const HERCOM_COLORS = {
 } as const;
 
 /**
- * ANA / Federal Standard — navy táctico.
- * Claro = Aircraft White + Blue. Oscuro = Insignia / Sea / Strata.
+ * ANA / Federal Standard — navy camo (base atmosférica).
+ * El acento de interacción es siempre Hercom blue (#0B70FE).
  */
 export const ANA = {
   aircraftWhite: "#EDECEA",
@@ -68,66 +65,86 @@ export type ThemeColors = {
   success: string;
   warning: string;
   danger: string;
+  /** Barra superior navy (estilo Military Pay). */
+  headerBg: string;
+  headerText: string;
+  headerMuted: string;
+  /** Texto sobre botones azul Hercom. */
+  onAccent: string;
+  /** Banda de dato destacado (tarifa, saldo). */
+  dataBandBg: string;
+  dataBandText: string;
 };
 
-/** Oscuro — hangar nocturno: negro instrumento, insignia y azure de lectura. */
+/** Claro — canvas + cabecera navy + cards blancas. */
+export const LIGHT_COLORS: ThemeColors = {
+  base: HERCOM_COLORS.canvas,
+  baseElevated: "#FFFFFF",
+  surface: HERCOM_COLORS.surface,
+  surfaceSunken: HERCOM_COLORS.surfaceMuted,
+  accent: HERCOM_COLORS.primary,
+  accentDim: HERCOM_COLORS.primaryDark,
+  steel: "#64748B",
+  text: ANA.insigniaBlue,
+  textStrong: HERCOM_COLORS.text,
+  success: HERCOM_COLORS.success,
+  warning: HERCOM_COLORS.warning,
+  danger: HERCOM_COLORS.danger,
+  headerBg: ANA.insigniaBlue,
+  headerText: "#FFFFFF",
+  headerMuted: "rgba(255, 255, 255, 0.72)",
+  onAccent: "#FFFFFF",
+  dataBandBg: ANA.instrumentBlack,
+  dataBandText: "#FFFFFF",
+};
+
+/** Oscuro — hangar navy camo, acento Hercom blue. */
 export const DARK_COLORS: ThemeColors = {
-  base: ANA.instrumentBlack,
-  baseElevated: ANA.navyBlack,
-  surface: ANA.aircraftSeaBlue,
-  surfaceSunken: ANA.strataBlue,
-  accent: ANA.azureBlue,
-  accentDim: ANA.blue,
+  base: ANA.aircraftSeaBlue,
+  baseElevated: ANA.aircraftInsigniaBlue,
+  surface: ANA.strataBlue,
+  surfaceSunken: ANA.navyBlack,
+  accent: HERCOM_COLORS.primary,
+  accentDim: HERCOM_COLORS.primaryDark,
   steel: ANA.lightGray,
   text: ANA.aircraftWhite,
   textStrong: "#F6F5F2",
   success: "#3DDC84",
   warning: "#FFB020",
   danger: "#FF4D4D",
-};
-
-/** Claro — briefing diurno: papel aircraft white, tinta insignia, acento Blue ANA. */
-export const LIGHT_COLORS: ThemeColors = {
-  base: ANA.aircraftWhite,
-  baseElevated: "#F7F6F4",
-  surface: "#FFFFFF",
-  surfaceSunken: "#D9D7D3",
-  accent: ANA.blue,
-  accentDim: ANA.insigniaBlue,
-  steel: ANA.navyBlue,
-  text: ANA.insigniaBlue,
-  textStrong: ANA.navyBlack,
-  success: "#157A3C",
-  warning: "#B45309",
-  danger: "#C81E1E",
+  headerBg: ANA.insigniaBlue,
+  headerText: "#FFFFFF",
+  headerMuted: "rgba(255, 255, 255, 0.68)",
+  onAccent: "#FFFFFF",
+  dataBandBg: ANA.instrumentBlack,
+  dataBandText: "#FFFFFF",
 };
 
 /** Tokens vivos: `applyColorScheme` los muta para que la app se re-pinte. */
 export const TACTICAL_COLORS: ThemeColors = { ...LIGHT_COLORS };
 
-/** Bordes de 1px en navy con opacidad baja. */
-export let TACTICAL_BORDER = "rgba(26, 79, 140, 0.32)";
-export let TACTICAL_BORDER_SOFT = "rgba(26, 79, 140, 0.16)";
-export let TACTICAL_GRID_LINE = "rgba(27, 44, 74, 0.07)";
+export let TACTICAL_BORDER = "rgba(27, 44, 74, 0.14)";
+export let TACTICAL_BORDER_SOFT = "rgba(27, 44, 74, 0.08)";
+export let TACTICAL_GRID_LINE = "rgba(27, 44, 74, 0.04)";
 
-/** Radios casi nulos: chasis de consola, no card de producto. */
+/** Radios sobrios — cards legibles, no chasis angular extremo. */
 export const TACTICAL_RADIUS = {
-  sharp: 1,
-  panel: 2,
+  sharp: 6,
+  panel: 8,
 } as const;
 
-/** Glow del acento para estados activos. */
+/** Sin glow neón en botones. */
 export const TACTICAL_GLOW = {
-  shadowColor: LIGHT_COLORS.accent,
-  shadowOpacity: 0.22,
-  shadowRadius: 10,
+  shadowColor: "transparent",
+  shadowOpacity: 0,
+  shadowRadius: 0,
   shadowOffset: { width: 0, height: 0 },
-  elevation: 3,
+  elevation: 0,
 };
 
 /**
- * Cuerpo UI — Rajdhani (condensada, menús de FPS).
- * El nombre `POPPINS` se mantiene para no romper imports.
+ * Cuerpo UI — Rajdhani (condensada, legible).
+ * El alias `POPPINS` se mantiene para no romper imports.
  */
 export const POPPINS = {
   regular: "Rajdhani_400Regular",
@@ -136,35 +153,34 @@ export const POPPINS = {
   bold: "Rajdhani_700Bold",
 } as const;
 
-/** Readouts HUD — Share Tech Mono (terminal de operaciones). */
+/** Solo cifras, montos y códigos. */
 export const MONO = {
   regular: "ShareTechMono_400Regular",
   medium: "ShareTechMono_400Regular",
   bold: "ShareTechMono_400Regular",
 } as const;
 
-/** Títulos cortos de mando — Black Ops One. */
+/** @deprecated Ya no se usa Black Ops; alias a bold Rajdhani. */
 export const DISPLAY = {
-  regular: "BlackOpsOne_400Regular",
+  regular: "Rajdhani_700Bold",
 } as const;
 
 const DARK_CHROME = {
-  border: "rgba(107, 132, 184, 0.38)",
-  borderSoft: "rgba(107, 132, 184, 0.18)",
-  gridLine: "rgba(107, 132, 184, 0.08)",
-  glowColor: DARK_COLORS.accent,
-  glowOpacity: 0.4,
+  border: "rgba(107, 132, 184, 0.22)",
+  borderSoft: "rgba(107, 132, 184, 0.12)",
+  gridLine: "rgba(107, 132, 184, 0.04)",
+  glowColor: "transparent",
+  glowOpacity: 0,
 } as const;
 
 const LIGHT_CHROME = {
-  border: "rgba(26, 79, 140, 0.32)",
-  borderSoft: "rgba(26, 79, 140, 0.16)",
-  gridLine: "rgba(27, 44, 74, 0.07)",
-  glowColor: LIGHT_COLORS.accent,
-  glowOpacity: 0.22,
+  border: "rgba(27, 44, 74, 0.14)",
+  borderSoft: "rgba(27, 44, 74, 0.08)",
+  gridLine: "rgba(27, 44, 74, 0.04)",
+  glowColor: "transparent",
+  glowOpacity: 0,
 } as const;
 
-/** Aplica la paleta viva. Las pantallas que leen estos tokens en render se actualizan. */
 export function applyColorScheme(scheme: AppColorScheme): void {
   const next = scheme === "light" ? LIGHT_COLORS : DARK_COLORS;
   const chrome = scheme === "light" ? LIGHT_CHROME : DARK_CHROME;
@@ -174,10 +190,9 @@ export function applyColorScheme(scheme: AppColorScheme): void {
   TACTICAL_GRID_LINE = chrome.gridLine;
   TACTICAL_GLOW.shadowColor = chrome.glowColor;
   TACTICAL_GLOW.shadowOpacity = chrome.glowOpacity;
-  TACTICAL_GLOW.elevation = scheme === "light" ? 3 : 8;
+  TACTICAL_GLOW.elevation = 0;
 }
 
 applyColorScheme("light");
 
-/** Alias histórico: el HUD actual es el modo oscuro. */
 export { DARK_COLORS as TACTICAL_DARK_COLORS };

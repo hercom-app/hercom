@@ -19,7 +19,7 @@ import { useAppMode } from "../contexts/AppModeContext";
 import { DrawerIcon, type DrawerIconName } from "./DrawerIcons";
 import { ThemeToggle } from "./ThemeToggle";
 import { UiBadge, UiButton, UiChip } from "./ui";
-import { GridBackdrop, TacticalLabel } from "./tactical";
+import { TacticalLabel } from "./tactical";
 import { useAppTheme } from "../contexts/ThemeContext";
 import {
   MONO,
@@ -219,14 +219,13 @@ export function SideDrawer({
             borderRightColor: border,
           }}
         >
-          {scheme === "dark" ? <GridBackdrop /> : null}
           <View className="flex-1">
             <View
               className="mb-3 flex-row items-center gap-2 px-4 py-3"
               style={{
-                backgroundColor: colors.baseElevated,
+                backgroundColor: colors.headerBg,
                 borderBottomWidth: 1,
-                borderBottomColor: border,
+                borderBottomColor: "rgba(255,255,255,0.12)",
               }}
             >
               <View className="flex-1 flex-row items-center gap-3 py-1">
@@ -271,7 +270,7 @@ export function SideDrawer({
                     style={{
                       fontFamily: POPPINS.semibold,
                       fontSize: 15,
-                      color: colors.textStrong,
+                      color: colors.headerText,
                     }}
                   >
                     {userName.trim() !== "" ? userName : "Usuario Hercom"}

@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import { useAppTheme } from "../contexts/ThemeContext";
 import {
-  MONO,
   POPPINS,
   TACTICAL_BORDER,
   TACTICAL_COLORS,
@@ -19,33 +18,30 @@ import {
 } from "../constants/theme";
 
 /**
- * Primitivos base de la app, ya en estética táctica (HUD oscuro).
- * Para piezas nuevas preferí los componentes de `tactical.tsx`, que exponen
- * corchetes de mira, telemetría y etiquetas monoespaciadas.
+ * Primitivos base — navy camo + azul Hercom, estilo Field Service.
  */
 
 export const CARD_SHADOW = {
-  shadowColor: "#000000",
-  shadowOpacity: 0.35,
-  shadowRadius: 14,
-  shadowOffset: { width: 0, height: 6 },
-  elevation: 4,
+  shadowColor: "#0F172A",
+  shadowOpacity: 0.06,
+  shadowRadius: 8,
+  shadowOffset: { width: 0, height: 2 },
+  elevation: 1,
 } as const;
 
 export const SHEET_SHADOW = {
-  shadowColor: "#000000",
-  shadowOpacity: 0.5,
-  shadowRadius: 22,
-  shadowOffset: { width: 0, height: -6 },
-  elevation: 18,
+  shadowColor: "#0F172A",
+  shadowOpacity: 0.12,
+  shadowRadius: 16,
+  shadowOffset: { width: 0, height: -4 },
+  elevation: 8,
 } as const;
 
-/** Campo relleno del HUD (fondo hundido + borde acero). */
 export const FILLED_INPUT_CLASS = "px-4 py-3.5 text-base";
 
 export function getFilledInputStyle() {
   return {
-    backgroundColor: TACTICAL_COLORS.surfaceSunken,
+    backgroundColor: TACTICAL_COLORS.surface,
     borderRadius: TACTICAL_RADIUS.sharp,
     borderWidth: 1,
     borderColor: TACTICAL_BORDER,
@@ -55,7 +51,14 @@ export function getFilledInputStyle() {
 }
 
 /** @deprecated Usa getFilledInputStyle() — el valor estático no sigue el tema. */
-export const FILLED_INPUT_STYLE = getFilledInputStyle();
+export const FILLED_INPUT_STYLE = {
+  backgroundColor: "#FFFFFF",
+  borderRadius: TACTICAL_RADIUS.sharp,
+  borderWidth: 1,
+  borderColor: "rgba(27, 44, 74, 0.14)",
+  color: "#0F172A",
+  fontFamily: POPPINS.regular,
+};
 
 type UiButtonProps = {
   label: string;
@@ -66,7 +69,6 @@ type UiButtonProps = {
   size?: "lg" | "md";
 };
 
-/** CTA de una sola jerarquía: el primario es el único lleno. */
 export function UiButton({
   label,
   onPress,
@@ -75,47 +77,43 @@ export function UiButton({
   variant = "primary",
   size = "lg",
 }: UiButtonProps) {
-  const { colors, border, glow } = useAppTheme();
+  const { colors, border } = useAppTheme();
   const isPrimary = variant === "primary";
   const background = isPrimary
     ? colors.accent
     : variant === "secondary"
-      ? `${colors.steel}1F`
+      ? colors.surface
       : "transparent";
   const borderColor = isPrimary ? colors.accent : border;
-  const labelColor = isPrimary ? colors.base : colors.accent;
+  const labelColor = isPrimary ? colors.onAccent : colors.accent;
   const height = size === "lg" ? "h-14" : "h-12";
 
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.75}
+      activeOpacity={0.82}
       className={`${height} items-center justify-center px-4 ${
         disabled || loading ? "opacity-45" : ""
       }`}
-      style={[
-        {
-          backgroundColor: background,
-          borderRadius: TACTICAL_RADIUS.sharp,
-          borderWidth: 1,
-          borderColor,
-        },
-        isPrimary && !disabled && !loading ? glow : null,
-      ]}
+      style={{
+        backgroundColor: background,
+        borderRadius: TACTICAL_RADIUS.panel,
+        borderWidth: isPrimary ? 0 : 1,
+        borderColor,
+      }}
     >
       {loading ? (
         <ActivityIndicator color={labelColor} />
       ) : (
         <Text
           style={{
-            fontFamily: MONO.bold,
-            fontSize: size === "lg" ? 13 : 12,
-            letterSpacing: 2,
+            fontFamily: POPPINS.bold,
+            fontSize: size === "lg" ? 16 : 15,
             color: labelColor,
           }}
         >
-          {label.toUpperCase()}
+          {label}
         </Text>
       )}
     </TouchableOpacity>
@@ -140,15 +138,7 @@ export function UiCard({ children, className = "", style }: UiCardProps) {
           borderWidth: 1,
           borderColor: border,
         },
-        scheme === "light"
-          ? {
-              shadowColor: "#0F172A",
-              shadowOpacity: 0.08,
-              shadowRadius: 10,
-              shadowOffset: { width: 0, height: 4 },
-              elevation: 2,
-            }
-          : CARD_SHADOW,
+        scheme === "light" ? CARD_SHADOW : null,
         style,
       ]}
     >
@@ -172,18 +162,17 @@ export function UiChip({ label, selected = false, onPress }: UiChipProps) {
         borderRadius: TACTICAL_RADIUS.sharp,
         borderWidth: 1,
         borderColor: selected ? colors.accent : border,
-        backgroundColor: selected ? `${colors.accent}24` : "transparent",
+        backgroundColor: selected ? `${colors.accent}18` : colors.surface,
       }}
     >
       <Text
         style={{
-          fontFamily: MONO.medium,
-          fontSize: 10,
-          letterSpacing: 1.3,
+          fontFamily: POPPINS.semibold,
+          fontSize: 13,
           color: selected ? colors.accent : colors.steel,
         }}
       >
-        {label.toUpperCase()}
+        {label}
       </Text>
     </View>
   );
@@ -216,9 +205,9 @@ export function UiBadge({ count }: UiBadgeProps) {
     >
       <Text
         style={{
-          fontFamily: MONO.bold,
-          fontSize: 10,
-          color: colors.base,
+          fontFamily: POPPINS.bold,
+          fontSize: 11,
+          color: colors.onAccent,
         }}
       >
         {count > 99 ? "99+" : String(count)}
@@ -235,12 +224,12 @@ export function UiInput({ className = "", style, ...props }: UiInputProps) {
   const { colors, border } = useAppTheme();
   return (
     <TextInput
-      placeholderTextColor={`${colors.steel}B3`}
+      placeholderTextColor={colors.steel}
       {...props}
       className={`${FILLED_INPUT_CLASS} ${className}`.trim()}
       style={[
         {
-          backgroundColor: colors.surfaceSunken,
+          backgroundColor: colors.surface,
           borderRadius: TACTICAL_RADIUS.sharp,
           borderWidth: 1,
           borderColor: border,
@@ -268,27 +257,26 @@ export function UiEmpty({
         borderWidth: 1,
         borderColor: borderSoft,
         borderStyle: "dashed",
-        borderRadius: TACTICAL_RADIUS.sharp,
+        borderRadius: TACTICAL_RADIUS.panel,
       }}
     >
       <Text
         className="text-center"
         style={{
-          fontFamily: MONO.medium,
-          fontSize: 11,
-          letterSpacing: 1.4,
+          fontFamily: POPPINS.semibold,
+          fontSize: 14,
           color: colors.text,
         }}
       >
-        {title.toUpperCase()}
+        {title}
       </Text>
       {subtitle !== undefined && subtitle !== "" && (
         <Text
           className="mt-1.5 text-center"
           style={{
             fontFamily: POPPINS.regular,
-            fontSize: 11,
-            lineHeight: 17,
+            fontSize: 13,
+            lineHeight: 19,
             color: colors.steel,
           }}
         >

@@ -19,7 +19,6 @@ import {
   Rajdhani_700Bold,
 } from "@expo-google-fonts/rajdhani";
 import { ShareTechMono_400Regular } from "@expo-google-fonts/share-tech-mono";
-import { BlackOpsOne_400Regular } from "@expo-google-fonts/black-ops-one";
 import { AppErrorBoundary } from "./src/components/AppErrorBoundary";
 import { AuthSessionGuard } from "./src/components/AuthSessionGuard";
 import { LiveShareLinkListener } from "./src/components/LiveShareLinkListener";
@@ -70,7 +69,6 @@ export default function App() {
     Rajdhani_600SemiBold,
     Rajdhani_700Bold,
     ShareTechMono_400Regular,
-    BlackOpsOne_400Regular,
   });
 
   useEffect(() => {

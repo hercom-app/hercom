@@ -192,7 +192,7 @@ function ClientServiceCard({
           : "Sin chofer asignado"}
       </TacticalText>
       {service.promotionName !== undefined && (
-        <TacticalLabel size={10} className="mb-1">
+        <TacticalLabel className="mb-1">
           {`Promo: ${service.promotionName}`}
         </TacticalLabel>
       )}
@@ -226,16 +226,14 @@ function ClientServiceCard({
         <View
           className="mt-3 p-4"
           style={{
-            backgroundColor: TACTICAL_COLORS.surfaceSunken,
-            borderRadius: TACTICAL_RADIUS.sharp,
-            borderLeftWidth: 2,
-            borderLeftColor: TACTICAL_COLORS.accent,
+            backgroundColor: TACTICAL_COLORS.dataBandBg,
+            borderRadius: TACTICAL_RADIUS.panel,
           }}
         >
           <TacticalValue size={18} tone="accent">
             {`Anticipo: S/${advanceAmount.toFixed(2)}`}
           </TacticalValue>
-          <TacticalText size={12} className="mt-1">
+          <TacticalText size={15} className="mt-1">
             Transfiere el 25% de la tarifa al chofer antes de que salga.
           </TacticalText>
           <View className="mt-3">
@@ -259,13 +257,11 @@ function ClientServiceCard({
           <View
             className="mt-3 p-4"
             style={{
-              backgroundColor: "rgba(161, 196, 253, 0.1)",
-              borderRadius: TACTICAL_RADIUS.sharp,
-              borderLeftWidth: 2,
-              borderLeftColor: TACTICAL_COLORS.accent,
+              backgroundColor: TACTICAL_COLORS.dataBandBg,
+              borderRadius: TACTICAL_RADIUS.panel,
             }}
           >
-            <TacticalLabel size={9}>Código de seguridad</TacticalLabel>
+            <TacticalLabel>Código de seguridad</TacticalLabel>
             <TacticalValue size={20} tone="accent" className="mt-1">
               {service.securityCode}
             </TacticalValue>
@@ -279,7 +275,7 @@ function ClientServiceCard({
             borderRadius: TACTICAL_RADIUS.sharp,
           }}
         >
-          <TacticalLabel size={10} className="mb-2">
+          <TacticalLabel className="mb-2">
             Ofertas de choferes
           </TacticalLabel>
           {offers === undefined ? (
@@ -312,7 +308,7 @@ function ClientServiceCard({
                     borderColor: TACTICAL_BORDER,
                   }}
                 >
-                  <TacticalLabel size={10} tone="text">
+                  <TacticalLabel tone="text">
                     {`${offer.driverName} · ${offer.driverRating.toFixed(1)}★${
                       offer.driverTrips > 0
                         ? ` · ${offer.driverTrips} viajes`
@@ -322,7 +318,7 @@ function ClientServiceCard({
                   <TacticalValue size={18} tone="accent" className="mt-1">
                     {`S/${offer.offeredPrice.toFixed(2)}`}
                   </TacticalValue>
-                  <TacticalLabel size={9} tone="accent" className="mt-1">
+                  <TacticalLabel tone="accent" className="mt-1">
                     Ver chofer
                   </TacticalLabel>
                 </TouchableOpacity>
@@ -381,8 +377,7 @@ function ClientServiceCard({
             className="text-center"
             style={{
               fontFamily: MONO.bold,
-              fontSize: 12,
-              letterSpacing: 1.4,
+              fontSize: 15,
               color: TACTICAL_COLORS.danger,
             }}
           >
@@ -907,7 +902,7 @@ export function ClientDashboard() {
                 <TouchableOpacity
                   onPress={() => void markAllNotificationsAsRead()}
                 >
-                  <TacticalLabel size={9} tone="accent">
+                  <TacticalLabel tone="accent">
                     Marcar leídas
                   </TacticalLabel>
                 </TouchableOpacity>
@@ -924,7 +919,7 @@ export function ClientDashboard() {
                       borderRadius: TACTICAL_RADIUS.sharp,
                     }}
                   >
-                    <TacticalLabel size={9} tone="text">
+                    <TacticalLabel tone="text">
                       {notification.title}
                     </TacticalLabel>
                     <TacticalText size={11} className="mt-1">
@@ -982,7 +977,7 @@ export function ClientDashboard() {
       onPress: () => void,
     ) => (
       <View>
-        <TacticalLabel size={9} className="mb-1.5">
+        <TacticalLabel className="mb-1.5">
           {label}
         </TacticalLabel>
         <Pressable
@@ -1104,7 +1099,7 @@ export function ClientDashboard() {
                 disabled={submitting}
                 className="rounded-2xl py-2.5 disabled:opacity-60"
               >
-                <TacticalLabel size={10} className="text-center">
+                <TacticalLabel className="text-center">
                   + Agregar parada
                 </TacticalLabel>
               </TouchableOpacity>
@@ -1138,8 +1133,8 @@ export function ClientDashboard() {
                 {
                   height: addressSheetHeight,
                   backgroundColor: TACTICAL_COLORS.base,
-                  borderTopWidth: 1,
-                  borderTopColor: TACTICAL_COLORS.accent,
+                  borderTopLeftRadius: 24,
+                  borderTopRightRadius: 24,
                 },
                 SHEET_SHADOW,
               ]}
@@ -1187,7 +1182,7 @@ export function ClientDashboard() {
                 </TacticalTitle>
 
                 <View className="mb-3">
-                  <TacticalLabel size={10} className="mb-1.5">
+                  <TacticalLabel className="mb-1.5">
                     Punto de recojo
                   </TacticalLabel>
                   <AddressAutocomplete
@@ -1232,7 +1227,7 @@ export function ClientDashboard() {
                 </View>
 
                 <View className="mb-3">
-                  <TacticalLabel size={10} className="mb-1.5">
+                  <TacticalLabel className="mb-1.5">
                     Destino
                   </TacticalLabel>
                   <AddressAutocomplete
@@ -1451,8 +1446,8 @@ export function ClientDashboard() {
         style={[
           {
             backgroundColor: TACTICAL_COLORS.base,
-            borderTopWidth: 1,
-            borderTopColor: TACTICAL_COLORS.accent,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
           },
           {
             height: confirmSheetHeight,
@@ -1492,7 +1487,7 @@ export function ClientDashboard() {
                 setAddressSearchField("origin");
               }}
             >
-              <TacticalLabel size={10}>De · tocar para editar</TacticalLabel>
+              <TacticalLabel>De · tocar para editar</TacticalLabel>
               <TacticalText size={13} tone="text" className="mt-0.5" numberOfLines={2}>
                 {origin}
               </TacticalText>
@@ -1509,7 +1504,7 @@ export function ClientDashboard() {
                 setAddressSearchField("destination");
               }}
             >
-              <TacticalLabel size={10}>A · tocar para editar</TacticalLabel>
+              <TacticalLabel>A · tocar para editar</TacticalLabel>
               <TacticalText size={13} tone="text" className="mt-0.5" numberOfLines={2}>
                 {formatServiceStopsLabel(
                   toServiceLocation(destination),
@@ -1519,7 +1514,7 @@ export function ClientDashboard() {
             </TouchableOpacity>
           </TacticalPanel>
 
-          <TacticalLabel size={10} className="mb-2">
+          <TacticalLabel className="mb-2">
             ¿Cuánto tiempo necesitas?
           </TacticalLabel>
           <TacticalText size={11} className="mb-3">
@@ -1583,7 +1578,7 @@ export function ClientDashboard() {
 
           <TacticalPanel active className="mb-3 flex-row items-end justify-between">
             <View>
-              <TacticalLabel size={10} tone="accent">
+              <TacticalLabel tone="accent">
                 Tarifa estimada
               </TacticalLabel>
               <TacticalValue size={26} tone="accent" className="mt-0.5">
@@ -1599,7 +1594,7 @@ export function ClientDashboard() {
 
           {promoPreview !== undefined && promoPreview !== null && (
             <TacticalPanel tone="sunken" className="mb-3">
-              <TacticalLabel size={10} tone="accent">
+              <TacticalLabel tone="accent">
                 Promo: {promoPreview.promotionName} (
                 {(promoPreview.discountRate * 100).toFixed(0)}% off)
               </TacticalLabel>

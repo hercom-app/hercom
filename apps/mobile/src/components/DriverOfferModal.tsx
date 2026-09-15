@@ -60,7 +60,7 @@ export function DriverOfferModal({
       ) : (
         <View>
           <TacticalPanel corners active>
-            <TacticalLabel size={9}>Operador</TacticalLabel>
+            <TacticalLabel>Operador</TacticalLabel>
             <TacticalTitle size={22} className="mt-1">
               {offer.driverName}
             </TacticalTitle>
@@ -89,7 +89,7 @@ export function DriverOfferModal({
               borderLeftColor: TACTICAL_COLORS.accent,
             }}
           >
-            <TacticalLabel size={10}>Tarifa ofertada</TacticalLabel>
+            <TacticalLabel>Tarifa ofertada</TacticalLabel>
             <TacticalValue size={24} tone="accent">
               {`S/${offer.offeredPrice.toFixed(2)}`}
             </TacticalValue>

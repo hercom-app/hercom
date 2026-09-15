@@ -235,7 +235,7 @@ Recomendación práctica:
 | `.npmrc` | Creado. `node-linker=hoisted` para compatibilidad de monorepo pnpm con EAS |
 | `apps/mobile/metro.config.js` | `watchFolders` ahora extiende los defaults de Expo en lugar de reemplazarlos |
 | `.gitignore` | La línea `**/convex/_generated/` fue comentada para que EAS reciba esos archivos |
-| `apps/mobile/package.json` | `expo-document-picker` actualizado a `^14.0.8`, `expo-image-picker` a `^17.0.11` (requeridos por SDK 54) |
+| `apps/mobile/package.json` | **Expo SDK 57** (`expo ~57`, RN 0.86, React 19.2); splash vía plugin `expo-splash-screen` |
 
 ---
 
@@ -256,11 +256,20 @@ EAS infiere el gestor de paquetes por el lockfile. Al encontrar ambos, usaba
 Expo ésta fallaba porque el entorno estaba roto.
 **Solución:** Eliminar `package-lock.json` de la raíz.
 
-### Error 4: Versiones incompatibles con Expo SDK 54
-**Causa:** `expo-image-picker@16.0.6` y `expo-document-picker@13.0.3` eran
-versiones anteriores a las que requiere SDK 54.
-**Detectado con:** `npx expo-doctor`
-**Solución:** `npx expo install --fix` desde `apps/mobile`
+### Error 4: Versiones incompatibles con el Expo SDK del proyecto
+**Causa:** Paquetes `expo-*` o nativos (`reanimated`, `worklets`, `maps`) desalineados
+respecto al SDK declarado en `expo` (`package.json`).
+**Detectado con:** `npx expo-doctor` o mensaje *"Project is incompatible with Expo Go"*.
+**Solución:** desde `apps/mobile`, alinear dependencias (SDK 57 actual):
+
+```powershell
+cd apps/mobile
+npx expo-doctor@latest
+pnpm typecheck
+```
+
+Si `pnpm add` falla en Windows con `ENOENT …_tmp_…`, borrar `node_modules` en la raíz
+y volver a `pnpm install` desde la raíz del monorepo.
 
 ### Error 5: `metro.config.js` sobreescribía watchFolders
 **Causa:** La config del monorepo asignaba `config.watchFolders = [workspaceRoot]`
@@ -408,6 +417,76 @@ Hay que generar un `preview` (o `production`) nuevo una vez. A partir de ahí,
 nativo o se sube `version` en `app.json`, hace falta otra build.
 
 Expo Go **no** usa este canal: sigue siendo Metro (`pnpm mobile`).
+
+---
+
+## SDK 57 — checklist primer build post-upgrade (Play Store)
+
+Tras subir de SDK 54 → **57** (septiembre 2026), **hay que generar un APK/AAB nuevo**.
+Los binarios viejos no son compatibles con el runtime nativo actual.
+
+### Antes del build
+
+```powershell
+# Raíz del monorepo
+pnpm install
+
+cd packages/backend
+npx convex codegen
+
+cd ../../apps/mobile
+pnpm typecheck
+npx expo-doctor@latest
+```
+
+Verificaciones locales (opcional, Expo Go):
+
+```powershell
+# Desde la raíz
+powershell -ExecutionPolicy Bypass -File .\scripts\start-mobile-tunnel.ps1
+```
+
+- Expo Go en el celular debe ser **SDK 57** ([expo.dev/go](https://expo.dev/go) o
+  `npx expo-go url android 57`).
+- Push remoto **no** funciona en Expo Go; probar notificaciones solo en APK preview.
+
+### Build preview (APK interno)
+
+```powershell
+cd apps/mobile
+$env:EAS_BUILD = "true"
+npx eas-cli build --platform android --profile preview
+```
+
+Cuando termine, instalá el APK en el celular y probá:
+
+| Flujo | Qué validar |
+| --- | --- |
+| Login Google + email | OAuth redirect `choferes://` en build nativo |
+| Cliente / chofer | Dashboards, drawer, tema claro/oscuro |
+| Mapas | Live trip, autocomplete (key en `eas.json`) |
+| Ubicación | Permiso + “Usar mi ubicación actual” |
+| Registro chofer | Fotos, document picker, selfie |
+| Notificaciones | Solo en APK (no en Expo Go) |
+
+### Build production (Play Store)
+
+Cuando el preview esté estable:
+
+```powershell
+cd apps/mobile
+$env:EAS_BUILD = "true"
+npx eas-cli build --platform android --profile production
+```
+
+Subí el **AAB** a Google Play Console. Incrementa `version` en `app.json` si
+cambiaste código nativo (plugins, permisos, splash).
+
+### Cambios de config relevantes en SDK 57
+
+- Quitado `newArchEnabled` de `app.json` (New Architecture es el default).
+- Splash: plugin `expo-splash-screen` (ya no `expo.splash` en la raíz).
+- `metro.config.js` mantiene `disableHierarchicalLookup` por el monorepo pnpm.
 
 ---
 

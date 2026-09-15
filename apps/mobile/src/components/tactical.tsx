@@ -14,12 +14,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HamburgerButton } from "./HamburgerButton";
 import { useAppTheme } from "../contexts/ThemeContext";
 import {
+  DISPLAY,
   MONO,
   POPPINS,
+  TABULAR,
   TACTICAL_BORDER,
   TACTICAL_BORDER_SOFT,
   TACTICAL_COLORS,
   TACTICAL_RADIUS,
+  TYPE,
 } from "../constants/theme";
 
 /**
@@ -82,26 +85,30 @@ export function FieldScreenHeader({
   trailing?: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
-  const { colors } = useAppTheme();
+  const { colors, scheme, borderSoft } = useAppTheme();
 
   return (
     <View
       style={{
         paddingTop: insets.top + 8,
-        paddingBottom: 12,
+        paddingBottom: 14,
         paddingHorizontal: 16,
         backgroundColor: colors.headerBg,
         borderBottomWidth: 1,
-        borderBottomColor: "rgba(255,255,255,0.12)",
+        borderBottomColor:
+          scheme === "light" ? borderSoft : "rgba(255,255,255,0.12)",
       }}
     >
       <View className="flex-row items-center gap-3">
-        <HamburgerButton onPress={onOpenMenu} variant="navy" />
+        <HamburgerButton
+          onPress={onOpenMenu}
+          variant={scheme === "light" ? "light" : "navy"}
+        />
         <View className="min-w-0 flex-1">
           <Text
             style={{
-              fontFamily: POPPINS.bold,
-              fontSize: 18,
+              fontFamily: DISPLAY.bold,
+              fontSize: TYPE.title,
               color: colors.headerText,
             }}
             numberOfLines={1}
@@ -112,7 +119,7 @@ export function FieldScreenHeader({
             <Text
               style={{
                 fontFamily: POPPINS.regular,
-                fontSize: 13,
+                fontSize: TYPE.caption,
                 color: colors.headerMuted,
                 marginTop: 2,
               }}
@@ -128,7 +135,7 @@ export function FieldScreenHeader({
   );
 }
 
-/** Banda negra para cifra destacada (tarifa, saldo). */
+/** Tarifa / saldo destacado — card clara, cifra grande sans. */
 export function FieldDataBand({
   label,
   value,
@@ -138,22 +145,24 @@ export function FieldDataBand({
   value: string;
   footer?: string;
 }) {
-  const { colors } = useAppTheme();
+  const { colors, borderSoft } = useAppTheme();
   return (
     <View
-      className="px-4 py-4"
+      className="px-5 py-4"
       style={{
         backgroundColor: colors.dataBandBg,
         borderRadius: TACTICAL_RADIUS.panel,
+        borderWidth: 1,
+        borderColor: borderSoft,
       }}
     >
       {label !== undefined && label !== "" && (
         <Text
           style={{
             fontFamily: POPPINS.medium,
-            fontSize: 12,
-            color: colors.headerMuted,
-            marginBottom: 4,
+            fontSize: TYPE.caption,
+            color: colors.dataBandLabel,
+            marginBottom: 6,
           }}
         >
           {label}
@@ -161,10 +170,10 @@ export function FieldDataBand({
       )}
       <Text
         style={{
-          fontFamily: MONO.regular,
-          fontSize: 28,
+          fontFamily: MONO.bold,
+          fontSize: TYPE.amount,
           color: colors.dataBandText,
-          letterSpacing: 0.5,
+          ...TABULAR,
         }}
       >
         {value}
@@ -173,9 +182,9 @@ export function FieldDataBand({
         <Text
           style={{
             fontFamily: POPPINS.regular,
-            fontSize: 12,
-            color: colors.headerMuted,
-            marginTop: 6,
+            fontSize: TYPE.caption,
+            color: colors.dataBandLabel,
+            marginTop: 8,
           }}
         >
           {footer}
@@ -212,21 +221,21 @@ export function TacticalPanel({
         : "transparent";
   return (
     <View
-      className={`p-4 ${className}`.trim()}
+      className={`p-5 ${className}`.trim()}
       style={[
         {
           backgroundColor: background,
           borderRadius: TACTICAL_RADIUS.panel,
-          borderWidth: 1,
+          borderWidth: scheme === "light" ? 0 : 1,
           borderColor: active ? colors.accent : border,
         },
         scheme === "light" && tone === "surface"
           ? {
               shadowColor: "#0F172A",
-              shadowOpacity: 0.06,
-              shadowRadius: 8,
-              shadowOffset: { width: 0, height: 2 },
-              elevation: 1,
+              shadowOpacity: 0.08,
+              shadowRadius: 16,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 3,
             }
           : null,
         style,
@@ -241,7 +250,7 @@ export function TacticalPanel({
 export function TacticalLabel({
   children,
   tone = "steel",
-  size = 12,
+  size = TYPE.caption,
   className = "",
   style,
 }: {
@@ -275,10 +284,10 @@ export function TacticalLabel({
   );
 }
 
-/** Montos y códigos — mono. */
+/** Montos y cifras — sans bold con números tabulares. */
 export function TacticalValue({
   children,
-  size = 18,
+  size = TYPE.bodyLg,
   tone = "text",
   className = "",
   style,
@@ -300,7 +309,7 @@ export function TacticalValue({
     <Text
       className={className}
       style={[
-        { fontFamily: MONO.regular, fontSize: size, color },
+        { fontFamily: MONO.bold, fontSize: size, color, ...TABULAR },
         style,
       ]}
     >
@@ -309,10 +318,10 @@ export function TacticalValue({
   );
 }
 
-/** Título de sección — Rajdhani bold, sin mayúsculas forzadas. */
+/** Título de sección — Arvo (display), estilo institucional. */
 export function TacticalTitle({
   children,
-  size = 18,
+  size = TYPE.title,
   className = "",
   style,
   onHeader = false,
@@ -330,7 +339,7 @@ export function TacticalTitle({
       className={className}
       style={[
         {
-          fontFamily: POPPINS.bold,
+          fontFamily: DISPLAY.bold,
           fontSize: size,
           color: onHeader ? colors.headerText : colors.textStrong,
         },
@@ -344,7 +353,7 @@ export function TacticalTitle({
 
 export function TacticalText({
   children,
-  size = 14,
+  size = TYPE.body,
   tone = "steel",
   className = "",
   style,
@@ -423,8 +432,8 @@ export function TacticalButton({
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.82}
-      className={`items-center justify-center px-4 ${
-        size === "lg" ? "h-14" : "h-12"
+      className={`items-center justify-center px-5 ${
+        size === "lg" ? "h-16" : "h-14"
       } ${disabled || loading ? "opacity-45" : ""} ${className}`.trim()}
       style={{
         backgroundColor: background,
@@ -439,7 +448,7 @@ export function TacticalButton({
         <Text
           style={{
             fontFamily: POPPINS.bold,
-            fontSize: size === "lg" ? 16 : 15,
+            fontSize: size === "lg" ? TYPE.bodyLg : TYPE.body,
             color: labelColor,
           }}
         >
@@ -478,11 +487,12 @@ export function TacticalInput({
             borderRadius: TACTICAL_RADIUS.sharp,
             borderWidth: 1,
             borderColor: border,
-            paddingHorizontal: 14,
-            paddingVertical: 12,
-            fontSize: mono ? 16 : 15,
-            fontFamily: mono ? MONO.regular : POPPINS.regular,
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+            fontSize: mono ? TYPE.bodyLg : TYPE.bodyLg,
+            fontFamily: mono ? MONO.bold : POPPINS.regular,
             color: colors.textStrong,
+            ...(mono ? TABULAR : null),
           },
           style,
         ]}
@@ -510,27 +520,25 @@ export function TacticalStatus({ label, tone = "idle" }: TacticalStatusProps) {
             : colors.steel;
   return (
     <View
-      className="flex-row items-center px-2.5 py-1"
+      className="flex-row items-center px-3 py-1.5"
       style={{
-        borderRadius: TACTICAL_RADIUS.sharp,
-        borderWidth: 1,
-        borderColor: `${color}55`,
-        backgroundColor: `${color}12`,
+        borderRadius: 999,
+        backgroundColor: `${color}18`,
       }}
     >
       <View
         style={{
-          width: 6,
-          height: 6,
-          borderRadius: 3,
+          width: 8,
+          height: 8,
+          borderRadius: 4,
           backgroundColor: color,
-          marginRight: 7,
+          marginRight: 8,
         }}
       />
       <Text
         style={{
-          fontFamily: POPPINS.medium,
-          fontSize: 12,
+          fontFamily: POPPINS.semibold,
+          fontSize: TYPE.caption,
           color,
         }}
       >
@@ -555,7 +563,7 @@ export function TacticalDivider({ label }: { label?: string }) {
         className="flex-1"
         style={{ height: 1, backgroundColor: TACTICAL_BORDER_SOFT }}
       />
-      <TacticalLabel className="mx-3" size={11}>
+      <TacticalLabel className="mx-3" size={TYPE.caption}>
         {label}
       </TacticalLabel>
       <View
@@ -584,11 +592,11 @@ export function TacticalEmpty({
         borderRadius: TACTICAL_RADIUS.panel,
       }}
     >
-      <TacticalLabel size={13} tone="text" className="text-center">
+      <TacticalLabel size={TYPE.body} tone="text" className="text-center">
         {title}
       </TacticalLabel>
       {subtitle !== undefined && subtitle !== "" && (
-        <TacticalText size={13} className="mt-1.5 text-center">
+        <TacticalText size={TYPE.caption} className="mt-1.5 text-center">
           {subtitle}
         </TacticalText>
       )}
@@ -607,8 +615,8 @@ export function TacticalReadout({
 }) {
   return (
     <View className="flex-row items-center justify-between py-2">
-      <TacticalLabel size={12}>{label}</TacticalLabel>
-      <TacticalValue size={14} tone={tone}>
+      <TacticalLabel size={TYPE.caption}>{label}</TacticalLabel>
+      <TacticalValue size={TYPE.body} tone={tone}>
         {value}
       </TacticalValue>
     </View>

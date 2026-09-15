@@ -178,7 +178,7 @@ Puerto: **http://localhost:5174**
 - Node.js >= 18
 - pnpm 9 (`npm install -g pnpm`)
 - Cuenta de [Convex](https://convex.dev)
-- **Expo Go** con **SDK 54** (App Store / Play Store)
+- **Expo Go** con **SDK 57** (Android / simulador; iOS vía `expo.dev/go` o EAS)
 
 ## Puesta en marcha (rápida)
 

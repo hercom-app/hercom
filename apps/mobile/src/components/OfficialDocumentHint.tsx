@@ -31,7 +31,7 @@ export function OfficialDocumentHint({
       }}
     >
       <View className="px-4 pb-2.5 pt-3">
-        <TacticalLabel size={10} tone="text">
+        <TacticalLabel tone="text">
           {title}
         </TacticalLabel>
       </View>
@@ -46,7 +46,7 @@ export function OfficialDocumentHint({
           backgroundColor: "rgba(161, 196, 253, 0.08)",
         }}
       >
-        <TacticalLabel size={10} tone="accent" className="flex-1 pr-3">
+        <TacticalLabel tone="accent" className="flex-1 pr-3">
           {linkLabel}
         </TacticalLabel>
         <View

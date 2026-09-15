@@ -1,3 +1,5 @@
+import type { TextStyle } from "react-native";
+
 /** Paleta institucional Hercom — sobria, pocos acentos funcionales. */
 export const HERCOM_COLORS = {
   /** Azul institucional — acento de marca en CTAs y estados activos. */
@@ -50,6 +52,21 @@ export const ANA = {
   black: "#080808",
 } as const;
 
+/** Escala legible — orientada a choferes y clientes mayores. */
+export const TYPE = {
+  caption: 15,
+  body: 17,
+  bodyLg: 18,
+  title: 22,
+  headline: 24,
+  amount: 30,
+} as const;
+
+/** Números alineados (tarifas, saldos) sin fuente monoespaciada. */
+export const TABULAR: TextStyle = {
+  fontVariant: ["tabular-nums"],
+};
+
 export type AppColorScheme = "dark" | "light";
 
 export type ThemeColors = {
@@ -65,7 +82,7 @@ export type ThemeColors = {
   success: string;
   warning: string;
   danger: string;
-  /** Barra superior navy (estilo Military Pay). */
+  /** Barra superior navy (estilo institucional). */
   headerBg: string;
   headerText: string;
   headerMuted: string;
@@ -74,28 +91,30 @@ export type ThemeColors = {
   /** Banda de dato destacado (tarifa, saldo). */
   dataBandBg: string;
   dataBandText: string;
+  dataBandLabel: string;
 };
 
-/** Claro — canvas + cabecera navy + cards blancas. */
+/** Claro — blanco + acentos Hercom (estilo app de transporte). */
 export const LIGHT_COLORS: ThemeColors = {
-  base: HERCOM_COLORS.canvas,
+  base: "#FFFFFF",
   baseElevated: "#FFFFFF",
   surface: HERCOM_COLORS.surface,
   surfaceSunken: HERCOM_COLORS.surfaceMuted,
   accent: HERCOM_COLORS.primary,
   accentDim: HERCOM_COLORS.primaryDark,
   steel: "#64748B",
-  text: ANA.insigniaBlue,
+  text: HERCOM_COLORS.textSecondary,
   textStrong: HERCOM_COLORS.text,
   success: HERCOM_COLORS.success,
   warning: HERCOM_COLORS.warning,
   danger: HERCOM_COLORS.danger,
-  headerBg: ANA.insigniaBlue,
-  headerText: "#FFFFFF",
-  headerMuted: "rgba(255, 255, 255, 0.72)",
+  headerBg: "#FFFFFF",
+  headerText: HERCOM_COLORS.text,
+  headerMuted: HERCOM_COLORS.textMuted,
   onAccent: "#FFFFFF",
-  dataBandBg: ANA.instrumentBlack,
-  dataBandText: "#FFFFFF",
+  dataBandBg: HERCOM_COLORS.primarySoft,
+  dataBandText: HERCOM_COLORS.text,
+  dataBandLabel: HERCOM_COLORS.textSecondary,
 };
 
 /** Oscuro — hangar navy camo, acento Hercom blue. */
@@ -116,8 +135,9 @@ export const DARK_COLORS: ThemeColors = {
   headerText: "#FFFFFF",
   headerMuted: "rgba(255, 255, 255, 0.68)",
   onAccent: "#FFFFFF",
-  dataBandBg: ANA.instrumentBlack,
-  dataBandText: "#FFFFFF",
+  dataBandBg: "rgba(11, 112, 254, 0.18)",
+  dataBandText: "#F6F5F2",
+  dataBandLabel: ANA.lightGray,
 };
 
 /** Tokens vivos: `applyColorScheme` los muta para que la app se re-pinte. */
@@ -127,10 +147,10 @@ export let TACTICAL_BORDER = "rgba(27, 44, 74, 0.14)";
 export let TACTICAL_BORDER_SOFT = "rgba(27, 44, 74, 0.08)";
 export let TACTICAL_GRID_LINE = "rgba(27, 44, 74, 0.04)";
 
-/** Radios sobrios — cards legibles, no chasis angular extremo. */
+/** Radios redondeados — cards tipo transport app. */
 export const TACTICAL_RADIUS = {
-  sharp: 6,
-  panel: 8,
+  sharp: 12,
+  panel: 16,
 } as const;
 
 /** Sin glow neón en botones. */
@@ -143,26 +163,38 @@ export const TACTICAL_GLOW = {
 };
 
 /**
- * Cuerpo UI — Rajdhani (condensada, legible).
- * El alias `POPPINS` se mantiene para no romper imports.
+ * Cuerpo y UI — Work Sans (como Military OneSource).
+ * El alias `POPPINS` se mantiene para no romper imports existentes.
  */
 export const POPPINS = {
-  regular: "Rajdhani_400Regular",
-  medium: "Rajdhani_500Medium",
-  semibold: "Rajdhani_600SemiBold",
-  bold: "Rajdhani_700Bold",
+  regular: "WorkSans_400Regular",
+  medium: "WorkSans_500Medium",
+  semibold: "WorkSans_600SemiBold",
+  bold: "WorkSans_700Bold",
 } as const;
 
-/** Solo cifras, montos y códigos. */
+/**
+ * Títulos y subtítulos — Arvo slab serif (como Military OneSource).
+ */
+export const ARVO = {
+  regular: "Arvo_400Regular",
+  bold: "Arvo_700Bold",
+} as const;
+
+/**
+ * Montos y cifras — Work Sans con peso fuerte (legible, no monoespaciada).
+ * El alias `MONO` se mantiene por compatibilidad de imports.
+ */
 export const MONO = {
-  regular: "ShareTechMono_400Regular",
-  medium: "ShareTechMono_400Regular",
-  bold: "ShareTechMono_400Regular",
+  regular: "WorkSans_600SemiBold",
+  medium: "WorkSans_600SemiBold",
+  bold: "WorkSans_700Bold",
 } as const;
 
-/** @deprecated Ya no se usa Black Ops; alias a bold Rajdhani. */
+/** Títulos display — Arvo. */
 export const DISPLAY = {
-  regular: "Rajdhani_700Bold",
+  regular: ARVO.regular,
+  bold: ARVO.bold,
 } as const;
 
 const DARK_CHROME = {

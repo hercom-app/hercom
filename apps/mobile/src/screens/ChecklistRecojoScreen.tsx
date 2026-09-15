@@ -152,7 +152,7 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
         }}
       >
         <TouchableOpacity onPress={onBack} className="mr-3 py-1 pr-2">
-          <TacticalLabel size={11} tone="accent">
+          <TacticalLabel tone="accent">
             ← Volver
           </TacticalLabel>
         </TouchableOpacity>
@@ -231,7 +231,7 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
             className="min-h-[88px] px-4 py-3.5"
             style={{
               backgroundColor: TACTICAL_COLORS.surfaceSunken,
-              borderRadius: TACTICAL_RADIUS.sharp,
+              borderRadius: TACTICAL_RADIUS.panel,
               borderWidth: 1,
               borderColor: TACTICAL_BORDER,
               color: TACTICAL_COLORS.textStrong,
@@ -255,7 +255,7 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
               className="mt-2 px-4 py-3.5"
               style={{
                 backgroundColor: TACTICAL_COLORS.surfaceSunken,
-                borderRadius: TACTICAL_RADIUS.sharp,
+                borderRadius: TACTICAL_RADIUS.panel,
                 borderWidth: 1,
                 borderColor: TACTICAL_BORDER,
                 color: TACTICAL_COLORS.textStrong,
@@ -316,7 +316,7 @@ function Section({
 }) {
   return (
     <UiCard className={`mb-5 ${flush ? "overflow-hidden p-3" : ""}`.trim()}>
-      <TacticalLabel size={10} tone="accent" className={`mb-3 ${flush ? "px-1" : ""}`}>
+      <TacticalLabel tone="accent" className={`mb-3 ${flush ? "px-1" : ""}`}>
         {title}
       </TacticalLabel>
       {children}
@@ -339,9 +339,9 @@ function DocToggle({
       className="mb-2 px-3 py-3"
       style={{
         backgroundColor: value
-          ? "rgba(161, 196, 253, 0.14)"
+          ? TACTICAL_COLORS.dataBandBg
           : TACTICAL_COLORS.surfaceSunken,
-        borderRadius: TACTICAL_RADIUS.sharp,
+        borderRadius: TACTICAL_RADIUS.panel,
         borderWidth: 1,
         borderColor: value ? TACTICAL_COLORS.accent : TACTICAL_BORDER,
       }}
@@ -369,7 +369,7 @@ function Field({
 }) {
   return (
     <View className="mb-2">
-      <TacticalLabel size={10} className="mb-1.5">
+      <TacticalLabel className="mb-1.5">
         {label}
       </TacticalLabel>
       <UiInput

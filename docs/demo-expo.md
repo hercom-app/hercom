@@ -21,17 +21,18 @@ requisito**.
    (`convex/_generated`) y entrega la URL del deployment. La app móvil **no
    arranca sin esa URL**.
 5. **Archivo `.env`** en `apps/mobile` con `EXPO_PUBLIC_CONVEX_URL`.
-6. La app **Expo Go** en el teléfono del cliente:
-   - iOS: App Store → "Expo Go".
-   - Android: Play Store → "Expo Go".
+6. La app **Expo Go SDK 57** en el teléfono (debe coincidir exactamente con el SDK del proyecto):
+   - **Android:** [expo.dev/go](https://expo.dev/go) → SDK 57, o
+     `npx expo-go url android 57` (APK directa).
+   - **iOS:** App Store suele quedarse en SDK 54; para SDK 57 usá simulador,
+     `eas go`, o probá con **APK preview** (EAS) en Android.
 7. Computadora y teléfono en la **misma red Wi-Fi** (o usar modo túnel, ver
    abajo).
 
-> **Expo Go y versión del SDK:** La app móvil usa **Expo SDK 54**, igual que la
-> versión actual de Expo Go en Play Store / App Store. Si ves el error
-> *"Project is incompatible with this version of Expo Go"*, asegúrate de tener
-> las dependencias al día (`pnpm install` en la raíz) y reinicia Expo con caché
-> limpia: `pnpm --filter @proyecto/mobile start -- --clear`.
+> **Expo Go y versión del SDK:** La app móvil usa **Expo SDK 57**. Si ves
+> *"Project is incompatible with this version of Expo Go"*, instalá Expo Go 57
+> (no la versión genérica de la tienda si es más vieja/nueva). Para producción
+> (Play Store) usá EAS Build — ver [`eas-build-setup.md`](./eas-build-setup.md).
 
 ## Pasos (Windows / PowerShell)
 

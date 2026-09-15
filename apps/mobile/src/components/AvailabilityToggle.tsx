@@ -18,7 +18,7 @@ const STATUS_LABELS: Record<DriverStatus, string> = {
 };
 
 /** Alto total del riel (track). */
-const TRACK_H = 56;
+const TRACK_H = 64;
 /** Margen interno entre riel y control (thumb). */
 const INSET = 4;
 /** Diámetro del control = alto del riel menos márgenes (encaja exacto). */
@@ -87,7 +87,7 @@ export function AvailabilityToggle({ status }: { status: DriverStatus }) {
   return (
     <TacticalPanel corners active={isAvailable} className="mb-3">
       <View className="mb-3 flex-row items-center justify-between">
-        <TacticalLabel tone="accent">Estado operativo</TacticalLabel>
+        <TacticalLabel>Tu disponibilidad</TacticalLabel>
         <TacticalStatus
           label={STATUS_LABELS[status]}
           tone={isAvailable ? "success" : busy ? "warning" : "idle"}
@@ -102,9 +102,8 @@ export function AvailabilityToggle({ status }: { status: DriverStatus }) {
           height: TRACK_H,
           position: "relative",
           backgroundColor: trackColor,
-          borderRadius: TACTICAL_RADIUS.sharp,
-          borderWidth: 1,
-          borderColor: `${trackBorder}59`,
+          borderRadius: 999,
+          borderWidth: 0,
         }}
       >
         <Text
@@ -117,12 +116,11 @@ export function AvailabilityToggle({ status }: { status: DriverStatus }) {
             paddingLeft: THUMB + INSET,
             paddingRight: INSET,
             fontFamily: MONO.medium,
-            fontSize: 11,
-            letterSpacing: 1.5,
+            fontSize: 16,
             color: busy ? TACTICAL_COLORS.steel : TACTICAL_COLORS.text,
           }}
         >
-          {slideLabel.toUpperCase()}
+          {slideLabel}
         </Text>
 
         {/* thumb = control / perilla */}
@@ -138,17 +136,22 @@ export function AvailabilityToggle({ status }: { status: DriverStatus }) {
               backgroundColor: isAvailable
                 ? TACTICAL_COLORS.success
                 : TACTICAL_COLORS.accent,
-              borderRadius: TACTICAL_RADIUS.sharp,
+              borderRadius: 999,
+              shadowColor: "#0F172A",
+              shadowOpacity: 0.15,
+              shadowRadius: 6,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 3,
             }}
           >
             <Text
               style={{
                 fontFamily: MONO.bold,
-                fontSize: 15,
-                color: TACTICAL_COLORS.base,
+                fontSize: 18,
+                color: "#FFFFFF",
               }}
             >
-              {"››"}
+              {"›"}
             </Text>
           </View>
         )}

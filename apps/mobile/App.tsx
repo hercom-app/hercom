@@ -13,12 +13,12 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import * as SecureStore from "expo-secure-store";
 import {
   useFonts,
-  Rajdhani_400Regular,
-  Rajdhani_500Medium,
-  Rajdhani_600SemiBold,
-  Rajdhani_700Bold,
-} from "@expo-google-fonts/rajdhani";
-import { ShareTechMono_400Regular } from "@expo-google-fonts/share-tech-mono";
+  WorkSans_400Regular,
+  WorkSans_500Medium,
+  WorkSans_600SemiBold,
+  WorkSans_700Bold,
+} from "@expo-google-fonts/work-sans";
+import { Arvo_400Regular, Arvo_700Bold } from "@expo-google-fonts/arvo";
 import { AppErrorBoundary } from "./src/components/AppErrorBoundary";
 import { AuthSessionGuard } from "./src/components/AuthSessionGuard";
 import { LiveShareLinkListener } from "./src/components/LiveShareLinkListener";
@@ -28,7 +28,7 @@ import { AppModeProvider } from "./src/contexts/AppModeContext";
 import { ThemeProvider, useAppTheme } from "./src/contexts/ThemeContext";
 import { SignInScreen } from "./src/screens/SignInScreen";
 import { HomeScreen } from "./src/screens/HomeScreen";
-import { POPPINS, TACTICAL_COLORS } from "./src/constants/theme";
+import { POPPINS, TACTICAL_COLORS, TYPE } from "./src/constants/theme";
 
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -45,7 +45,7 @@ const secureStorage = {
   removeItem: SecureStore.deleteItemAsync,
 };
 
-function applyHudTypeDefaults() {
+function applyTypeDefaults() {
   const textDefaults = Text as unknown as {
     defaultProps?: { style?: unknown };
   };
@@ -54,26 +54,33 @@ function applyHudTypeDefaults() {
   };
   textDefaults.defaultProps = {
     ...(textDefaults.defaultProps ?? {}),
-    style: [{ fontFamily: POPPINS.medium }, textDefaults.defaultProps?.style],
+    style: [
+      { fontFamily: POPPINS.regular, fontSize: TYPE.body },
+      textDefaults.defaultProps?.style,
+    ],
   };
   inputDefaults.defaultProps = {
     ...(inputDefaults.defaultProps ?? {}),
-    style: [{ fontFamily: POPPINS.regular }, inputDefaults.defaultProps?.style],
+    style: [
+      { fontFamily: POPPINS.regular, fontSize: TYPE.bodyLg },
+      inputDefaults.defaultProps?.style,
+    ],
   };
 }
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    Rajdhani_400Regular,
-    Rajdhani_500Medium,
-    Rajdhani_600SemiBold,
-    Rajdhani_700Bold,
-    ShareTechMono_400Regular,
+    WorkSans_400Regular,
+    WorkSans_500Medium,
+    WorkSans_600SemiBold,
+    WorkSans_700Bold,
+    Arvo_400Regular,
+    Arvo_700Bold,
   });
 
   useEffect(() => {
     if (fontsLoaded) {
-      applyHudTypeDefaults();
+      applyTypeDefaults();
     }
   }, [fontsLoaded]);
 

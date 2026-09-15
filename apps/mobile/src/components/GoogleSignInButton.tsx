@@ -24,8 +24,8 @@ type GoogleSignInButtonProps = {
   disabled?: boolean;
   label?: string;
   onError?: (message: string) => void;
-  /** `tactical` es ghost HUD; `ops` es CTA lleno (login tipo CoD). */
-  variant?: "light" | "tactical" | "ops";
+  /** `consumer` = CTA azul redondeado. `loginPill` = pill full-width (login card). */
+  variant?: "light" | "tactical" | "ops" | "consumer" | "loginPill";
 };
 
 function getRedirectTo(): string {
@@ -102,16 +102,23 @@ export function GoogleSignInButton({
     }
   }
 
-  if (variant === "ops") {
+  if (variant === "ops" || variant === "consumer" || variant === "loginPill") {
+    const isConsumer = variant === "consumer";
+    const isLoginPill = variant === "loginPill";
     return (
       <TouchableOpacity
         onPress={() => void handlePress()}
         disabled={disabled || submitting}
         activeOpacity={0.82}
-        className="h-14 flex-row items-center justify-center disabled:opacity-60"
+        className="h-16 flex-row items-center justify-center disabled:opacity-60"
         style={{
           backgroundColor: HERCOM_COLORS.primary,
-          borderRadius: 8,
+          borderRadius: isLoginPill ? 999 : isConsumer ? 16 : 8,
+          shadowColor: HERCOM_COLORS.primary,
+          shadowOpacity: isConsumer || isLoginPill ? 0.28 : 0,
+          shadowRadius: isConsumer || isLoginPill ? 12 : 0,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: isConsumer || isLoginPill ? 4 : 0,
         }}
       >
         {submitting ? (
@@ -122,8 +129,10 @@ export function GoogleSignInButton({
             <Text
               style={{
                 fontFamily: POPPINS.bold,
-                fontSize: 16,
+                fontSize: isLoginPill ? 17 : isConsumer ? 18 : 16,
                 color: "#FFFFFF",
+                letterSpacing: isLoginPill ? 0.6 : 0,
+                textTransform: isLoginPill ? "uppercase" : "none",
               }}
             >
               {label}

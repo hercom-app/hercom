@@ -35,16 +35,14 @@ function ReadOnlyField({
   const display = value !== undefined && value.trim() !== "" ? value : "—";
   return (
     <View className={last ? "" : "mb-3"}>
-      <TacticalLabel size={9} className="mb-1.5">
+      <TacticalLabel className="mb-1.5">
         {label}
       </TacticalLabel>
       <View
         className="px-4 py-3.5"
         style={{
-          backgroundColor: TACTICAL_COLORS.surfaceSunken,
-          borderRadius: TACTICAL_RADIUS.sharp,
-          borderWidth: 1,
-          borderColor: TACTICAL_BORDER,
+          backgroundColor: TACTICAL_COLORS.dataBandBg,
+          borderRadius: TACTICAL_RADIUS.panel,
         }}
       >
         <TacticalValue size={14}>{display}</TacticalValue>
@@ -91,7 +89,7 @@ export function ClientSettingsScreen({ onOpenMenu }: ClientSettingsScreenProps) 
               />
               {me.selfieUrl !== null && me.selfieUrl !== undefined && (
                 <View className="mb-3">
-                  <TacticalLabel size={9} className="mb-1.5">
+                  <TacticalLabel className="mb-1.5">
                     Selfie
                   </TacticalLabel>
                   <Image
@@ -99,7 +97,7 @@ export function ClientSettingsScreen({ onOpenMenu }: ClientSettingsScreenProps) 
                     style={{
                       width: 112,
                       height: 160,
-                      borderRadius: TACTICAL_RADIUS.sharp,
+                      borderRadius: TACTICAL_RADIUS.panel,
                       borderWidth: 1,
                       borderColor: TACTICAL_COLORS.accent,
                       backgroundColor: TACTICAL_COLORS.surfaceSunken,
@@ -118,7 +116,7 @@ export function ClientSettingsScreen({ onOpenMenu }: ClientSettingsScreenProps) 
             onPress={() => setLegal("terms")}
             className="px-3 py-3.5"
           >
-            <TacticalLabel size={11} tone="text">
+            <TacticalLabel tone="text">
               Términos de uso
             </TacticalLabel>
           </TouchableOpacity>
@@ -130,7 +128,7 @@ export function ClientSettingsScreen({ onOpenMenu }: ClientSettingsScreenProps) 
             onPress={() => setLegal("privacy")}
             className="px-3 py-3.5"
           >
-            <TacticalLabel size={11} tone="text">
+            <TacticalLabel tone="text">
               Política de privacidad
             </TacticalLabel>
           </TouchableOpacity>

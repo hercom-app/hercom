@@ -78,7 +78,7 @@ export const CarDamageCanvas = memo(function CarDamageCanvas({
           borderRadius: TACTICAL_RADIUS.sharp,
         }}
       >
-        <TacticalLabel size={11} style={{ color: TACTICAL_COLORS.base }}>
+        <TacticalLabel style={{ color: TACTICAL_COLORS.base }}>
           Ampliar diagrama a pantalla completa
         </TacticalLabel>
       </TouchableOpacity>
@@ -90,7 +90,7 @@ export const CarDamageCanvas = memo(function CarDamageCanvas({
           }
           className="mt-2 py-1"
         >
-          <TacticalLabel size={10} className="text-center" style={{ color: TACTICAL_COLORS.danger }}>
+          <TacticalLabel className="text-center" style={{ color: TACTICAL_COLORS.danger }}>
             Limpiar marcas
           </TacticalLabel>
         </TouchableOpacity>
@@ -120,7 +120,7 @@ export const CarDamageCanvas = memo(function CarDamageCanvas({
                 borderRadius: TACTICAL_RADIUS.sharp,
               }}
             >
-              <TacticalLabel size={11} style={{ color: TACTICAL_COLORS.base }}>
+              <TacticalLabel style={{ color: TACTICAL_COLORS.base }}>
                 Listo
               </TacticalLabel>
             </TouchableOpacity>

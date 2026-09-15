@@ -208,7 +208,7 @@ export function LiveTripMapModal({
                   borderRadius: TACTICAL_RADIUS.sharp,
                 }}
               >
-                <TacticalLabel size={10} style={{ color: TACTICAL_COLORS.base }}>
+                <TacticalLabel style={{ color: TACTICAL_COLORS.base }}>
                   Compartir
                 </TacticalLabel>
               </TouchableOpacity>
@@ -304,7 +304,7 @@ export function LiveTripMapModal({
                 A: {live.destination.address}
               </TacticalText>
               {live.shareToken !== null && (
-                <TacticalLabel size={10} className="mt-2 text-center">
+                <TacticalLabel className="mt-2 text-center">
                   Código: {live.shareToken}
                 </TacticalLabel>
               )}

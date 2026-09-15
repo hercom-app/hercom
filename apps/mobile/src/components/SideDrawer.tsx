@@ -22,9 +22,9 @@ import { UiBadge, UiButton, UiChip } from "./ui";
 import { TacticalLabel } from "./tactical";
 import { useAppTheme } from "../contexts/ThemeContext";
 import {
-  MONO,
   POPPINS,
   TACTICAL_RADIUS,
+  TYPE,
 } from "../constants/theme";
 
 const DRAWER_WIDTH = Math.min(Dimensions.get("window").width * 0.82, 340);
@@ -86,22 +86,18 @@ function MenuRow({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.8}
-      className="mx-3 mb-1 flex-row items-center gap-3 px-3 py-2.5"
+      className="mx-3 mb-1 flex-row items-center gap-3 px-3 py-3.5"
       style={{
-        borderRadius: TACTICAL_RADIUS.sharp,
-        backgroundColor: selected ? `${colors.accent}1F` : "transparent",
-        borderLeftWidth: 2,
-        borderLeftColor: selected ? colors.accent : "transparent",
+        borderRadius: TACTICAL_RADIUS.panel,
+        backgroundColor: selected ? `${colors.accent}14` : "transparent",
       }}
     >
       <View
-        className="h-9 w-9 items-center justify-center"
+        className="h-10 w-10 items-center justify-center"
         style={{
-          borderRadius: TACTICAL_RADIUS.sharp,
-          borderWidth: 1,
-          borderColor: selected ? colors.accent : borderSoft,
+          borderRadius: 999,
           backgroundColor: selected
-            ? `${colors.accent}1A`
+            ? `${colors.accent}1F`
             : colors.surfaceSunken,
         }}
       >
@@ -110,13 +106,12 @@ function MenuRow({
       <Text
         className="flex-1"
         style={{
-          fontFamily: selected ? MONO.bold : MONO.regular,
-          fontSize: 12,
-          letterSpacing: 1.2,
+          fontFamily: selected ? POPPINS.semibold : POPPINS.medium,
+          fontSize: TYPE.body,
           color: selected ? colors.accent : colors.text,
         }}
       >
-        {item.label.toUpperCase()}
+        {item.label}
       </Text>
       <UiBadge count={badge ?? 0} />
     </TouchableOpacity>
@@ -225,7 +220,8 @@ export function SideDrawer({
               style={{
                 backgroundColor: colors.headerBg,
                 borderBottomWidth: 1,
-                borderBottomColor: "rgba(255,255,255,0.12)",
+                borderBottomColor:
+                  scheme === "light" ? borderSoft : "rgba(255,255,255,0.12)",
               }}
             >
               <View className="flex-1 flex-row items-center gap-3 py-1">
@@ -237,7 +233,7 @@ export function SideDrawer({
                     style={{
                       width: 52,
                       height: 52,
-                      borderRadius: TACTICAL_RADIUS.sharp,
+                      borderRadius: 999,
                       borderWidth: 1,
                       borderColor: colors.accent,
                       backgroundColor: colors.surface,
@@ -247,7 +243,7 @@ export function SideDrawer({
                   <View
                     className="h-[52px] w-[52px] items-center justify-center"
                     style={{
-                      borderRadius: TACTICAL_RADIUS.sharp,
+                      borderRadius: 999,
                       borderWidth: 1,
                       borderColor: colors.accent,
                       backgroundColor: `${colors.accent}1F`,
@@ -255,8 +251,8 @@ export function SideDrawer({
                   >
                     <Text
                       style={{
-                        fontFamily: MONO.bold,
-                        fontSize: 20,
+                        fontFamily: POPPINS.bold,
+                        fontSize: TYPE.title,
                         color: colors.accent,
                       }}
                     >
@@ -269,7 +265,7 @@ export function SideDrawer({
                     numberOfLines={1}
                     style={{
                       fontFamily: POPPINS.semibold,
-                      fontSize: 15,
+                      fontSize: TYPE.bodyLg,
                       color: colors.headerText,
                     }}
                   >
@@ -289,9 +285,7 @@ export function SideDrawer({
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 className="h-10 w-10 items-center justify-center"
                 style={{
-                  borderRadius: TACTICAL_RADIUS.sharp,
-                  borderWidth: 1,
-                  borderColor: border,
+                  borderRadius: 999,
                   backgroundColor: colors.surfaceSunken,
                 }}
               >
@@ -319,7 +313,7 @@ export function SideDrawer({
                   className="flex-1"
                   style={{ height: 1, backgroundColor: borderSoft }}
                 />
-                <TacticalLabel className="mx-2" size={9}>
+                <TacticalLabel className="mx-2" size={TYPE.caption}>
                   Cuenta
                 </TacticalLabel>
                 <View
@@ -360,13 +354,12 @@ export function SideDrawer({
                 <Text
                   className="flex-1"
                   style={{
-                    fontFamily: MONO.regular,
-                    fontSize: 12,
-                    letterSpacing: 1.2,
+                    fontFamily: POPPINS.medium,
+                    fontSize: TYPE.body,
                     color: colors.steel,
                   }}
                 >
-                  CERRAR SESIÓN
+                  Cerrar sesión
                 </Text>
               </TouchableOpacity>
             </ScrollView>

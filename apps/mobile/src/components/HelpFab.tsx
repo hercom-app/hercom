@@ -104,30 +104,27 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
     <>
       <TouchableOpacity
         onPress={() => setMenuOpen(true)}
-        accessibilityLabel="Emergencia"
-        activeOpacity={0.8}
-        className="h-12 min-w-12 items-center justify-center px-2.5"
+        accessibilityLabel="Ayuda y emergencia"
+        activeOpacity={0.85}
+        className="h-14 w-14 items-center justify-center"
         style={{
-          backgroundColor: "rgba(248, 113, 113, 0.14)",
-          borderRadius: TACTICAL_RADIUS.sharp,
-          borderWidth: 1,
-          borderColor: TACTICAL_COLORS.danger,
-          shadowColor: TACTICAL_COLORS.danger,
-          shadowOpacity: 0.55,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 0 },
-          elevation: 6,
+          backgroundColor: "#FFFFFF",
+          borderRadius: 999,
+          shadowColor: "#0F172A",
+          shadowOpacity: 0.12,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 4,
         }}
       >
         <Text
           style={{
             fontFamily: MONO.bold,
-            fontSize: 10,
-            letterSpacing: 1.8,
-            color: TACTICAL_COLORS.danger,
+            fontSize: 22,
+            color: TACTICAL_COLORS.accent,
           }}
         >
-          AYUDA
+          ?
         </Text>
       </TouchableOpacity>
 
@@ -139,47 +136,45 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
       >
         <Pressable
           className="flex-1 justify-end"
-          style={{ backgroundColor: "rgba(17, 22, 34, 0.72)" }}
+          style={{ backgroundColor: "rgba(15, 23, 42, 0.45)" }}
           onPress={() => setMenuOpen(false)}
         >
           <Pressable
             onPress={(event) => event.stopPropagation()}
-            className="px-5 pb-8 pt-4"
+            className="px-5 pb-8 pt-3"
             style={{
               backgroundColor: TACTICAL_COLORS.base,
-              borderTopWidth: 1,
-              borderTopColor: TACTICAL_COLORS.danger,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
             }}
           >
-            <View className="mb-4 items-center">
+            <View className="mb-5 items-center">
               <View
-                className="h-1 w-10"
-                style={{ backgroundColor: TACTICAL_COLORS.danger }}
+                className="h-1 w-10 rounded-full"
+                style={{ backgroundColor: TACTICAL_BORDER_SOFT }}
               />
             </View>
-            <TacticalLabel size={9} tone="accent">
-              Protocolo de emergencia
-            </TacticalLabel>
-            <TacticalTitle size={18}>Emergencia</TacticalTitle>
-            <TacticalText size={12} className="mb-4 mt-1">
-              Policía y atención médica. Para dudas de la app, usa Ayuda en el
-              menú.
+            <TacticalTitle size={22}>¿Necesitas ayuda?</TacticalTitle>
+            <TacticalText size={15} className="mb-5 mt-2">
+              Contacta a emergencias o encuentra atención médica cerca. Para
+              soporte de la app, usa Ayuda en el menú.
             </TacticalText>
 
             <TouchableOpacity
               onPress={() => void handleCallPolice()}
-              className="mb-2 px-4 py-4"
+              className="mb-3 px-4 py-4"
               style={{
-                borderRadius: TACTICAL_RADIUS.sharp,
-                borderWidth: 1,
-                borderColor: TACTICAL_BORDER,
+                borderRadius: TACTICAL_RADIUS.panel,
                 backgroundColor: TACTICAL_COLORS.surface,
+                shadowColor: "#0F172A",
+                shadowOpacity: 0.06,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 2,
               }}
             >
-              <TacticalLabel size={11} tone="text">
-                Llamar a la policía
-              </TacticalLabel>
-              <TacticalText size={11} className="mt-0.5">
+              <TacticalLabel tone="text">Llamar a la policía</TacticalLabel>
+              <TacticalText size={15} className="mt-1">
                 {`Marca el ${HELP_CONTACTS.policePhone}`}
               </TacticalText>
             </TouchableOpacity>
@@ -188,27 +183,23 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
               onPress={() => void handleNearestHealth()}
               className="px-4 py-4"
               style={{
-                borderRadius: TACTICAL_RADIUS.sharp,
-                borderWidth: 1,
-                borderColor: TACTICAL_COLORS.danger,
-                backgroundColor: "rgba(248, 113, 113, 0.1)",
+                borderRadius: TACTICAL_RADIUS.panel,
+                backgroundColor: TACTICAL_COLORS.dataBandBg,
               }}
             >
-              <TacticalLabel size={11} tone="text">
-                Ir a hospital o clínica cercana
+              <TacticalLabel tone="accent">
+                Hospital o clínica cercana
               </TacticalLabel>
-              <TacticalText size={11} className="mt-0.5">
-                Busca hospitales y clínicas cerca
+              <TacticalText size={15} className="mt-1">
+                Te guiamos con Waze
               </TacticalText>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setMenuOpen(false)}
-              className="mt-4 py-3"
+              className="mt-5 py-3"
             >
-              <TacticalLabel size={10} className="text-center">
-                Cerrar
-              </TacticalLabel>
+              <TacticalLabel className="text-center">Cerrar</TacticalLabel>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -225,19 +216,17 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
           style={{ backgroundColor: "rgba(17, 22, 34, 0.72)" }}
         >
           <View
-            className="max-h-[75%] px-5 pb-8 pt-4"
+            className="max-h-[75%] px-5 pb-8 pt-3"
             style={{
               backgroundColor: TACTICAL_COLORS.base,
-              borderTopWidth: 1,
-              borderTopColor: TACTICAL_COLORS.danger,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
             }}
           >
             <View className="mb-3 flex-row items-center justify-between">
               <TacticalTitle size={17}>Hospitales y clínicas</TacticalTitle>
               <TouchableOpacity onPress={() => setHealthOpen(false)}>
-                <TacticalLabel tone="accent" size={10}>
-                  Cerrar
-                </TacticalLabel>
+                <TacticalLabel tone="accent">Cerrar</TacticalLabel>
               </TouchableOpacity>
             </View>
 
@@ -297,7 +286,7 @@ function PlaceSection({
 
   return (
     <View className="mb-3">
-      <TacticalLabel size={9} className="mb-2">
+      <TacticalLabel className="mb-2">
         {`${title} · ${places.length}`}
       </TacticalLabel>
       <View
@@ -325,7 +314,7 @@ function PlaceSection({
                 borderBottomColor: TACTICAL_BORDER_SOFT,
               }}
             >
-              <TacticalLabel size={10} tone="text">
+              <TacticalLabel tone="text">
                 {place.name}
               </TacticalLabel>
               <TacticalText size={11} className="mt-0.5">
@@ -342,7 +331,7 @@ function PlaceSection({
                 {place.openNow === false && (
                   <TacticalStatus label="Cerrado ahora" tone="warning" />
                 )}
-                <TacticalLabel size={9} tone="accent">
+                <TacticalLabel tone="accent">
                   Waze →
                 </TacticalLabel>
               </View>

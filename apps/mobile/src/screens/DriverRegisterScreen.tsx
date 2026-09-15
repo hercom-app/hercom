@@ -335,7 +335,7 @@ export function DriverRegisterScreen({
   ) {
     return (
       <View className="mb-3">
-        <TacticalLabel size={10} className="mb-1.5">
+        <TacticalLabel className="mb-1.5">
           {`${label} (*)`}
         </TacticalLabel>
         <TouchableOpacity
@@ -356,7 +356,7 @@ export function DriverRegisterScreen({
             />
           ) : (
             <View className="items-center py-6">
-              <TacticalLabel size={11} tone="accent">
+              <TacticalLabel tone="accent">
                 + Agregar foto
               </TacticalLabel>
               <TacticalText size={11} className="mt-1">
@@ -372,7 +372,7 @@ export function DriverRegisterScreen({
             }
             className="mt-2"
           >
-            <TacticalLabel size={10} tone="accent" className="text-center">
+            <TacticalLabel tone="accent" className="text-center">
               Vista previa
             </TacticalLabel>
           </TouchableOpacity>
@@ -393,13 +393,11 @@ export function DriverRegisterScreen({
           onPress={onPick}
           className="py-4"
           style={{
-            backgroundColor: TACTICAL_COLORS.surfaceSunken,
-            borderRadius: TACTICAL_RADIUS.sharp,
-            borderWidth: 1,
-            borderColor: TACTICAL_BORDER,
+            backgroundColor: TACTICAL_COLORS.dataBandBg,
+            borderRadius: TACTICAL_RADIUS.panel,
           }}
         >
-          <TacticalLabel size={11} tone="accent" className="text-center">
+          <TacticalLabel tone="accent" className="text-center">
             {doc !== null ? `✓ ${doc.name}` : emptyLabel}
           </TacticalLabel>
         </TouchableOpacity>
@@ -410,7 +408,7 @@ export function DriverRegisterScreen({
             }
             className="mt-2"
           >
-            <TacticalLabel size={10} tone="accent" className="text-center">
+            <TacticalLabel tone="accent" className="text-center">
               Vista previa {label}
             </TacticalLabel>
           </TouchableOpacity>
@@ -586,7 +584,7 @@ export function DriverRegisterScreen({
           </UiCard>
         ) : (
           <UiCard>
-            <TacticalLabel size={10} className="mb-2">
+            <TacticalLabel className="mb-2">
               DNI (*)
             </TacticalLabel>
             <View className="mb-3 flex-row gap-2">
@@ -603,7 +601,7 @@ export function DriverRegisterScreen({
                 className="h-[52px] items-center justify-center px-4 disabled:opacity-45"
                 style={{
                   backgroundColor: TACTICAL_COLORS.accent,
-                  borderRadius: TACTICAL_RADIUS.sharp,
+                  borderRadius: TACTICAL_RADIUS.panel,
                 }}
               >
                 {validatingDni ? (
@@ -612,8 +610,7 @@ export function DriverRegisterScreen({
                   <Text
                     style={{
                       fontFamily: MONO.bold,
-                      fontSize: 12,
-                      letterSpacing: 2,
+                      fontSize: 16,
                       color: TACTICAL_COLORS.base,
                     }}
                   >
@@ -625,7 +622,7 @@ export function DriverRegisterScreen({
 
             {dniValidated && (
               <View className="mb-4 gap-2">
-                <TacticalLabel size={10} tone="accent">
+                <TacticalLabel tone="accent">
                   Según RENIEC
                 </TacticalLabel>
                 <ReniecRow label="Nombres" value={firstName} />
@@ -634,7 +631,7 @@ export function DriverRegisterScreen({
               </View>
             )}
 
-            <TacticalLabel size={10} className="mb-2">
+            <TacticalLabel className="mb-2">
               Fecha de nacimiento (*)
             </TacticalLabel>
             <View className="mb-4 flex-row gap-2">
@@ -675,7 +672,7 @@ export function DriverRegisterScreen({
               </TacticalText>
             ) : null}
 
-            <TacticalLabel size={10} className="mb-2">
+            <TacticalLabel className="mb-2">
               Sexo (*)
             </TacticalLabel>
             <View className="mb-4 flex-row gap-2">
@@ -700,7 +697,7 @@ export function DriverRegisterScreen({
               onDistrictChange={setDistrict}
             />
 
-            <TacticalLabel size={10} className="mb-2">
+            <TacticalLabel className="mb-2">
               Número de brevete (*)
             </TacticalLabel>
             <UiInput
@@ -710,7 +707,7 @@ export function DriverRegisterScreen({
               className="mb-4"
             />
 
-            <TacticalLabel size={10} className="mb-2">
+            <TacticalLabel className="mb-2">
               Categoría de brevete (*)
             </TacticalLabel>
             <View className="mb-4 flex-row flex-wrap gap-2">
@@ -724,7 +721,7 @@ export function DriverRegisterScreen({
               ))}
             </View>
 
-            <TacticalLabel size={10} className="mb-2">
+            <TacticalLabel className="mb-2">
               Tipo de vehículo (*)
             </TacticalLabel>
             <View className="mb-4 flex-row gap-2">
@@ -740,7 +737,7 @@ export function DriverRegisterScreen({
               />
             </View>
 
-            <TacticalLabel size={10} className="mb-2">
+            <TacticalLabel className="mb-2">
               Tipo de brevete (*)
             </TacticalLabel>
             <View className="mb-3 flex-row gap-2">
@@ -763,7 +760,7 @@ export function DriverRegisterScreen({
               />
             </View>
 
-            <TacticalLabel size={10} className="mb-2">
+            <TacticalLabel className="mb-2">
               {licenseFormat === "physical"
                 ? "Fotos del brevete físico (*)"
                 : "Brevete digital + selfie (*)"}
@@ -803,13 +800,11 @@ export function DriverRegisterScreen({
                   onPress={chooseDigitalLicenseSource}
                   className="mb-2 py-4"
                   style={{
-                    backgroundColor: TACTICAL_COLORS.surfaceSunken,
-                    borderRadius: TACTICAL_RADIUS.sharp,
-                    borderWidth: 1,
-                    borderColor: TACTICAL_BORDER,
+                    backgroundColor: TACTICAL_COLORS.dataBandBg,
+                    borderRadius: TACTICAL_RADIUS.panel,
                   }}
                 >
-                  <TacticalLabel size={11} tone="accent" className="text-center">
+                  <TacticalLabel tone="accent" className="text-center">
                     {licenseDigital !== null
                       ? `✓ ${licenseDigital.name}`
                       : "+ Subir PDF o imagen del brevete (*)"}
@@ -826,7 +821,7 @@ export function DriverRegisterScreen({
                     }
                     className="mb-3"
                   >
-                    <TacticalLabel size={10} tone="accent" className="text-center">
+                    <TacticalLabel tone="accent" className="text-center">
                       Vista previa brevete
                     </TacticalLabel>
                   </TouchableOpacity>
@@ -924,13 +919,11 @@ function ReniecRow({ label, value }: { label: string; value: string }) {
     <View
       className="px-4 py-3"
       style={{
-        backgroundColor: TACTICAL_COLORS.surfaceSunken,
-        borderRadius: TACTICAL_RADIUS.sharp,
-        borderWidth: 1,
-        borderColor: TACTICAL_BORDER,
+        backgroundColor: TACTICAL_COLORS.dataBandBg,
+        borderRadius: TACTICAL_RADIUS.panel,
       }}
     >
-      <TacticalLabel size={9}>{label}</TacticalLabel>
+      <TacticalLabel>{label}</TacticalLabel>
       <TacticalValue size={14} className="mt-0.5">
         {value}
       </TacticalValue>

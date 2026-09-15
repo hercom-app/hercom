@@ -250,7 +250,7 @@ export function DriverDashboard() {
     <View className="flex-1" style={{ backgroundColor: TACTICAL_COLORS.base }}>
       <FieldScreenHeader
         title={title}
-        subtitle="Panel de conductor"
+        subtitle="Mis viajes y solicitudes"
         onOpenMenu={() => setMenuOpen(true)}
       />
 
@@ -302,8 +302,7 @@ export function DriverDashboard() {
                       <Text
                         style={{
                           fontFamily: MONO.bold,
-                          fontSize: 12,
-                          letterSpacing: 1,
+                          fontSize: 16,
                           color:
                             topUpAmount === String(quickAmount)
                               ? TACTICAL_COLORS.accent
@@ -389,7 +388,7 @@ export function DriverDashboard() {
                   tone={unreadNotifications > 0 ? "active" : "idle"}
                 />
                 <TouchableOpacity onPress={() => void markAllNotificationsAsRead()}>
-                  <TacticalLabel size={9} tone="accent">
+                  <TacticalLabel tone="accent">
                     Marcar todo leído
                   </TacticalLabel>
                 </TouchableOpacity>
@@ -401,16 +400,14 @@ export function DriverDashboard() {
                   <TacticalPanel
                     key={notification._id}
                     tone="sunken"
-                    className="mb-2 p-3"
-                    style={{
-                      borderLeftWidth: 2,
-                      borderLeftColor:
-                        notification.readAt === undefined
-                          ? TACTICAL_COLORS.accent
-                          : TACTICAL_COLORS.steel,
-                    }}
+                    className="mb-2 p-4"
+                    style={
+                      notification.readAt === undefined
+                        ? { backgroundColor: TACTICAL_COLORS.dataBandBg }
+                        : undefined
+                    }
                   >
-                    <TacticalLabel size={9} tone="text">
+                    <TacticalLabel tone="text">
                       {notification.title}
                     </TacticalLabel>
                     <TacticalText size={11} className="mt-1">
@@ -428,15 +425,18 @@ export function DriverDashboard() {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => setMenuSection("saldo")}
-              className="mb-3 flex-row items-center justify-between px-4 py-3"
+              className="mb-3 flex-row items-center justify-between px-5 py-4"
               style={{
-                backgroundColor: TACTICAL_COLORS.baseElevated,
-                borderRadius: TACTICAL_RADIUS.sharp,
-                borderWidth: 1,
-                borderColor: TACTICAL_BORDER,
+                backgroundColor: TACTICAL_COLORS.surface,
+                borderRadius: TACTICAL_RADIUS.panel,
+                shadowColor: "#0F172A",
+                shadowOpacity: 0.06,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 3 },
+                elevation: 2,
               }}
             >
-              <TacticalLabel size={10}>Saldo disponible</TacticalLabel>
+              <TacticalLabel>Saldo disponible</TacticalLabel>
               <TacticalValue size={15} tone="accent">
                 {`S/${(wallet?.balance ?? 0).toFixed(2)} ›`}
               </TacticalValue>
@@ -473,7 +473,7 @@ export function DriverDashboard() {
                             className="mb-2 p-3"
                           >
                             <View className="flex-row items-center justify-between">
-                              <TacticalLabel size={9}>Tarifa lista</TacticalLabel>
+                              <TacticalLabel>Tarifa lista</TacticalLabel>
                               <TacticalValue size={13} tone="accent">
                                 {`S/${minPrice.toFixed(2)}`}
                               </TacticalValue>

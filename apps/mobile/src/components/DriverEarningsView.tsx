@@ -48,7 +48,7 @@ export function DriverEarningsView() {
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
       <UiCard className="mb-4">
-        <TacticalLabel size={10} tone="accent">
+        <TacticalLabel tone="accent">
           Hoy
         </TacticalLabel>
         <TacticalValue size={32} tone="accent" className="mt-1">
@@ -83,7 +83,7 @@ export function DriverEarningsView() {
       )}
 
       <UiCard className="mb-4 mt-2">
-        <TacticalLabel size={10} tone="accent">
+        <TacticalLabel tone="accent">
           Semana
         </TacticalLabel>
         <TacticalValue size={26} tone="accent" className="mt-1">

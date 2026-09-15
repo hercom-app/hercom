@@ -195,18 +195,18 @@ export const ServiceCard = memo(function ServiceCard({
 
       <View className="mb-3">
         <View className="flex-row">
-          <TacticalLabel size={9} className="w-16">
+          <TacticalLabel className="w-20" tone="text">
             Origen
           </TacticalLabel>
-          <TacticalText size={12} tone="text" className="flex-1">
+          <TacticalText size={15} tone="text" className="flex-1">
             {service.origin.address}
           </TacticalText>
         </View>
         <View className="mt-1.5 flex-row">
-          <TacticalLabel size={9} className="w-16">
+          <TacticalLabel className="w-20" tone="text">
             {totalStops > 1 ? "Paradas" : "Destino"}
           </TacticalLabel>
-          <TacticalText size={12} tone="text" className="flex-1">
+          <TacticalText size={15} tone="text" className="flex-1">
             {formatServiceStopsLabel(
               service.destination,
               service.extraDestinations,
@@ -216,11 +216,11 @@ export const ServiceCard = memo(function ServiceCard({
       </View>
 
       {isRunning && (
-        <TacticalPanel tone="sunken" className="mb-3 p-2.5">
-          <TacticalLabel size={9} tone="accent">
-            {`Navegando ${currentStopIndex + 1} / ${totalStops}`}
+        <TacticalPanel tone="sunken" className="mb-3 p-3">
+          <TacticalLabel tone="accent">
+            {`Parada ${currentStopIndex + 1} de ${totalStops}`}
           </TacticalLabel>
-          <TacticalText size={12} tone="text" className="mt-1">
+          <TacticalText size={15} tone="text" className="mt-1">
             {currentStop.address}
           </TacticalText>
         </TacticalPanel>
@@ -238,14 +238,13 @@ export const ServiceCard = memo(function ServiceCard({
       )}
 
       {service.securityCode !== undefined && service.status !== "finished" && (
-        <View className="mb-3 flex-row items-center justify-between px-3 py-2.5"
+        <View className="mb-3 flex-row items-center justify-between px-4 py-3"
           style={{
-            backgroundColor: "rgba(161, 196, 253, 0.1)",
-            borderLeftWidth: 2,
-            borderLeftColor: TACTICAL_COLORS.accent,
+            backgroundColor: "rgba(11, 112, 254, 0.08)",
+            borderRadius: 12,
           }}
         >
-          <TacticalLabel size={9}>Código de seguridad</TacticalLabel>
+          <TacticalLabel>Código de seguridad</TacticalLabel>
           <TacticalValue size={15} tone="accent">
             {service.securityCode}
           </TacticalValue>
@@ -256,7 +255,7 @@ export const ServiceCard = memo(function ServiceCard({
         <View className="gap-2">
           <TacticalPanel tone="sunken" className="p-3">
             <View className="flex-row items-center justify-between">
-              <TacticalLabel size={9}>Anticipo requerido</TacticalLabel>
+              <TacticalLabel>Anticipo requerido</TacticalLabel>
               <TacticalValue size={14} tone="accent">
                 {`S/${advanceAmount.toFixed(2)}`}
               </TacticalValue>

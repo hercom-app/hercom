@@ -132,7 +132,7 @@ export function SupportChatScreen({ onOpenMenu }: SupportChatScreenProps) {
                   }}
                 >
                   {!mine && (
-                    <TacticalLabel size={9} className="mb-0.5">
+                    <TacticalLabel className="mb-0.5">
                       Hercom
                     </TacticalLabel>
                   )}
@@ -150,8 +150,7 @@ export function SupportChatScreen({ onOpenMenu }: SupportChatScreenProps) {
                     className="mt-1"
                     style={{
                       fontFamily: MONO.regular,
-                      fontSize: 10,
-                      letterSpacing: 0.8,
+                      fontSize: 14,
                       color: TACTICAL_COLORS.steel,
                     }}
                   >
@@ -215,8 +214,7 @@ export function SupportChatScreen({ onOpenMenu }: SupportChatScreenProps) {
               <Text
                 style={{
                   fontFamily: MONO.bold,
-                  fontSize: 11,
-                  letterSpacing: 1.6,
+                  fontSize: 16,
                   color: TACTICAL_COLORS.base,
                 }}
               >

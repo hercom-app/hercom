@@ -291,7 +291,7 @@ export function AddressAutocomplete({
       {loading && searchActive && (
         <View className="mt-2 flex-row items-center gap-2">
           <ActivityIndicator color={TACTICAL_COLORS.accent} size="small" />
-          <TacticalLabel size={9}>Buscando direcciones...</TacticalLabel>
+          <TacticalLabel>Buscando direcciones...</TacticalLabel>
         </View>
       )}
 

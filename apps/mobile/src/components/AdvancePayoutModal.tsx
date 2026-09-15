@@ -31,14 +31,13 @@ function Row({ label, value }: { label: string; value: string }) {
           : TACTICAL_COLORS.accent,
       }}
     >
-      <TacticalLabel size={9}>{label}</TacticalLabel>
+      <TacticalLabel>{label}</TacticalLabel>
       <Text
         selectable
         className="mt-1"
         style={{
           fontFamily: MONO.bold,
-          fontSize: 15,
-          letterSpacing: 0.8,
+          fontSize: 18,
           color: empty ? TACTICAL_COLORS.steel : TACTICAL_COLORS.textStrong,
         }}
       >

@@ -107,12 +107,11 @@ export function SlideToConfirm({
         <Text
           style={{
             fontFamily: MONO.medium,
-            fontSize: 11,
-            letterSpacing: 1.4,
+            fontSize: 16,
             color: disabled ? TACTICAL_COLORS.steel : TACTICAL_COLORS.accent,
           }}
         >
-          {(loading ? "Procesando..." : label).toUpperCase()}
+          {loading ? "Procesando…" : label}
         </Text>
       </View>
       <Animated.View

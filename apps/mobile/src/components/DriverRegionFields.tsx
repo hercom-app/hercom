@@ -135,7 +135,7 @@ export function DriverRegionFields({
         className="px-4 py-3"
         style={fieldStyle}
       >
-        <TacticalLabel size={9}>País (*)</TacticalLabel>
+        <TacticalLabel>País (*)</TacticalLabel>
         <TacticalValue size={14} className="mt-0.5">
           {countryName}
         </TacticalValue>
@@ -146,7 +146,7 @@ export function DriverRegionFields({
         className="px-4 py-3"
         style={fieldStyle}
       >
-        <TacticalLabel size={9}>{`${level1Label} (*)`}</TacticalLabel>
+        <TacticalLabel>{`${level1Label} (*)`}</TacticalLabel>
         <TacticalValue size={14} className="mt-0.5">
           {department !== ""
             ? department
@@ -160,7 +160,7 @@ export function DriverRegionFields({
         className={`px-4 py-3 ${department === "" ? "opacity-50" : ""}`}
         style={fieldStyle}
       >
-        <TacticalLabel size={9}>{`${level2Label} (*)`}</TacticalLabel>
+        <TacticalLabel>{`${level2Label} (*)`}</TacticalLabel>
         <TacticalValue size={14} className="mt-0.5">
           {province !== ""
             ? province
@@ -176,7 +176,7 @@ export function DriverRegionFields({
         }`}
         style={fieldStyle}
       >
-        <TacticalLabel size={9}>{`${level3Label} (*)`}</TacticalLabel>
+        <TacticalLabel>{`${level3Label} (*)`}</TacticalLabel>
         <TacticalValue size={14} className="mt-0.5">
           {district !== ""
             ? district
@@ -249,7 +249,7 @@ export function DriverRegionFields({
                 borderColor: TACTICAL_BORDER,
               }}
             >
-              <TacticalLabel size={11} tone="accent">
+              <TacticalLabel tone="accent">
                 Cerrar
               </TacticalLabel>
             </TouchableOpacity>

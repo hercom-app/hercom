@@ -233,8 +233,8 @@ export function ClientIdentityForm({
                 paddingHorizontal: 14,
                 paddingVertical: 13,
                 fontFamily: MONO.medium,
-                fontSize: 17,
-                letterSpacing: 4,
+                fontSize: 18,
+                letterSpacing: 1,
                 color: TACTICAL_COLORS.textStrong,
               }}
             />
@@ -259,7 +259,7 @@ export function ClientIdentityForm({
 
           {dniValidated && !dniTaken && (
             <TacticalPanel tone="sunken" className="mb-5 p-3">
-              <TacticalLabel size={10}>Verificado · RENIEC</TacticalLabel>
+              <TacticalLabel>Verificado · RENIEC</TacticalLabel>
               <View className="mt-2">
                 <ReniecRow label="Nombres" value={firstName} />
                 <ReniecRow label="Apellido paterno" value={firstLastName} />
@@ -294,7 +294,7 @@ export function ClientIdentityForm({
                   className="absolute inset-x-0 bottom-0 px-3 py-2"
                   style={{ backgroundColor: "rgba(17, 22, 34, 0.82)" }}
                 >
-                  <TacticalLabel size={9} tone="accent" className="text-center">
+                  <TacticalLabel tone="accent" className="text-center">
                     Tocar para recapturar
                   </TacticalLabel>
                 </View>
@@ -328,7 +328,7 @@ export function ClientIdentityForm({
                     }}
                   />
                 </View>
-                <TacticalLabel size={10} tone="text" className="text-center">
+                <TacticalLabel tone="text" className="text-center">
                   Capturar
                 </TacticalLabel>
               </View>
@@ -361,13 +361,11 @@ function ReniecRow({ label, value }: { label: string; value: string }) {
     <View
       className="mb-1.5 flex-row items-center justify-between px-3 py-2.5"
       style={{
-        backgroundColor: "rgba(42, 59, 92, 0.55)",
-        borderRadius: TACTICAL_RADIUS.sharp,
-        borderLeftWidth: 2,
-        borderLeftColor: TACTICAL_COLORS.accent,
+        backgroundColor: TACTICAL_COLORS.dataBandBg,
+        borderRadius: TACTICAL_RADIUS.panel,
       }}
     >
-      <TacticalLabel size={9}>{label}</TacticalLabel>
+      <TacticalLabel>{label}</TacticalLabel>
       <TacticalValue size={12}>{value}</TacticalValue>
     </View>
   );

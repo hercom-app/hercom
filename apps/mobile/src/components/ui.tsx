@@ -15,6 +15,7 @@ import {
   TACTICAL_BORDER,
   TACTICAL_COLORS,
   TACTICAL_RADIUS,
+  TYPE,
 } from "../constants/theme";
 
 /**
@@ -37,7 +38,7 @@ export const SHEET_SHADOW = {
   elevation: 8,
 } as const;
 
-export const FILLED_INPUT_CLASS = "px-4 py-3.5 text-base";
+export const FILLED_INPUT_CLASS = "px-4 py-4 text-lg";
 
 export function getFilledInputStyle() {
   return {
@@ -86,7 +87,7 @@ export function UiButton({
       : "transparent";
   const borderColor = isPrimary ? colors.accent : border;
   const labelColor = isPrimary ? colors.onAccent : colors.accent;
-  const height = size === "lg" ? "h-14" : "h-12";
+  const height = size === "lg" ? "h-16" : "h-14";
 
   return (
     <TouchableOpacity
@@ -109,7 +110,7 @@ export function UiButton({
         <Text
           style={{
             fontFamily: POPPINS.bold,
-            fontSize: size === "lg" ? 16 : 15,
+            fontSize: size === "lg" ? TYPE.bodyLg : TYPE.body,
             color: labelColor,
           }}
         >
@@ -157,7 +158,7 @@ export function UiChip({ label, selected = false, onPress }: UiChipProps) {
   const { colors, border } = useAppTheme();
   const body = (
     <View
-      className="px-3 py-1.5"
+      className="px-3.5 py-2"
       style={{
         borderRadius: TACTICAL_RADIUS.sharp,
         borderWidth: 1,
@@ -168,7 +169,7 @@ export function UiChip({ label, selected = false, onPress }: UiChipProps) {
       <Text
         style={{
           fontFamily: POPPINS.semibold,
-          fontSize: 13,
+          fontSize: TYPE.caption,
           color: selected ? colors.accent : colors.steel,
         }}
       >
@@ -206,7 +207,7 @@ export function UiBadge({ count }: UiBadgeProps) {
       <Text
         style={{
           fontFamily: POPPINS.bold,
-          fontSize: 11,
+          fontSize: TYPE.caption,
           color: colors.onAccent,
         }}
       >
@@ -235,6 +236,7 @@ export function UiInput({ className = "", style, ...props }: UiInputProps) {
           borderColor: border,
           color: colors.textStrong,
           fontFamily: POPPINS.regular,
+          fontSize: TYPE.bodyLg,
         },
         style,
       ]}
@@ -264,7 +266,7 @@ export function UiEmpty({
         className="text-center"
         style={{
           fontFamily: POPPINS.semibold,
-          fontSize: 14,
+          fontSize: TYPE.body,
           color: colors.text,
         }}
       >
@@ -275,8 +277,8 @@ export function UiEmpty({
           className="mt-1.5 text-center"
           style={{
             fontFamily: POPPINS.regular,
-            fontSize: 13,
-            lineHeight: 19,
+            fontSize: TYPE.caption,
+            lineHeight: 22,
             color: colors.steel,
           }}
         >

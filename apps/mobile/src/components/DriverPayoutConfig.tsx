@@ -36,7 +36,7 @@ function Field({
 }) {
   return (
     <View className="mb-3">
-      <TacticalLabel size={10} className="mb-1.5">
+      <TacticalLabel className="mb-1.5">
         {label}
       </TacticalLabel>
       <UiInput

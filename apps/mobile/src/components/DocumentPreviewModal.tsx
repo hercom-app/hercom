@@ -50,7 +50,7 @@ export function DocumentPreviewModal({
           ]}
         >
           <View className="items-center">
-            <TacticalLabel size={9}>Vista previa de documento</TacticalLabel>
+            <TacticalLabel>Vista previa de documento</TacticalLabel>
             <TacticalValue size={12} tone="accent" className="mt-1 text-center">
               {file?.name ?? "Sin archivo"}
             </TacticalValue>

@@ -40,7 +40,7 @@ export function DriverApplicationPendingScreen({
 
         {(fullName !== undefined || dni !== undefined) && (
           <TacticalPanel tone="sunken" className="mt-4 px-3 py-1.5">
-            <TacticalLabel size={9} tone="accent" className="mt-1.5">
+            <TacticalLabel tone="accent" className="mt-1.5">
               Datos del postulante
             </TacticalLabel>
             {fullName !== undefined && (

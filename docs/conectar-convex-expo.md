@@ -183,8 +183,10 @@ Prueba el flujo:
 
 ### 5.1 Instalar Expo Go en el teléfono
 
-- **iOS**: App Store → "Expo Go".
-- **Android**: Play Store → "Expo Go".
+El proyecto usa **Expo SDK 57**. La app Expo Go debe ser la misma versión.
+
+- **Android:** [expo.dev/go](https://expo.dev/go) → SDK 57, o `npx expo-go url android 57`.
+- **iOS:** simulador / `eas go`, o probá con APK preview (EAS). App Store puede no tener SDK 57 aún.
 
 ### 5.2 Levantar el servidor de Expo
 

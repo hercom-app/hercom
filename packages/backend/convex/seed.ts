@@ -407,6 +407,96 @@ async function deleteAuthForUser(
 }
 
 /**
+ * Borra viajes, ofertas, tracking, pagos y notificaciones de viaje.
+ * Conserva usuarios, choferes y recargas de saldo (sin movimientos ligados a servicios).
+ *
+ *   npx convex run seed:clearTripsAndOffers
+ *   npx convex run seed:clearTripsAndOffers --prod
+ */
+export const clearTripsAndOffers = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const tripNotificationTypes = new Set<Doc<"notifications">["type"]>([
+      "offer_received",
+      "trip_confirmed_driver",
+      "trip_confirmed_client",
+      "driver_heading_pickup",
+      "driver_arrived_pickup",
+      "advance_confirmed",
+      "trip_route_updated",
+    ]);
+
+    const deleted = {
+      serviceOffers: await wipeTable(ctx, "serviceOffers"),
+      serviceTracking: await wipeTable(ctx, "serviceTracking"),
+      serviceRatings: await wipeTable(ctx, "serviceRatings"),
+      checklists: await wipeTable(ctx, "serviceVehicleChecklists"),
+      payments: await wipeTable(ctx, "payments"),
+      services: await wipeTable(ctx, "services"),
+      payouts: await wipeTable(ctx, "payouts"),
+    };
+
+    const notifications = await ctx.db.query("notifications").collect();
+    let deletedNotifications = 0;
+    for (const notification of notifications) {
+      if (
+        notification.serviceId !== undefined ||
+        tripNotificationTypes.has(notification.type)
+      ) {
+        await ctx.db.delete(notification._id);
+        deletedNotifications += 1;
+      }
+    }
+
+    const walletTransactions = await ctx.db.query("walletTransactions").collect();
+    let deletedWalletTransactions = 0;
+    for (const transaction of walletTransactions) {
+      if (transaction.serviceId !== undefined) {
+        await ctx.db.delete(transaction._id);
+        deletedWalletTransactions += 1;
+      }
+    }
+
+    const drivers = await ctx.db.query("drivers").collect();
+    let resetDrivers = 0;
+    for (const driver of drivers) {
+      const needsReset = driver.status !== "available" || driver.totalTrips > 0;
+      if (!needsReset) {
+        continue;
+      }
+      await ctx.db.patch(driver._id, {
+        status: "available",
+        totalTrips: 0,
+      });
+      resetDrivers += 1;
+
+      const wallet = await ensureWallet(ctx, driver._id);
+      const remaining = await ctx.db
+        .query("walletTransactions")
+        .withIndex("by_driver", (q) => q.eq("driverId", driver._id))
+        .collect();
+      const balance = remaining.reduce(
+        (sum, tx) =>
+          tx.type === "top_up" ? sum + tx.amount : sum - tx.amount,
+        0,
+      );
+      await ctx.db.patch(wallet._id, {
+        balance: Math.max(0, balance),
+        updatedAt: Date.now(),
+      });
+    }
+
+    return {
+      message: "Viajes y ofertas eliminados.",
+      deleted,
+      deletedNotifications,
+      deletedWalletTransactions,
+      resetDrivers,
+    };
+  },
+});
+
+/**
  * Deja el entorno listo para mostrar al dueño: un solo superadmin,
  * sin admins, sin choferes, sin viajes ni solicitudes de registro.
  *

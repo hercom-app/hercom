@@ -114,7 +114,7 @@ export function PendingRegistrationSubmit({
     return (
       <TacticalScreen className="items-center justify-center px-6">
         <ActivityIndicator color={TACTICAL_COLORS.accent} size="large" />
-        <TacticalLabel size={11} tone="text" className="mt-5 text-center">
+        <TacticalLabel tone="text" className="mt-5 text-center">
           Enviando solicitud de chofer
         </TacticalLabel>
         <TacticalText size={11} className="mt-2 text-center">

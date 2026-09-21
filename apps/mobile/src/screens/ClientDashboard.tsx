@@ -29,9 +29,16 @@ import { ClientSecurityScreen } from "./ClientSecurityScreen";
 import { ClientSettingsScreen } from "./ClientSettingsScreen";
 import { ClientIdentityForm } from "./ClientIdentityForm";
 import { SupportChatScreen } from "./SupportChatScreen";
-import { UiButton, UiCard, UiChip, UiEmpty, SHEET_SHADOW } from "../components/ui";
+import { UiButton, UiCard, UiChip, UiEmpty } from "../components/ui";
 import {
-  FieldScreenHeader,
+  ClientActiveTripSheet,
+  FloatingCircleButton,
+  LocationChip,
+  MapScreenLayout,
+  UberBottomSheet,
+  UberScreenHeader,
+} from "../components/uber";
+import {
   TacticalInput,
   TacticalLabel,
   TacticalPanel,
@@ -89,8 +96,11 @@ const STATUS_LABELS: Record<Doc<"services">["status"], string> = {
 
 function ClientServiceCard({
   service,
+  embedInTripSheet = false,
 }: {
   service: Doc<"services"> & { driverName?: string; clientRating?: number };
+  /** Oculta bloques ya mostrados en ClientActiveTripSheet. */
+  embedInTripSheet?: boolean;
 }) {
   const cancelService = useMutation(api.services.cancelService);
   const acceptOffer = useMutation(api.serviceOffers.acceptOffer);
@@ -169,28 +179,32 @@ function ClientServiceCard({
   }
 
   return (
-    <UiCard className="mb-3">
-      <View className="mb-3 flex-row items-center justify-between gap-2">
-        <View className="flex-row flex-wrap items-center gap-2">
-          <UiChip label={STATUS_LABELS[service.status]} />
-          {(service.serviceType ?? "app") === "app" && <UiChip label="App" />}
-        </View>
-        <TacticalValue size={16} tone="accent">
-          {service.offeredPrice !== undefined
-            ? `S/${agreedPrice.toFixed(2)}`
-            : "Sin acordar"}
-        </TacticalValue>
-      </View>
-      <TacticalText size={12} className="mb-1">
-        {service.offeredPrice !== undefined
-          ? `Tarifa acordada: S/${service.offeredPrice.toFixed(2)}`
-          : "Esperando acuerdo de tarifa"}
-      </TacticalText>
-      <TacticalText size={12} tone="text" className="mb-1">
-        {service.driverName !== undefined
-          ? `Chofer: ${service.driverName}`
-          : "Sin chofer asignado"}
-      </TacticalText>
+    <UiCard className={embedInTripSheet ? "mb-0 border-0 shadow-none" : "mb-3"}>
+      {!embedInTripSheet && (
+        <>
+          <View className="mb-3 flex-row items-center justify-between gap-2">
+            <View className="flex-row flex-wrap items-center gap-2">
+              <UiChip label={STATUS_LABELS[service.status]} />
+              {(service.serviceType ?? "app") === "app" && <UiChip label="App" />}
+            </View>
+            <TacticalValue size={16} tone="accent">
+              {service.offeredPrice !== undefined
+                ? `S/${agreedPrice.toFixed(2)}`
+                : "Sin acordar"}
+            </TacticalValue>
+          </View>
+          <TacticalText size={12} className="mb-1">
+            {service.offeredPrice !== undefined
+              ? `Tarifa acordada: S/${service.offeredPrice.toFixed(2)}`
+              : "Esperando acuerdo de tarifa"}
+          </TacticalText>
+          <TacticalText size={12} tone="text" className="mb-1">
+            {service.driverName !== undefined
+              ? `Chofer: ${service.driverName}`
+              : "Sin chofer asignado"}
+          </TacticalText>
+        </>
+      )}
       {service.promotionName !== undefined && (
         <TacticalLabel className="mb-1">
           {`Promo: ${service.promotionName}`}
@@ -251,7 +265,8 @@ function ClientServiceCard({
           )}
         </View>
       )}
-      {service.securityCode !== undefined &&
+      {!embedInTripSheet &&
+        service.securityCode !== undefined &&
         service.status !== "finished" &&
         service.status !== "cancelled" && (
           <View
@@ -558,6 +573,29 @@ export function ClientDashboard() {
   const confirmSheetHeight = Math.round(
     Math.min(440, Math.max(320, screenHeight * 0.42)),
   );
+  const homeSheetHeight = Math.round(
+    Math.min(480, Math.max(340, screenHeight * 0.48)),
+  );
+  const activeTrip = (services ?? []).find(
+    (service) =>
+      service.status !== "finished" && service.status !== "cancelled",
+  );
+  const homeMapRegion =
+    userCoords !== null
+      ? {
+          latitude: userCoords.lat,
+          longitude: userCoords.lng,
+          latitudeDelta: 0.04,
+          longitudeDelta: 0.04,
+        }
+      : originLat !== null && originLng !== null
+        ? {
+            latitude: originLat,
+            longitude: originLng,
+            latitudeDelta: 0.04,
+            longitudeDelta: 0.04,
+          }
+        : LIMA_REGION;
 
   useEffect(() => {
     const showEvent =
@@ -870,8 +908,8 @@ export function ClientDashboard() {
 
   if (menuSection === "historial" || menuSection === "notificaciones") {
     return (
-      <View className="flex-1" style={{ backgroundColor: TACTICAL_COLORS.base }}>
-        <FieldScreenHeader
+      <View className="flex-1" style={{ backgroundColor: HERCOM_COLORS.canvas }}>
+        <UberScreenHeader
           title={
             menuSection === "notificaciones" ? "Notificaciones" : "Mis servicios"
           }
@@ -968,7 +1006,58 @@ export function ClientDashboard() {
     );
   }
 
-  // ——— Paso 1: landing motivos + direcciones ———
+  // ——— Home: viaje activo sobre mapa ———
+  if (
+    menuSection === "ciudad" &&
+    activeTrip !== undefined &&
+    flowStep === "compose" &&
+    !addressSearchActive
+  ) {
+    return (
+      <View className="flex-1">
+        <MapScreenLayout
+          map={
+            <MapView
+              style={{ flex: 1 }}
+              provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+              initialRegion={homeMapRegion}
+              showsUserLocation={showsBlueDot}
+              showsMyLocationButton={false}
+              loadingEnabled
+              loadingIndicatorColor={HERCOM_COLORS.primary}
+            />
+          }
+          topOverlay={
+            <View className="flex-row items-center gap-3">
+              <HamburgerButton
+                onPress={() => setMenuOpen(true)}
+                variant="light"
+              />
+              <View className="flex-1" />
+              <HelpFab
+                fallbackCenter={
+                  userCoords !== null
+                    ? { lat: userCoords.lat, lng: userCoords.lng }
+                    : undefined
+                }
+              />
+            </View>
+          }
+          bottomSheet={
+            <ClientActiveTripSheet
+              service={activeTrip}
+              sheetHeight={homeSheetHeight}
+            >
+              <ClientServiceCard service={activeTrip} embedInTripSheet />
+            </ClientActiveTripSheet>
+          }
+        />
+        {drawer}
+      </View>
+    );
+  }
+
+  // ——— Paso 1: mapa + sheet solicitud ———
   if (flowStep === "compose") {
     const addressFieldButton = (
       label: string,
@@ -1008,164 +1097,133 @@ export function ClientDashboard() {
       </View>
     );
 
-    return (
-      <View className="flex-1" style={{ backgroundColor: TACTICAL_COLORS.base }}>
-        <FieldScreenHeader
-          title="Nuevo servicio"
-          subtitle="Pedir un chofer de reemplazo"
-          onOpenMenu={() => setMenuOpen(true)}
-        />
-
-        {!addressSearchActive ? (
-          <ScrollView
-            className="flex-1"
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: 16,
-              paddingTop: 16,
-              paddingBottom: insets.bottom + 28,
-            }}
-          >
-
-            <UiCard className="gap-3 overflow-hidden pb-0">
-              {addressFieldButton(
-                "Punto de recojo",
-                origin,
-                "¿De dónde te recogemos?",
-                () => openAddressSearch("origin"),
-              )}
-              <UiButton
-                label="Usar mi ubicación actual"
-                onPress={() => void handleUseMyLocationForOrigin()}
-                disabled={locationLoading || submitting}
-                loading={locationLoading}
-                variant="secondary"
-              />
-
-              {addressFieldButton(
-                "Destino",
-                destination.address,
-                "¿A dónde vas?",
-                () => openAddressSearch("destination"),
-              )}
-
-              {extraDestinations.map((stop, index) => (
-                <View
-                  key={`extra-landing-${index}`}
-                  className="flex-row items-start gap-2"
-                >
-                  <View className="flex-1">
-                    {addressFieldButton(
-                      `Parada ${index + 2}`,
-                      stop.address,
-                      `Parada ${index + 2} (opcional)`,
-                      () => openAddressSearch(index),
-                    )}
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setExtraDestinations((previous) =>
-                        previous.filter((_, itemIndex) => itemIndex !== index),
-                      );
-                    }}
-                    className="mt-6 h-12 w-12 items-center justify-center"
-                    style={{
-                      backgroundColor: TACTICAL_COLORS.surfaceSunken,
-                      borderRadius: TACTICAL_RADIUS.sharp,
-                      borderWidth: 1,
-                      borderColor: TACTICAL_BORDER,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: MONO.bold,
-                        color: TACTICAL_COLORS.steel,
-                      }}
-                    >
-                      ✕
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-
-              <TouchableOpacity
-                onPress={() =>
-                  setExtraDestinations((previous) => [
-                    ...previous,
-                    createEmptyAddressDraft(),
-                  ])
-                }
-                disabled={submitting}
-                className="rounded-2xl py-2.5 disabled:opacity-60"
-              >
-                <TacticalLabel className="text-center">
-                  + Agregar parada
-                </TacticalLabel>
-              </TouchableOpacity>
-
-              <UiButton
-                label="Continuar"
-                onPress={handleContinueToConfirm}
-                disabled={!canContinue || submitting}
-              />
-
-            </UiCard>
-
-            {error !== null && (
-              <TacticalText
-                size={13}
-                className="mt-3 text-center"
-                style={{ color: TACTICAL_COLORS.danger }}
-              >
-                {error}
-              </TacticalText>
-            )}
-          </ScrollView>
-        ) : (
-          <View
-            className="flex-1 justify-end"
-            style={{ paddingBottom: keyboardHeight }}
-          >
+    const requestSheetContent = (
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingBottom: insets.bottom + 16,
+        }}
+      >
+        <TacticalTitle size={20} className="mb-1">
+          ¿Donde necesitas un chofer para remplazo?
+        </TacticalTitle>
+        <TacticalText size={13} tone="text" className="mb-4">
+          Indica recojo y destino para continuar.
+        </TacticalText>
+        <View className="gap-3">
+          {addressFieldButton(
+            "Punto de recojo",
+            origin,
+            "¿De dónde te recogemos?",
+            () => openAddressSearch("origin"),
+          )}
+          <UiButton
+            label="Usar mi ubicación actual"
+            onPress={() => void handleUseMyLocationForOrigin()}
+            disabled={locationLoading || submitting}
+            loading={locationLoading}
+            variant="secondary"
+          />
+          {addressFieldButton(
+            "Destino",
+            destination.address,
+            "¿A dónde vas?",
+            () => openAddressSearch("destination"),
+          )}
+          {extraDestinations.map((stop, index) => (
             <View
-              className="mx-2 overflow-hidden"
-              style={[
-                {
-                  height: addressSheetHeight,
-                  backgroundColor: TACTICAL_COLORS.base,
-                  borderTopLeftRadius: 24,
-                  borderTopRightRadius: 24,
-                },
-                SHEET_SHADOW,
-              ]}
+              key={`extra-landing-${index}`}
+              className="flex-row items-start gap-2"
             >
-              <View className="flex-row items-center justify-between px-4 pb-1 pt-3">
-                <View className="w-10" />
-                <View
-                  className="h-1 w-10"
-                  style={{
-                    backgroundColor: TACTICAL_COLORS.steel,
-                    borderRadius: TACTICAL_RADIUS.sharp,
-                  }}
-                />
-                <TouchableOpacity
-                  onPress={closeAddressSearch}
-                  className="h-10 w-10 items-center justify-center"
-                  hitSlop={8}
-                >
-                  <Text
-                    style={{
-                      fontFamily: MONO.bold,
-                      fontSize: 16,
-                      color: TACTICAL_COLORS.steel,
-                    }}
-                  >
-                    ✕
-                  </Text>
-                </TouchableOpacity>
+              <View className="flex-1">
+                {addressFieldButton(
+                  `Parada ${index + 2}`,
+                  stop.address,
+                  `Parada ${index + 2} (opcional)`,
+                  () => openAddressSearch(index),
+                )}
               </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setExtraDestinations((previous) =>
+                    previous.filter((_, itemIndex) => itemIndex !== index),
+                  );
+                }}
+                className="mt-6 h-12 w-12 items-center justify-center"
+                style={{
+                  backgroundColor: TACTICAL_COLORS.surfaceSunken,
+                  borderRadius: TACTICAL_RADIUS.sharp,
+                  borderWidth: 1,
+                  borderColor: TACTICAL_BORDER,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: MONO.bold,
+                    color: TACTICAL_COLORS.steel,
+                  }}
+                >
+                  ✕
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+          <TouchableOpacity
+            onPress={() =>
+              setExtraDestinations((previous) => [
+                ...previous,
+                createEmptyAddressDraft(),
+              ])
+            }
+            disabled={submitting}
+            className="rounded-2xl py-2.5 disabled:opacity-60"
+          >
+            <TacticalLabel className="text-center">+ Agregar parada</TacticalLabel>
+          </TouchableOpacity>
+          <UiButton
+            label="Continuar"
+            onPress={handleContinueToConfirm}
+            disabled={!canContinue || submitting}
+          />
+        </View>
+        {error !== null && (
+          <TacticalText
+            size={13}
+            className="mt-3 text-center"
+            style={{ color: TACTICAL_COLORS.danger }}
+          >
+            {error}
+          </TacticalText>
+        )}
+      </ScrollView>
+    );
 
-              <ScrollView
+    const addressSearchSheet = (
+      <View
+        className="flex-1 justify-end"
+        style={{ paddingBottom: keyboardHeight }}
+      >
+        <UberBottomSheet height={addressSheetHeight}>
+          <View className="flex-row items-center justify-end px-4 pb-1">
+            <TouchableOpacity
+              onPress={closeAddressSearch}
+              className="h-10 w-10 items-center justify-center"
+              hitSlop={8}
+            >
+              <Text
+                style={{
+                  fontFamily: MONO.bold,
+                  fontSize: 16,
+                  color: TACTICAL_COLORS.steel,
+                }}
+              >
+                ✕
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView
                 ref={sheetScrollRef}
                 className="flex-1"
                 keyboardShouldPersistTaps="always"
@@ -1353,9 +1411,73 @@ export function ClientDashboard() {
                     />
                   </View>
                 )}
-              </ScrollView>
-            </View>
+          </ScrollView>
+        </UberBottomSheet>
+      </View>
+    );
+
+    return (
+      <View className="flex-1">
+        {addressSearchActive ? (
+          <View className="flex-1" style={{ backgroundColor: HERCOM_COLORS.mapFallback }}>
+            <MapView
+              style={{ flex: 1 }}
+              provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+              initialRegion={homeMapRegion}
+              showsUserLocation={showsBlueDot}
+              showsMyLocationButton={false}
+            />
+            {addressSearchSheet}
           </View>
+        ) : (
+          <MapScreenLayout
+            map={
+              <MapView
+                style={{ flex: 1 }}
+                provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+                initialRegion={homeMapRegion}
+                showsUserLocation={showsBlueDot}
+                showsMyLocationButton={false}
+                loadingEnabled
+                loadingIndicatorColor={HERCOM_COLORS.primary}
+                mapPadding={{
+                  top: insets.top + 56,
+                  bottom: homeSheetHeight + 8,
+                  left: 16,
+                  right: 16,
+                }}
+              />
+            }
+            topOverlay={
+              <View className="flex-row items-center gap-3">
+                <HamburgerButton
+                  onPress={() => setMenuOpen(true)}
+                  variant="light"
+                />
+                {origin.trim() !== "" ? (
+                  <LocationChip
+                    label="De dónde"
+                    address={origin}
+                    onPress={() => openAddressSearch("origin")}
+                  />
+                ) : (
+                  <View className="flex-1" />
+                )}
+                <HelpFab
+                  fallbackCenter={
+                    userCoords !== null
+                      ? { lat: userCoords.lat, lng: userCoords.lng }
+                      : undefined
+                  }
+                />
+              </View>
+            }
+            bottomSheet={
+              <UberBottomSheet height={homeSheetHeight}>
+                {requestSheetContent}
+              </UberBottomSheet>
+            }
+          />
         )}
         {drawer}
       </View>
@@ -1364,119 +1486,87 @@ export function ClientDashboard() {
 
   // ——— Paso 2: mapa + horas / tarifa ———
   return (
-    <View className="flex-1" style={{ backgroundColor: TACTICAL_COLORS.base }}>
-      <MapView
-        key={`map-${originLat}-${originLng}-${destination.lat}-${destination.lng}`}
-        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-        provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
-        initialRegion={confirmMapRegion}
-        mapType="standard"
-        showsUserLocation={showsBlueDot}
-        showsMyLocationButton={false}
-        loadingEnabled
-        loadingIndicatorColor={HERCOM_COLORS.primary}
-        loadingBackgroundColor={HERCOM_COLORS.mapFallback}
-        mapPadding={{
-          top: insets.top + 56,
-          right: 16,
-          bottom: confirmSheetHeight + 12,
-          left: 16,
-        }}
-      >
-        {originLat !== null && originLng !== null && (
-          <Marker
-            coordinate={{ latitude: originLat, longitude: originLng }}
-            title="Recojo"
-            pinColor={HERCOM_COLORS.primary}
-          />
-        )}
-        {destination.lat !== null && destination.lng !== null && (
-          <Marker
-            coordinate={{
-              latitude: destination.lat,
-              longitude: destination.lng,
-            }}
-            title="Destino"
-          />
-        )}
-      </MapView>
-
-      <View
-        pointerEvents="box-none"
-        style={{ paddingTop: insets.top + 8 }}
-        className="absolute left-0 right-0 top-0 z-10 px-4"
-      >
-        <View className="flex-row items-center gap-3">
-          <TouchableOpacity
-            onPress={() => {
-              setFlowStep("compose");
-              setError(null);
-            }}
-            className="h-12 w-12 items-center justify-center"
-            style={{
-              backgroundColor: TACTICAL_COLORS.surface,
-              borderRadius: TACTICAL_RADIUS.sharp,
-              borderWidth: 1,
-              borderColor: TACTICAL_BORDER,
+    <View className="flex-1">
+      <MapScreenLayout
+        map={
+          <MapView
+            key={`map-${originLat}-${originLng}-${destination.lat}-${destination.lng}`}
+            style={{ flex: 1 }}
+            provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+            initialRegion={confirmMapRegion}
+            mapType="standard"
+            showsUserLocation={showsBlueDot}
+            showsMyLocationButton={false}
+            loadingEnabled
+            loadingIndicatorColor={HERCOM_COLORS.primary}
+            loadingBackgroundColor={HERCOM_COLORS.mapFallback}
+            mapPadding={{
+              top: insets.top + 56,
+              right: 16,
+              bottom: confirmSheetHeight + 12,
+              left: 16,
             }}
           >
-            <Text
-              style={{
-                fontFamily: MONO.bold,
-                fontSize: 18,
-                color: TACTICAL_COLORS.accent,
+            {originLat !== null && originLng !== null && (
+              <Marker
+                coordinate={{ latitude: originLat, longitude: originLng }}
+                title="Recojo"
+                pinColor={HERCOM_COLORS.primary}
+              />
+            )}
+            {destination.lat !== null && destination.lng !== null && (
+              <Marker
+                coordinate={{
+                  latitude: destination.lat,
+                  longitude: destination.lng,
+                }}
+                title="Destino"
+              />
+            )}
+          </MapView>
+        }
+        topOverlay={
+          <View className="flex-row items-center gap-3">
+            <FloatingCircleButton
+              accessibilityLabel="Volver"
+              onPress={() => {
+                setFlowStep("compose");
+                setError(null);
               }}
             >
-              ←
-            </Text>
-          </TouchableOpacity>
-          <View className="flex-1" />
-          <HelpFab
-            fallbackCenter={
-              originLat !== null && originLng !== null
-                ? { lat: originLat, lng: originLng }
-                : undefined
-            }
-          />
-        </View>
-      </View>
-
-      <View
-        className="absolute bottom-0 left-0 right-0 z-20 overflow-hidden"
-        style={[
-          {
-            backgroundColor: TACTICAL_COLORS.base,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-          },
-          {
-            height: confirmSheetHeight,
-            paddingBottom: insets.bottom + 8,
-          },
-          SHEET_SHADOW,
-        ]}
-      >
-        <View className="items-center pb-1 pt-3">
-          <View
-            className="h-1 w-10"
-            style={{
-              backgroundColor: TACTICAL_COLORS.steel,
-              borderRadius: TACTICAL_RADIUS.sharp,
-            }}
-          />
-        </View>
-
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingBottom: 20,
-          }}
-        >
-          <TacticalTitle size={18} className="mb-3">
-            Confirmar
-          </TacticalTitle>
+              <Text
+                style={{
+                  fontFamily: MONO.bold,
+                  fontSize: 18,
+                  color: HERCOM_COLORS.text,
+                }}
+              >
+                ←
+              </Text>
+            </FloatingCircleButton>
+            <View className="flex-1" />
+            <HelpFab
+              fallbackCenter={
+                originLat !== null && originLng !== null
+                  ? { lat: originLat, lng: originLng }
+                  : undefined
+              }
+            />
+          </View>
+        }
+        bottomSheet={
+          <UberBottomSheet height={confirmSheetHeight}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{
+                paddingHorizontal: 16,
+                paddingBottom: 20,
+              }}
+            >
+              <TacticalTitle size={18} className="mb-3">
+                Confirmar viaje
+              </TacticalTitle>
 
           <TacticalPanel tone="sunken" className="mb-4">
             <TouchableOpacity
@@ -1630,8 +1720,10 @@ export function ClientDashboard() {
               {error}
             </TacticalText>
           )}
-        </ScrollView>
-      </View>
+            </ScrollView>
+          </UberBottomSheet>
+        }
+      />
       {drawer}
     </View>
   );

@@ -24,6 +24,7 @@ import {
   TacticalTitle,
 } from "../components/tactical";
 import {
+  HERCOM_COLORS,
   TACTICAL_BORDER,
   TACTICAL_COLORS,
   TACTICAL_RADIUS,
@@ -138,7 +139,7 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
       style={{
         flex: 1,
         paddingTop: insets.top,
-        backgroundColor: TACTICAL_COLORS.base,
+        backgroundColor: HERCOM_COLORS.canvas,
       }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
@@ -147,8 +148,8 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
         className="flex-row items-center px-4 py-3"
         style={{
           borderBottomWidth: 1,
-          borderBottomColor: TACTICAL_BORDER,
-          backgroundColor: TACTICAL_COLORS.baseElevated,
+          borderBottomColor: HERCOM_COLORS.border,
+          backgroundColor: HERCOM_COLORS.white,
         }}
       >
         <TouchableOpacity onPress={onBack} className="mr-3 py-1 pr-2">

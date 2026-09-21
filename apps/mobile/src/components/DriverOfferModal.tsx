@@ -1,16 +1,14 @@
 import type { Id } from "@proyecto/backend/dataModel";
 import { Text, View } from "react-native";
 import { AppModal } from "./AppModal";
+import { DriverInfoCard } from "./uber/DriverInfoCard";
+import { TripPriceFooter } from "./uber/ClientActiveTripSheet";
 import {
   TacticalButton,
   TacticalEmpty,
-  TacticalLabel,
-  TacticalPanel,
-  TacticalStatus,
-  TacticalTitle,
   TacticalValue,
 } from "./tactical";
-import { MONO, TACTICAL_COLORS, TACTICAL_RADIUS } from "../constants/theme";
+import { HERCOM_COLORS, MONO, TACTICAL_COLORS } from "../constants/theme";
 
 export type DriverOfferInfo = {
   _id: Id<"serviceOffers">;
@@ -59,42 +57,16 @@ export function DriverOfferModal({
         <TacticalEmpty title="Sin oferta seleccionada" />
       ) : (
         <View>
-          <TacticalPanel corners active>
-            <TacticalLabel>Operador</TacticalLabel>
-            <TacticalTitle size={22} className="mt-1">
-              {offer.driverName}
-            </TacticalTitle>
-            <View className="mt-3 flex-row flex-wrap items-center gap-2">
-              <TacticalStatus
-                label={`${offer.driverRating.toFixed(1)} ★`}
-                tone="warning"
-              />
-              <TacticalStatus
-                label={
-                  offer.driverTrips > 0
-                    ? `${offer.driverTrips} ${offer.driverTrips === 1 ? "viaje" : "viajes"}`
-                    : "Chofer nuevo"
-                }
-                tone={offer.driverTrips > 0 ? "active" : "idle"}
-              />
-            </View>
-          </TacticalPanel>
-
-          <View
-            className="mt-3 flex-row items-end justify-between px-4 py-3"
-            style={{
-              backgroundColor: "rgba(161, 196, 253, 0.1)",
-              borderRadius: TACTICAL_RADIUS.sharp,
-              borderLeftWidth: 2,
-              borderLeftColor: TACTICAL_COLORS.accent,
-            }}
-          >
-            <TacticalLabel>Tarifa ofertada</TacticalLabel>
-            <TacticalValue size={24} tone="accent">
-              {`S/${offer.offeredPrice.toFixed(2)}`}
-            </TacticalValue>
-          </View>
-
+          <DriverInfoCard
+            driverName={offer.driverName}
+            rating={offer.driverRating}
+            tripsCount={offer.driverTrips}
+            verified
+          />
+          <TripPriceFooter
+            label="Tarifa ofertada"
+            price={`S/${offer.offeredPrice.toFixed(2)}`}
+          />
           {error !== null && (
             <Text
               className="mt-3 text-xs"

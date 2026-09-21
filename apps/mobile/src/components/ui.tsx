@@ -16,6 +16,7 @@ import {
   TACTICAL_COLORS,
   TACTICAL_RADIUS,
   TYPE,
+  UBER_RADIUS,
 } from "../constants/theme";
 
 /**
@@ -38,7 +39,7 @@ export const SHEET_SHADOW = {
   elevation: 8,
 } as const;
 
-export const FILLED_INPUT_CLASS = "px-4 py-4 text-lg";
+export const FILLED_INPUT_CLASS = "px-4 py-4 text-xl";
 
 export function getFilledInputStyle() {
   return {
@@ -87,7 +88,7 @@ export function UiButton({
       : "transparent";
   const borderColor = isPrimary ? colors.accent : border;
   const labelColor = isPrimary ? colors.onAccent : colors.accent;
-  const height = size === "lg" ? "h-16" : "h-14";
+  const height = size === "lg" ? "h-[56px]" : "h-[50px]";
 
   return (
     <TouchableOpacity
@@ -99,7 +100,7 @@ export function UiButton({
       }`}
       style={{
         backgroundColor: background,
-        borderRadius: TACTICAL_RADIUS.panel,
+        borderRadius: isPrimary ? UBER_RADIUS.button : TACTICAL_RADIUS.panel,
         borderWidth: isPrimary ? 0 : 1,
         borderColor,
       }}
@@ -110,7 +111,7 @@ export function UiButton({
         <Text
           style={{
             fontFamily: POPPINS.bold,
-            fontSize: size === "lg" ? TYPE.bodyLg : TYPE.body,
+            fontSize: size === "lg" ? TYPE.button : TYPE.bodyLg,
             color: labelColor,
           }}
         >

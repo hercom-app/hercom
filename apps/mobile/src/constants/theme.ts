@@ -52,14 +52,25 @@ export const ANA = {
   black: "#080808",
 } as const;
 
-/** Escala legible — orientada a choferes y clientes mayores. */
+/**
+ * Escala legible — choferes y clientes mayores.
+ * Inter sola; tamaños generosos (mínimo efectivo ~17 px).
+ */
 export const TYPE = {
-  caption: 15,
-  body: 17,
-  bodyLg: 18,
-  title: 22,
-  headline: 24,
-  amount: 30,
+  caption: 17,
+  body: 19,
+  bodyLg: 21,
+  title: 26,
+  headline: 28,
+  amount: 34,
+  button: 20,
+} as const;
+
+/** Interlineado cómodo para lectura prolongada. */
+export const LINE = {
+  tight: 1.25,
+  normal: 1.45,
+  relaxed: 1.55,
 } as const;
 
 /** Números alineados (tarifas, saldos) sin fuente monoespaciada. */
@@ -153,6 +164,14 @@ export const TACTICAL_RADIUS = {
   panel: 16,
 } as const;
 
+/** Radios patrón Uber — bottom sheet, FABs, chips. */
+export const UBER_RADIUS = {
+  sheet: 28,
+  card: 16,
+  pill: 24,
+  button: 12,
+} as const;
+
 /** Sin glow neón en botones. */
 export const TACTICAL_GLOW = {
   shadowColor: "transparent",
@@ -162,40 +181,23 @@ export const TACTICAL_GLOW = {
   elevation: 0,
 };
 
-/**
- * Cuerpo y UI — Work Sans (como Military OneSource).
- * El alias `POPPINS` se mantiene para no romper imports existentes.
- */
-export const POPPINS = {
-  regular: "WorkSans_400Regular",
-  medium: "WorkSans_500Medium",
-  semibold: "WorkSans_600SemiBold",
-  bold: "WorkSans_700Bold",
+/** Inter — única familia tipográfica (cuerpo, títulos, montos). */
+export const INTER = {
+  regular: "Inter_400Regular",
+  medium: "Inter_500Medium",
+  semibold: "Inter_600SemiBold",
+  bold: "Inter_700Bold",
 } as const;
 
-/**
- * Títulos y subtítulos — Arvo slab serif (como Military OneSource).
- */
-export const ARVO = {
-  regular: "Arvo_400Regular",
-  bold: "Arvo_700Bold",
-} as const;
-
-/**
- * Montos y cifras — Work Sans con peso fuerte (legible, no monoespaciada).
- * El alias `MONO` se mantiene por compatibilidad de imports.
- */
+/** Alias legacy — todos apuntan a Inter. */
+export const POPPINS = INTER;
+export const ARVO = { regular: INTER.regular, bold: INTER.bold } as const;
 export const MONO = {
-  regular: "WorkSans_600SemiBold",
-  medium: "WorkSans_600SemiBold",
-  bold: "WorkSans_700Bold",
+  regular: INTER.semibold,
+  medium: INTER.semibold,
+  bold: INTER.bold,
 } as const;
-
-/** Títulos display — Arvo. */
-export const DISPLAY = {
-  regular: ARVO.regular,
-  bold: ARVO.bold,
-} as const;
+export const DISPLAY = { regular: INTER.regular, bold: INTER.bold } as const;
 
 const DARK_CHROME = {
   border: "rgba(107, 132, 184, 0.22)",

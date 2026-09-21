@@ -1,15 +1,13 @@
 import { View } from "react-native";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { UiButton, UiCard } from "../components/ui";
 import {
-  TacticalButton,
   TacticalLabel,
-  TacticalPanel,
   TacticalReadout,
-  TacticalScreen,
-  TacticalStatus,
   TacticalText,
   TacticalTitle,
 } from "../components/tactical";
+import { HERCOM_COLORS } from "../constants/theme";
 
 type DriverApplicationPendingScreenProps = {
   dni?: string;
@@ -24,22 +22,22 @@ export function DriverApplicationPendingScreen({
   const { signOut } = useAuthActions();
 
   return (
-    <TacticalScreen className="items-center justify-center px-6">
-      <TacticalPanel corners className="w-full max-w-sm">
-        <View className="flex-row">
-          <TacticalStatus label="Expediente en revisión" tone="warning" />
-        </View>
-
-        <TacticalTitle size={19} className="mt-3">
-          Solicitud enviada
-        </TacticalTitle>
-        <TacticalText size={12} className="mt-2">
+    <View
+      className="flex-1 items-center justify-center px-6"
+      style={{ backgroundColor: HERCOM_COLORS.canvas }}
+    >
+      <UiCard className="w-full max-w-sm">
+        <TacticalTitle size={19}>Solicitud enviada</TacticalTitle>
+        <TacticalText size={13} className="mt-2">
           Tu registro como chofer está en revisión. Te avisaremos cuando sea
           aprobado.
         </TacticalText>
 
         {(fullName !== undefined || dni !== undefined) && (
-          <TacticalPanel tone="sunken" className="mt-4 px-3 py-1.5">
+          <View
+            className="mt-4 rounded-2xl px-3 py-2"
+            style={{ backgroundColor: HERCOM_COLORS.primarySoft }}
+          >
             <TacticalLabel tone="accent" className="mt-1.5">
               Datos del postulante
             </TacticalLabel>
@@ -49,17 +47,17 @@ export function DriverApplicationPendingScreen({
             {dni !== undefined && (
               <TacticalReadout label="DNI" value={dni} tone="accent" />
             )}
-          </TacticalPanel>
+          </View>
         )}
 
         <View className="mt-6">
-          <TacticalButton
+          <UiButton
             label="Cerrar sesión"
             variant="secondary"
             onPress={() => void signOut()}
           />
         </View>
-      </TacticalPanel>
-    </TacticalScreen>
+      </UiCard>
+    </View>
   );
 }

@@ -1,17 +1,18 @@
 import type { ReactNode } from "react";
 import { View } from "react-native";
-import { FieldScreenHeader, TacticalScreen } from "./tactical";
+import { HERCOM_COLORS } from "../constants/theme";
+import { UberScreenHeader } from "./uber/UberScreenHeader";
 
 type AccountScreenShellProps = {
   title: string;
   subtitle?: string;
   onOpenMenu: () => void;
   children: ReactNode;
-  /** Mantenido por compatibilidad; ambos usan el shell institucional. */
+  /** Mantenido por compatibilidad. */
   variant?: "light" | "tactical";
 };
 
-/** Cabecera navy + contenido sobre canvas (Ayuda, Seguridad, Mi Información). */
+/** Cabecera limpia + contenido — Ayuda, Seguridad, Mi Información. */
 export function AccountScreenShell({
   title,
   subtitle,
@@ -19,13 +20,14 @@ export function AccountScreenShell({
   children,
 }: AccountScreenShellProps) {
   return (
-    <TacticalScreen>
-      <FieldScreenHeader
+    <View className="flex-1" style={{ backgroundColor: HERCOM_COLORS.canvas }}>
+      <UberScreenHeader
         title={title}
         subtitle={subtitle}
         onOpenMenu={onOpenMenu}
+        variant="stack"
       />
       <View className="flex-1">{children}</View>
-    </TacticalScreen>
+    </View>
   );
 }

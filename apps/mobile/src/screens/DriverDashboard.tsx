@@ -28,9 +28,9 @@ import type { Id } from "@proyecto/backend/dataModel";
 import { ChecklistRecojoScreen } from "./ChecklistRecojoScreen";
 import { useDriverLiveTracking } from "../hooks/useDriverLiveTracking";
 import { LiveTripMapModal } from "../components/LiveTripMapModal";
+import { UberScreenHeader } from "../components/uber/UberScreenHeader";
 import {
   FieldDataBand,
-  FieldScreenHeader,
   TacticalButton,
   TacticalEmpty,
   TacticalInput,
@@ -41,6 +41,7 @@ import {
   TacticalValue,
 } from "../components/tactical";
 import {
+  HERCOM_COLORS,
   MONO,
   TACTICAL_BORDER,
   TACTICAL_COLORS,
@@ -247,8 +248,8 @@ export function DriverDashboard() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: TACTICAL_COLORS.base }}>
-      <FieldScreenHeader
+    <View className="flex-1" style={{ backgroundColor: HERCOM_COLORS.canvas }}>
+      <UberScreenHeader
         title={title}
         subtitle="Mis viajes y solicitudes"
         onOpenMenu={() => setMenuOpen(true)}

@@ -2,185 +2,149 @@
 
 Guía de fuentes para **web admin**, **web comercial**, **app móvil** y materiales de marca.
 
-Solo fuentes **gratuitas y libres** (SIL Open Font License).  
-Descartado: ITC Avant Garde, Salesforce Sans, Slack-Lato.
+Solo fuentes **gratuitas y libres** (SIL Open Font License).
 
 ---
 
 ## Estado actual por app
 
-| App | Títulos | Cuerpo / UI | Carga de fuentes |
+| App | Títulos | Cuerpo / UI | Carga |
 | --- | --- | --- | --- |
 | **Web admin** | Plus Jakarta Sans | Inter | Google Fonts en `index.html` |
-| **Web comercial** | *(sin definir)* | **Fuente del sistema** | Sin Google Fonts — sin cambios de diseño aún |
-| **App móvil** | Fuente del sistema | Fuente del sistema | Sin embeber aún |
+| **Web comercial** | *(sin definir)* | Fuente del sistema | Sin Google Fonts aún |
+| **App móvil** | **Inter** 700 | **Inter** 400–600 | `@expo-google-fonts/inter` en `App.tsx` — escala grande para adultos mayores |
 
-Clases Tailwind: `font-display` (títulos) · `font-sans` (resto, default del body).
+Clases Tailwind web: `font-display` (títulos) · `font-sans` (resto).
 
----
-
-## Web comercial — sin cambios (por ahora)
-
-La web comercial **sigue igual que antes**: fuente del sistema, login original.  
-No hay decisiones de diseño ni tipografía aplicadas todavía.
-
-```css
-/* apps/web-comercial/src/index.css */
-font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-```
-
-Sin Google Fonts en `index.html`. Se ve distinto según dispositivo (Segoe UI, San Francisco, Roboto) y distinto al admin.
-
-Cuando se rediseñe la comercial, usar la pareja **Plus Jakarta Sans + Inter** (sección siguiente).
+En móvil los tokens viven en `apps/mobile/src/constants/theme.ts` (`POPPINS`, `ARVO`, `DISPLAY` — nombres históricos; ver abajo).
 
 ---
 
-## Web comercial — referencia histórica (pila system-ui)
+## App móvil — Inter sola (activo)
 
-```css
-font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-```
-
-Definido en `apps/web-comercial/src/index.css`. **No había Google Fonts** en `index.html`.
-
-### Qué implicaba eso
-
-| Dispositivo | Fuente que veía el usuario |
-| --- | --- |
-| **Windows** | Segoe UI |
-| **macOS / iOS** | San Francisco (vía `-apple-system`) |
-| **Android** | Roboto |
-| **Linux** | system-ui del distro |
-
-**Consecuencias:**
-
-- La web comercial se veía **distinta en cada dispositivo**.
-- No coincidía con el **web admin** (que ya usaba Inter + Plus Jakarta Sans).
-- Títulos y formularios heredaban la sans-serif del OS, sin identidad Hercom.
-
----
-
-## Pareja oficial Hercom (100 % libre)
-
-Recomendación para **cliente + chofer + admin + móvil**:
-
-| Rol | Fuente | Licencia | Uso |
-| --- | --- | --- | --- |
-| **Títulos** | [**Plus Jakarta Sans**](https://fonts.google.com/specimen/Plus+Jakarta+Sans) | SIL OFL | Login, encabezados de sección, KPIs |
-| **Cuerpo** | [**Inter**](https://fonts.google.com/specimen/Inter) | SIL OFL | Tablas, formularios, labels, botones, párrafos |
-
-**Por qué esta pareja:** Plus Jakarta Sans aporta identidad en logins y títulos; Inter es muy legible en UI densa (tablas del admin, precios, filtros). Ambas se pueden embeber en **app móvil** sin pagar licencia.
-
-### Alternativas libres (otra sensación)
-
-| Si buscan… | Títulos | Cuerpo |
+| Token en código | Fuente | Uso |
 | --- | --- | --- |
-| Máxima simplicidad (una sola fuente) | — | **Inter** sola |
-| Más “app de consumo” | **DM Sans** | Inter |
-| Tono más suave | **Nunito Sans** | Inter |
-| Estilo Slack sin Slack-Lato | Plus Jakarta Sans | **Lato** |
-| Máxima neutralidad | Plus Jakarta Sans | **Source Sans 3** |
+| `INTER` / `POPPINS` | Inter 400–700 | Todo el UI (alias legacy = Inter) |
+| `DISPLAY` / `ARVO` / `MONO` | Inter | Títulos y montos (misma familia) |
 
-Para Hercom, **Plus Jakarta Sans + Inter** es la opción más equilibrada.
+### Escala (`TYPE` en `theme.ts`) — legibilidad adultos mayores
 
----
-
-## Cuándo usar cada una
-
-### `font-display` — Plus Jakarta Sans
-
-- Título login (*Iniciar sesión*, *Acceso administrador*)
-- Títulos de sección en admin
-- Montos destacados
-
-### `font-sans` — Inter
-
-- Labels flotantes, inputs, botones
-- Tablas, filtros, mensajes de error
-- Texto de la app autenticada
-
-**Regla:** no uses `font-display` en celdas de tabla ni párrafos largos.
-
----
-
-## Pesos recomendados
-
-| Fuente | Pesos | Uso |
+| Token | px | Uso |
 | --- | --- | --- |
-| Plus Jakarta Sans | 600, 700 | Títulos |
-| Inter | 400, 500, 600 | Cuerpo, labels, botones |
+| `caption` | 17 | Labels, badges (mínimo) |
+| `body` | 19 | Texto general |
+| `bodyLg` | 21 | Inputs |
+| `button` | 20 | CTAs |
+| `title` | 26 | Títulos de sección |
+| `headline` | 28 | Placa, encabezados sheet |
+| `amount` | 34 | Tarifas destacadas |
 
 ---
 
-## Escala tipográfica (web)
+## Alternativas para móvil (elegir una)
 
-| Elemento | Clase sugerida |
-| --- | --- |
-| Título login | `font-display text-2xl font-semibold tracking-tight` |
-| Título sección (admin) | `font-display text-2xl sm:text-3xl font-bold tracking-tight` |
-| Label flotante (activo) | `text-xs font-medium text-hercom` |
-| Input | `text-sm` |
-| Botón | `text-sm font-semibold` |
+Todas son gratuitas (Google Fonts + Expo) y funcionan en Android/iOS.
 
----
+### Opción A — **Plus Jakarta Sans + Inter** (recomendada)
 
-## Login web admin — UI de campos
-
-| Campo visible | `name` en formulario | Notas |
+| Rol | Fuente | Sensación |
 | --- | --- | --- |
-| **Usuario** | `email` | Label “Usuario”; login sigue siendo por correo en backend |
-| **Contraseña** | `password` | Label flotante + icono ojo (Lucide) |
+| Títulos | Plus Jakarta Sans 600–700 | Moderna, marca, alineada al **web admin** |
+| Cuerpo | Inter 400–600 | Muy legible en formularios, precios, tablas |
 
-Patrón **label flotante:** `FloatingField.tsx` (placeholder `" "` + clases `peer`).
+**Pros:** una sola identidad Hercom en admin + móvil; profesional; probada en producto.  
+**Contras:** menos “redonda” que apps de consumo ultra casual.
 
-Layout login admin: **propuesta 2** — logo grande encima del formulario; panel azul con logo en desktop (`lg+`). Ver [`7 PROPUESTAS LOGIN WEB.md`](7%20PROPUESTAS%20LOGIN%20WEB.md).
-
----
-
-## Login web comercial
-
-**Pendiente.** Sin indicaciones de diseño aún. No modificar hasta nueva decisión.
+**Paquetes Expo:** `@expo-google-fonts/plus-jakarta-sans`, `@expo-google-fonts/inter`
 
 ---
 
-## Implementación web
+### Opción B — **Inter sola** (una familia)
 
-### Web admin
+Todo UI con Inter 400 / 500 / 600 / 700.
 
-| Archivo | Contenido |
+**Pros:** máxima simplicidad; muy parecida a Uber/Lyft (sans neutra); menos peso en la app.  
+**Contras:** menos personalidad de marca en títulos.
+
+**Paquete Expo:** `@expo-google-fonts/inter`
+
+---
+
+### Opción C — **DM Sans + Inter**
+
+| Rol | Fuente |
 | --- | --- |
-| `apps/web-admin/index.html` | Inter + Plus Jakarta Sans |
-| `apps/web-admin/tailwind.config.js` | `font-display`, `font-sans` |
-| `apps/web-admin/src/components/FloatingField.tsx` | Labels flotantes + ojo |
-| `apps/web-admin/src/components/SignInForm.tsx` | Login propuesta 2 |
+| Títulos | DM Sans 600–700 |
+| Cuerpo | Inter |
+
+**Pros:** DM Sans es geométrica y “app de movilidad”; amigable sin ser infantil.  
+**Contras:** admin seguiría con Plus Jakarta hasta unificar web.
+
+**Paquetes Expo:** `@expo-google-fonts/dm-sans`, `@expo-google-fonts/inter`
+
+---
+
+### Opción D — **SF Pro / Roboto (sistema)**
+
+Sin embeber fuentes: `System` en React Native.
+
+**Pros:** nativo en cada OS; carga instantánea; familiar para el usuario.  
+**Contras:** se ve distinto en iPhone vs Android; no coincide con web admin.
+
+---
+
+### Opción E — **Poppins sola**
+
+Una sans redondeada, popular en LATAM.
+
+**Pros:** cercana, legible, menos “seria” que Arvo.  
+**Contras:** muy usada (menos distintiva); no alinea con admin.
+
+**Paquete Expo:** `@expo-google-fonts/poppins`
+
+---
+
+## Comparación rápida (para decidir con el dueño)
+
+| Criterio | A: Jakarta+Inter | B: Inter | C: DM+Inter | D: Sistema | E: Poppins |
+| --- | --- | --- | --- | --- | --- |
+| Igual que web admin | ✅ | Parcial | Parcial | ❌ | ❌ |
+| Sensación “app transporte” | ✅ | ✅✅ | ✅✅ | ✅ | ✅ |
+| Evita serif / tono militar | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Marca Hercom reconocible | ✅✅ | ✅ | ✅ | ❌ | ✅ |
+
+**Recomendación del equipo:** **Opción A** si la prioridad es marca unificada; **Opción B o C** si la prioridad es look tipo Uber/inDrive.
+
+---
+
+## Web — pareja oficial (sin cambios)
+
+| Rol | Fuente |
+| --- | --- |
+| **Títulos** | [Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans) |
+| **Cuerpo** | [Inter](https://fonts.google.com/specimen/Inter) |
 
 ### Web comercial
 
-Sin cambios planificados. Estado actual: `system-ui` en `index.css`, login heredado.
+Hoy: fuente del sistema en `index.css`. Cuando se rediseñe, usar la misma pareja que admin.
 
 ---
 
-## App móvil (pendiente)
+## Implementación móvil (cuando elijan opción)
 
-Hoy: **fuente del sistema** (San Francisco / Roboto).
-
-Para unificar con web, embeber en `apps/mobile/assets/fonts/`:
-
-- `Inter-Regular.ttf`, `Inter-SemiBold.ttf`, `Inter-Bold.ttf`
-- `PlusJakartaSans-SemiBold.ttf`, `PlusJakartaSans-Bold.ttf`
-
-Herramienta: [expo-font](https://docs.expo.dev/develop/user-interface/fonts/) + NativeWind `fontFamily`.
+1. Instalar paquetes `@expo-google-fonts/...` correspondientes.
+2. Actualizar `useFonts` en `apps/mobile/App.tsx`.
+3. Actualizar `theme.ts`: mapear `POPPINS` / `DISPLAY` a los nombres reales (o renombrar tokens en un PR aparte).
+4. Probar login, bottom sheet, montos y drawer en Expo Go.
 
 ---
 
 ## Checklist
 
-- [x] Descartar Avant Garde y Slack-Lato
-- [x] Pareja oficial: Plus Jakarta Sans + Inter
-- [x] Web admin configurada
-- [x] Web admin: fuentes + login propuesta 2 + labels flotantes
-- [ ] Web comercial: **sin tocar** hasta nueva indicación
-- [ ] App móvil: embeber `.ttf`
+- [x] Web admin: Plus Jakarta Sans + Inter
+- [x] **Móvil:** Inter sola + escala grande (`TYPE` en `theme.ts`)
+- [x] `App.tsx` + `theme.ts` + `tailwind.config.js` actualizados
+- [ ] Web comercial: unificar cuando haya rediseño
 
 ---
 
@@ -191,7 +155,8 @@ Herramienta: [expo-font](https://docs.expo.dev/develop/user-interface/fonts/) + 
 | Inter | https://fonts.google.com/specimen/Inter |
 | Plus Jakarta Sans | https://fonts.google.com/specimen/Plus+Jakarta+Sans |
 | DM Sans | https://fonts.google.com/specimen/DM+Sans |
-| Lato | https://fonts.google.com/specimen/Lato |
-| Source Sans 3 | https://fonts.google.com/specimen/Source+Sans+3 |
+| Poppins | https://fonts.google.com/specimen/Poppins |
+| Work Sans | https://fonts.google.com/specimen/Work+Sans |
+| Arvo | https://fonts.google.com/specimen/Arvo |
 
-Ver también: [`7 PROPUESTAS LOGIN WEB.md`](7%20PROPUESTAS%20LOGIN%20WEB.md) · [`guia-diseno.md`](guia-diseno.md)
+Ver también: [`guia-diseno.md`](guia-diseno.md) · [`7 PROPUESTAS LOGIN WEB.md`](7%20PROPUESTAS%20LOGIN%20WEB.md)

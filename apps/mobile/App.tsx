@@ -13,12 +13,11 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import * as SecureStore from "expo-secure-store";
 import {
   useFonts,
-  WorkSans_400Regular,
-  WorkSans_500Medium,
-  WorkSans_600SemiBold,
-  WorkSans_700Bold,
-} from "@expo-google-fonts/work-sans";
-import { Arvo_400Regular, Arvo_700Bold } from "@expo-google-fonts/arvo";
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from "@expo-google-fonts/inter";
 import { AppErrorBoundary } from "./src/components/AppErrorBoundary";
 import { AuthSessionGuard } from "./src/components/AuthSessionGuard";
 import { LiveShareLinkListener } from "./src/components/LiveShareLinkListener";
@@ -70,12 +69,10 @@ function applyTypeDefaults() {
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    WorkSans_400Regular,
-    WorkSans_500Medium,
-    WorkSans_600SemiBold,
-    WorkSans_700Bold,
-    Arvo_400Regular,
-    Arvo_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
   });
 
   useEffect(() => {

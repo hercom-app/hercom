@@ -44,3 +44,26 @@ export function requireAdultBirthDate(value: string): string {
   }
   return iso;
 }
+
+/**
+ * Motivo para no aprobar como chofer por edad, o null si es mayor de edad.
+ */
+export function getDriverApprovalAgeBlock(
+  birthDate: string | undefined,
+): string | null {
+  if (birthDate === undefined || parseIsoDate(birthDate) === null) {
+    return "Falta una fecha de nacimiento válida. No se puede habilitar como chofer.";
+  }
+  if (!isAtLeast18(birthDate)) {
+    return "Menor de 18 años. No se puede habilitar como chofer.";
+  }
+  return null;
+}
+
+export function isDriverApplicantMinor(birthDate: string | undefined): boolean {
+  return (
+    birthDate !== undefined &&
+    parseIsoDate(birthDate) !== null &&
+    !isAtLeast18(birthDate)
+  );
+}

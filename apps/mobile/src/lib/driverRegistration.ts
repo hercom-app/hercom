@@ -25,6 +25,8 @@ export type PendingDriverRegistration = {
   department: string;
   province: string;
   district: string;
+  personalDataConsent: true;
+  personalDataConsentText: string;
 };
 
 export async function savePendingDriverRegistration(
@@ -41,6 +43,14 @@ export async function loadPendingDriverRegistration(): Promise<PendingDriverRegi
   try {
     const parsed = JSON.parse(raw) as PendingDriverRegistration;
     if (typeof parsed.birthDate !== "string" || parsed.birthDate.trim() === "") {
+      await SecureStore.deleteItemAsync(PENDING_KEY);
+      return null;
+    }
+    if (
+      parsed.personalDataConsent !== true ||
+      typeof parsed.personalDataConsentText !== "string" ||
+      parsed.personalDataConsentText.trim() === ""
+    ) {
       await SecureStore.deleteItemAsync(PENDING_KEY);
       return null;
     }
@@ -74,6 +84,8 @@ type SubmitDriverApplicationArgs = {
   department: string;
   province: string;
   district: string;
+  personalDataConsent: true;
+  personalDataConsentText: string;
 };
 
 export async function submitDriverApplicationFromPending(
@@ -81,6 +93,15 @@ export async function submitDriverApplicationFromPending(
   generateUploadUrl: () => Promise<string>,
   submitApplication: (args: SubmitDriverApplicationArgs) => Promise<unknown>,
 ): Promise<void> {
+  if (
+    pending.personalDataConsent !== true ||
+    pending.personalDataConsentText.trim() === ""
+  ) {
+    throw new Error(
+      "Debes firmar digitalmente la autorización de datos personales.",
+    );
+  }
+
   const licensePhotoIds: Id<"_storage">[] = [];
   for (const photo of pending.licensePhotoUris) {
     const id = await uploadToConvex(
@@ -136,6 +157,8 @@ export async function submitDriverApplicationFromPending(
     department: pending.department,
     province: pending.province,
     district: pending.district,
+    personalDataConsent: true,
+    personalDataConsentText: pending.personalDataConsentText,
   });
 }
 

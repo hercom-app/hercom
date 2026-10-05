@@ -9,6 +9,7 @@ import {
   CUL_INFO_URL,
   DIGITAL_LICENSE_URL,
 } from "../lib/officialDocuments";
+import { getDriverApprovalAgeBlock } from "@proyecto/backend/age";
 
 export type DriverApplicationForAdmin = FunctionReturnType<
   typeof api.driverApplications.listForAdmin
@@ -100,7 +101,14 @@ export function DriverDossierPanel({
     );
   }
 
+  const ageBlock = getDriverApprovalAgeBlock(application.birthDate);
+  const approveDisabled = acting || ageBlock !== null;
+
   async function handleApprove() {
+    if (ageBlock !== null) {
+      setError(ageBlock);
+      return;
+    }
     setActing(true);
     setMessage(null);
     setError(null);
@@ -176,10 +184,7 @@ export function DriverDossierPanel({
         <InfoRow label="Sexo" value={SEX_LABELS[application.sex]} />
         <InfoRow
           label="Fecha de nacimiento"
-          value={formatBirthDate(
-            (application as DriverApplicationForAdmin & { birthDate?: string })
-              .birthDate,
-          )}
+          value={formatBirthDate(application.birthDate)}
         />
         <InfoRow label="N.° brevete" value={application.licenseNumber} />
         <InfoRow label="Categoría brevete" value={application.licenseCategory} />
@@ -208,6 +213,14 @@ export function DriverDossierPanel({
           label="Enviado"
           value={formatDateTime(application.submittedAt)}
         />
+        <InfoRow
+          label="Firma digital (datos personales)"
+          value={
+            application.personalDataConsentAt !== undefined
+              ? `Autorizada · ${formatDateTime(application.personalDataConsentAt)}`
+              : "No registrada (solicitud anterior)"
+          }
+        />
         {application.driverPlate !== null && (
           <InfoRow label="Placa (perfil)" value={application.driverPlate} />
         )}
@@ -217,10 +230,16 @@ export function DriverDossierPanel({
       </div>
 
       {application.status === "pending" && (
-        <div className="mt-4 flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+        <div className="mt-4 flex w-full flex-col gap-2">
+          {ageBlock !== null && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+              {ageBlock}
+            </p>
+          )}
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
           <button
             type="button"
-            disabled={acting}
+            disabled={approveDisabled}
             onClick={() => void handleApprove()}
             className={`${btnPrimaryClass} w-full sm:w-auto`}
           >
@@ -234,6 +253,7 @@ export function DriverDossierPanel({
           >
             Rechazar
           </button>
+          </div>
         </div>
       )}
 

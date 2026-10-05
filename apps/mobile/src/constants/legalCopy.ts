@@ -66,3 +66,30 @@ La ubicación se solicita para funciones concretas (origen, navegación, ayuda).
 8. Cambios
 Podemos actualizar esta Política. La versión vigente estará disponible en la app.`,
 };
+
+/** Autorización que el chofer firma digitalmente al postular (Ley 29733). */
+export const DRIVER_PERSONAL_DATA_CONSENT = {
+  version: "2026-10",
+  checkboxLabel:
+    "Firmo digitalmente y autorizo a Hercom el tratamiento de mis datos personales para evaluar mi registro como chofer.",
+  fullText: `Autorización de tratamiento de datos personales — Chofer
+
+Al marcar la casilla de consentimiento en el formulario de alta, el postulante otorga su firma digital y autoriza a Hercom a tratar sus datos personales, de acuerdo con la Ley N.° 29733, Ley de Protección de Datos Personales, y su reglamento.
+
+Datos que autorizo entregar y tratar
+- Identidad: DNI, nombres y apellidos, sexo y fecha de nacimiento (validación RENIEC).
+- Documentos de conducción y laborales: brevete, fotos o PDF del documento, CUL y récord de conductor.
+- Datos de contacto y de operación: correo, teléfono, zona de trabajo y, si corresponde, datos de cobro.
+
+Finalidad
+Evaluar mi postulación como chofer de remplazo, verificar identidad y documentos, crear y mantener el perfil si soy aceptado, prevenir fraude y cumplir obligaciones legales.
+
+Conservación
+Los datos se conservan mientras dure la evaluación, la relación con la plataforma y los plazos legales aplicables.
+
+Declaración
+Declaro que la información y los documentos que entrego son verdaderos y me corresponden. Entiendo que esta casilla equivale a mi firma digital de autorización y que, sin ella, Hercom no puede recibir ni evaluar mi solicitud.
+
+Puedo ejercer mis derechos de acceso, rectificación, cancelación y oposición a través del soporte de la app.`,
+};
+};

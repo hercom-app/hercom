@@ -223,6 +223,9 @@ export default defineSchema({
     status: driverApplicationStatusValidator,
     submittedAt: v.number(),
     reviewedAt: v.optional(v.number()),
+    /** Firma digital (casilla) de autorización de datos personales. */
+    personalDataConsentAt: v.optional(v.number()),
+    personalDataConsentText: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_dni", ["dni"])

@@ -67,7 +67,7 @@ const DRIVER_PRIMARY: MenuItem[] = [
 
 const DRIVER_ACCOUNT: MenuItem[] = [
   { key: "ayuda", label: "Ayuda", icon: "chat" },
-  { key: "configuracion", label: "Datos de cobro", icon: "card" },
+  { key: "configuracion", label: "Mis datos", icon: "gear" },
 ];
 
 function MenuRow({

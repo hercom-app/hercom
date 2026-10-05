@@ -11,7 +11,7 @@ import {
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import { AvailabilityToggle } from "../components/AvailabilityToggle";
-import { DriverPayoutConfig } from "../components/DriverPayoutConfig";
+import { DriverMyData } from "../components/DriverMyData";
 import { DriverEarningsView } from "../components/DriverEarningsView";
 import { ServiceCard } from "../components/ServiceCard";
 import { SideDrawer } from "../components/SideDrawer";
@@ -181,7 +181,7 @@ export function DriverDashboard() {
         : menuSection === "notificaciones"
           ? "Notificaciones"
           : menuSection === "configuracion"
-            ? "Datos de cobro"
+            ? "Mis datos"
             : menuSection === "ayuda"
               ? "Ayuda"
               : menuSection === "ofertas"
@@ -379,7 +379,7 @@ export function DriverDashboard() {
             </TacticalPanel>
           </ScrollView>
         ) : menuSection === "configuracion" ? (
-          <DriverPayoutConfig driver={driver} fallbackName={userName} />
+          <DriverMyData driver={driver} fallbackName={userName} />
         ) : menuSection === "notificaciones" ? (
           <ScrollView showsVerticalScrollIndicator={false}>
             <TacticalPanel corners>

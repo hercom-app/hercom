@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
 import { UiButton, UiCard, UiInput } from "./ui";
@@ -19,6 +19,8 @@ type DriverPayoutFields = {
 type DriverPayoutConfigProps = {
   driver: DriverPayoutFields;
   fallbackName?: string;
+  /** Si viene de la solicitud RENIEC, nombres y DNI quedan fijos. */
+  identityLocked?: { fullName: string; dni: string };
 };
 
 function Field({
@@ -49,10 +51,11 @@ function Field({
   );
 }
 
-/** Formulario de datos de cobro del chofer (menú lateral → Datos de cobro). */
+/** Formulario de datos de cobro del chofer (anticipo 25%). */
 export function DriverPayoutConfig({
   driver,
   fallbackName = "",
+  identityLocked,
 }: DriverPayoutConfigProps) {
   const updatePayout = useMutation(api.drivers.updateMyPayoutProfile);
   const [fullName, setFullName] = useState("");
@@ -67,8 +70,10 @@ export function DriverPayoutConfig({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setFullName(driver.fullName?.trim() || fallbackName);
-    setDni(driver.dni?.trim() || "");
+    setFullName(
+      identityLocked?.fullName.trim() || driver.fullName?.trim() || fallbackName,
+    );
+    setDni(identityLocked?.dni.trim() || driver.dni?.trim() || "");
     setYape(driver.yape?.trim() || "");
     setPlin(driver.plin?.trim() || "");
     setBankAccount1(driver.bankAccount1?.trim() || "");
@@ -76,6 +81,8 @@ export function DriverPayoutConfig({
     setBankAccount3(driver.bankAccount3?.trim() || "");
   }, [
     fallbackName,
+    identityLocked?.fullName,
+    identityLocked?.dni,
     driver.fullName,
     driver.dni,
     driver.yape,
@@ -110,28 +117,31 @@ export function DriverPayoutConfig({
   }
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
-      <UiCard className="mb-4">
+    <UiCard className="mb-4">
         <TacticalTitle size={16} className="mb-1">
-          Datos para el anticipo
+          Datos de cobro
         </TacticalTitle>
         <TacticalText size={12} className="mb-4">
           El cliente verá estos datos para transferirte el 25% antes del viaje.
         </TacticalText>
 
-        <Field
-          label="Nombres"
-          value={fullName}
-          onChangeText={setFullName}
-          placeholder="Nombres y apellidos"
-        />
-        <Field
-          label="DNI"
-          value={dni}
-          onChangeText={setDni}
-          placeholder="8 dígitos"
-          keyboardType="number-pad"
-        />
+        {identityLocked === undefined ? (
+          <>
+            <Field
+              label="Nombres"
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder="Nombres y apellidos"
+            />
+            <Field
+              label="DNI"
+              value={dni}
+              onChangeText={setDni}
+              placeholder="8 dígitos"
+              keyboardType="number-pad"
+            />
+          </>
+        ) : null}
         <Field
           label="Yape"
           value={yape}
@@ -190,6 +200,5 @@ export function DriverPayoutConfig({
           </TacticalText>
         )}
       </UiCard>
-    </ScrollView>
   );
 }

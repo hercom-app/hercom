@@ -367,7 +367,9 @@ async function wipeTable(
     | "driverApplications"
     | "adminDistrictScopes"
     | "drivers"
-    | "promotions",
+    | "promotions"
+    | "supportMessages"
+    | "supportThreads",
 ): Promise<number> {
   const rows = await ctx.db.query(table).collect();
   for (const row of rows) {
@@ -376,32 +378,73 @@ async function wipeTable(
   return rows.length;
 }
 
+function isAdminPanelUser(user: Doc<"users">): boolean {
+  return user.role === "admin" || user.role === "superadmin";
+}
+
+async function deleteStorageIfPresent(
+  ctx: MutationCtx,
+  storageId: Id<"_storage"> | undefined,
+): Promise<void> {
+  if (storageId === undefined) {
+    return;
+  }
+  await ctx.storage.delete(storageId);
+}
+
 async function deleteAuthForUser(
   ctx: MutationCtx,
   userId: Id<"users">,
   email: string | undefined,
+  phone: string | undefined,
 ): Promise<void> {
-  const sessions = await ctx.db.query("authSessions").collect();
-  for (const session of sessions) {
-    if (session.userId === userId) {
-      await ctx.db.delete(session._id);
+  const sessions = await ctx.db
+    .query("authSessions")
+    .withIndex("userId", (q) => q.eq("userId", userId))
+    .collect();
+  const sessionIds = new Set(sessions.map((session) => session._id));
+  const verifiers = await ctx.db.query("authVerifiers").collect();
+  for (const verifier of verifiers) {
+    if (verifier.sessionId !== undefined && sessionIds.has(verifier.sessionId)) {
+      await ctx.db.delete(verifier._id);
     }
   }
+  for (const session of sessions) {
+    const refreshTokens = await ctx.db
+      .query("authRefreshTokens")
+      .withIndex("sessionId", (q) => q.eq("sessionId", session._id))
+      .collect();
+    for (const token of refreshTokens) {
+      await ctx.db.delete(token._id);
+    }
+    await ctx.db.delete(session._id);
+  }
+
   const accounts = await ctx.db.query("authAccounts").collect();
   for (const account of accounts) {
-    if (account.userId === userId) {
-      await ctx.db.delete(account._id);
+    if (account.userId !== userId) {
+      continue;
     }
+    const codes = await ctx.db
+      .query("authVerificationCodes")
+      .withIndex("accountId", (q) => q.eq("accountId", account._id))
+      .collect();
+    for (const code of codes) {
+      await ctx.db.delete(code._id);
+    }
+    await ctx.db.delete(account._id);
   }
-  if (email !== undefined && email !== "") {
-    const byEmail = await ctx.db
-      .query("authAccounts")
-      .withIndex("providerAndAccountId", (q) =>
-        q.eq("provider", "password").eq("providerAccountId", email),
-      )
+
+  const identifiers = [email, phone].filter(
+    (value): value is string => value !== undefined && value !== "",
+  );
+  for (const identifier of identifiers) {
+    const rateLimit = await ctx.db
+      .query("authRateLimits")
+      .withIndex("identifier", (q) => q.eq("identifier", identifier))
       .unique();
-    if (byEmail !== null) {
-      await ctx.db.delete(byEmail._id);
+    if (rateLimit !== null) {
+      await ctx.db.delete(rateLimit._id);
     }
   }
 }
@@ -497,6 +540,94 @@ export const clearTripsAndOffers = internalMutation({
 });
 
 /**
+ * Borra clientes, choferes, viajes y solicitudes. Conserva usuarios del panel
+ * interno (`admin` y `superadmin`) y sus zonas asignadas.
+ *
+ *   npx convex run seed:clearNonAdminsAndTrips
+ *   npx convex run seed:clearNonAdminsAndTrips --prod
+ */
+export const clearNonAdminsAndTrips = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    const keepIds = new Set(
+      users.filter(isAdminPanelUser).map((user) => user._id),
+    );
+    const kept = users
+      .filter((user) => keepIds.has(user._id))
+      .map((user) => ({
+        email: user.email ?? null,
+        name: user.name ?? null,
+        role: user.role,
+      }));
+
+    const applications = await ctx.db.query("driverApplications").collect();
+    for (const application of applications) {
+      for (const photoId of application.licensePhotoIds) {
+        await deleteStorageIfPresent(ctx, photoId);
+      }
+      await deleteStorageIfPresent(ctx, application.licensePdfId);
+      await deleteStorageIfPresent(ctx, application.culPdfId);
+      await deleteStorageIfPresent(ctx, application.conductorRecordPdfId);
+    }
+
+    const deleted = {
+      serviceOffers: await wipeTable(ctx, "serviceOffers"),
+      serviceTracking: await wipeTable(ctx, "serviceTracking"),
+      serviceRatings: await wipeTable(ctx, "serviceRatings"),
+      checklists: await wipeTable(ctx, "serviceVehicleChecklists"),
+      payments: await wipeTable(ctx, "payments"),
+      walletTransactions: await wipeTable(ctx, "walletTransactions"),
+      notifications: await wipeTable(ctx, "notifications"),
+      services: await wipeTable(ctx, "services"),
+      payouts: await wipeTable(ctx, "payouts"),
+      driverWallets: await wipeTable(ctx, "driverWallets"),
+      driverApplications: await wipeTable(ctx, "driverApplications"),
+      drivers: await wipeTable(ctx, "drivers"),
+      supportMessages: await wipeTable(ctx, "supportMessages"),
+      supportThreads: await wipeTable(ctx, "supportThreads"),
+    };
+
+    const scopes = await ctx.db.query("adminDistrictScopes").collect();
+    let deletedScopes = 0;
+    for (const scope of scopes) {
+      if (keepIds.has(scope.userId)) {
+        continue;
+      }
+      await ctx.db.delete(scope._id);
+      deletedScopes += 1;
+    }
+
+    let deletedUsers = 0;
+    const removed: Array<{ email: string | null; name: string | null; role: string }> =
+      [];
+    for (const user of users) {
+      if (keepIds.has(user._id)) {
+        continue;
+      }
+      await deleteStorageIfPresent(ctx, user.selfieStorageId);
+      await deleteAuthForUser(ctx, user._id, user.email, user.phone);
+      await ctx.db.delete(user._id);
+      deletedUsers += 1;
+      removed.push({
+        email: user.email ?? null,
+        name: user.name ?? null,
+        role: user.role,
+      });
+    }
+
+    return {
+      message: "Usuarios no admin y viajes eliminados.",
+      kept,
+      removed,
+      deletedUsers,
+      deletedScopes,
+      deleted,
+    };
+  },
+});
+
+/**
  * Deja el entorno listo para mostrar al dueño: un solo superadmin,
  * sin admins, sin choferes, sin viajes ni solicitudes de registro.
  *
@@ -536,7 +667,7 @@ export const resetForOwnerKickoff = internalMutation({
         });
         continue;
       }
-      await deleteAuthForUser(ctx, user._id, user.email);
+      await deleteAuthForUser(ctx, user._id, user.email, user.phone);
       await ctx.db.delete(user._id);
       deletedUsers += 1;
     }

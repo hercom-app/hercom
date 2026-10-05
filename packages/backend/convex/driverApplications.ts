@@ -1,14 +1,14 @@
 import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
-import type { MutationCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { normalizeCountryCode } from "./data/countryCatalog";
 import { driverApplicationStatusValidator, sexValidator } from "./schema";
 import { getCurrentUser, requireStaff, requireStaffForRegion, requireUser } from "./lib/auth";
 import { assertDniAvailable } from "./lib/identity";
 import { getAccessContext, originMatchesDistrictScopes } from "./lib/adminAccess";
 import { ensureWallet } from "./driverWallets";
-import { requireAdultBirthDate } from "./lib/age";
+import { requireAdultBirthDate, getDriverApprovalAgeBlock } from "./lib/age";
 
 /** URL temporal para subir archivos (fotos brevete, CUL PDF). */
 export const generateUploadUrl = mutation({
@@ -19,7 +19,40 @@ export const generateUploadUrl = mutation({
   },
 });
 
-/** Solicitud de registro del usuario autenticado (si existe). */
+async function withApplicationDocuments(
+  ctx: QueryCtx,
+  application: Doc<"driverApplications">,
+) {
+  const licensePhotoUrls = (
+    await Promise.all(
+      application.licensePhotoIds.map((storageId) =>
+        ctx.storage.getUrl(storageId),
+      ),
+    )
+  ).filter((url): url is string => url !== null);
+
+  const culPdfUrl = await ctx.storage.getUrl(application.culPdfId);
+  const licensePdfUrl =
+    application.licensePdfId !== undefined
+      ? await ctx.storage.getUrl(application.licensePdfId)
+      : null;
+  const conductorRecordPdfUrl =
+    application.conductorRecordPdfId !== undefined
+      ? await ctx.storage.getUrl(application.conductorRecordPdfId)
+      : null;
+
+  return {
+    ...application,
+    fullName:
+      `${application.firstLastName} ${application.secondLastName} ${application.firstName}`.trim(),
+    licensePhotoUrls,
+    licensePdfUrl,
+    culPdfUrl,
+    conductorRecordPdfUrl,
+  };
+}
+
+/** Solicitud de registro del usuario autenticado, con URLs de documentos. */
 export const getMyApplication = query({
   args: {},
   handler: async (ctx) => {
@@ -27,11 +60,15 @@ export const getMyApplication = query({
     if (user === null) {
       return null;
     }
-    return await ctx.db
+    const application = await ctx.db
       .query("driverApplications")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc")
       .first();
+    if (application === null) {
+      return null;
+    }
+    return await withApplicationDocuments(ctx, application);
   },
 });
 
@@ -80,6 +117,8 @@ export const submit = mutation({
     department: v.string(),
     province: v.string(),
     district: v.string(),
+    personalDataConsent: v.literal(true),
+    personalDataConsentText: v.string(),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
@@ -153,6 +192,13 @@ export const submit = mutation({
       name: fullName,
     });
 
+    const consentText = args.personalDataConsentText.trim();
+    if (consentText.length < 20) {
+      throw new Error(
+        "Debes firmar digitalmente la autorización de datos personales.",
+      );
+    }
+
     return await ctx.db.insert("driverApplications", {
       userId: user._id,
       dni,
@@ -177,6 +223,8 @@ export const submit = mutation({
       district: region.district,
       status: "pending",
       submittedAt: Date.now(),
+      personalDataConsentAt: Date.now(),
+      personalDataConsentText: consentText,
     });
   },
 });
@@ -246,6 +294,11 @@ export const approve = mutation({
         status: application.status,
       });
       throw new Error("Solo se pueden aprobar solicitudes pendientes.");
+    }
+
+    const ageBlock = getDriverApprovalAgeBlock(application.birthDate);
+    if (ageBlock !== null) {
+      throw new Error(ageBlock);
     }
 
     const existingDriver = await ctx.db

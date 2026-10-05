@@ -4,6 +4,7 @@ import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
 import { AdminRegionFilters } from "../components/AdminRegionFilters";
 import type { DistrictScopeOption } from "../components/AdminRegionFilters";
+import { isDriverApplicantMinor } from "@proyecto/backend/age";
 import {
   DriverDossierPanel,
   type DriverApplicationForAdmin,
@@ -342,7 +343,14 @@ export function DriversView({
                     <td className={tdClass}>{row.dni ?? "—"}</td>
                     <td className={tdClass}>{row.zone || "—"}</td>
                     <td className={`${tdClass} capitalize`}>
-                      {row.statusLabel}
+                      <span>{row.statusLabel}</span>
+                      {row.application !== null &&
+                      row.application.status === "pending" &&
+                      isDriverApplicantMinor(row.application.birthDate) ? (
+                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold normal-case text-amber-900">
+                          Menor de 18
+                        </span>
+                      ) : null}
                     </td>
                     <td className={`${tdClass} text-xs text-slate-600`}>
                       {row.documentsLabel}

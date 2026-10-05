@@ -19,6 +19,10 @@
     "./peruLocations": {
       "types": "./convex/data/peruLocations.ts",
       "default": "./convex/data/peruLocations.ts"
+    },
+    "./age": {
+      "types": "./convex/lib/age.ts",
+      "default": "./convex/lib/age.ts"
     }
   },
   "scripts": {

@@ -56,6 +56,11 @@ import {
 } from "../lib/driverRegistration";
 import { composeBirthDate, isAtLeast18 } from "../lib/age";
 import { convexErrorMessage } from "../lib/convexErrorMessage";
+import { LegalDocumentModal } from "../components/LegalDocumentModal";
+import {
+  DRIVER_PERSONAL_DATA_CONSENT,
+  PRIVACY_POLICY,
+} from "../constants/legalCopy";
 
 type LicenseFormat = "physical" | "digital";
 type VehicleBodyType = "auto" | "camioneta";
@@ -122,6 +127,8 @@ export function DriverRegisterScreen({
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [personalDataConsent, setPersonalDataConsent] = useState(false);
+  const [legalDoc, setLegalDoc] = useState<"consent" | "privacy" | null>(null);
 
   const unreadNotifications = (notifications ?? []).filter(
     (n) => n.readAt === undefined,
@@ -147,6 +154,12 @@ export function DriverRegisterScreen({
     setFirstLastName("");
     setSecondLastName("");
   }, [dni]);
+
+  useEffect(() => {
+    if (!personalDataConsent) {
+      setReadyForGoogle(false);
+    }
+  }, [personalDataConsent]);
 
   async function handleValidateDni() {
     setFormError(null);
@@ -458,6 +471,9 @@ export function DriverRegisterScreen({
     if (culPdf === null) {
       return "Sube el CUL en PDF.";
     }
+    if (!personalDataConsent) {
+      return "Marca la casilla para firmar digitalmente la autorización de tus datos personales.";
+    }
     return null;
   }
 
@@ -512,6 +528,8 @@ export function DriverRegisterScreen({
       department,
       province,
       district,
+      personalDataConsent: true,
+      personalDataConsentText: DRIVER_PERSONAL_DATA_CONSENT.fullText,
     };
 
     await savePendingDriverRegistration(pending);
@@ -855,6 +873,75 @@ export function DriverRegisterScreen({
               void handlePickPdf(setCulPdf),
             )}
 
+            <View
+              className="mb-3 px-3 py-3"
+              style={{
+                backgroundColor: TACTICAL_COLORS.dataBandBg,
+                borderRadius: TACTICAL_RADIUS.panel,
+                borderWidth: 1,
+                borderColor: personalDataConsent
+                  ? TACTICAL_COLORS.accent
+                  : TACTICAL_BORDER,
+              }}
+            >
+              <TouchableOpacity
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: personalDataConsent }}
+                activeOpacity={0.85}
+                onPress={() => setPersonalDataConsent((value) => !value)}
+                className="flex-row items-start gap-3"
+              >
+                <View
+                  className="mt-0.5 h-6 w-6 items-center justify-center"
+                  style={{
+                    borderRadius: 6,
+                    borderWidth: 1.5,
+                    borderColor: personalDataConsent
+                      ? TACTICAL_COLORS.accent
+                      : TACTICAL_COLORS.steel,
+                    backgroundColor: personalDataConsent
+                      ? TACTICAL_COLORS.accent
+                      : TACTICAL_COLORS.surface,
+                  }}
+                >
+                  {personalDataConsent ? (
+                    <Text
+                      style={{
+                        color: TACTICAL_COLORS.onAccent,
+                        fontFamily: MONO.bold,
+                        fontSize: 14,
+                        lineHeight: 16,
+                      }}
+                    >
+                      ✓
+                    </Text>
+                  ) : null}
+                </View>
+                <TacticalText size={12} tone="text" className="flex-1">
+                  {DRIVER_PERSONAL_DATA_CONSENT.checkboxLabel} Esta casilla
+                  equivale a tu firma digital, según la Ley N.° 29733. (*)
+                </TacticalText>
+              </TouchableOpacity>
+              <View className="mt-2 flex-row flex-wrap gap-x-4 gap-y-1 pl-9">
+                <TouchableOpacity
+                  onPress={() => setLegalDoc("consent")}
+                  hitSlop={8}
+                >
+                  <TacticalLabel tone="accent">
+                    Leer autorización
+                  </TacticalLabel>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setLegalDoc("privacy")}
+                  hitSlop={8}
+                >
+                  <TacticalLabel tone="accent">
+                    Política de privacidad
+                  </TacticalLabel>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {formError !== null && (
               <TacticalPanel
                 tone="sunken"
@@ -910,6 +997,18 @@ export function DriverRegisterScreen({
       </ScrollView>
       {drawer}
       <DocumentPreviewModal file={preview} onClose={() => setPreview(null)} />
+      <LegalDocumentModal
+        visible={legalDoc === "consent"}
+        title="Autorización de datos personales"
+        body={DRIVER_PERSONAL_DATA_CONSENT.fullText}
+        onClose={() => setLegalDoc(null)}
+      />
+      <LegalDocumentModal
+        visible={legalDoc === "privacy"}
+        title={PRIVACY_POLICY.title}
+        body={PRIVACY_POLICY.body}
+        onClose={() => setLegalDoc(null)}
+      />
     </TacticalScreen>
   );
 }

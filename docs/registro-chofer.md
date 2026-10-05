@@ -52,6 +52,22 @@ Authorization: Bearer {DECOLECTA_API_KEY}
 
 Código: [`packages/backend/convex/reniec.ts`](../packages/backend/convex/reniec.ts)
 
+## Consulta de brevete (VerificaPE)
+
+En el panel interno: **Consultar brevete**. La API key solo en Convex:
+
+```powershell
+cd packages/backend
+npx convex env set VERIFICAPE_API_KEY tu_api_key_de_verificape
+```
+
+```
+GET https://api.verificape.com/v2/licencia/{DNI}
+Authorization: Bearer {VERIFICAPE_API_KEY}
+```
+
+Código: [`packages/backend/convex/verificape.ts`](../packages/backend/convex/verificape.ts)
+
 ---
 
 ## Inventario — qué debe entregar el chofer (alta)

@@ -45,6 +45,7 @@ import type * as serviceTracking from "../serviceTracking.js";
 import type * as services from "../services.js";
 import type * as support from "../support.js";
 import type * as users from "../users.js";
+import type * as verificape from "../verificape.js";
 
 import type {
   ApiFromModules,
@@ -90,6 +91,7 @@ declare const fullApi: ApiFromModules<{
   services: typeof services;
   support: typeof support;
   users: typeof users;
+  verificape: typeof verificape;
 }>;
 
 /**

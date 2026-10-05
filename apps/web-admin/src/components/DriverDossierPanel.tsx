@@ -67,6 +67,22 @@ type ReniecLookup = {
   documentNumber: string;
 };
 
+type LicenseLookup = {
+  documentNumber: string;
+  fullName: string;
+  licenseNumber: string;
+  category: string;
+  issuedAt: string;
+  expiresAt: string;
+  status: string;
+  restrictions: string;
+};
+
+function displayLookupValue(value: string): string {
+  const trimmed = value.trim();
+  return trimmed === "" ? "—" : trimmed;
+}
+
 export type DriverFinanceInfo = {
   hasProfile: boolean;
   fullName: string | undefined;
@@ -94,14 +110,20 @@ export function DriverDossierPanel({
   const rejectApplication = useMutation(api.driverApplications.reject);
   const recordAdminLog = useMutation(api.adminLogs.record);
   const lookupDni = useAction(api.reniec.lookupDni);
+  const lookupLicense = useAction(api.verificape.lookupLicense);
   const [acting, setActing] = useState(false);
   const [lookingUpReniec, setLookingUpReniec] = useState(false);
+  const [lookingUpLicense, setLookingUpLicense] = useState(false);
   const [reniecResult, setReniecResult] = useState<ReniecLookup | null>(null);
+  const [licenseResult, setLicenseResult] = useState<LicenseLookup | null>(
+    null,
+  );
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setReniecResult(null);
+    setLicenseResult(null);
   }, [application?._id]);
 
   if (application === null) {
@@ -201,6 +223,34 @@ export function DriverDossierPanel({
     }
   }
 
+  async function handleLookupLicense() {
+    if (application === null) {
+      return;
+    }
+    setLookingUpLicense(true);
+    setError(null);
+    try {
+      const result = await lookupLicense({ dni: application.dni });
+      setLicenseResult(result);
+    } catch (lookupError) {
+      setLicenseResult(null);
+      const lookupMessage = formatConvexError(
+        lookupError,
+        "No se pudo consultar el brevete.",
+      );
+      void recordAdminLog({
+        action: "verificape.lookupLicense",
+        message: lookupMessage,
+        detail: errorDetail(lookupError),
+      }).catch((logError) => {
+        console.error("[hercom-admin] no se pudo guardar el log", logError);
+      });
+      setError(lookupMessage);
+    } finally {
+      setLookingUpLicense(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
     <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
@@ -283,40 +333,57 @@ export function DriverDossierPanel({
           >
             {lookingUpReniec ? "Consultando…" : "Consultar RENIEC"}
           </button>
-          <a
-            href={DIGITAL_LICENSE_URL}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            disabled={lookingUpLicense}
+            onClick={() => void handleLookupLicense()}
             className={`${btnSecondaryClass} w-full sm:w-auto`}
           >
-            Consultar brevete (MTC)
-          </a>
-          <a
-            href={CONDUCTOR_RECORD_URL}
-            target="_blank"
-            rel="noreferrer"
-            className={`${btnSecondaryClass} w-full sm:w-auto`}
-          >
-            Consultar récord (MTC)
-          </a>
+            {lookingUpLicense ? "Consultando…" : "Consultar brevete"}
+          </button>
         </div>
-        {reniecResult === null ? (
-          <p className="mt-3 text-xs text-slate-500">
-            RENIEC devuelve el nombre oficial del DNI para contrastarlo con lo
-            declarado.
-          </p>
-        ) : (
-          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-            <p className={labelClass}>Resultado RENIEC</p>
-            <p className="text-base font-semibold text-slate-900">
-              {reniecResult.fullName}
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          {reniecResult === null ? (
+            <p className="text-xs text-slate-500">
+              RENIEC: nombre oficial del DNI.
             </p>
-            <p className="mt-1 text-sm text-slate-700">
-              DNI {reniecResult.documentNumber} · {reniecResult.firstName}{" "}
-              {reniecResult.firstLastName} {reniecResult.secondLastName}
+          ) : (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+              <p className={labelClass}>RENIEC</p>
+              <p className="text-base font-semibold text-slate-900">
+                {displayLookupValue(reniecResult.fullName)}
+              </p>
+              <p className="mt-1 text-sm text-slate-700">
+                DNI {displayLookupValue(reniecResult.documentNumber)}
+              </p>
+            </div>
+          )}
+          {licenseResult === null ? (
+            <p className="text-xs text-slate-500">
+              Brevete: número, categoría, vigencia y estado.
             </p>
-          </div>
-        )}
+          ) : (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+              <p className={labelClass}>Brevete (VerificaPE)</p>
+              <p className="text-base font-semibold text-slate-900">
+                {displayLookupValue(licenseResult.fullName)}
+              </p>
+              <p className="mt-1 text-sm text-slate-700">
+                Licencia {displayLookupValue(licenseResult.licenseNumber)} ·{" "}
+                {displayLookupValue(licenseResult.category)} ·{" "}
+                {displayLookupValue(licenseResult.status)}
+              </p>
+              <p className="mt-1 text-sm text-slate-700">
+                Expedición {displayLookupValue(licenseResult.issuedAt)} ·
+                Vence {displayLookupValue(licenseResult.expiresAt)}
+              </p>
+              <p className="mt-1 text-sm text-slate-700">
+                Restricciones{" "}
+                {displayLookupValue(licenseResult.restrictions)}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {application.status === "pending" && (

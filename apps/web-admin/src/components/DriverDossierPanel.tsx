@@ -187,6 +187,9 @@ export function DriverDossierPanel({
   }
 
   async function handleLookupReniec() {
+    if (application === null) {
+      return;
+    }
     setLookingUpReniec(true);
     setError(null);
     try {

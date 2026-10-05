@@ -1,4 +1,6 @@
 import type { Id } from "@proyecto/backend/dataModel";
+import { fetch as expoFetch } from "expo/fetch";
+import { File, Paths } from "expo-file-system";
 import * as SecureStore from "expo-secure-store";
 
 const PENDING_KEY = "pendingDriverRegistration";
@@ -168,18 +170,84 @@ export async function uploadToConvex(
   contentType: string,
 ): Promise<Id<"_storage">> {
   const uploadUrl = await generateUploadUrl();
-  const fileResponse = await fetch(localUri);
-  const blob = await fileResponse.blob();
-  const uploadResponse = await fetch(uploadUrl, {
+  const file = await stageReadableLocalFile(localUri, contentType);
+  const bytes = await file.bytes();
+  if (bytes.byteLength === 0) {
+    throw new Error("No se pudo leer el archivo.");
+  }
+  const response = await expoFetch(uploadUrl, {
     method: "POST",
-    headers: { "Content-Type": contentType },
-    body: blob,
+    headers: {
+      "Content-Type": contentType,
+    },
+    body: bytes,
   });
-  if (!uploadResponse.ok) {
+  if (!response.ok) {
     throw new Error("No se pudo subir el archivo.");
   }
-  const { storageId } = (await uploadResponse.json()) as {
-    storageId: Id<"_storage">;
-  };
-  return storageId;
+  const parsed = (await response.json()) as { storageId?: Id<"_storage"> };
+  if (parsed.storageId === undefined) {
+    throw new Error("No se pudo subir el archivo.");
+  }
+  return parsed.storageId;
+}
+
+function fileExtension(contentType: string, localUri: string): string {
+  const fromUri = localUri.match(/\.[a-z0-9]+$/i)?.[0];
+  if (fromUri !== undefined && fromUri.length <= 5) {
+    return fromUri.toLowerCase();
+  }
+  if (contentType === "application/pdf") {
+    return ".pdf";
+  }
+  if (contentType === "image/png") {
+    return ".png";
+  }
+  return ".jpg";
+}
+
+function isInAppCache(uri: string): boolean {
+  const cacheRoot = Paths.cache.uri.replace(/\/$/, "");
+  return uri.startsWith(cacheRoot);
+}
+
+/** Copia a la caché del proyecto: Expo Go no puede leer DocumentPicker/*.pdf. */
+export async function stageReadableLocalFile(
+  localUri: string,
+  contentType: string,
+): Promise<File> {
+  const source = new File(localUri);
+  try {
+    if (source.exists && source.size > 0 && isInAppCache(localUri)) {
+      return source;
+    }
+  } catch {
+    // Rutas de DocumentPicker en Expo Go no son legibles por FileSystem.
+  }
+
+  const dest = new File(
+    Paths.cache,
+    `hercom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${fileExtension(contentType, localUri)}`,
+  );
+  try {
+    if (source.exists && source.size > 0) {
+      source.copy(dest);
+      if (dest.exists && dest.size > 0) {
+        return dest;
+      }
+    }
+  } catch {
+    // Seguir con fetch cuando el sandbox bloquea la copia nativa.
+  }
+
+  const response = await fetch(localUri);
+  if (!response.ok) {
+    throw new Error("No se pudo leer el archivo.");
+  }
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.byteLength === 0) {
+    throw new Error("No se pudo leer el archivo.");
+  }
+  dest.write(bytes);
+  return dest;
 }

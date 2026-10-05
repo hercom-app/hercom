@@ -67,19 +67,6 @@ type ReniecLookup = {
   documentNumber: string;
 };
 
-function normalizePersonName(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toUpperCase();
-}
-
-function namesMatch(declared: string, official: string): boolean {
-  return normalizePersonName(declared) === normalizePersonName(official);
-}
-
 export type DriverFinanceInfo = {
   hasProfile: boolean;
   fullName: string | undefined;
@@ -286,10 +273,8 @@ export function DriverDossierPanel({
       </div>
 
       <div className="mt-4 rounded-lg border border-slate-200 bg-white p-3 sm:p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-slate-900">
-            Verificación RENIEC
-          </p>
+        <p className="text-sm font-semibold text-slate-900">Consultas oficiales</p>
+        <div className="mt-3 flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
           <button
             type="button"
             disabled={lookingUpReniec}
@@ -298,34 +283,38 @@ export function DriverDossierPanel({
           >
             {lookingUpReniec ? "Consultando…" : "Consultar RENIEC"}
           </button>
+          <a
+            href={DIGITAL_LICENSE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className={`${btnSecondaryClass} w-full sm:w-auto`}
+          >
+            Consultar brevete (MTC)
+          </a>
+          <a
+            href={CONDUCTOR_RECORD_URL}
+            target="_blank"
+            rel="noreferrer"
+            className={`${btnSecondaryClass} w-full sm:w-auto`}
+          >
+            Consultar récord (MTC)
+          </a>
         </div>
         {reniecResult === null ? (
-          <p className="mt-2 text-xs text-slate-500">
-            El chofer escribió estos datos a mano. Contrástalos con RENIEC
-            antes de aprobar.
+          <p className="mt-3 text-xs text-slate-500">
+            RENIEC devuelve el nombre oficial del DNI para contrastarlo con lo
+            declarado.
           </p>
         ) : (
-          <div className="mt-3 space-y-2">
-            <CompareRow
-              label="DNI"
-              declared={application.dni}
-              official={reniecResult.documentNumber}
-            />
-            <CompareRow
-              label="Nombres"
-              declared={application.firstName}
-              official={reniecResult.firstName}
-            />
-            <CompareRow
-              label="Apellido paterno"
-              declared={application.firstLastName}
-              official={reniecResult.firstLastName}
-            />
-            <CompareRow
-              label="Apellido materno"
-              declared={application.secondLastName}
-              official={reniecResult.secondLastName}
-            />
+          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+            <p className={labelClass}>Resultado RENIEC</p>
+            <p className="text-base font-semibold text-slate-900">
+              {reniecResult.fullName}
+            </p>
+            <p className="mt-1 text-sm text-slate-700">
+              DNI {reniecResult.documentNumber} · {reniecResult.firstName}{" "}
+              {reniecResult.firstLastName} {reniecResult.secondLastName}
+            </p>
           </div>
         )}
       </div>
@@ -400,23 +389,26 @@ export function DriverDossierPanel({
       </div>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {application.licensePdfUrl !== null &&
-        application.licensePdfUrl !== undefined ? (
-          <DocumentFileCard
-            title="Brevete digital"
-            officialUrl={DIGITAL_LICENSE_URL}
-            fileUrl={application.licensePdfUrl}
-            fileLabel="Abrir PDF del brevete"
-          />
-        ) : null}
         <DocumentFileCard
-          title="Récord de conductor"
+          title="Brevete (MTC)"
+          description="Consulta la licencia digital en el portal del MTC."
+          officialLabel="Consultar brevete"
+          officialUrl={DIGITAL_LICENSE_URL}
+          fileUrl={application.licensePdfUrl ?? null}
+          fileLabel="Abrir PDF del brevete"
+        />
+        <DocumentFileCard
+          title="Récord de conductor (MTC)"
+          description="Infracciones y estado de la licencia emitidos por el MTC."
+          officialLabel="Consultar récord"
           officialUrl={CONDUCTOR_RECORD_URL}
           fileUrl={application.conductorRecordPdfUrl}
           fileLabel="Abrir PDF del récord"
         />
         <DocumentFileCard
-          title="CUL"
+          title="CUL (Certificado Único Laboral)"
+          description="Documento del Ministerio de Trabajo."
+          officialLabel="Consultar en gob.pe"
           officialUrl={CUL_INFO_URL}
           fileUrl={application.culPdfUrl}
           fileLabel="Abrir PDF del CUL"
@@ -498,11 +490,15 @@ function DriverFinanceCard({ finance }: { finance: DriverFinanceInfo }) {
 
 function DocumentFileCard({
   title,
+  description,
+  officialLabel,
   officialUrl,
   fileUrl,
   fileLabel,
 }: {
   title: string;
+  description: string;
+  officialLabel: string;
   officialUrl: string;
   fileUrl: string | null;
   fileLabel: string;
@@ -510,6 +506,7 @@ function DocumentFileCard({
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
       <p className="text-sm font-semibold text-slate-900">{title}</p>
+      <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
       <div className="mt-3 flex flex-col gap-2">
         <a
           href={officialUrl}
@@ -517,7 +514,7 @@ function DocumentFileCard({
           rel="noreferrer"
           className={`${btnSecondaryClass} w-full`}
         >
-          Abrir sitio oficial
+          {officialLabel}
         </a>
         {fileUrl !== null ? (
           <a
@@ -543,44 +540,6 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     <div>
       <p className={labelClass}>{label}</p>
       <p className="text-sm font-medium text-slate-900">{value}</p>
-    </div>
-  );
-}
-
-function CompareRow({
-  label,
-  declared,
-  official,
-}: {
-  label: string;
-  declared: string;
-  official: string;
-}) {
-  const match = namesMatch(declared, official);
-  return (
-    <div
-      className={`rounded-lg border px-3 py-2 ${
-        match
-          ? "border-emerald-200 bg-emerald-50"
-          : "border-amber-200 bg-amber-50"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-slate-500">{label}</p>
-        <p
-          className={`text-xs font-semibold ${
-            match ? "text-emerald-800" : "text-amber-900"
-          }`}
-        >
-          {match ? "Coincide" : "No coincide"}
-        </p>
-      </div>
-      <p className="mt-1 text-sm font-medium text-slate-900">
-        Declarado: {declared.trim() === "" ? "—" : declared}
-      </p>
-      <p className="text-sm text-slate-700">
-        RENIEC: {official.trim() === "" ? "—" : official}
-      </p>
     </div>
   );
 }

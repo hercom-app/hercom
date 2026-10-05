@@ -49,6 +49,7 @@ import {
 import { PERU_LICENSE_CLASS_A } from "../constants/peruLicenseCategories";
 import {
   savePendingDriverRegistration,
+  stageReadableLocalFile,
   submitDriverApplicationFromPending,
   type PendingDriverRegistration,
 } from "../lib/driverRegistration";
@@ -236,7 +237,12 @@ export function DriverRegisterScreen({
       setFormError("No se pudo leer el archivo PDF seleccionado.");
       return;
     }
-    onPicked({ uri: file.uri, name: file.name, kind: "pdf" });
+    try {
+      const staged = await stageReadableLocalFile(file.uri, "application/pdf");
+      onPicked({ uri: staged.uri, name: file.name, kind: "pdf" });
+    } catch {
+      setFormError("No se pudo leer el archivo PDF seleccionado.");
+    }
   }
 
   function chooseDigitalLicenseSource() {
@@ -550,7 +556,7 @@ export function DriverRegisterScreen({
         keyboardShouldPersistTaps="handled"
       >
         <TacticalTitle size={24} className="mb-2">
-          Alta conductor
+          Inscripción de Chofer
         </TacticalTitle>
         <TacticalText size={13} className="mb-6">
           Campos obligatorios (*)
@@ -607,12 +613,8 @@ export function DriverRegisterScreen({
               value={secondLastName}
               onChangeText={setSecondLastName}
               placeholder="Apellido materno"
-              className="mb-3"
+              className="mb-4"
             />
-            <TacticalText size={12} className="mb-4">
-              Escribe tus datos como en el DNI. Hercom los verificará con RENIEC
-              al revisar tu solicitud.
-            </TacticalText>
 
             <TacticalLabel className="mb-2">
               Fecha de nacimiento (*)

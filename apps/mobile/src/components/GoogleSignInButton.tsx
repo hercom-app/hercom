@@ -24,8 +24,8 @@ type GoogleSignInButtonProps = {
   disabled?: boolean;
   label?: string;
   onError?: (message: string) => void;
-  /** `consumer` = CTA azul redondeado. `loginPill` = pill full-width (login card). */
-  variant?: "light" | "tactical" | "ops" | "consumer" | "loginPill";
+  /** `welcome` = pill blanca de la portada. `consumer` = CTA azul. */
+  variant?: "light" | "tactical" | "ops" | "consumer" | "loginPill" | "welcome";
 };
 
 function getRedirectTo(): string {
@@ -100,6 +100,40 @@ export function GoogleSignInButton({
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (variant === "welcome") {
+    return (
+      <TouchableOpacity
+        onPress={() => void handlePress()}
+        disabled={disabled || submitting}
+        activeOpacity={0.85}
+        className="h-14 flex-row items-center justify-center disabled:opacity-60"
+        style={{
+          backgroundColor: "#FFFFFF",
+          borderRadius: 999,
+          borderWidth: 1,
+          borderColor: "#E6E8EC",
+        }}
+      >
+        {submitting ? (
+          <ActivityIndicator color={HERCOM_COLORS.primary} />
+        ) : (
+          <>
+            <GoogleGlyph />
+            <Text
+              style={{
+                fontFamily: POPPINS.medium,
+                fontSize: 16,
+                color: "#1F2937",
+              }}
+            >
+              {label}
+            </Text>
+          </>
+        )}
+      </TouchableOpacity>
+    );
   }
 
   if (variant === "ops" || variant === "consumer" || variant === "loginPill") {

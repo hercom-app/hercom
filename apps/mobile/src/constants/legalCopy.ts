@@ -77,7 +77,7 @@ export const DRIVER_PERSONAL_DATA_CONSENT = {
 Al marcar la casilla de consentimiento en el formulario de alta, el postulante otorga su firma digital y autoriza a Hercom a tratar sus datos personales, de acuerdo con la Ley N.° 29733, Ley de Protección de Datos Personales, y su reglamento.
 
 Datos que autorizo entregar y tratar
-- Identidad: DNI, nombres y apellidos, sexo y fecha de nacimiento (validación RENIEC).
+- Identidad: DNI, nombres y apellidos, sexo y fecha de nacimiento (declarados por el postulante; Hercom los verifica con RENIEC).
 - Documentos de conducción y laborales: brevete, fotos o PDF del documento, CUL y récord de conductor.
 - Datos de contacto y de operación: correo, teléfono, zona de trabajo y, si corresponde, datos de cobro.
 
@@ -91,5 +91,4 @@ Declaración
 Declaro que la información y los documentos que entrego son verdaderos y me corresponden. Entiendo que esta casilla equivale a mi firma digital de autorización y que, sin ella, Hercom no puede recibir ni evaluar mi solicitud.
 
 Puedo ejercer mis derechos de acceso, rectificación, cancelación y oposición a través del soporte de la app.`,
-};
 };

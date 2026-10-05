@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useEffect, useState } from "react";
+import { useAction, useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@proyecto/backend";
 import { btnPrimaryClass, btnSecondaryClass, labelClass } from "../lib/adminUi";
@@ -59,6 +59,27 @@ function formatRegion(application: DriverApplicationForAdmin): string {
   return parts.join(" · ");
 }
 
+type ReniecLookup = {
+  firstName: string;
+  firstLastName: string;
+  secondLastName: string;
+  fullName: string;
+  documentNumber: string;
+};
+
+function normalizePersonName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
+function namesMatch(declared: string, official: string): boolean {
+  return normalizePersonName(declared) === normalizePersonName(official);
+}
+
 export type DriverFinanceInfo = {
   hasProfile: boolean;
   fullName: string | undefined;
@@ -85,9 +106,16 @@ export function DriverDossierPanel({
   const approveApplication = useMutation(api.driverApplications.approve);
   const rejectApplication = useMutation(api.driverApplications.reject);
   const recordAdminLog = useMutation(api.adminLogs.record);
+  const lookupDni = useAction(api.reniec.lookupDni);
   const [acting, setActing] = useState(false);
+  const [lookingUpReniec, setLookingUpReniec] = useState(false);
+  const [reniecResult, setReniecResult] = useState<ReniecLookup | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setReniecResult(null);
+  }, [application?._id]);
 
   if (application === null) {
     return (
@@ -158,6 +186,31 @@ export function DriverDossierPanel({
     }
   }
 
+  async function handleLookupReniec() {
+    setLookingUpReniec(true);
+    setError(null);
+    try {
+      const result = await lookupDni({ dni: application.dni });
+      setReniecResult(result);
+    } catch (lookupError) {
+      setReniecResult(null);
+      const lookupMessage = formatConvexError(
+        lookupError,
+        "No se pudo consultar RENIEC.",
+      );
+      void recordAdminLog({
+        action: "reniec.lookupDni",
+        message: lookupMessage,
+        detail: errorDetail(lookupError),
+      }).catch((logError) => {
+        console.error("[hercom-admin] no se pudo guardar el log", logError);
+      });
+      setError(lookupMessage);
+    } finally {
+      setLookingUpReniec(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
     <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
@@ -179,7 +232,7 @@ export function DriverDossierPanel({
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <InfoRow label="Nombre (RENIEC)" value={application.fullName} />
+        <InfoRow label="Nombre declarado" value={application.fullName} />
         <InfoRow label="DNI" value={application.dni} />
         <InfoRow label="Sexo" value={SEX_LABELS[application.sex]} />
         <InfoRow
@@ -226,6 +279,51 @@ export function DriverDossierPanel({
         )}
         {application.driverStatus !== null && (
           <InfoRow label="Estado operativo" value={application.driverStatus} />
+        )}
+      </div>
+
+      <div className="mt-4 rounded-lg border border-slate-200 bg-white p-3 sm:p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-slate-900">
+            Verificación RENIEC
+          </p>
+          <button
+            type="button"
+            disabled={lookingUpReniec}
+            onClick={() => void handleLookupReniec()}
+            className={`${btnSecondaryClass} w-full sm:w-auto`}
+          >
+            {lookingUpReniec ? "Consultando…" : "Consultar RENIEC"}
+          </button>
+        </div>
+        {reniecResult === null ? (
+          <p className="mt-2 text-xs text-slate-500">
+            El chofer escribió estos datos a mano. Contrástalos con RENIEC
+            antes de aprobar.
+          </p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            <CompareRow
+              label="DNI"
+              declared={application.dni}
+              official={reniecResult.documentNumber}
+            />
+            <CompareRow
+              label="Nombres"
+              declared={application.firstName}
+              official={reniecResult.firstName}
+            />
+            <CompareRow
+              label="Apellido paterno"
+              declared={application.firstLastName}
+              official={reniecResult.firstLastName}
+            />
+            <CompareRow
+              label="Apellido materno"
+              declared={application.secondLastName}
+              official={reniecResult.secondLastName}
+            />
+          </div>
         )}
       </div>
 
@@ -442,6 +540,44 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     <div>
       <p className={labelClass}>{label}</p>
       <p className="text-sm font-medium text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function CompareRow({
+  label,
+  declared,
+  official,
+}: {
+  label: string;
+  declared: string;
+  official: string;
+}) {
+  const match = namesMatch(declared, official);
+  return (
+    <div
+      className={`rounded-lg border px-3 py-2 ${
+        match
+          ? "border-emerald-200 bg-emerald-50"
+          : "border-amber-200 bg-amber-50"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-slate-500">{label}</p>
+        <p
+          className={`text-xs font-semibold ${
+            match ? "text-emerald-800" : "text-amber-900"
+          }`}
+        >
+          {match ? "Coincide" : "No coincide"}
+        </p>
+      </div>
+      <p className="mt-1 text-sm font-medium text-slate-900">
+        Declarado: {declared.trim() === "" ? "—" : declared}
+      </p>
+      <p className="text-sm text-slate-700">
+        RENIEC: {official.trim() === "" ? "—" : official}
+      </p>
     </div>
   );
 }

@@ -1,13 +1,15 @@
 import "./global.css";
 import { useEffect } from "react";
-import { ActivityIndicator, Text, TextInput, View } from "react-native";
+import { Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
   Authenticated,
   AuthLoading,
   ConvexReactClient,
   Unauthenticated,
+  useConvexAuth,
 } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import * as SecureStore from "expo-secure-store";
@@ -27,7 +29,9 @@ import { AppModeProvider } from "./src/contexts/AppModeContext";
 import { ThemeProvider, useAppTheme } from "./src/contexts/ThemeContext";
 import { SignInScreen } from "./src/screens/SignInScreen";
 import { HomeScreen } from "./src/screens/HomeScreen";
-import { POPPINS, TACTICAL_COLORS, TYPE } from "./src/constants/theme";
+import { HERCOM_COLORS, POPPINS, TYPE } from "./src/constants/theme";
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -78,16 +82,14 @@ export default function App() {
   useEffect(() => {
     if (fontsLoaded) {
       applyTypeDefaults();
+      void SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {
     return (
-      <View
-        className="flex-1 items-center justify-center"
-        style={{ backgroundColor: TACTICAL_COLORS.base }}
-      >
-        <ActivityIndicator color={TACTICAL_COLORS.accent} />
+      <View className="flex-1" style={{ backgroundColor: HERCOM_COLORS.primary }}>
+        <StatusBar style="light" />
       </View>
     );
   }
@@ -102,41 +104,50 @@ export default function App() {
 }
 
 function ThemedApp() {
-  const { scheme, colors } = useAppTheme();
-
   return (
     <ConvexAuthProvider client={convex} storage={secureStorage}>
       <SafeAreaProvider>
-        <SafeAreaView
-          className="flex-1"
-          style={{ backgroundColor: colors.base }}
-          edges={["left", "right"]}
-        >
-          <LiveShareLinkListener />
-          <AuthLoading>
-            <View
-              className="flex-1 items-center justify-center"
-              style={{ backgroundColor: colors.base }}
-            >
-              <ActivityIndicator color={colors.accent} />
-            </View>
-          </AuthLoading>
-          <Unauthenticated>
-            <SignInScreen />
-          </Unauthenticated>
-          <Authenticated>
-            <AuthSessionGuard>
-              <PendingRegistrationSubmit>
-                <AppModeProvider>
-                  <NotificationBridge />
-                  <HomeScreen />
-                </AppModeProvider>
-              </PendingRegistrationSubmit>
-            </AuthSessionGuard>
-          </Authenticated>
-          <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-        </SafeAreaView>
+        <AuthChrome />
       </SafeAreaProvider>
     </ConvexAuthProvider>
+  );
+}
+
+function AuthChrome() {
+  const { scheme, colors } = useAppTheme();
+  const { isAuthenticated } = useConvexAuth();
+  const onBrandSplash = !isAuthenticated;
+  const chrome = onBrandSplash ? HERCOM_COLORS.primary : colors.base;
+
+  return (
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: chrome }}
+      edges={["left", "right"]}
+    >
+      <LiveShareLinkListener />
+      <AuthLoading>
+        <View
+          className="flex-1"
+          style={{ backgroundColor: HERCOM_COLORS.primary }}
+        />
+      </AuthLoading>
+      <Unauthenticated>
+        <SignInScreen />
+      </Unauthenticated>
+      <Authenticated>
+        <AuthSessionGuard>
+          <PendingRegistrationSubmit>
+            <AppModeProvider>
+              <NotificationBridge />
+              <HomeScreen />
+            </AppModeProvider>
+          </PendingRegistrationSubmit>
+        </AuthSessionGuard>
+      </Authenticated>
+      <StatusBar
+        style={onBrandSplash || scheme === "dark" ? "light" : "dark"}
+      />
+    </SafeAreaView>
   );
 }

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   ActionSheetIOS,
-  ActivityIndicator,
   Alert,
   Image,
   Platform,
@@ -12,7 +11,7 @@ import {
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import {
   DEFAULT_COUNTRY_CODE,
@@ -33,7 +32,6 @@ import {
   TacticalScreen,
   TacticalText,
   TacticalTitle,
-  TacticalValue,
 } from "../components/tactical";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppMode } from "../contexts/AppModeContext";
@@ -86,14 +84,11 @@ export function DriverRegisterScreen({
   const notifications = useQuery(api.notifications.listMine, { limit: 8 });
   const generateUploadUrl = useMutation(api.driverApplications.generateUploadUrl);
   const submitApplication = useMutation(api.driverApplications.submit);
-  const lookupDni = useAction(api.reniec.lookupDni);
 
   const [dni, setDni] = useState("");
   const [firstName, setFirstName] = useState("");
   const [firstLastName, setFirstLastName] = useState("");
   const [secondLastName, setSecondLastName] = useState("");
-  const [dniValidated, setDniValidated] = useState(false);
-  const [validatingDni, setValidatingDni] = useState(false);
   const [sex, setSex] = useState<"M" | "F" | null>(null);
   const [birthDay, setBirthDay] = useState("");
   const [birthMonth, setBirthMonth] = useState("");
@@ -149,44 +144,10 @@ export function DriverRegisterScreen({
   );
 
   useEffect(() => {
-    setDniValidated(false);
-    setFirstName("");
-    setFirstLastName("");
-    setSecondLastName("");
-  }, [dni]);
-
-  useEffect(() => {
     if (!personalDataConsent) {
       setReadyForGoogle(false);
     }
   }, [personalDataConsent]);
-
-  async function handleValidateDni() {
-    setFormError(null);
-    const trimmed = dni.trim();
-    if (!/^\d{8}$/.test(trimmed)) {
-      setFormError("El DNI debe tener exactamente 8 dígitos.");
-      return;
-    }
-
-    setValidatingDni(true);
-    try {
-      const result = await lookupDni({ dni: trimmed });
-      setFirstName(result.firstName);
-      setFirstLastName(result.firstLastName);
-      setSecondLastName(result.secondLastName);
-      setDniValidated(true);
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "No se pudo validar el DNI con RENIEC.";
-      setFormError(message);
-      onError?.(message);
-    } finally {
-      setValidatingDni(false);
-    }
-  }
 
   async function pickFromGallery(onPicked: (photo: LocalPhoto) => void) {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -431,8 +392,17 @@ export function DriverRegisterScreen({
   }
 
   function validateForm(): string | null {
-    if (!dniValidated) {
-      return "Valida tu DNI con RENIEC antes de continuar.";
+    if (!/^\d{8}$/.test(dni.trim())) {
+      return "El DNI debe tener exactamente 8 dígitos.";
+    }
+    if (firstName.trim() === "") {
+      return "Ingresa tus nombres.";
+    }
+    if (firstLastName.trim() === "") {
+      return "Ingresa tu apellido paterno.";
+    }
+    if (secondLastName.trim() === "") {
+      return "Ingresa tu apellido materno.";
     }
     if (sex === null) {
       return "Selecciona tu sexo.";
@@ -605,49 +575,44 @@ export function DriverRegisterScreen({
             <TacticalLabel className="mb-2">
               DNI (*)
             </TacticalLabel>
-            <View className="mb-3 flex-row gap-2">
-              <UiInput
-                value={dni}
-                onChangeText={(v) => setDni(v.replace(/\D/g, "").slice(0, 8))}
-                placeholder="8 dígitos"
-                keyboardType="number-pad"
-                className="flex-1"
-              />
-              <TouchableOpacity
-                onPress={() => void handleValidateDni()}
-                disabled={validatingDni || dni.length !== 8}
-                className="h-[52px] items-center justify-center px-4 disabled:opacity-45"
-                style={{
-                  backgroundColor: TACTICAL_COLORS.accent,
-                  borderRadius: TACTICAL_RADIUS.panel,
-                }}
-              >
-                {validatingDni ? (
-                  <ActivityIndicator color={TACTICAL_COLORS.base} />
-                ) : (
-                  <Text
-                    style={{
-                      fontFamily: MONO.bold,
-                      fontSize: 16,
-                      color: TACTICAL_COLORS.base,
-                    }}
-                  >
-                    VALIDAR
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {dniValidated && (
-              <View className="mb-4 gap-2">
-                <TacticalLabel tone="accent">
-                  Según RENIEC
-                </TacticalLabel>
-                <ReniecRow label="Nombres" value={firstName} />
-                <ReniecRow label="Apellido paterno" value={firstLastName} />
-                <ReniecRow label="Apellido materno" value={secondLastName} />
-              </View>
-            )}
+            <UiInput
+              value={dni}
+              onChangeText={(v) => setDni(v.replace(/\D/g, "").slice(0, 8))}
+              placeholder="8 dígitos"
+              keyboardType="number-pad"
+              className="mb-3"
+            />
+            <TacticalLabel className="mb-2">
+              Nombres (*)
+            </TacticalLabel>
+            <UiInput
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="Como figura en tu DNI"
+              className="mb-3"
+            />
+            <TacticalLabel className="mb-2">
+              Apellido paterno (*)
+            </TacticalLabel>
+            <UiInput
+              value={firstLastName}
+              onChangeText={setFirstLastName}
+              placeholder="Apellido paterno"
+              className="mb-3"
+            />
+            <TacticalLabel className="mb-2">
+              Apellido materno (*)
+            </TacticalLabel>
+            <UiInput
+              value={secondLastName}
+              onChangeText={setSecondLastName}
+              placeholder="Apellido materno"
+              className="mb-3"
+            />
+            <TacticalText size={12} className="mb-4">
+              Escribe tus datos como en el DNI. Hercom los verificará con RENIEC
+              al revisar tu solicitud.
+            </TacticalText>
 
             <TacticalLabel className="mb-2">
               Fecha de nacimiento (*)
@@ -1010,22 +975,5 @@ export function DriverRegisterScreen({
         onClose={() => setLegalDoc(null)}
       />
     </TacticalScreen>
-  );
-}
-
-function ReniecRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View
-      className="px-4 py-3"
-      style={{
-        backgroundColor: TACTICAL_COLORS.dataBandBg,
-        borderRadius: TACTICAL_RADIUS.panel,
-      }}
-    >
-      <TacticalLabel>{label}</TacticalLabel>
-      <TacticalValue size={14} className="mt-0.5">
-        {value}
-      </TacticalValue>
-    </View>
   );
 }

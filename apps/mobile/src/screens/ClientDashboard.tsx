@@ -27,7 +27,6 @@ import { RateServiceStars } from "../components/RateServiceStars";
 import { SideDrawer } from "../components/SideDrawer";
 import { ClientSecurityScreen } from "./ClientSecurityScreen";
 import { ClientSettingsScreen } from "./ClientSettingsScreen";
-import { ClientIdentityForm } from "./ClientIdentityForm";
 import { SupportChatScreen } from "./SupportChatScreen";
 import { UiButton, UiCard, UiChip, UiEmpty } from "../components/ui";
 import {
@@ -992,15 +991,6 @@ export function ClientDashboard() {
         style={{ backgroundColor: TACTICAL_COLORS.base }}
       >
         <ActivityIndicator color={TACTICAL_COLORS.accent} />
-        {drawer}
-      </View>
-    );
-  }
-
-  if (me !== null && me.identityComplete !== true) {
-    return (
-      <View className="flex-1">
-        <ClientIdentityForm onOpenMenu={() => setMenuOpen(true)} />
         {drawer}
       </View>
     );

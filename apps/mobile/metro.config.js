@@ -27,8 +27,7 @@ config.resolver.extraNodeModules = {
   ...(config.resolver.extraNodeModules ?? {}),
   react: resolvePackage("react"),
   "react-native": resolvePackage("react-native"),
-  "@expo-google-fonts/work-sans": resolvePackage("@expo-google-fonts/work-sans"),
-  "@expo-google-fonts/arvo": resolvePackage("@expo-google-fonts/arvo"),
+  "@expo-google-fonts/inter": resolvePackage("@expo-google-fonts/inter"),
 };
 
 module.exports = withNativeWind(config, { input: "./global.css" });

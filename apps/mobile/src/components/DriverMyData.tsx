@@ -143,7 +143,7 @@ export function DriverMyData({
             </TacticalText>
           ) : (
             <>
-              <InfoRow label="Nombre (RENIEC)" value={display(application.fullName)} />
+              <InfoRow label="Nombre declarado" value={display(application.fullName)} />
               <InfoRow label="DNI" value={display(application.dni)} />
               <InfoRow
                 label="Sexo"

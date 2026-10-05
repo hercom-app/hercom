@@ -75,7 +75,7 @@ export async function assertDniAvailable(
 export function requireClientIdentity(user: Doc<"users">): void {
   if (!isClientIdentityComplete(user)) {
     throw new Error(
-      "Valida tu DNI y toma una selfie antes de pedir un servicio.",
+      "Completa tu DNI, nombres y selfie en Mi Información antes de pedir un servicio.",
     );
   }
 }

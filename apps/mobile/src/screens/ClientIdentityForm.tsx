@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   ScrollView,
   Text,
@@ -9,7 +8,7 @@ import {
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import { AccountScreenShell } from "../components/AccountScreenShell";
 import {
@@ -17,7 +16,6 @@ import {
   TacticalLabel,
   TacticalPanel,
   TacticalStatus,
-  TacticalValue,
 } from "../components/tactical";
 import { convexErrorMessage } from "../lib/convexErrorMessage";
 import { uploadToConvex } from "../lib/driverRegistration";
@@ -33,13 +31,12 @@ type ClientIdentityFormProps = {
   title?: string;
 };
 
-/** DNI vía RENIEC + selfie. Bloquea pedir servicio hasta completarlo. */
+/** DNI, nombres y selfie declarados por el cliente. */
 export function ClientIdentityForm({
   onOpenMenu,
   title = "Identidad",
 }: ClientIdentityFormProps) {
   const me = useQuery(api.users.getMe);
-  const lookupDni = useAction(api.reniec.lookupDni);
   const generateUploadUrl = useMutation(api.users.generateUploadUrl);
   const submitIdentity = useMutation(api.users.submitIdentity);
 
@@ -47,8 +44,6 @@ export function ClientIdentityForm({
   const [firstName, setFirstName] = useState("");
   const [firstLastName, setFirstLastName] = useState("");
   const [secondLastName, setSecondLastName] = useState("");
-  const [dniValidated, setDniValidated] = useState(false);
-  const [validatingDni, setValidatingDni] = useState(false);
   const [selfieUri, setSelfieUri] = useState<string | null>(null);
   const [selfieMime, setSelfieMime] = useState("image/jpeg");
   const [submitting, setSubmitting] = useState(false);
@@ -74,53 +69,9 @@ export function ClientIdentityForm({
       setFirstName(me.firstName ?? "");
       setFirstLastName(me.firstLastName ?? "");
       setSecondLastName(me.secondLastName ?? "");
-      setDniValidated(true);
     }
     setHydrated(true);
   }, [hydrated, me]);
-
-  useEffect(() => {
-    if (!hydrated) {
-      return;
-    }
-    if (me?.dni !== undefined && me.dni.trim() === dni) {
-      return;
-    }
-    setDniValidated(false);
-    setFirstName("");
-    setFirstLastName("");
-    setSecondLastName("");
-  }, [dni, hydrated, me?.dni]);
-
-  async function handleValidateDni() {
-    setFormError(null);
-    if (dni.length !== 8) {
-      setFormError("El DNI debe tener exactamente 8 dígitos.");
-      return;
-    }
-    if (dniCheck === undefined) {
-      setFormError("Espera un momento, estamos comprobando el DNI.");
-      return;
-    }
-    if (dniCheck.registered === true && dniCheck.isMine !== true) {
-      setFormError("Este DNI ya está registrado.");
-      return;
-    }
-    setValidatingDni(true);
-    try {
-      const result = await lookupDni({ dni });
-      setFirstName(result.firstName);
-      setFirstLastName(result.firstLastName);
-      setSecondLastName(result.secondLastName);
-      setDniValidated(true);
-    } catch (error) {
-      setFormError(
-        convexErrorMessage(error, "No se pudo validar el DNI con RENIEC."),
-      );
-    } finally {
-      setValidatingDni(false);
-    }
-  }
 
   async function handleTakeSelfie() {
     setFormError(null);
@@ -145,8 +96,12 @@ export function ClientIdentityForm({
 
   async function handleSubmit() {
     setFormError(null);
-    if (!dniValidated) {
-      setFormError("Valida tu DNI con RENIEC antes de continuar.");
+    if (dni.length !== 8) {
+      setFormError("El DNI debe tener exactamente 8 dígitos.");
+      return;
+    }
+    if (firstName.trim() === "" || firstLastName.trim() === "" || secondLastName.trim() === "") {
+      setFormError("Ingresa tus nombres y apellidos.");
       return;
     }
     if (dniCheck?.registered === true && dniCheck.isMine !== true) {
@@ -203,8 +158,16 @@ export function ClientIdentityForm({
       >
         <View className="mb-4 flex-row gap-2">
           <TacticalStatus
-            label="01 · DNI"
-            tone={dniValidated && !dniTaken ? "success" : "idle"}
+            label="01 · Datos"
+            tone={
+              dni.length === 8 &&
+              firstName.trim() !== "" &&
+              firstLastName.trim() !== "" &&
+              secondLastName.trim() !== "" &&
+              !dniTaken
+                ? "success"
+                : "idle"
+            }
           />
           <TacticalStatus
             label="02 · Selfie"
@@ -214,40 +177,26 @@ export function ClientIdentityForm({
 
         <TacticalPanel corners>
           <TacticalLabel tone="accent">DNI</TacticalLabel>
-
-          <View className="mb-4 mt-2 flex-row gap-2">
-            <TextInput
-              value={dni}
-              onChangeText={(value) => setDni(value.replace(/\D/g, "").slice(0, 8))}
-              placeholder="00000000"
-              placeholderTextColor="rgba(91, 132, 177, 0.6)"
-              keyboardType="number-pad"
-              className="flex-1"
-              style={{
-                backgroundColor: TACTICAL_COLORS.surfaceSunken,
-                borderRadius: TACTICAL_RADIUS.sharp,
-                borderWidth: 1,
-                borderColor: dniValidated
-                  ? TACTICAL_COLORS.accent
-                  : TACTICAL_BORDER,
-                paddingHorizontal: 14,
-                paddingVertical: 13,
-                fontFamily: MONO.medium,
-                fontSize: 18,
-                letterSpacing: 1,
-                color: TACTICAL_COLORS.textStrong,
-              }}
-            />
-            <TacticalButton
-              label={validatingDni ? "..." : "Validar"}
-              size="md"
-              onPress={() => void handleValidateDni()}
-              disabled={validatingDni || dni.length !== 8}
-              loading={validatingDni}
-              className="h-[52px] px-5"
-            />
-          </View>
-
+          <TextInput
+            value={dni}
+            onChangeText={(value) => setDni(value.replace(/\D/g, "").slice(0, 8))}
+            placeholder="00000000"
+            placeholderTextColor="rgba(91, 132, 177, 0.6)"
+            keyboardType="number-pad"
+            className="mb-4 mt-2"
+            style={{
+              backgroundColor: TACTICAL_COLORS.surfaceSunken,
+              borderRadius: TACTICAL_RADIUS.sharp,
+              borderWidth: 1,
+              borderColor: TACTICAL_BORDER,
+              paddingHorizontal: 14,
+              paddingVertical: 13,
+              fontFamily: MONO.medium,
+              fontSize: 18,
+              letterSpacing: 1,
+              color: TACTICAL_COLORS.textStrong,
+            }}
+          />
           {dniTaken && (
             <Text
               className="mb-3 text-xs"
@@ -257,16 +206,63 @@ export function ClientIdentityForm({
             </Text>
           )}
 
-          {dniValidated && !dniTaken && (
-            <TacticalPanel tone="sunken" className="mb-5 p-3">
-              <TacticalLabel>Verificado · RENIEC</TacticalLabel>
-              <View className="mt-2">
-                <ReniecRow label="Nombres" value={firstName} />
-                <ReniecRow label="Apellido paterno" value={firstLastName} />
-                <ReniecRow label="Apellido materno" value={secondLastName} />
-              </View>
-            </TacticalPanel>
-          )}
+          <TacticalLabel tone="accent">Nombres</TacticalLabel>
+          <TextInput
+            value={firstName}
+            onChangeText={setFirstName}
+            placeholder="Como figura en tu DNI"
+            placeholderTextColor="rgba(91, 132, 177, 0.6)"
+            className="mb-3 mt-2"
+            style={{
+              backgroundColor: TACTICAL_COLORS.surfaceSunken,
+              borderRadius: TACTICAL_RADIUS.sharp,
+              borderWidth: 1,
+              borderColor: TACTICAL_BORDER,
+              paddingHorizontal: 14,
+              paddingVertical: 13,
+              fontFamily: MONO.medium,
+              fontSize: 16,
+              color: TACTICAL_COLORS.textStrong,
+            }}
+          />
+          <TacticalLabel tone="accent">Apellido paterno</TacticalLabel>
+          <TextInput
+            value={firstLastName}
+            onChangeText={setFirstLastName}
+            placeholder="Apellido paterno"
+            placeholderTextColor="rgba(91, 132, 177, 0.6)"
+            className="mb-3 mt-2"
+            style={{
+              backgroundColor: TACTICAL_COLORS.surfaceSunken,
+              borderRadius: TACTICAL_RADIUS.sharp,
+              borderWidth: 1,
+              borderColor: TACTICAL_BORDER,
+              paddingHorizontal: 14,
+              paddingVertical: 13,
+              fontFamily: MONO.medium,
+              fontSize: 16,
+              color: TACTICAL_COLORS.textStrong,
+            }}
+          />
+          <TacticalLabel tone="accent">Apellido materno</TacticalLabel>
+          <TextInput
+            value={secondLastName}
+            onChangeText={setSecondLastName}
+            placeholder="Apellido materno"
+            placeholderTextColor="rgba(91, 132, 177, 0.6)"
+            className="mb-4 mt-2"
+            style={{
+              backgroundColor: TACTICAL_COLORS.surfaceSunken,
+              borderRadius: TACTICAL_RADIUS.sharp,
+              borderWidth: 1,
+              borderColor: TACTICAL_BORDER,
+              paddingHorizontal: 14,
+              paddingVertical: 13,
+              fontFamily: MONO.medium,
+              fontSize: 16,
+              color: TACTICAL_COLORS.textStrong,
+            }}
+          />
 
           <TacticalLabel tone="accent" className="mb-3">
             Selfie
@@ -353,20 +349,5 @@ export function ClientIdentityForm({
         </TacticalPanel>
       </ScrollView>
     </AccountScreenShell>
-  );
-}
-
-function ReniecRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View
-      className="mb-1.5 flex-row items-center justify-between px-3 py-2.5"
-      style={{
-        backgroundColor: TACTICAL_COLORS.dataBandBg,
-        borderRadius: TACTICAL_RADIUS.panel,
-      }}
-    >
-      <TacticalLabel>{label}</TacticalLabel>
-      <TacticalValue size={12}>{value}</TacticalValue>
-    </View>
   );
 }

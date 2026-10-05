@@ -19,7 +19,7 @@ type DriverPayoutFields = {
 type DriverPayoutConfigProps = {
   driver: DriverPayoutFields;
   fallbackName?: string;
-  /** Si viene de la solicitud RENIEC, nombres y DNI quedan fijos. */
+  /** Si vienen de la solicitud, nombres y DNI quedan fijos. */
   identityLocked?: { fullName: string; dni: string };
 };
 

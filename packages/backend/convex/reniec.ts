@@ -1,5 +1,7 @@
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { action } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 type ReniecDniResponse = {
   first_name: string;
@@ -10,14 +12,20 @@ type ReniecDniResponse = {
 };
 
 /**
- * Consulta datos personales en RENIEC vía Decolecta (DNI → nombres).
- * La API key vive en Convex (`DECOLECTA_API_KEY`), nunca en la app móvil.
+ * Consulta RENIEC vía Decolecta. Solo staff del panel interno.
+ * La API key vive en Convex (`DECOLECTA_API_KEY`), nunca en el cliente.
  */
 export const lookupDni = action({
   args: {
     dni: v.string(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new Error("No autenticado: se requiere iniciar sesión.");
+    }
+    await ctx.runQuery(internal.users.assertStaffCaller, {});
+
     const apiKey = process.env.DECOLECTA_API_KEY;
     if (apiKey === undefined || apiKey === "") {
       throw new Error(

@@ -1,6 +1,6 @@
 import { createAccount, modifyAccountCredentials } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import { internalMutation, mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { districtScopeValidator, userRoleValidator } from "./schema";
 import {
   districtScopeKey,
@@ -56,7 +56,7 @@ function normalizeDistricts(
 
 /**
  * Devuelve el usuario autenticado actual (o null si no hay sesión).
- * Completa nombres RENIEC desde la solicitud de chofer si aún no están en users.
+ * Completa nombres desde la solicitud de chofer si aún no están en users.
  */
 export const getMe = query({
   args: {},
@@ -125,7 +125,7 @@ export const getAdminContext = query({
 
 /**
  * Actualiza datos no identitarios del usuario autenticado.
- * Nombre y DNI solo se escriben tras validar RENIEC.
+ * Nombre y DNI de identidad no se editan aquí.
  */
 export const updateProfile = mutation({
   args: {
@@ -175,7 +175,8 @@ export const getDniRegistration = query({
 });
 
 /**
- * Guarda DNI validado por RENIEC + selfie. Obligatorio para pedir servicio.
+ * Guarda DNI, nombres y selfie declarados por el cliente.
+ * La verificación RENIEC se hace en el panel interno.
  */
 export const submitIdentity = mutation({
   args: {
@@ -195,7 +196,7 @@ export const submitIdentity = mutation({
     const firstLastName = args.firstLastName.trim();
     const secondLastName = args.secondLastName.trim();
     if (firstName === "" || firstLastName === "" || secondLastName === "") {
-      throw new Error("Valida tu DNI con RENIEC antes de continuar.");
+      throw new Error("Ingresa tus nombres y apellidos.");
     }
     await assertDniAvailable(ctx, dni, user._id);
     const fullName = `${firstLastName} ${secondLastName} ${firstName}`.trim();
@@ -413,6 +414,14 @@ export const setAdminPassword = mutation({
       account: { id: email, secret: args.password },
     });
     return args.userId;
+  },
+});
+
+export const assertStaffCaller = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    await requireStaff(ctx);
+    return { ok: true as const };
   },
 });
 

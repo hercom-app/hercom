@@ -130,7 +130,7 @@ export default defineSchema({
     role: userRoleValidator,
     /** Token Expo Push para notificaciones del sistema. */
     expoPushToken: v.optional(v.string()),
-    /** Identidad RENIEC (solo se escribe tras validar DNI). */
+    /** Identidad declarada (DNI y nombres). RENIEC se verifica en el panel interno. */
     dni: v.optional(v.string()),
     firstName: v.optional(v.string()),
     firstLastName: v.optional(v.string()),
@@ -190,7 +190,7 @@ export default defineSchema({
     .index("by_status", ["status"]),
 
   /**
-   * Solicitudes de registro de chofer (RENIEC + brevete + documentos).
+   * Solicitudes de registro de chofer (identidad declarada + brevete + documentos).
    */
   driverApplications: defineTable({
     userId: v.id("users"),

@@ -51,7 +51,7 @@ function ReadOnlyField({
   );
 }
 
-/** Identidad RENIEC y correo: solo lectura. */
+/** Identidad declarada y correo: solo lectura. */
 export function ClientSettingsScreen({ onOpenMenu }: ClientSettingsScreenProps) {
   const me = useQuery(api.users.getMe);
   const [legal, setLegal] = useState<"terms" | "privacy" | null>(null);

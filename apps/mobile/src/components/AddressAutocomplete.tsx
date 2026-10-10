@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Keyboard,
@@ -8,12 +8,19 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { CloseGlyph, MapGlyph, PersonGlyph, SearchGlyph } from "./request/RouteIcons";
+import {
+  CloseGlyph,
+  MapGlyph,
+  PersonGlyph,
+  PinGlyph,
+  SearchGlyph,
+} from "./request/RouteIcons";
 import {
   createPlacesSessionToken,
   fetchPlaceDetails,
   fetchPlaceSuggestions,
   formatRegionScopeLabel,
+  formatSuggestionDistance,
   isGooglePlacesConfigured,
   selectedPlaceMatchesRegion,
   type AddressRegionFilter,
@@ -22,6 +29,7 @@ import {
 } from "../lib/googlePlaces";
 import { TacticalLabel, TacticalText } from "./tactical";
 import {
+  HERCOM_COLORS,
   MONO,
   POPPINS,
   TACTICAL_BORDER,
@@ -60,11 +68,96 @@ type AddressAutocompleteProps = {
     onActivate?: () => void;
     active?: boolean;
   };
+  /** Campo «De»: GPS / geocodificación en curso. */
+  resolvingLocation?: boolean;
+  /** Lista con pin y distancia (modal Introduce tu ruta). */
+  routeSuggestions?: boolean;
 };
 
 const DEBOUNCE_MS = 320;
 const LIST_MAX_HEIGHT = 280;
 const LIST_MAX_HEIGHT_EXPANDED = 420;
+
+function buildHighlightRanges(
+  mainText: string,
+  query: string,
+  apiMatches?: Array<{ start: number; end: number }>,
+): Array<{ start: number; end: number }> {
+  if (apiMatches !== undefined && apiMatches.length > 0) {
+    return apiMatches;
+  }
+  const needle = query.trim();
+  if (needle.length < 2) {
+    return [];
+  }
+  const lower = mainText.toLowerCase();
+  const idx = lower.indexOf(needle.toLowerCase());
+  if (idx === -1) {
+    return [];
+  }
+  return [{ start: idx, end: idx + needle.length }];
+}
+
+function HighlightedMainText({
+  text,
+  ranges,
+}: {
+  text: string;
+  ranges: Array<{ start: number; end: number }>;
+}) {
+  if (ranges.length === 0) {
+    return (
+      <Text
+        numberOfLines={1}
+        style={{
+          fontFamily: POPPINS.semibold,
+          fontSize: 16,
+          color: HERCOM_COLORS.text,
+        }}
+      >
+        {text}
+      </Text>
+    );
+  }
+
+  const sorted = [...ranges].sort((a, b) => a.start - b.start);
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  sorted.forEach((range, index) => {
+    if (range.start > cursor) {
+      parts.push(
+        <Text key={`pre-${index}`} style={{ color: HERCOM_COLORS.text }}>
+          {text.slice(cursor, range.start)}
+        </Text>,
+      );
+    }
+    parts.push(
+      <Text key={`hi-${index}`} style={{ color: HERCOM_COLORS.primary }}>
+        {text.slice(range.start, range.end)}
+      </Text>,
+    );
+    cursor = range.end;
+  });
+  if (cursor < text.length) {
+    parts.push(
+      <Text key="tail" style={{ color: HERCOM_COLORS.text }}>
+        {text.slice(cursor)}
+      </Text>,
+    );
+  }
+
+  return (
+    <Text
+      numberOfLines={1}
+      style={{
+        fontFamily: POPPINS.semibold,
+        fontSize: 16,
+      }}
+    >
+      {parts}
+    </Text>
+  );
+}
 
 export function AddressAutocomplete({
   value,
@@ -81,6 +174,8 @@ export function AddressAutocomplete({
   autoFocus = false,
   keepActiveOnBlur = false,
   routeChrome,
+  resolvingLocation = false,
+  routeSuggestions = false,
 }: AddressAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -362,22 +457,67 @@ export function AddressAutocomplete({
                 De
               </Text>
             )}
-            <TextInput
-              {...inputHandlers}
-              placeholder={routeChrome.caption === "A" ? "A" : placeholder}
-              placeholderTextColor="#98A2B3"
-              style={{
-                padding: 0,
-                margin: 0,
-                fontFamily: POPPINS.medium,
-                fontSize: 16,
-                color: disabled
-                  ? TACTICAL_COLORS.steel
-                  : TACTICAL_COLORS.textStrong,
-              }}
-            />
+            {routeChrome.caption === "A" && value.trim() === "" && (
+              <Text
+                style={{
+                  fontFamily: POPPINS.medium,
+                  fontSize: 12,
+                  color: TACTICAL_COLORS.steel,
+                  marginBottom: 1,
+                }}
+              >
+                A
+              </Text>
+            )}
+            {resolvingLocation && routeChrome.caption === "De" ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                  paddingVertical: 2,
+                }}
+              >
+                <ActivityIndicator
+                  color={HERCOM_COLORS.primary}
+                  size="small"
+                />
+                <Text
+                  style={{
+                    flex: 1,
+                    fontFamily: POPPINS.medium,
+                    fontSize: 15,
+                    color: HERCOM_COLORS.textMuted,
+                  }}
+                >
+                  Obteniendo tu ubicación…
+                </Text>
+              </View>
+            ) : (
+              <TextInput
+                {...inputHandlers}
+                placeholder={
+                  routeChrome.caption === "A" && value.trim() !== ""
+                    ? placeholder
+                    : routeChrome.caption === "A"
+                      ? "¿A dónde vas?"
+                      : placeholder
+                }
+                placeholderTextColor="#98A2B3"
+                editable={!disabled && !resolvingLocation}
+                style={{
+                  padding: 0,
+                  margin: 0,
+                  fontFamily: POPPINS.medium,
+                  fontSize: 16,
+                  color: disabled
+                    ? TACTICAL_COLORS.steel
+                    : TACTICAL_COLORS.textStrong,
+                }}
+              />
+            )}
           </View>
-          {value.trim() !== "" && (
+          {value.trim() !== "" && !resolvingLocation && (
             <Pressable
               onPress={clearField}
               accessibilityLabel="Borrar"
@@ -462,13 +602,17 @@ export function AddressAutocomplete({
 
       {showSuggestions && (
         <View
-          className="mt-2 overflow-hidden"
-          style={{
-            backgroundColor: TACTICAL_COLORS.surface,
-            borderRadius: TACTICAL_RADIUS.panel,
-            borderWidth: 1,
-            borderColor: TACTICAL_BORDER,
-          }}
+          className="mt-1 overflow-hidden"
+          style={
+            routeSuggestions
+              ? undefined
+              : {
+                  backgroundColor: TACTICAL_COLORS.surface,
+                  borderRadius: TACTICAL_RADIUS.panel,
+                  borderWidth: 1,
+                  borderColor: TACTICAL_BORDER,
+                }
+          }
           onTouchStart={() => {
             interactingWithListRef.current = true;
             clearBlurTimeout();
@@ -482,43 +626,91 @@ export function AddressAutocomplete({
             }}
             nestedScrollEnabled
             keyboardShouldPersistTaps="always"
-            showsVerticalScrollIndicator
+            showsVerticalScrollIndicator={false}
             bounces
           >
-            {suggestions.map((suggestion) => (
-              <Pressable
-                key={suggestion.placeId}
-                onPressIn={() => {
-                  interactingWithListRef.current = true;
-                  clearBlurTimeout();
-                }}
-                onPress={() => void handleSelectSuggestion(suggestion)}
-                style={({ pressed }) => ({
-                  borderBottomWidth: 1,
-                  borderBottomColor: TACTICAL_BORDER_SOFT,
-                  paddingHorizontal: 14,
-                  paddingVertical: 12,
-                  backgroundColor: pressed
-                    ? "rgba(161, 196, 253, 0.12)"
-                    : "transparent",
-                })}
-              >
-                <Text
-                  style={{
-                    fontFamily: POPPINS.medium,
-                    fontSize: 14,
-                    color: TACTICAL_COLORS.text,
+            {suggestions.map((suggestion, index) => {
+              const distanceLabel =
+                suggestion.distanceMeters !== undefined
+                  ? formatSuggestionDistance(suggestion.distanceMeters)
+                  : "";
+              const highlightRanges = buildHighlightRanges(
+                suggestion.mainText,
+                value,
+                suggestion.mainTextMatches,
+              );
+
+              return (
+                <Pressable
+                  key={suggestion.placeId}
+                  onPressIn={() => {
+                    interactingWithListRef.current = true;
+                    clearBlurTimeout();
                   }}
+                  onPress={() => void handleSelectSuggestion(suggestion)}
+                  style={({ pressed }) => ({
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                    paddingVertical: routeSuggestions ? 14 : 12,
+                    paddingHorizontal: routeSuggestions ? 4 : 14,
+                    borderBottomWidth:
+                      index < suggestions.length - 1 ? 1 : 0,
+                    borderBottomColor: TACTICAL_BORDER_SOFT,
+                    backgroundColor: pressed
+                      ? "rgba(11, 112, 254, 0.06)"
+                      : "transparent",
+                  })}
                 >
-                  {suggestion.mainText}
-                </Text>
-                {suggestion.secondaryText !== undefined && (
-                  <TacticalText size={11} className="mt-0.5">
-                    {suggestion.secondaryText}
-                  </TacticalText>
-                )}
-              </Pressable>
-            ))}
+                  {routeSuggestions && (
+                    <View
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 18,
+                        backgroundColor: "#F3F4F6",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <PinGlyph size={18} color={HERCOM_COLORS.text} />
+                    </View>
+                  )}
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <HighlightedMainText
+                      text={suggestion.mainText}
+                      ranges={highlightRanges}
+                    />
+                    {suggestion.secondaryText !== undefined && (
+                      <Text
+                        numberOfLines={2}
+                        style={{
+                          marginTop: 2,
+                          fontFamily: POPPINS.regular,
+                          fontSize: 13,
+                          lineHeight: 18,
+                          color: HERCOM_COLORS.textMuted,
+                        }}
+                      >
+                        {suggestion.secondaryText}
+                      </Text>
+                    )}
+                  </View>
+                  {routeSuggestions && distanceLabel !== "" && (
+                    <Text
+                      style={{
+                        fontFamily: POPPINS.medium,
+                        fontSize: 13,
+                        color: HERCOM_COLORS.textMuted,
+                        marginLeft: 4,
+                      }}
+                    >
+                      {distanceLabel}
+                    </Text>
+                  )}
+                </Pressable>
+              );
+            })}
           </ScrollView>
         </View>
       )}

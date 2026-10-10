@@ -512,6 +512,7 @@ export function ClientDashboard() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [pickupResolving, setPickupResolving] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [userCoords, setUserCoords] = useState<{
@@ -541,7 +542,9 @@ export function ClientDashboard() {
   const gpsBias =
     originLat !== null && originLng !== null
       ? { lat: originLat, lng: originLng }
-      : undefined;
+      : userCoords !== null
+        ? { lat: userCoords.lat, lng: userCoords.lng }
+        : undefined;
 
   const canContinue =
     origin.trim() !== "" &&
@@ -672,6 +675,7 @@ export function ClientDashboard() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      setPickupResolving(true);
       try {
         const status = await getLocationAccessStatus();
         if (cancelled) return;
@@ -692,6 +696,10 @@ export function ClientDashboard() {
       } catch {
         if (!cancelled) {
           setLocationPrompt("ask");
+        }
+      } finally {
+        if (!cancelled) {
+          setPickupResolving(false);
         }
       }
     })();
@@ -802,6 +810,7 @@ export function ClientDashboard() {
       }
     }
     setLocationLoading(true);
+    setPickupResolving(true);
     setError(null);
     try {
       await ensureLocationAccess();
@@ -814,6 +823,7 @@ export function ClientDashboard() {
       setLocationPrompt(status.permissionGranted ? "gps-off" : "blocked");
     } finally {
       setLocationLoading(false);
+      setPickupResolving(false);
     }
   }
 
@@ -1251,6 +1261,11 @@ export function ClientDashboard() {
                     gpsCenter={gpsBias}
                     disabled={submitting || locationLoading}
                     selectedPlaceId={originPlaceId}
+                    resolvingLocation={
+                      pickupResolving &&
+                      origin.trim() === "" &&
+                      originLat === null
+                    }
                     routeChrome={{
                       caption: "De",
                       active: addressSearchField === "origin",
@@ -1315,6 +1330,7 @@ export function ClientDashboard() {
                     gpsCenter={gpsBias}
                     disabled={submitting}
                     selectedPlaceId={destination.placeId}
+                    routeSuggestions
                     routeChrome={{
                       caption: "A",
                       active: addressSearchField === "destination",

@@ -15,12 +15,18 @@ type PlacesNewAddressComponent = {
   types?: string[];
 };
 
+type TextMatch = {
+  startOffset?: number;
+  endOffset?: number;
+};
+
 type PlacesNewAutocompleteSuggestion = {
   placePrediction?: {
     placeId?: string;
+    distanceMeters?: number;
     text?: { text?: string };
     structuredFormat?: {
-      mainText?: { text?: string };
+      mainText?: { text?: string; matches?: TextMatch[] };
       secondaryText?: { text?: string };
     };
   };
@@ -53,7 +59,25 @@ export type PlaceSuggestion = {
   description: string;
   mainText: string;
   secondaryText?: string;
+  distanceMeters?: number;
+  /** Rangos para resaltar coincidencias con la búsqueda (API Places). */
+  mainTextMatches?: Array<{ start: number; end: number }>;
 };
+
+const MAX_AUTOCOMPLETE_SUGGESTIONS = 5;
+
+/** Distancia en línea recta, estilo apps de viaje (ej. 6,5 km). */
+export function formatSuggestionDistance(meters: number): string {
+  if (!Number.isFinite(meters) || meters < 0) {
+    return "";
+  }
+  if (meters < 1000) {
+    return `${Math.max(1, Math.round(meters))} m`;
+  }
+  const km = meters / 1000;
+  const rounded = km >= 10 ? Math.round(km) : Math.round(km * 10) / 10;
+  return `${String(rounded).replace(".", ",")} km`;
+}
 
 export type SelectedPlace = {
   placeId: string;
@@ -284,6 +308,16 @@ export async function fetchPlaceSuggestions(
     locationBias: toPlacesLocationBias(locationBias),
   };
 
+  if (
+    options.gpsCenter !== undefined &&
+    isValidCoordinate(options.gpsCenter.lat, options.gpsCenter.lng)
+  ) {
+    body.origin = {
+      latitude: options.gpsCenter.lat,
+      longitude: options.gpsCenter.lng,
+    };
+  }
+
   const response = await fetch(PLACES_AUTOCOMPLETE_URL, {
     method: "POST",
     headers: {
@@ -313,19 +347,36 @@ export async function fetchPlaceSuggestions(
       if (placeId === undefined || description === undefined) {
         return null;
       }
+      const mainText =
+        prediction.structuredFormat?.mainText?.text ?? description;
       const item: PlaceSuggestion = {
         placeId,
         description,
-        mainText:
-          prediction.structuredFormat?.mainText?.text ?? description,
+        mainText,
       };
       const secondaryText = prediction.structuredFormat?.secondaryText?.text;
       if (secondaryText !== undefined) {
         item.secondaryText = secondaryText;
       }
+      if (prediction.distanceMeters !== undefined) {
+        item.distanceMeters = prediction.distanceMeters;
+      }
+      const apiMatches = prediction.structuredFormat?.mainText?.matches;
+      if (apiMatches !== undefined && apiMatches.length > 0) {
+        item.mainTextMatches = apiMatches
+          .filter(
+            (match) =>
+              match.startOffset !== undefined && match.endOffset !== undefined,
+          )
+          .map((match) => ({
+            start: match.startOffset as number,
+            end: match.endOffset as number,
+          }));
+      }
       return item;
     })
-    .filter((item): item is PlaceSuggestion => item !== null);
+    .filter((item): item is PlaceSuggestion => item !== null)
+    .slice(0, MAX_AUTOCOMPLETE_SUGGESTIONS);
 }
 
 export async function fetchPlaceDetails(

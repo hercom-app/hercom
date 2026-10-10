@@ -66,6 +66,32 @@ export type PlaceSuggestion = {
 
 const MAX_AUTOCOMPLETE_SUGGESTIONS = 5;
 
+/** Más cercano primero cuando Google envía `distanceMeters` (requiere `origin`). */
+function sortSuggestionsByDistance(
+  items: PlaceSuggestion[],
+): PlaceSuggestion[] {
+  const withDistance = items.some(
+    (item) => item.distanceMeters !== undefined,
+  );
+  if (!withDistance) {
+    return items;
+  }
+  return [...items].sort((a, b) => {
+    const da = a.distanceMeters;
+    const db = b.distanceMeters;
+    if (da !== undefined && db !== undefined) {
+      return da - db;
+    }
+    if (da !== undefined) {
+      return -1;
+    }
+    if (db !== undefined) {
+      return 1;
+    }
+    return 0;
+  });
+}
+
 /** Distancia en línea recta, estilo apps de viaje (ej. 6,5 km). */
 export function formatSuggestionDistance(meters: number): string {
   if (!Number.isFinite(meters) || meters < 0) {
@@ -375,8 +401,12 @@ export async function fetchPlaceSuggestions(
       }
       return item;
     })
-    .filter((item): item is PlaceSuggestion => item !== null)
-    .slice(0, MAX_AUTOCOMPLETE_SUGGESTIONS);
+    .filter((item): item is PlaceSuggestion => item !== null);
+
+  return sortSuggestionsByDistance(items).slice(
+    0,
+    MAX_AUTOCOMPLETE_SUGGESTIONS,
+  );
 }
 
 export async function fetchPlaceDetails(

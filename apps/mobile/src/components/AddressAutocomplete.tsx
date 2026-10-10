@@ -150,6 +150,7 @@ function HighlightedMainText({
     <Text
       numberOfLines={1}
       style={{
+        flexShrink: 1,
         fontFamily: POPPINS.semibold,
         fontSize: 16,
       }}
@@ -649,11 +650,9 @@ export function AddressAutocomplete({
                   }}
                   onPress={() => void handleSelectSuggestion(suggestion)}
                   style={({ pressed }) => ({
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 12,
+                    width: "100%",
                     paddingVertical: routeSuggestions ? 14 : 12,
-                    paddingHorizontal: routeSuggestions ? 4 : 14,
+                    paddingHorizontal: routeSuggestions ? 0 : 14,
                     borderBottomWidth:
                       index < suggestions.length - 1 ? 1 : 0,
                     borderBottomColor: TACTICAL_BORDER_SOFT,
@@ -662,52 +661,88 @@ export function AddressAutocomplete({
                       : "transparent",
                   })}
                 >
-                  {routeSuggestions && (
-                    <View
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 18,
-                        backgroundColor: "#F3F4F6",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <PinGlyph size={18} color={HERCOM_COLORS.text} />
-                    </View>
-                  )}
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <HighlightedMainText
-                      text={suggestion.mainText}
-                      ranges={highlightRanges}
-                    />
-                    {suggestion.secondaryText !== undefined && (
-                      <Text
-                        numberOfLines={2}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      width: "100%",
+                    }}
+                  >
+                    {routeSuggestions && (
+                      <View
                         style={{
-                          marginTop: 2,
-                          fontFamily: POPPINS.regular,
-                          fontSize: 13,
-                          lineHeight: 18,
-                          color: HERCOM_COLORS.textMuted,
+                          width: 40,
+                          marginRight: 12,
+                          flexShrink: 0,
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                       >
-                        {suggestion.secondaryText}
-                      </Text>
+                        <View
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 18,
+                            backgroundColor: "#F3F4F6",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <PinGlyph size={18} color={HERCOM_COLORS.text} />
+                        </View>
+                      </View>
                     )}
-                  </View>
-                  {routeSuggestions && distanceLabel !== "" && (
-                    <Text
+                    <View
                       style={{
-                        fontFamily: POPPINS.medium,
-                        fontSize: 13,
-                        color: HERCOM_COLORS.textMuted,
-                        marginLeft: 4,
+                        flex: 1,
+                        minWidth: 0,
+                        marginRight: routeSuggestions ? 8 : 0,
                       }}
                     >
-                      {distanceLabel}
-                    </Text>
-                  )}
+                      <HighlightedMainText
+                        text={suggestion.mainText}
+                        ranges={highlightRanges}
+                      />
+                      {suggestion.secondaryText !== undefined && (
+                        <Text
+                          numberOfLines={2}
+                          style={{
+                            marginTop: 2,
+                            fontFamily: POPPINS.regular,
+                            fontSize: 13,
+                            lineHeight: 18,
+                            color: routeSuggestions
+                              ? HERCOM_COLORS.textMuted
+                              : TACTICAL_COLORS.text,
+                          }}
+                        >
+                          {suggestion.secondaryText}
+                        </Text>
+                      )}
+                    </View>
+                    {routeSuggestions && (
+                      <View
+                        style={{
+                          flexShrink: 0,
+                          minWidth: 52,
+                          alignItems: "flex-end",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {distanceLabel !== "" ? (
+                          <Text
+                            style={{
+                              fontFamily: POPPINS.medium,
+                              fontSize: 13,
+                              color: HERCOM_COLORS.textMuted,
+                            }}
+                          >
+                            {distanceLabel}
+                          </Text>
+                        ) : null}
+                      </View>
+                    )}
+                  </View>
                 </Pressable>
               );
             })}

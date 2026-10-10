@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   Pressable,
   ScrollView,
   Text,
@@ -33,6 +34,8 @@ type AddressAutocompleteProps = {
   value: string;
   onChangeText: (value: string) => void;
   onPlaceSelected: (place: SelectedPlace) => void;
+  /** Tras validar place details (dirección lista para usar). */
+  onPlaceResolved?: (place: SelectedPlace) => void;
   onPlaceCleared?: () => void;
   placeholder: string;
   region: AddressRegionFilter;
@@ -67,6 +70,7 @@ export function AddressAutocomplete({
   value,
   onChangeText,
   onPlaceSelected,
+  onPlaceResolved,
   onPlaceCleared,
   placeholder,
   region,
@@ -130,10 +134,28 @@ export function AddressAutocomplete({
   }, [routeChrome?.active]);
 
   useEffect(() => {
-    if (!searchActive || !canSearch || suppressSearchRef.current || disabled) {
-      if (!searchActive) {
+    if (selectedPlaceId !== null) {
+      suppressSearchRef.current = true;
+      setSearchActive(false);
+      setSuggestions([]);
+      setLoading(false);
+      setSearchError(null);
+    }
+  }, [selectedPlaceId]);
+
+  useEffect(() => {
+    if (
+      !searchActive ||
+      !canSearch ||
+      suppressSearchRef.current ||
+      disabled ||
+      selectedPlaceId !== null
+    ) {
+      if (!searchActive || selectedPlaceId !== null) {
         setSuggestions([]);
-        setLoading(false);
+        if (selectedPlaceId !== null) {
+          setLoading(false);
+        }
       }
       return;
     }
@@ -234,6 +256,11 @@ export function AddressAutocomplete({
       onChangeText(place.address);
       onPlaceSelected(place);
       sessionTokenRef.current = createPlacesSessionToken();
+      suppressSearchRef.current = true;
+      endSearch();
+      Keyboard.dismiss();
+      inputRef.current?.blur();
+      onPlaceResolved?.(place);
     } catch (error) {
       suppressSearchRef.current = false;
       setSearchActive(true);
@@ -276,9 +303,14 @@ export function AddressAutocomplete({
     autoFocus,
     onFocus: () => {
       clearBlurTimeout();
+      routeChrome?.onActivate?.();
+      if (selectedPlaceId !== null) {
+        suppressSearchRef.current = true;
+        setSearchActive(false);
+        return;
+      }
       suppressSearchRef.current = false;
       setSearchActive(true);
-      routeChrome?.onActivate?.();
     },
     onBlur: () => {
       if (keepActiveOnBlur) {
@@ -405,10 +437,17 @@ export function AddressAutocomplete({
         </Text>
       )}
 
-      {loading && searchActive && (
+      {loading && searchActive && selectedPlaceId === null && (
         <View className="mt-2 flex-row items-center gap-2">
           <ActivityIndicator color={TACTICAL_COLORS.accent} size="small" />
           <TacticalLabel>Buscando direcciones...</TacticalLabel>
+        </View>
+      )}
+
+      {loading && !searchActive && selectedPlaceId === null && (
+        <View className="mt-2 flex-row items-center gap-2">
+          <ActivityIndicator color={TACTICAL_COLORS.accent} size="small" />
+          <TacticalLabel>Confirmando dirección…</TacticalLabel>
         </View>
       )}
 

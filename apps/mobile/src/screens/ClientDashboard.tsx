@@ -1285,6 +1285,18 @@ export function ClientDashboard() {
                         setDistrict(place.district);
                       }
                     }}
+                    onPlaceResolved={() => {
+                      setRouteAutofocus(false);
+                      if (
+                        origin.trim() !== "" &&
+                        originLat !== null &&
+                        originLng !== null
+                      ) {
+                        setTimeout(() => {
+                          handleContinueToConfirm();
+                        }, 100);
+                      }
+                    }}
                     onPlaceCleared={() => {
                       updateDestinationDraft(null, (current) => ({
                         ...current,

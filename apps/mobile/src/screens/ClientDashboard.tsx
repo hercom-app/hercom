@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
+  AppState,
   Dimensions,
   Keyboard,
   Platform,
-  Pressable,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -47,6 +45,10 @@ import {
   TacticalValue,
 } from "../components/tactical";
 import { LiveTripMapModal } from "../components/LiveTripMapModal";
+import { HomeRequestSheet } from "../components/request/HomeRequestSheet";
+import { LocationAccessPrompt } from "../components/request/LocationAccessPrompt";
+import { PinPickerScreen } from "../components/request/PinPickerScreen";
+import { CloseGlyph } from "../components/request/RouteIcons";
 import {
   addressDraftFromText,
   createEmptyAddressDraft,
@@ -58,8 +60,11 @@ import {
   applyPickupLocationResult,
   detectPickupLocation,
   ensureLocationAccess,
+  getLocationAccessStatus,
   openDeviceLocationSettings,
+  type PickupLocationResult,
 } from "../lib/pickupLocation";
+import { recentDestinationsFromServices } from "../lib/recentDestinations";
 import { formatServiceStopsLabel } from "../lib/wazeNavigation";
 import { useAppMode } from "../contexts/AppModeContext";
 import { HERCOM_COLORS, TACTICAL_BORDER, TACTICAL_COLORS, TACTICAL_RADIUS, MONO, POPPINS } from "../constants/theme";
@@ -514,6 +519,15 @@ export function ClientDashboard() {
     lng: number;
   } | null>(null);
   const [showsBlueDot, setShowsBlueDot] = useState(false);
+  const [pinField, setPinField] = useState<null | "origin" | "destination">(
+    null,
+  );
+  const [locationPrompt, setLocationPrompt] = useState<
+    "checking" | "hidden" | "ask" | "blocked" | "gps-off"
+  >("checking");
+  const [routeAutofocus, setRouteAutofocus] = useState(false);
+  const originValueRef = useRef("");
+  originValueRef.current = origin;
 
   const unreadNotifications = (notifications ?? []).filter(
     (notification) => notification.readAt === undefined,
@@ -565,15 +579,17 @@ export function ClientDashboard() {
   const addressSheetHeight =
     keyboardHeight > 0
       ? Math.round(
-          Math.max(280, screenHeight - keyboardHeight - insets.top - 72),
+          Math.max(280, screenHeight - keyboardHeight - insets.top - 24),
         )
-      : Math.round(Math.min(520, Math.max(360, screenHeight * 0.52)));
+      : Math.round(
+          Math.min(screenHeight * 0.82, screenHeight - insets.top - 64),
+        );
   /** Preview: altura fija razonable (mapa visible arriba). */
   const confirmSheetHeight = Math.round(
     Math.min(440, Math.max(320, screenHeight * 0.42)),
   );
   const homeSheetHeight = Math.round(
-    Math.min(480, Math.max(340, screenHeight * 0.48)),
+    Math.min(640, Math.max(460, screenHeight * 0.64)),
   );
   const activeTrip = (services ?? []).find(
     (service) =>
@@ -633,30 +649,77 @@ export function ClientDashboard() {
       : "skip",
   );
 
+  function rememberDetectedOrigin(result: PickupLocationResult) {
+    setUserCoords({ lat: result.lat, lng: result.lng });
+    setShowsBlueDot(true);
+    if (originValueRef.current.trim() !== "") {
+      return;
+    }
+    applyPickupLocationResult(result, {
+      setOrigin,
+      setOriginLat,
+      setOriginLng,
+      setDepartment,
+      setProvince,
+      setDistrict,
+      setDetectedRegionLabel: () => {
+        /* región se guarda en department/province/district */
+      },
+    });
+    setOriginPlaceId(null);
+  }
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        await ensureLocationAccess();
+        const status = await getLocationAccessStatus();
         if (cancelled) return;
-        setShowsBlueDot(true);
-        const position = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        if (cancelled) return;
-        setUserCoords({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
+        if (status.permissionGranted && status.servicesEnabled) {
+          const result = await detectPickupLocation();
+          if (cancelled) return;
+          rememberDetectedOrigin(result);
+          setLocationPrompt("hidden");
+          return;
+        }
+        if (!status.permissionGranted) {
+          const permission = await Location.getForegroundPermissionsAsync();
+          if (cancelled) return;
+          setLocationPrompt(permission.status === "denied" ? "blocked" : "ask");
+          return;
+        }
+        setLocationPrompt("gps-off");
       } catch {
         if (!cancelled) {
-          setShowsBlueDot(false);
+          setLocationPrompt("ask");
         }
       }
     })();
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState !== "active") {
+        return;
+      }
+      void (async () => {
+        const status = await getLocationAccessStatus();
+        if (!status.permissionGranted || !status.servicesEnabled) {
+          return;
+        }
+        try {
+          const result = await detectPickupLocation();
+          rememberDetectedOrigin(result);
+          setLocationPrompt("hidden");
+        } catch {
+          setShowsBlueDot(false);
+        }
+      })();
+    });
+    return () => subscription.remove();
   }, []);
 
   function applySelectedPlace(
@@ -691,12 +754,23 @@ export function ClientDashboard() {
 
   function openAddressSearch(field: "origin" | "destination" | number) {
     setError(null);
+    setRouteAutofocus(typeof field !== "number");
     setAddressSearchField(field);
+  }
+
+  function openPinPicker(field: "origin" | "destination") {
+    Keyboard.dismiss();
+    setRouteAutofocus(false);
+    setPinField(field);
   }
 
   const handleAndroidBack = useCallback(() => {
     if (menuOpen) {
       setMenuOpen(false);
+      return true;
+    }
+    if (pinField !== null) {
+      setPinField(null);
       return true;
     }
     if (addressSearchField !== null) {
@@ -715,15 +789,36 @@ export function ClientDashboard() {
       return true;
     }
     return false;
-  }, [menuOpen, addressSearchField, flowStep, menuSection]);
+  }, [menuOpen, pinField, addressSearchField, flowStep, menuSection]);
 
   useAndroidBackHandler(handleAndroidBack);
 
-  async function handleUseMyLocationForOrigin() {
+  async function handleAllowLocation() {
+    if (locationPrompt === "blocked" || locationPrompt === "gps-off") {
+      const status = await getLocationAccessStatus();
+      if (!status.permissionGranted || !status.servicesEnabled) {
+        await openDeviceLocationSettings();
+        return;
+      }
+    }
     setLocationLoading(true);
     setError(null);
     try {
+      await ensureLocationAccess();
       const result = await detectPickupLocation();
+      rememberDetectedOrigin(result);
+      setLocationPrompt("hidden");
+    } catch {
+      const status = await getLocationAccessStatus();
+      setShowsBlueDot(false);
+      setLocationPrompt(status.permissionGranted ? "gps-off" : "blocked");
+    } finally {
+      setLocationLoading(false);
+    }
+  }
+
+  function applyPinResult(result: PickupLocationResult) {
+    if (pinField === "origin") {
       applyPickupLocationResult(result, {
         setOrigin,
         setOriginLat,
@@ -736,28 +831,25 @@ export function ClientDashboard() {
         },
       });
       setOriginPlaceId(null);
-    } catch (locationError) {
-      const msg =
-        locationError instanceof Error
-          ? locationError.message
-          : "No se pudo obtener tu ubicación.";
-      setError(msg);
-      if (
-        msg.includes("bloqueada") ||
-        msg.includes("GPS") ||
-        msg.includes("permiso")
-      ) {
-        Alert.alert("Ubicación necesaria", msg, [
-          { text: "Cancelar", style: "cancel" },
-          {
-            text: "Abrir ajustes",
-            onPress: () => void openDeviceLocationSettings(),
-          },
-        ]);
+      setUserCoords({ lat: result.lat, lng: result.lng });
+    } else if (pinField === "destination") {
+      setDestination({
+        address: result.address,
+        lat: result.lat,
+        lng: result.lng,
+        placeId: null,
+      });
+      if (department === "") {
+        setDepartment(result.department);
       }
-    } finally {
-      setLocationLoading(false);
+      if (province === "" && result.province !== undefined) {
+        setProvince(result.province);
+      }
+      if (district === "" && result.district !== undefined) {
+        setDistrict(result.district);
+      }
     }
+    setPinField(null);
   }
 
   function handleContinueToConfirm() {
@@ -1047,170 +1139,67 @@ export function ClientDashboard() {
     );
   }
 
-  // ——— Paso 1: mapa + sheet solicitud ———
-  if (flowStep === "compose") {
-    const addressFieldButton = (
-      label: string,
-      value: string,
-      placeholder: string,
-      onPress: () => void,
-    ) => (
-      <View>
-        <TacticalLabel className="mb-1.5">
-          {label}
-        </TacticalLabel>
-        <Pressable
-          onPress={onPress}
-          disabled={submitting}
-          className="px-4 py-3.5"
-          style={{
-            backgroundColor: TACTICAL_COLORS.surfaceSunken,
-            borderRadius: TACTICAL_RADIUS.sharp,
-            borderWidth: 1,
-            borderColor: TACTICAL_BORDER,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: POPPINS.regular,
-              fontSize: 15,
-              color:
-                value.trim() !== ""
-                  ? TACTICAL_COLORS.textStrong
-                  : TACTICAL_COLORS.steel,
-            }}
-            numberOfLines={2}
-          >
-            {value.trim() !== "" ? value : placeholder}
-          </Text>
-        </Pressable>
+  const recentDestinations = recentDestinationsFromServices(services);
+  const pinCenter =
+    pinField === "origin"
+      ? originLat !== null && originLng !== null
+        ? { lat: originLat, lng: originLng }
+        : (userCoords ?? {
+            lat: LIMA_REGION.latitude,
+            lng: LIMA_REGION.longitude,
+          })
+      : destination.lat !== null && destination.lng !== null
+        ? { lat: destination.lat, lng: destination.lng }
+        : (userCoords ??
+          (originLat !== null && originLng !== null
+            ? { lat: originLat, lng: originLng }
+            : {
+                lat: LIMA_REGION.latitude,
+                lng: LIMA_REGION.longitude,
+              }));
+
+  if (flowStep === "compose" && pinField !== null) {
+    return (
+      <View className="flex-1">
+        <PinPickerScreen
+          initialCenter={pinCenter}
+          showsUserLocation={showsBlueDot}
+          onCancel={() => setPinField(null)}
+          onConfirm={applyPinResult}
+        />
+        {drawer}
       </View>
     );
+  }
 
-    const requestSheetContent = (
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingHorizontal: 16,
-          paddingBottom: insets.bottom + 16,
-        }}
-      >
-        <TacticalTitle size={20} className="mb-1">
-          ¿Donde necesitas un chofer para remplazo?
-        </TacticalTitle>
-        <TacticalText size={13} tone="text" className="mb-4">
-          Indica recojo y destino para continuar.
-        </TacticalText>
-        <View className="gap-3">
-          {addressFieldButton(
-            "Punto de recojo",
-            origin,
-            "¿De dónde te recogemos?",
-            () => openAddressSearch("origin"),
-          )}
-          <UiButton
-            label="Usar mi ubicación actual"
-            onPress={() => void handleUseMyLocationForOrigin()}
-            disabled={locationLoading || submitting}
-            loading={locationLoading}
-            variant="secondary"
-          />
-          {addressFieldButton(
-            "Destino",
-            destination.address,
-            "¿A dónde vas?",
-            () => openAddressSearch("destination"),
-          )}
-          {extraDestinations.map((stop, index) => (
-            <View
-              key={`extra-landing-${index}`}
-              className="flex-row items-start gap-2"
-            >
-              <View className="flex-1">
-                {addressFieldButton(
-                  `Parada ${index + 2}`,
-                  stop.address,
-                  `Parada ${index + 2} (opcional)`,
-                  () => openAddressSearch(index),
-                )}
-              </View>
-              <TouchableOpacity
-                onPress={() => {
-                  setExtraDestinations((previous) =>
-                    previous.filter((_, itemIndex) => itemIndex !== index),
-                  );
-                }}
-                className="mt-6 h-12 w-12 items-center justify-center"
-                style={{
-                  backgroundColor: TACTICAL_COLORS.surfaceSunken,
-                  borderRadius: TACTICAL_RADIUS.sharp,
-                  borderWidth: 1,
-                  borderColor: TACTICAL_BORDER,
-                }}
-              >
-                <Text
-                  style={{
-                    fontFamily: MONO.bold,
-                    color: TACTICAL_COLORS.steel,
-                  }}
-                >
-                  ✕
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-          <TouchableOpacity
-            onPress={() =>
-              setExtraDestinations((previous) => [
-                ...previous,
-                createEmptyAddressDraft(),
-              ])
-            }
-            disabled={submitting}
-            className="rounded-2xl py-2.5 disabled:opacity-60"
-          >
-            <TacticalLabel className="text-center">+ Agregar parada</TacticalLabel>
-          </TouchableOpacity>
-          <UiButton
-            label="Continuar"
-            onPress={handleContinueToConfirm}
-            disabled={!canContinue || submitting}
-          />
-        </View>
-        {error !== null && (
-          <TacticalText
-            size={13}
-            className="mt-3 text-center"
-            style={{ color: TACTICAL_COLORS.danger }}
-          >
-            {error}
-          </TacticalText>
-        )}
-      </ScrollView>
-    );
-
+  // ——— Paso 1: mapa + sheet solicitud ———
+  if (flowStep === "compose") {
     const addressSearchSheet = (
       <View
         className="flex-1 justify-end"
         style={{ paddingBottom: keyboardHeight }}
       >
         <UberBottomSheet height={addressSheetHeight}>
-          <View className="flex-row items-center justify-end px-4 pb-1">
+          <View className="flex-row items-center px-2 pb-2">
+            <View style={{ width: 44 }} />
+            <Text
+              style={{
+                flex: 1,
+                textAlign: "center",
+                fontFamily: POPPINS.bold,
+                fontSize: 18,
+                color: HERCOM_COLORS.text,
+              }}
+            >
+              Introduce tu ruta
+            </Text>
             <TouchableOpacity
               onPress={closeAddressSearch}
-              className="h-10 w-10 items-center justify-center"
+              accessibilityLabel="Cerrar"
+              className="h-11 w-11 items-center justify-center"
               hitSlop={8}
             >
-              <Text
-                style={{
-                  fontFamily: MONO.bold,
-                  fontSize: 16,
-                  color: TACTICAL_COLORS.steel,
-                }}
-              >
-                ✕
-              </Text>
+              <CloseGlyph size={20} color={TACTICAL_COLORS.steel} />
             </TouchableOpacity>
           </View>
           <ScrollView
@@ -1225,23 +1214,14 @@ export function ClientDashboard() {
                   paddingBottom: insets.bottom + 24,
                 }}
               >
-                <TacticalTitle size={18} className="mb-3">
-                  Dirección
-                </TacticalTitle>
-
                 <View className="mb-3">
-                  <TacticalLabel className="mb-1.5">
-                    Punto de recojo
-                  </TacticalLabel>
                   <AddressAutocomplete
                     value={origin}
                     onChangeText={(value) => {
                       setOrigin(value);
-                      if (originPlaceId !== null) {
-                        setOriginLat(null);
-                        setOriginLng(null);
-                        setOriginPlaceId(null);
-                      }
+                      setOriginLat(null);
+                      setOriginLng(null);
+                      setOriginPlaceId(null);
                     }}
                     onPlaceSelected={(place) => {
                       applySelectedPlace(place, {
@@ -1265,19 +1245,22 @@ export function ClientDashboard() {
                     }}
                     expandedList
                     keepActiveOnBlur
-                    autoFocus={addressSearchField === "origin"}
-                    placeholder="¿De dónde te recogemos?"
+                    autoFocus={routeAutofocus && addressSearchField === "origin"}
+                    placeholder="Tu ubicación"
                     region={addressRegion}
                     gpsCenter={gpsBias}
                     disabled={submitting || locationLoading}
                     selectedPlaceId={originPlaceId}
+                    routeChrome={{
+                      caption: "De",
+                      active: addressSearchField === "origin",
+                      onActivate: () => setAddressSearchField("origin"),
+                      onOpenMap: () => openPinPicker("origin"),
+                    }}
                   />
                 </View>
 
                 <View className="mb-3">
-                  <TacticalLabel className="mb-1.5">
-                    Destino
-                  </TacticalLabel>
                   <AddressAutocomplete
                     value={destination.address}
                     onChangeText={(value) => {
@@ -1312,14 +1295,42 @@ export function ClientDashboard() {
                     }}
                     expandedList
                     keepActiveOnBlur
-                    autoFocus={addressSearchField === "destination"}
-                    placeholder="¿A dónde vas?"
+                    autoFocus={
+                      routeAutofocus && addressSearchField === "destination"
+                    }
+                    placeholder="A"
                     region={addressRegion}
                     gpsCenter={gpsBias}
                     disabled={submitting}
                     selectedPlaceId={destination.placeId}
+                    routeChrome={{
+                      caption: "A",
+                      active: addressSearchField === "destination",
+                      onActivate: () => setAddressSearchField("destination"),
+                      onOpenMap: () => openPinPicker("destination"),
+                    }}
                   />
                 </View>
+                <TouchableOpacity
+                  onPress={() =>
+                    setExtraDestinations((previous) => [
+                      ...previous,
+                      createEmptyAddressDraft(),
+                    ])
+                  }
+                  disabled={submitting}
+                  className="mb-3 py-1"
+                >
+                  <Text
+                    style={{
+                      fontFamily: POPPINS.semibold,
+                      fontSize: 14,
+                      color: HERCOM_COLORS.primary,
+                    }}
+                  >
+                    + Agregar parada
+                  </Text>
+                </TouchableOpacity>
 
                 {extraDestinations.map((stop, index) => (
                   <View
@@ -1423,6 +1434,7 @@ export function ClientDashboard() {
           <MapScreenLayout
             map={
               <MapView
+                key={userCoords === null ? "lima" : "gps"}
                 style={{ flex: 1 }}
                 provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
                 initialRegion={homeMapRegion}
@@ -1464,11 +1476,45 @@ export function ClientDashboard() {
             }
             bottomSheet={
               <UberBottomSheet height={homeSheetHeight}>
-                {requestSheetContent}
+                <HomeRequestSheet
+                  recents={recentDestinations}
+                  error={error}
+                  bottomInset={insets.bottom}
+                  onSearchPress={() => openAddressSearch("destination")}
+                  onSelectRecent={(place) => {
+                    setDestination({
+                      address: place.address,
+                      lat: place.lat,
+                      lng: place.lng,
+                      placeId: null,
+                    });
+                    setError(null);
+                    if (
+                      origin.trim() !== "" &&
+                      originLat !== null &&
+                      originLng !== null
+                    ) {
+                      setFlowStep("confirm");
+                      return;
+                    }
+                    openAddressSearch("destination");
+                  }}
+                />
               </UberBottomSheet>
             }
           />
         )}
+        {!addressSearchActive &&
+          (locationPrompt === "ask" ||
+            locationPrompt === "blocked" ||
+            locationPrompt === "gps-off") && (
+            <LocationAccessPrompt
+              mode={locationPrompt}
+              loading={locationLoading}
+              onAllow={() => void handleAllowLocation()}
+              onDismiss={() => setLocationPrompt("hidden")}
+            />
+          )}
         {drawer}
       </View>
     );

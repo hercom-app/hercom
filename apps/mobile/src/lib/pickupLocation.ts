@@ -76,6 +76,14 @@ export async function openDeviceLocationSettings(): Promise<void> {
   await Linking.openSettings();
 }
 
+/** Dirección y región de un punto elegido en el mapa. */
+export async function reverseGeocodePoint(
+  lat: number,
+  lng: number,
+): Promise<PickupLocationResult> {
+  return reverseGeocodePickup(lat, lng);
+}
+
 export async function detectPickupLocation(): Promise<PickupLocationResult> {
   await ensureLocationAccess();
 

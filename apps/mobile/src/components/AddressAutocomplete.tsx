@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { CloseGlyph, MapGlyph, PersonGlyph, SearchGlyph } from "./request/RouteIcons";
 import {
   createPlacesSessionToken,
   fetchPlaceDetails,
@@ -46,6 +47,16 @@ type AddressAutocompleteProps = {
    * Útil cuando el padre controla el sheet (evitar cierre por salto de layout).
    */
   keepActiveOnBlur?: boolean;
+  /**
+   * Campo del modal «Introduce tu ruta»: icono, aspa y mapa.
+   * `active` cierra las sugerencias cuando el foco pasa al otro campo.
+   */
+  routeChrome?: {
+    caption: "De" | "A";
+    onOpenMap: () => void;
+    onActivate?: () => void;
+    active?: boolean;
+  };
 };
 
 const DEBOUNCE_MS = 320;
@@ -65,6 +76,7 @@ export function AddressAutocomplete({
   expandedList = false,
   autoFocus = false,
   keepActiveOnBlur = false,
+  routeChrome,
 }: AddressAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -108,6 +120,14 @@ export function AddressAutocomplete({
     }, 80);
     return () => clearTimeout(timer);
   }, [autoFocus, disabled]);
+
+  useEffect(() => {
+    if (routeChrome?.active === false) {
+      setSearchActive(false);
+      setSuggestions([]);
+      setSearchError(null);
+    }
+  }, [routeChrome?.active]);
 
   useEffect(() => {
     if (!searchActive || !canSearch || suppressSearchRef.current || disabled) {
@@ -236,33 +256,129 @@ export function AddressAutocomplete({
     }
   }
 
+  function clearField() {
+    suppressSearchRef.current = true;
+    setSuggestions([]);
+    setSearchError(null);
+    setSearchActive(true);
+    onChangeText("");
+    onPlaceCleared?.();
+    inputRef.current?.focus();
+  }
+
+  const inputHandlers = {
+    ref: inputRef,
+    value,
+    onChangeText: handleChangeText,
+    placeholder,
+    placeholderTextColor: "rgba(91, 132, 177, 0.7)" as const,
+    editable: !disabled,
+    autoFocus,
+    onFocus: () => {
+      clearBlurTimeout();
+      suppressSearchRef.current = false;
+      setSearchActive(true);
+      routeChrome?.onActivate?.();
+    },
+    onBlur: () => {
+      if (keepActiveOnBlur) {
+        return;
+      }
+      clearBlurTimeout();
+      blurTimeoutRef.current = setTimeout(() => {
+        if (interactingWithListRef.current) {
+          return;
+        }
+        endSearch();
+      }, 220);
+    },
+  };
+
   return (
     <View>
+      {routeChrome !== undefined ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            backgroundColor:
+              routeChrome.caption === "De" ? "#F4F5F7" : "#FFFFFF",
+            borderRadius: 16,
+            borderWidth: routeChrome.caption === "A" ? 1.5 : 0,
+            borderColor: "#1C1E22",
+            paddingHorizontal: 12,
+            paddingVertical: routeChrome.caption === "De" ? 10 : 8,
+            minHeight: 58,
+          }}
+        >
+          {routeChrome.caption === "De" ? (
+            <PersonGlyph size={22} color="#111111" />
+          ) : (
+            <SearchGlyph size={22} color="#111111" />
+          )}
+          <View style={{ flex: 1 }}>
+            {routeChrome.caption === "De" && (
+              <Text
+                style={{
+                  fontFamily: POPPINS.medium,
+                  fontSize: 12,
+                  color: TACTICAL_COLORS.steel,
+                  marginBottom: 1,
+                }}
+              >
+                De
+              </Text>
+            )}
+            <TextInput
+              {...inputHandlers}
+              placeholder={routeChrome.caption === "A" ? "A" : placeholder}
+              placeholderTextColor="#98A2B3"
+              style={{
+                padding: 0,
+                margin: 0,
+                fontFamily: POPPINS.medium,
+                fontSize: 16,
+                color: disabled
+                  ? TACTICAL_COLORS.steel
+                  : TACTICAL_COLORS.textStrong,
+              }}
+            />
+          </View>
+          {value.trim() !== "" && (
+            <Pressable
+              onPress={clearField}
+              accessibilityLabel="Borrar"
+              hitSlop={8}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "rgba(15, 23, 42, 0.06)",
+              }}
+            >
+              <CloseGlyph size={14} color="#64748B" />
+            </Pressable>
+          )}
+          <Pressable
+            onPress={routeChrome.onOpenMap}
+            accessibilityLabel="Elegir en el mapa"
+            hitSlop={6}
+            style={{
+              width: 36,
+              height: 36,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <MapGlyph size={22} />
+          </Pressable>
+        </View>
+      ) : (
       <TextInput
-        ref={inputRef}
-        value={value}
-        onChangeText={handleChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="rgba(91, 132, 177, 0.7)"
-        editable={!disabled}
-        autoFocus={autoFocus}
-        onFocus={() => {
-          clearBlurTimeout();
-          suppressSearchRef.current = false;
-          setSearchActive(true);
-        }}
-        onBlur={() => {
-          if (keepActiveOnBlur) {
-            return;
-          }
-          clearBlurTimeout();
-          blurTimeoutRef.current = setTimeout(() => {
-            if (interactingWithListRef.current) {
-              return;
-            }
-            endSearch();
-          }, 220);
-        }}
+        {...inputHandlers}
         style={{
           backgroundColor: TACTICAL_COLORS.surfaceSunken,
           borderRadius: TACTICAL_RADIUS.sharp,
@@ -278,6 +394,7 @@ export function AddressAutocomplete({
             : TACTICAL_COLORS.textStrong,
         }}
       />
+      )}
 
       {!placesEnabled && (
         <Text

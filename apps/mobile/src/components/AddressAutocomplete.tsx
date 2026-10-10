@@ -72,11 +72,24 @@ type AddressAutocompleteProps = {
   resolvingLocation?: boolean;
   /** Lista con pin y distancia (modal Introduce tu ruta). */
   routeSuggestions?: boolean;
+  /**
+   * pickup: valida dept/provincia del recojo.
+   * destination: solo departamento (si hay), no exige misma provincia.
+   */
+  regionMatchMode?: "pickup" | "destination";
 };
 
 const DEBOUNCE_MS = 320;
 const LIST_MAX_HEIGHT = 280;
 const LIST_MAX_HEIGHT_EXPANDED = 420;
+
+function hasGpsCenter(center?: { lat: number; lng: number }): boolean {
+  return (
+    center !== undefined &&
+    Number.isFinite(center.lat) &&
+    Number.isFinite(center.lng)
+  );
+}
 
 function buildHighlightRanges(
   mainText: string,
@@ -177,6 +190,7 @@ export function AddressAutocomplete({
   routeChrome,
   resolvingLocation = false,
   routeSuggestions = false,
+  regionMatchMode = "pickup",
 }: AddressAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -189,15 +203,19 @@ export function AddressAutocomplete({
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const interactingWithListRef = useRef(false);
   const requestIdRef = useRef(0);
+  const selectingRef = useRef(false);
   const inputRef = useRef<TextInput>(null);
   const placesEnabled = isGooglePlacesConfigured();
   const canSearch = placesEnabled;
 
+  const routeNeedsGps = routeSuggestions && !hasGpsCenter(gpsCenter);
   const showSuggestions =
     searchActive &&
     !suppressSearchRef.current &&
     suggestions.length > 0 &&
-    !disabled;
+    !disabled &&
+    !loading &&
+    !routeNeedsGps;
 
   useEffect(() => {
     return () => {
@@ -267,8 +285,16 @@ export function AddressAutocomplete({
       return;
     }
 
+    if (routeSuggestions && !hasGpsCenter(gpsCenter)) {
+      setSuggestions([]);
+      setLoading(true);
+      setSearchError(null);
+      return;
+    }
+
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
+    setSuggestions([]);
     setLoading(true);
     setSearchError(null);
 
@@ -314,7 +340,15 @@ export function AddressAutocomplete({
         clearTimeout(debounceRef.current);
       }
     };
-  }, [canSearch, disabled, gpsCenter, region, searchActive, value]);
+  }, [
+    canSearch,
+    disabled,
+    gpsCenter,
+    region,
+    routeSuggestions,
+    searchActive,
+    value,
+  ]);
 
   function clearBlurTimeout() {
     if (blurTimeoutRef.current !== null) {
@@ -330,23 +364,37 @@ export function AddressAutocomplete({
     interactingWithListRef.current = false;
   }
 
+  function regionForPlaceValidation(): AddressRegionFilter {
+    if (regionMatchMode === "destination") {
+      return region.department !== ""
+        ? { department: region.department }
+        : { department: "" };
+    }
+    return region;
+  }
+
   async function handleSelectSuggestion(suggestion: PlaceSuggestion) {
+    if (selectingRef.current) {
+      return;
+    }
+    selectingRef.current = true;
     clearBlurTimeout();
     interactingWithListRef.current = false;
     suppressSearchRef.current = true;
-    endSearch();
     setLoading(true);
+    setSearchError(null);
     requestIdRef.current += 1;
     try {
       const place = await fetchPlaceDetails(
         suggestion.placeId,
         sessionTokenRef.current,
       );
-      if (!selectedPlaceMatchesRegion(place, region)) {
+      const validationRegion = regionForPlaceValidation();
+      if (!selectedPlaceMatchesRegion(place, validationRegion)) {
         throw new Error(
-          region.department === ""
+          validationRegion.department === ""
             ? "La dirección seleccionada no está en Perú."
-            : `La dirección está fuera de ${formatRegionScopeLabel(region)}.`,
+            : `La dirección está fuera de ${formatRegionScopeLabel(validationRegion)}.`,
         );
       }
       onChangeText(place.address);
@@ -367,6 +415,7 @@ export function AddressAutocomplete({
       );
     } finally {
       setLoading(false);
+      selectingRef.current = false;
     }
   }
 
@@ -581,7 +630,13 @@ export function AddressAutocomplete({
       {loading && searchActive && selectedPlaceId === null && (
         <View className="mt-2 flex-row items-center gap-2">
           <ActivityIndicator color={TACTICAL_COLORS.accent} size="small" />
-          <TacticalLabel>Buscando direcciones...</TacticalLabel>
+          <TacticalLabel>
+            {routeNeedsGps
+              ? "Esperando tu ubicación…"
+              : routeSuggestions
+                ? "Buscando destinos cerca de ti…"
+                : "Buscando direcciones..."}
+          </TacticalLabel>
         </View>
       )}
 
@@ -648,7 +703,9 @@ export function AddressAutocomplete({
                     interactingWithListRef.current = true;
                     clearBlurTimeout();
                   }}
-                  onPress={() => void handleSelectSuggestion(suggestion)}
+                  onPress={() => {
+                    void handleSelectSuggestion(suggestion);
+                  }}
                   style={({ pressed }) => ({
                     width: "100%",
                     paddingVertical: routeSuggestions ? 14 : 12,

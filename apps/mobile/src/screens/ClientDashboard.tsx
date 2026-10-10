@@ -862,13 +862,7 @@ export function ClientDashboard() {
     setPinField(null);
   }
 
-  function handleContinueToConfirm() {
-    if (!canContinue) {
-      setError(
-        "Completa origen y destino eligiendo una sugerencia de dirección.",
-      );
-      return;
-    }
+  function goToConfirmStep() {
     setError(null);
     setMessage(null);
     setAddressSearchField(null);
@@ -891,6 +885,16 @@ export function ClientDashboard() {
     Keyboard.dismiss();
     // Si no había teclado, keyboardDidHide no dispara.
     setTimeout(finish, Platform.OS === "ios" ? 320 : 180);
+  }
+
+  function handleContinueToConfirm() {
+    if (!canContinue) {
+      setError(
+        "Completa origen y destino eligiendo una sugerencia de dirección.",
+      );
+      return;
+    }
+    goToConfirmStep();
   }
 
   function closeAddressSearch() {
@@ -1300,16 +1304,18 @@ export function ClientDashboard() {
                         setDistrict(place.district);
                       }
                     }}
-                    onPlaceResolved={() => {
+                    onPlaceResolved={(place) => {
                       setRouteAutofocus(false);
-                      if (
+                      const originReady =
                         origin.trim() !== "" &&
                         originLat !== null &&
-                        originLng !== null
-                      ) {
-                        setTimeout(() => {
-                          handleContinueToConfirm();
-                        }, 100);
+                        originLng !== null;
+                      const destinationReady =
+                        place.address.trim() !== "" &&
+                        Number.isFinite(place.lat) &&
+                        Number.isFinite(place.lng);
+                      if (originReady && destinationReady) {
+                        goToConfirmStep();
                       }
                     }}
                     onPlaceCleared={() => {
@@ -1331,6 +1337,7 @@ export function ClientDashboard() {
                     disabled={submitting}
                     selectedPlaceId={destination.placeId}
                     routeSuggestions
+                    regionMatchMode="destination"
                     routeChrome={{
                       caption: "A",
                       active: addressSearchField === "destination",

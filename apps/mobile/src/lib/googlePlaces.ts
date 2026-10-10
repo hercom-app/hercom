@@ -362,7 +362,7 @@ export async function fetchPlaceSuggestions(
 
   // Google ya restringe a Perú (includedRegionCodes) y sesga por GPS.
   // La validación fuerte de departamento/provincia ocurre al elegir (Place Details).
-  return suggestions
+  const items = suggestions
     .map((suggestion): PlaceSuggestion | null => {
       const prediction = suggestion.placePrediction;
       if (prediction === undefined) {

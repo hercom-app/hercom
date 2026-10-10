@@ -22,6 +22,8 @@ import {
   formatRegionScopeLabel,
   formatSuggestionDistance,
   isGooglePlacesConfigured,
+  destinationRegionMismatchMessage,
+  selectedPlaceMatchesDestinationRegion,
   selectedPlaceMatchesRegion,
   type AddressRegionFilter,
   type PlaceSuggestion,
@@ -77,6 +79,8 @@ type AddressAutocompleteProps = {
    * destination: solo departamento (si hay), no exige misma provincia.
    */
   regionMatchMode?: "pickup" | "destination";
+  /** Región del recojo (De) — para validar destinos en dept. aledaños. */
+  pickupRegion?: AddressRegionFilter;
 };
 
 const DEBOUNCE_MS = 320;
@@ -191,6 +195,7 @@ export function AddressAutocomplete({
   resolvingLocation = false,
   routeSuggestions = false,
   regionMatchMode = "pickup",
+  pickupRegion,
 }: AddressAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -364,15 +369,6 @@ export function AddressAutocomplete({
     interactingWithListRef.current = false;
   }
 
-  function regionForPlaceValidation(): AddressRegionFilter {
-    if (regionMatchMode === "destination") {
-      return region.department !== ""
-        ? { department: region.department }
-        : { department: "" };
-    }
-    return region;
-  }
-
   async function handleSelectSuggestion(suggestion: PlaceSuggestion) {
     if (selectingRef.current) {
       return;
@@ -389,12 +385,20 @@ export function AddressAutocomplete({
         suggestion.placeId,
         sessionTokenRef.current,
       );
-      const validationRegion = regionForPlaceValidation();
-      if (!selectedPlaceMatchesRegion(place, validationRegion)) {
+      const pickup =
+        pickupRegion ??
+        (region.department !== "" ? { department: region.department } : region);
+      const placeAccepted =
+        regionMatchMode === "destination"
+          ? selectedPlaceMatchesDestinationRegion(place, pickup)
+          : selectedPlaceMatchesRegion(place, region);
+      if (!placeAccepted) {
         throw new Error(
-          validationRegion.department === ""
-            ? "La dirección seleccionada no está en Perú."
-            : `La dirección está fuera de ${formatRegionScopeLabel(validationRegion)}.`,
+          regionMatchMode === "destination"
+            ? destinationRegionMismatchMessage(pickup)
+            : region.department === ""
+              ? "La dirección seleccionada no está en Perú."
+              : `La dirección está fuera de ${formatRegionScopeLabel(region)}.`,
         );
       }
       onChangeText(place.address);

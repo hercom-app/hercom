@@ -299,6 +299,55 @@ export function selectedPlaceMatchesRegion(
   return true;
 }
 
+/**
+ * Departamentos vecinos para viajes urbanos (ej. Callao ↔ Lima).
+ * Ampliar según operación en otras ciudades.
+ */
+const ADJACENT_PERU_DEPARTMENTS: Record<string, readonly string[]> = {
+  Callao: ["Lima"],
+  Lima: ["Callao"],
+};
+
+function formatAdjacentDepartmentsLabel(originDepartment: string): string {
+  const neighbors = ADJACENT_PERU_DEPARTMENTS[originDepartment] ?? [];
+  if (neighbors.length === 0) {
+    return originDepartment;
+  }
+  return `${originDepartment} o ${neighbors.join(", ")}`;
+}
+
+/** Destino: mismo departamento del recojo o departamento aledaño permitido. */
+export function selectedPlaceMatchesDestinationRegion(
+  place: SelectedPlace,
+  pickupRegion: AddressRegionFilter,
+): boolean {
+  const placeDepartment = matchDepartment(place.department);
+  if (placeDepartment === undefined) {
+    return false;
+  }
+
+  if (pickupRegion.department === "") {
+    return true;
+  }
+
+  const originDepartment = pickupRegion.department;
+  if (placeDepartment === originDepartment) {
+    return true;
+  }
+
+  const neighbors = ADJACENT_PERU_DEPARTMENTS[originDepartment];
+  return neighbors?.includes(placeDepartment) ?? false;
+}
+
+export function destinationRegionMismatchMessage(
+  pickupRegion: AddressRegionFilter,
+): string {
+  if (pickupRegion.department === "") {
+    return "La dirección seleccionada no está en Perú.";
+  }
+  return `El destino debe estar en ${formatAdjacentDepartmentsLabel(pickupRegion.department)}.`;
+}
+
 export function formatRegionScopeLabel(region: AddressRegionFilter): string {
   if (region.department === "") {
     return "tu zona (GPS)";

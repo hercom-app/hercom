@@ -1338,6 +1338,11 @@ export function ClientDashboard() {
                     selectedPlaceId={destination.placeId}
                     routeSuggestions
                     regionMatchMode="destination"
+                    pickupRegion={{
+                      department,
+                      ...(province !== "" ? { province } : {}),
+                      ...(district !== "" ? { district } : {}),
+                    }}
                     routeChrome={{
                       caption: "A",
                       active: addressSearchField === "destination",

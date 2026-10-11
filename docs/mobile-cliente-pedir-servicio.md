@@ -1,5 +1,8 @@
 # Pantalla «¿Dónde necesitas un chofer de remplazo?» (móvil)
 
+> **Flujo y validaciones internas (producto + QA):** [`flujo-solicitud-servicio-cliente.md`](./flujo-solicitud-servicio-cliente.md) — incluye qué bloquea `createService`, identidad/APIs y auditoría.  
+> Este archivo es **referencia de diseño** legacy; la UI actual usa buscador único y modal «Introduce tu ruta».
+
 Referencia para diseño (Dribbble, Figma), desarrollo y capturas. Es el **paso 1**
 del flujo de pedido del **modo pasajero/cliente** (`flowStep === "compose"`).
 
@@ -112,7 +115,6 @@ navegación: es el mismo archivo, otro estado.
 App.tsx
   └─ Authenticated → HomeScreen
        └─ modo pasajero → ClientDashboard
-            ├─ identityComplete !== true → ClientIdentityForm
             ├─ menuSection historial → lista de servicios
             ├─ flowStep "compose"  ← ESTA PANTALLA
             │    └─ addressSearchActive → sheet «Busca tu dirección»
@@ -139,8 +141,8 @@ Estados clave en código:
 ## Capturas para Dribbble
 
 1. Usuario logueado en **modo pasajero** (no chofer).
-2. Identidad completada (`ClientIdentityForm` ya enviado).
-3. Pantalla compose sin sheet abierto → screenshot → `04-pedir-servicio.png`.
+2. Identidad **no** es requisito para capturar el pedido (opcional en Configuración).
+3. Pantalla inicio / compose sin sheet abierto → screenshot → `04-pedir-servicio.png`.
 
 Ver también: [`mobile-login-y-estructura.md`](mobile-login-y-estructura.md),
 [`guia-diseno.md`](guia-diseno.md).

@@ -14,6 +14,7 @@ import { PayoutsPanel } from "../components/PayoutsPanel";
 import { ServicesBoard } from "../components/ServicesBoard";
 import { ServiceLivePanel } from "../components/ServiceLivePanel";
 import { AdminPagination, usePagedItems } from "../components/AdminPagination";
+import { formatDateTime } from "../lib/formatDateTime";
 import { liveStatusLabel } from "../lib/liveTrip";
 import {
   EMPTY_REGION_FILTER,
@@ -88,6 +89,8 @@ export function ServicesView({
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-900">
+                      {formatDateTime(trip.requestedAt)}
+                      {" · "}
                       {liveStatusLabel(trip.status)}
                       {trip.hasGps ? " · GPS activo" : " · sin GPS aún"}
                     </p>

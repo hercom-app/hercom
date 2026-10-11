@@ -307,6 +307,7 @@ export const getForAdmin = query({
     return {
       serviceId: service._id,
       status: service.status,
+      requestedAt: service.requestedAt,
       isLive: LIVE_STATUSES.has(service.status),
       origin: service.origin,
       destination: service.destination,
@@ -346,6 +347,7 @@ export const listLiveForAdmin = query({
         return {
           serviceId: service._id,
           status: service.status,
+          requestedAt: service.requestedAt,
           originAddress: service.origin.address,
           destinationAddress: service.destination.address,
           totalPrice: service.totalPrice,

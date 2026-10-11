@@ -6,6 +6,7 @@ import { computeMapBounds, liveStatusLabel } from "../lib/liveTrip";
 import { AdminCard, AdminLoading } from "./AdminLayout";
 import { LiveTripMap } from "./LiveTripMap";
 import { btnGhostClass } from "../lib/adminUi";
+import { formatDateTime } from "../lib/formatDateTime";
 
 type ServiceLivePanelProps = {
   serviceId: Id<"services">;
@@ -62,11 +63,17 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
             Ubicación en tiempo real
           </h2>
           {live !== undefined && live !== null && (
-            <p className="mt-1 text-sm text-slate-500">
-              {liveStatusLabel(live.status)}
-              {live.driverName !== undefined ? ` · ${live.driverName}` : ""}
-              {lastUpdated !== null ? ` · act. ${lastUpdated}` : ""}
-            </p>
+            <>
+              <p className="mt-1 text-sm font-semibold text-slate-900">
+                Solicitado:{" "}
+                {formatDateTime(live.requestedAt)}
+              </p>
+              <p className="mt-0.5 text-sm text-slate-500">
+                {liveStatusLabel(live.status)}
+                {live.driverName !== undefined ? ` · ${live.driverName}` : ""}
+                {lastUpdated !== null ? ` · GPS act. ${lastUpdated}` : ""}
+              </p>
+            </>
           )}
         </div>
         <button type="button" onClick={onClose} className={`${btnGhostClass} shrink-0`}>

@@ -31,7 +31,7 @@ Móvil: `apps/mobile/src/` · Admin: `apps/web-admin/src/`
 
 | Momento | Cliente | Chofer | Web interna |
 | --- | --- | --- | --- |
-| **Pedir viaje** | Pedir servicio<br>`ClientDashboard.tsx` | — | Tablero · Pendiente<br>`ServicesView.tsx`<br>`ServicesBoard.tsx` |
+| **Pedir viaje** | Pedir servicio<br>`ClientDashboard.tsx`<br>Flujo: [`flujo-solicitud-servicio-cliente.md`](./flujo-solicitud-servicio-cliente.md) | — | Tablero · Pendiente<br>`ServicesView.tsx`<br>`ServicesBoard.tsx` |
 | **Entregar oferta** | Ofertas recibidas<br>`ClientDashboard.tsx` | Solicitudes abiertas<br>`DriverDashboard.tsx` | Tablero · Pendiente<br>`ServicesBoard.tsx` |
 | **Aceptar oferta** | Aceptar chofer<br>`DriverOfferModal.tsx` | Espera asignación<br>`DriverDashboard.tsx` | Tablero · Asignado<br>`ServicesBoard.tsx` |
 | **Adelanto** | Transferir 25%<br>`AdvancePayoutModal.tsx` | Confirmar anticipo<br>`ServiceCard.tsx` | Columna Anticipo<br>`ServicesBoard.tsx` |

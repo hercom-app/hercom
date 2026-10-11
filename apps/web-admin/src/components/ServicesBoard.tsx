@@ -17,6 +17,7 @@ import {
   tdClass,
   thClass,
 } from "../lib/adminUi";
+import { formatServiceRequestedAt } from "../lib/formatDateTime";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "Pendiente",
@@ -77,6 +78,7 @@ export function ServicesBoard({
           <table className={tableClass}>
             <thead className={tableHeadClass}>
               <tr>
+                <th className={thClass}>Fecha y hora</th>
                 <th className={thClass}>Tipo</th>
                 <th className={thClass}>Canal</th>
                 <th className={thClass}>Región</th>
@@ -110,6 +112,11 @@ export function ServicesBoard({
                       selectedId === service._id ? "bg-sky-50/80" : ""
                     }`}
                   >
+                    <td
+                      className={`${tdClass} whitespace-nowrap text-xs font-semibold text-slate-900`}
+                    >
+                      {formatServiceRequestedAt(service)}
+                    </td>
                     <td className={tdClass}>
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${typeMeta.badgeClass}`}

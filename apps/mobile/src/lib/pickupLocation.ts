@@ -84,22 +84,53 @@ export async function reverseGeocodePoint(
   return reverseGeocodePickup(lat, lng);
 }
 
-export async function detectPickupLocation(): Promise<PickupLocationResult> {
+export type PickupCoordinates = {
+  lat: number;
+  lng: number;
+};
+
+/** Solo GPS — rápido (última posición conocida o fix actual). */
+export async function readPickupCoordinates(): Promise<PickupCoordinates> {
   await ensureLocationAccess();
+
+  const lastKnown = await Location.getLastKnownPositionAsync();
+  if (lastKnown !== null) {
+    return {
+      lat: lastKnown.coords.latitude,
+      lng: lastKnown.coords.longitude,
+    };
+  }
 
   const position = await Location.getCurrentPositionAsync({
     accuracy: Location.Accuracy.Balanced,
   });
 
-  const result = await reverseGeocodePickup(
-    position.coords.latitude,
-    position.coords.longitude,
-  );
+  return {
+    lat: position.coords.latitude,
+    lng: position.coords.longitude,
+  };
+}
+
+export async function detectPickupLocation(): Promise<PickupLocationResult> {
+  const coords = await readPickupCoordinates();
+  const result = await reverseGeocodePickup(coords.lat, coords.lng);
 
   return {
     ...result,
-    lat: position.coords.latitude,
-    lng: position.coords.longitude,
+    lat: coords.lat,
+    lng: coords.lng,
+  };
+}
+
+/** Coordenadas ya obtenidas + dirección (sin volver a pedir GPS). */
+export async function resolvePickupAddress(
+  coords: PickupCoordinates,
+): Promise<PickupLocationResult> {
+  const result = await reverseGeocodePickup(coords.lat, coords.lng);
+  return {
+    ...result,
+    lat: coords.lat,
+    lng: coords.lng,
   };
 }
 

@@ -62,6 +62,8 @@ import {
   ensureLocationAccess,
   getLocationAccessStatus,
   openDeviceLocationSettings,
+  readPickupCoordinates,
+  resolvePickupAddress,
   type PickupLocationResult,
 } from "../lib/pickupLocation";
 import { recentDestinationsFromServices } from "../lib/recentDestinations";
@@ -550,6 +552,7 @@ export function ClientDashboard() {
     origin.trim() !== "" &&
     originLat !== null &&
     originLng !== null &&
+    department.trim() !== "" &&
     destination.address.trim() !== "" &&
     destination.lat !== null &&
     destination.lng !== null;
@@ -672,6 +675,29 @@ export function ClientDashboard() {
     setOriginPlaceId(null);
   }
 
+  function applyPickupCoordinates(coords: { lat: number; lng: number }) {
+    setUserCoords(coords);
+    setShowsBlueDot(true);
+    if (originValueRef.current.trim() !== "") {
+      return;
+    }
+    setOriginLat(coords.lat);
+    setOriginLng(coords.lng);
+    setOriginPlaceId(null);
+  }
+
+  function geocodePickupInBackground(coords: { lat: number; lng: number }) {
+    void resolvePickupAddress(coords)
+      .then((result) => {
+        rememberDetectedOrigin(result);
+      })
+      .catch(() => {
+        if (originValueRef.current.trim() === "") {
+          setOrigin("Ubicación actual");
+        }
+      });
+  }
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -680,10 +706,12 @@ export function ClientDashboard() {
         const status = await getLocationAccessStatus();
         if (cancelled) return;
         if (status.permissionGranted && status.servicesEnabled) {
-          const result = await detectPickupLocation();
+          const coords = await readPickupCoordinates();
           if (cancelled) return;
-          rememberDetectedOrigin(result);
+          applyPickupCoordinates(coords);
           setLocationPrompt("hidden");
+          setPickupResolving(false);
+          geocodePickupInBackground(coords);
           return;
         }
         if (!status.permissionGranted) {
@@ -713,22 +741,26 @@ export function ClientDashboard() {
       if (nextState !== "active") {
         return;
       }
+      if (originValueRef.current.trim() !== "" && originLat !== null) {
+        return;
+      }
       void (async () => {
         const status = await getLocationAccessStatus();
         if (!status.permissionGranted || !status.servicesEnabled) {
           return;
         }
         try {
-          const result = await detectPickupLocation();
-          rememberDetectedOrigin(result);
+          const coords = await readPickupCoordinates();
+          applyPickupCoordinates(coords);
           setLocationPrompt("hidden");
+          geocodePickupInBackground(coords);
         } catch {
           setShowsBlueDot(false);
         }
       })();
     });
     return () => subscription.remove();
-  }, []);
+  }, [originLat]);
 
   function applySelectedPlace(
     place: SelectedPlace,
@@ -814,9 +846,11 @@ export function ClientDashboard() {
     setError(null);
     try {
       await ensureLocationAccess();
-      const result = await detectPickupLocation();
-      rememberDetectedOrigin(result);
+      const coords = await readPickupCoordinates();
+      applyPickupCoordinates(coords);
       setLocationPrompt("hidden");
+      setPickupResolving(false);
+      geocodePickupInBackground(coords);
     } catch {
       const status = await getLocationAccessStatus();
       setShowsBlueDot(false);
@@ -923,10 +957,18 @@ export function ClientDashboard() {
       origin.trim() === "" ||
       destination.address.trim() === "" ||
       department === "" ||
+      originLat === null ||
+      originLng === null ||
+      destination.lat === null ||
+      destination.lng === null ||
       listPrice < minServicePrice
     ) {
       setError(
-        `Completa origen, destino y al menos ${minServiceHours}h (${currencySymbol}${minServicePrice}).`,
+        department === ""
+          ? "Espera a que cargue tu dirección de recojo o elígela en el mapa."
+          : destination.lat === null || destination.lng === null
+            ? "Elige el destino desde la lista de sugerencias o el mapa."
+            : `Completa origen, destino y al menos ${minServiceHours}h (${currencySymbol}${minServicePrice}).`,
       );
       return;
     }
@@ -1307,13 +1349,19 @@ export function ClientDashboard() {
                     onPlaceResolved={(place) => {
                       setRouteAutofocus(false);
                       const originReady =
-                        origin.trim() !== "" &&
                         originLat !== null &&
-                        originLng !== null;
+                        originLng !== null &&
+                        department.trim() !== "";
                       const destinationReady =
                         place.address.trim() !== "" &&
                         Number.isFinite(place.lat) &&
                         Number.isFinite(place.lng);
+                      if (!originReady) {
+                        setError(
+                          "Espera a que cargue tu punto de recojo (De) y vuelve a elegir el destino.",
+                        );
+                        return;
+                      }
                       if (originReady && destinationReady) {
                         goToConfirmStep();
                       }

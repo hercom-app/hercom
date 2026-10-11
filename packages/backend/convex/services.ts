@@ -17,7 +17,6 @@ import {
   computePlatformCommissionForService,
 } from "./lib/pricing";
 import { requireDriver, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
-import { requireClientIdentity } from "./lib/identity";
 import { filterServicesByAccess, getAccessContext, isStaffRole, originMatchesDistrictScopes } from "./lib/adminAccess";
 import {
   debitCommissionForService,
@@ -42,7 +41,6 @@ export const createService = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    requireClientIdentity(user);
     const origin = normalizeServiceLocation(args.origin);
     const destination = normalizeServiceLocation(args.destination);
     const market = await getMarketByCountry(ctx, origin.countryCode);

@@ -82,6 +82,40 @@ En todas las vistas hay bloque **Filtros de región**: departamento, provincia (
 
 Incluye **pagos pendientes** y **comisiones pendientes**.
 
+#### Columnas del listado (tabla Convex `services`)
+
+Todos los datos vienen de la query `services.listAllForAdmin` (documentos en la tabla **`services`**).
+
+| Columna en pantalla | Campo(s) en BD | Significado |
+| --- | --- | --- |
+| **Fecha y hora** | `requestedAt` (fallback `_creationTime`) | Cuándo el cliente (o admin) creó la solicitud (hora Lima). |
+| **Producto** (badge) | `serviceType` | **Tipo comercial** — cómo se opera el viaje. Solo **2** valores: `app` (autoservicio, cliente en móvil) y `premium` (gestionado por operaciones). Default si falta: `app`. |
+| **Canal:** (debajo del badge) | `requestChannel` | **Por dónde se registró** la solicitud. **3** valores: `mobile_app`, `web_comercial`, `phone`. Default: `mobile_app`. |
+| **Región recojo** | `origin.department`, `origin.province`, `origin.district` | Zona administrativa del **punto de recojo**, no del destino. |
+| **Origen (De)** | `origin.address` | Dirección textual del recojo (+ lat/lng en mapa). |
+| **Destino (A)** | `destination.address` | Dirección textual del destino. |
+| **Promo** | `promotionName` | Campaña festiva aplicada al precio, si hubo. |
+| **Total** | `totalPrice` | Lo que paga el cliente (con promo si aplica). |
+| **Comisión** | `driverCommission` | Comisión de plataforma descontada al chofer. |
+| **Anticipo** | `advanceAmount`, `advanceConfirmedAt` | 25% sobre oferta; ✓ si el cliente confirmó pago. |
+| **Estado** | `status` | Ciclo del viaje (pending, assigned, …). |
+| **Cód. inicio** | `securityCode` | PIN de **4 dígitos** generado al asignar chofer o aceptar oferta; cliente y chofer lo usan en la app para **arrancar el viaje**. Vacío (`—`) mientras el servicio está `pending` sin confirmación. Clic en origen/destino abre modal con direcciones completas. |
+
+**Tipo vs canal (resumen):**
+
+- **Tipo (`serviceType`)** = categoría de negocio: viaje normal de app vs viaje **premium** (teléfono/web, a menudo cargado por admin).
+- **Canal (`requestChannel`)** = dispositivo o medio del **registro**: app móvil del cliente, formulario web comercial, o llamada telefónica (admin).
+
+Combinaciones habituales:
+
+| Tipo | Canal | Quién lo crea |
+| --- | --- | --- |
+| `app` | `mobile_app` | Cliente en APK |
+| `premium` | `phone` | Admin en panel (premium) |
+| `premium` | `web_comercial` | Web comercial / admin |
+
+Etiquetas en UI: `apps/web-admin/src/lib/serviceLabels.ts`. Esquema: `packages/backend/convex/schema.ts` (`serviceTypeValidator`, `serviceRequestChannelValidator`).
+
 ### Promociones
 
 | Filtro | Uso |

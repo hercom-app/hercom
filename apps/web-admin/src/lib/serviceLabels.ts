@@ -1,5 +1,6 @@
 import type { Doc } from "@proyecto/backend/dataModel";
 
+/** Tabla `services`, campo `serviceType` — 2 valores: app | premium. */
 export const SERVICE_TYPE_LABELS: Record<
   NonNullable<Doc<"services">["serviceType"]>,
   { label: string; badgeClass: string }
@@ -8,6 +9,7 @@ export const SERVICE_TYPE_LABELS: Record<
   premium: { label: "Premium", badgeClass: "bg-violet-100 text-violet-800" },
 };
 
+/** Tabla `services`, campo `requestChannel` — 3 valores. */
 export const REQUEST_CHANNEL_LABELS: Record<
   NonNullable<Doc<"services">["requestChannel"]>,
   string

@@ -87,10 +87,21 @@ export function SlideToConfirm({
     }
   }
 
+  const slideHint = disabled
+    ? "Acción deshabilitada. Completa los pasos anteriores."
+    : loading
+      ? "Procesando acción"
+      : label;
+
   return (
     <View
       onLayout={handleTrackLayout}
       className="h-14 w-full px-1"
+      accessible
+      accessibilityRole="adjustable"
+      accessibilityLabel={slideHint}
+      accessibilityHint="Desliza el control hacia la derecha para confirmar"
+      accessibilityState={{ disabled: disabled || loading }}
       style={{
         justifyContent: "center",
         backgroundColor: disabled

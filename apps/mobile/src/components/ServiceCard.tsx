@@ -14,7 +14,11 @@ import {
   TacticalText,
   TacticalValue,
 } from "./tactical";
-import { formatServiceStopsLabel, openWazeNavigation } from "../lib/wazeNavigation";
+import {
+  formatServiceStopsLabel,
+  hasReliableCoordinates,
+  openWazeNavigation,
+} from "../lib/wazeNavigation";
 import { MONO, TACTICAL_COLORS } from "../constants/theme";
 
 const CLIENT_ADVANCE_RATE = 0.25;
@@ -57,7 +61,8 @@ export const ServiceCard = memo(function ServiceCard({
     serviceId: service._id,
   });
 
-  const canStartTrip = securityCodeInput.trim().length > 0;
+  const securityCodeDigits = securityCodeInput.replace(/\D/g, "").slice(0, 4);
+  const canStartTrip = securityCodeDigits.length === 4;
   const checklistComplete =
     pickupChecklist !== null &&
     pickupChecklist !== undefined &&
@@ -79,6 +84,7 @@ export const ServiceCard = memo(function ServiceCard({
   ];
   const currentStopIndex = service.currentStopIndex ?? 0;
   const currentStop = serviceStops[Math.min(currentStopIndex, serviceStops.length - 1)]!;
+  const firstNavigationStop = serviceStops[0]!;
   const totalStops = serviceStops.length;
   const canShowLive =
     service.status === "heading_to_pickup" ||
@@ -141,9 +147,9 @@ export const ServiceCard = memo(function ServiceCard({
     try {
       await startTripWithCode({
         serviceId: service._id,
-        code: securityCodeInput,
+        code: securityCodeDigits,
       });
-      await openWazeNavigation(service.destination);
+      await openWazeNavigation(firstNavigationStop);
     } catch (error) {
       setActionError(
         error instanceof Error ? error.message : "No se pudo iniciar el viaje.",
@@ -238,20 +244,6 @@ export const ServiceCard = memo(function ServiceCard({
         </View>
       )}
 
-      {service.securityCode !== undefined && service.status !== "finished" && (
-        <View className="mb-3 flex-row items-center justify-between px-4 py-3"
-          style={{
-            backgroundColor: "rgba(11, 112, 254, 0.08)",
-            borderRadius: 12,
-          }}
-        >
-          <TacticalLabel>Código de seguridad</TacticalLabel>
-          <TacticalValue size={15} tone="accent">
-            {service.securityCode}
-          </TacticalValue>
-        </View>
-      )}
-
       {service.status === "assigned" && (
         <View className="gap-2">
           <TacticalPanel tone="sunken" className="p-3">
@@ -294,48 +286,98 @@ export const ServiceCard = memo(function ServiceCard({
       )}
 
       {service.status === "heading_to_pickup" && (
-        <TacticalButton
-          label="Llegué al punto de partida"
-          size="md"
-          onPress={() => void handleArrivedPickup()}
-        />
+        <View className="gap-2">
+          <TacticalPanel tone="sunken" className="p-3">
+            <TacticalText size={14} tone="text">
+              Cuando llegues al origen, confirma abajo. Luego completarás el
+              checklist y el código de 4 dígitos que ve el cliente.
+            </TacticalText>
+          </TacticalPanel>
+          <TacticalButton
+            label="Llegué al punto de partida"
+            size="md"
+            accessibilityLabel="Confirmar llegada al punto de partida"
+            onPress={() => void handleArrivedPickup()}
+          />
+        </View>
       )}
 
       {service.status === "arrived_pickup" && (
-        <View className="gap-2">
-          <TacticalButton
-            label="Abrir checklist"
-            variant="secondary"
-            size="md"
-            onPress={() => onOpenChecklist?.(service._id)}
-          />
+        <View className="gap-3">
+          <TacticalLabel tone="accent" size={13}>
+            Pasos para iniciar el viaje
+          </TacticalLabel>
 
-          <View className="items-center">
+          <TacticalPanel tone="sunken" className="gap-2 p-3">
+            <TacticalLabel tone="text">1. Checklist del vehículo</TacticalLabel>
+            <TacticalText size={13} tone="text">
+              Tarjeta de propiedad, SOAT, revisión técnica y daños (si aplica).
+            </TacticalText>
+            <TacticalButton
+              label={
+                checklistComplete ? "Revisar checklist" : "Completar checklist"
+              }
+              variant="secondary"
+              size="md"
+              accessibilityLabel="Abrir checklist de recojo"
+              onPress={() => onOpenChecklist?.(service._id)}
+            />
             <TacticalStatus
-              label={checklistComplete ? "Checklist listo" : "Checklist pendiente"}
+              label={checklistComplete ? "Listo" : "Pendiente"}
               tone={checklistComplete ? "success" : "warning"}
             />
-          </View>
+          </TacticalPanel>
 
-          <TacticalInput
-            label="Código del cliente"
-            mono
-            value={securityCodeInput}
-            onChangeText={setSecurityCodeInput}
-            keyboardType="number-pad"
-            placeholder="000000"
-            maxLength={6}
-            blurOnSubmit={false}
-            autoCorrect={false}
-            autoComplete="off"
-          />
-          <SlideToConfirm
-            label="Desliza para iniciar viaje"
-            onSlideComplete={handleSlideStartTrip}
-            disabled={!checklistComplete}
-            loading={tripStarting}
-            resetSignal={slideResetCounter}
-          />
+          <TacticalPanel tone="sunken" className="gap-2 p-3">
+            <TacticalLabel tone="text">
+              2. Código de seguridad (4 dígitos)
+            </TacticalLabel>
+            <TacticalText size={13} tone="text">
+              Pídele al cliente el código que aparece en su app antes de salir.
+            </TacticalText>
+            <TacticalInput
+              label="Código del cliente"
+              mono
+              value={securityCodeDigits}
+              onChangeText={(value) =>
+                setSecurityCodeInput(value.replace(/\D/g, "").slice(0, 4))
+              }
+              keyboardType="number-pad"
+              placeholder="0000"
+              maxLength={4}
+              blurOnSubmit={false}
+              autoCorrect={false}
+              autoComplete="off"
+              textContentType="oneTimeCode"
+              accessibilityHint="Cuatro números que muestra la app del cliente"
+            />
+          </TacticalPanel>
+
+          <TacticalPanel tone="sunken" className="gap-2 p-3">
+            <TacticalLabel tone="text">3. Ruta en Waze</TacticalLabel>
+            <TacticalText size={13} tone="text">
+              {`Al deslizar, se abrirá Waze hacia: ${firstNavigationStop.address}`}
+            </TacticalText>
+            {!hasReliableCoordinates(firstNavigationStop) && (
+              <TacticalText size={12} tone="text">
+                Usaremos la dirección escrita si el GPS del destino no está
+                disponible.
+              </TacticalText>
+            )}
+            <SlideToConfirm
+              label={
+                checklistComplete && canStartTrip
+                  ? "Desliza para iniciar viaje"
+                  : checklistComplete
+                    ? "Ingresa el código de 4 dígitos"
+                    : "Completa el checklist primero"
+              }
+              onSlideComplete={handleSlideStartTrip}
+              disabled={!checklistComplete || !canStartTrip}
+              loading={tripStarting}
+              resetSignal={slideResetCounter}
+            />
+          </TacticalPanel>
         </View>
       )}
 
@@ -371,7 +413,10 @@ export const ServiceCard = memo(function ServiceCard({
 
       {actionError !== null && (
         <Text
-          className="mt-2 text-xs"
+          accessible
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          className="mt-2 text-sm"
           style={{ fontFamily: MONO.medium, color: TACTICAL_COLORS.danger }}
         >
           {actionError}

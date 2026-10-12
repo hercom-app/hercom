@@ -23,6 +23,7 @@ import {
   convexErrorMessage,
   isInsufficientBalanceError,
 } from "../lib/convexErrorMessage";
+import { isActiveServiceStatus } from "../lib/serviceStatus";
 import { formatServiceStopsLabel } from "../lib/wazeNavigation";
 import type { Id } from "@proyecto/backend/dataModel";
 import { ChecklistRecojoScreen } from "./ChecklistRecojoScreen";
@@ -142,15 +143,10 @@ export function DriverDashboard() {
     );
   }
 
-  const activeServices = (services ?? []).filter(
-    (s) =>
-      s.status === "assigned" ||
-      s.status === "heading_to_pickup" ||
-      s.status === "arrived_pickup" ||
-      s.status === "in_progress" ||
-      s.status === "arrived_destination" ||
-      s.status === "en_route",
+  const activeServices = (services ?? []).filter((s) =>
+    isActiveServiceStatus(s.status),
   );
+  const hasActiveService = activeServices.length > 0;
   const unreadNotifications = (notifications ?? []).filter(
     (notification) => notification.readAt === undefined,
   ).length;
@@ -421,29 +417,36 @@ export function DriverDashboard() {
           </ScrollView>
         ) : (
           <>
-            <AvailabilityToggle status={driver.status} />
+            {!(menuSection === "servicios" && hasActiveService) && (
+              <>
+                <AvailabilityToggle status={driver.status} />
 
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => setMenuSection("saldo")}
-              className="mb-3 flex-row items-center justify-between px-5 py-4"
-              style={{
-                backgroundColor: TACTICAL_COLORS.surface,
-                borderRadius: TACTICAL_RADIUS.panel,
-                shadowColor: "#0F172A",
-                shadowOpacity: 0.06,
-                shadowRadius: 12,
-                shadowOffset: { width: 0, height: 3 },
-                elevation: 2,
-              }}
-            >
-              <TacticalLabel>Saldo disponible</TacticalLabel>
-              <TacticalValue size={15} tone="accent">
-                {`S/${(wallet?.balance ?? 0).toFixed(2)} ›`}
-              </TacticalValue>
-            </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setMenuSection("saldo")}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Saldo disponible, ${(wallet?.balance ?? 0).toFixed(2)} soles. Abrir recargas`}
+                  className="mb-3 flex-row items-center justify-between px-5 py-4"
+                  style={{
+                    backgroundColor: TACTICAL_COLORS.surface,
+                    borderRadius: TACTICAL_RADIUS.panel,
+                    shadowColor: "#0F172A",
+                    shadowOpacity: 0.06,
+                    shadowRadius: 12,
+                    shadowOffset: { width: 0, height: 3 },
+                    elevation: 2,
+                    minHeight: 48,
+                  }}
+                >
+                  <TacticalLabel>Saldo disponible</TacticalLabel>
+                  <TacticalValue size={15} tone="accent">
+                    {`S/${(wallet?.balance ?? 0).toFixed(2)} ›`}
+                  </TacticalValue>
+                </TouchableOpacity>
+              </>
+            )}
 
-            {(menuSection === "ofertas" || menuSection === "servicios") && (
+            {menuSection === "ofertas" && (
               <View className="mb-4 overflow-hidden">
                 <TacticalPanel corners>
                   <TacticalLabel tone="accent" className="mb-2">
@@ -688,10 +691,19 @@ export function DriverDashboard() {
                   />
                 )}
                 ListEmptyComponent={
-                  <TacticalEmpty
-                    title="Sin servicios activos"
-                    subtitle="Cuando acepten una oferta, el viaje aparece aquí."
-                  />
+                  <View className="gap-3">
+                    <TacticalEmpty
+                      title="Sin viaje activo"
+                      subtitle="Aquí verás solo el servicio en curso. Las solicitudes para ofertar están en la pestaña Ofertas."
+                    />
+                    <TacticalButton
+                      label="Ver solicitudes para ofertar"
+                      variant="secondary"
+                      size="md"
+                      accessibilityLabel="Ir a solicitudes para ofertar"
+                      onPress={() => setMenuSection("ofertas")}
+                    />
+                  </View>
                 }
                 showsVerticalScrollIndicator={false}
               />

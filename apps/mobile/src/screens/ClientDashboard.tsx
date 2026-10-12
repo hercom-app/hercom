@@ -68,6 +68,7 @@ import {
   type PickupLocationResult,
 } from "../lib/pickupLocation";
 import { recentDestinationsFromServices } from "../lib/recentDestinations";
+import { isActiveServiceStatus } from "../lib/serviceStatus";
 import { formatServiceStopsLabel } from "../lib/wazeNavigation";
 import { useAppMode } from "../contexts/AppModeContext";
 import { HERCOM_COLORS, TACTICAL_BORDER, TACTICAL_COLORS, TACTICAL_RADIUS, MONO, POPPINS } from "../constants/theme";
@@ -610,12 +611,10 @@ export function ClientDashboard() {
   const homeSheetHeight = Math.round(
     Math.min(640, Math.max(460, screenHeight * 0.64)),
   );
-  const activeTrip = (services ?? []).find(
-    (service) =>
-      service.status !== "finished" &&
-      service.status !== "cancelled" &&
-      service.status !== "unattended",
+  const activeClientServices = (services ?? []).filter((service) =>
+    isActiveServiceStatus(service.status),
   );
+  const activeTrip = activeClientServices[0];
   const homeMapRegion =
     userCoords !== null
       ? {
@@ -1131,13 +1130,13 @@ export function ClientDashboard() {
             </UiCard>
           ) : services === undefined ? (
             <ActivityIndicator color={TACTICAL_COLORS.accent} />
-          ) : services.length === 0 ? (
+          ) : activeClientServices.length === 0 ? (
             <UiEmpty
-              title="Aún no tienes solicitudes."
-              subtitle="Cuando pidas un servicio, aparece aquí."
+              title="No tienes un viaje activo"
+              subtitle="Cuando pidas un servicio y esté en curso, lo verás aquí. Los viajes finalizados o cancelados no se listan en esta pantalla."
             />
           ) : (
-            services.map((service) => (
+            activeClientServices.map((service) => (
               <ClientServiceCard key={service._id} service={service} />
             ))
           )}

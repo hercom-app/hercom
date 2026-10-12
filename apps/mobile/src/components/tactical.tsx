@@ -394,6 +394,7 @@ type TacticalButtonProps = {
   variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "lg" | "md";
   className?: string;
+  accessibilityLabel?: string;
 };
 
 /** CTA — azul Hercom sólido, sin glow. */
@@ -405,6 +406,7 @@ export function TacticalButton({
   variant = "primary",
   size = "lg",
   className = "",
+  accessibilityLabel,
 }: TacticalButtonProps) {
   const { colors, border } = useAppTheme();
   const isPrimary = variant === "primary";
@@ -432,6 +434,9 @@ export function TacticalButton({
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.82}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       className={`items-center justify-center px-5 ${
         size === "lg" ? "h-16" : "h-14"
       } ${disabled || loading ? "opacity-45" : ""} ${className}`.trim()}
@@ -480,6 +485,7 @@ export function TacticalInput({
       )}
       <TextInput
         placeholderTextColor={colors.steel}
+        accessibilityLabel={props.accessibilityLabel ?? label}
         {...props}
         style={[
           {

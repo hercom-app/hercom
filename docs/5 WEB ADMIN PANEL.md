@@ -76,7 +76,7 @@ En todas las vistas hay bloque **Filtros de región**: departamento, provincia (
 | Filtro | Uso |
 | --- | --- |
 | Región | Origen del recojo |
-| Estado | pending → finished / cancelled |
+| Estado | pending → finished; cierres: **No atendido** o **Cancelado** (ver abajo) |
 | Tipo | App o premium |
 | Canal | App móvil, web comercial, teléfono |
 
@@ -98,7 +98,7 @@ Todos los datos vienen de la query `services.listAllForAdmin` (documentos en la 
 | **Total** | `totalPrice` | Lo que paga el cliente (con promo si aplica). |
 | **Comisión** | `driverCommission` | Comisión de plataforma descontada al chofer. |
 | **Anticipo** | `advanceAmount`, `advanceConfirmedAt` | 25% sobre oferta; ✓ si el cliente confirmó pago. |
-| **Estado** | `status` | Ciclo del viaje (pending, assigned, …). |
+| **Estado** | `status`, `closureReason` | Ciclo del viaje. **`unattended`** = No atendido en BD; **`cancelled`** = cancelado por persona. |
 | **Cód. inicio** | `securityCode` | PIN de **4 dígitos** generado al asignar chofer o aceptar oferta; cliente y chofer lo usan en la app para **arrancar el viaje**. Vacío (`—`) mientras el servicio está `pending` sin confirmación. Clic en origen/destino abre modal con direcciones completas. |
 
 **Tipo vs canal (resumen):**
@@ -115,6 +115,19 @@ Combinaciones habituales:
 | `premium` | `web_comercial` | Web comercial / admin |
 
 Etiquetas en UI: `apps/web-admin/src/lib/serviceLabels.ts`. Esquema: `packages/backend/convex/schema.ts` (`serviceTypeValidator`, `serviceRequestChannelValidator`).
+
+#### No atendido vs Cancelado (métrica gerencial)
+
+| Etiqueta en panel | `status` en BD | Cuándo |
+| --- | --- | --- |
+| **No atendido** | `unattended` | Cron `expireStalePending`: `pending` superó **2 h** sin chofer. |
+| **Cancelado** | `cancelled` | Cliente (`cancelService`) o staff (`updateStatus` / admin). Detalle opcional en `closureReason`: `cancelled_by_client` / `cancelled_by_staff`. |
+
+Registros legacy `cancelled` sin chofer: migrar con `internal/services:backfillUnattendedStatus`.
+
+Filtros **Servicios** / **Ingresos**: estado `unattended` o `cancelled`. Ingresos: tarjetas `unattendedTrips` y `cancelledTrips`.
+
+Lógica compartida: `packages/backend/convex/lib/serviceClosure.ts` (export `@proyecto/backend/serviceClosure`).
 
 ### Promociones
 

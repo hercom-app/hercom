@@ -25,6 +25,11 @@ import {
 import { createNotification } from "./notifications";
 import { getCurrentStop, getServiceStops } from "./lib/serviceStops";
 import { ensureServiceTracking } from "./serviceTracking";
+import {
+  isTerminalServiceStatus,
+  isUnattendedService,
+} from "./lib/serviceClosure";
+import type { ServiceClosureReason } from "./lib/serviceClosure";
 
 /**
  * Crea una solicitud de servicio (cliente autenticado).
@@ -235,10 +240,7 @@ export const expireStalePending = internalMutation({
     const now = Date.now();
     for (const service of pending) {
       if (service.requestedAt < cutoff) {
-        await ctx.db.patch(service._id, {
-          status: "cancelled",
-          cancelledAt: now,
-        });
+        await ctx.db.patch(service._id, unattendedServicePatch(now));
         expired += 1;
       }
     }
@@ -374,6 +376,7 @@ const DRIVER_TRANSITIONS: Record<Doc<"services">["status"], Doc<"services">["sta
   arrived_destination: ["finished"],
   en_route: ["arrived_destination", "finished", "cancelled"],
   finished: [],
+  unattended: [],
   cancelled: [],
 };
 
@@ -505,10 +508,10 @@ export const updateStatus = mutation({
     }
 
     if (args.status === "cancelled") {
-      await ctx.db.patch(service._id, {
-        status: "cancelled",
-        cancelledAt: Date.now(),
-      });
+      await ctx.db.patch(
+        service._id,
+        closedServicePatch("cancelled_by_staff"),
+      );
       await ctx.db.patch(driver._id, { status: "available" });
       return service._id;
     }
@@ -659,14 +662,16 @@ export const cancelService = mutation({
     if (!isOwner && !isAdmin) {
       throw new Error("No autorizado para cancelar este servicio.");
     }
-    if (service.status === "finished" || service.status === "cancelled") {
-      throw new Error("El servicio ya está finalizado o cancelado.");
+    if (isTerminalServiceStatus(service.status)) {
+      throw new Error("El servicio ya está cerrado.");
     }
 
-    await ctx.db.patch(service._id, {
-      status: "cancelled",
-      cancelledAt: Date.now(),
-    });
+    await ctx.db.patch(
+      service._id,
+      closedServicePatch(
+        isOwner ? "cancelled_by_client" : "cancelled_by_staff",
+      ),
+    );
     if (service.driverId !== undefined) {
       await ctx.db.patch(service.driverId, { status: "available" });
     }
@@ -1070,6 +1075,59 @@ type ServiceClassification = {
   serviceType: "app" | "premium";
   requestChannel: "mobile_app" | "web_comercial" | "phone";
 };
+
+function unattendedServicePatch(closedAt = Date.now()) {
+  return {
+    status: "unattended" as const,
+    cancelledAt: closedAt,
+    closureReason: undefined,
+  };
+}
+
+function closedServicePatch(
+  closureReason: ServiceClosureReason,
+  cancelledAt = Date.now(),
+) {
+  return {
+    status: "cancelled" as const,
+    cancelledAt,
+    closureReason,
+  };
+}
+
+/**
+ * Pasa a status `unattended` registros legacy (cancelled sin chofer).
+ * Uso: `npx convex run internal/services:backfillUnattendedStatus --prod`
+ */
+export const backfillUnattendedStatus = internalMutation({
+  args: {
+    serviceId: v.optional(v.id("services")),
+  },
+  handler: async (ctx, args) => {
+    const candidates =
+      args.serviceId !== undefined
+        ? [await ctx.db.get(args.serviceId)].filter(
+            (row): row is Doc<"services"> => row !== null,
+          )
+        : await ctx.db.query("services").collect();
+
+    let updated = 0;
+    for (const service of candidates) {
+      if (!isUnattendedService(service) || service.status === "unattended") {
+        continue;
+      }
+      await ctx.db.patch(service._id, {
+        status: "unattended",
+        closureReason: undefined,
+        ...(service.cancelledAt === undefined
+          ? { cancelledAt: Date.now() }
+          : {}),
+      });
+      updated += 1;
+    }
+    return { updated };
+  },
+});
 
 function resolveServiceClassification(
   userRole: Doc<"users">["role"],

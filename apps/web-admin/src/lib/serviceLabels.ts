@@ -1,5 +1,7 @@
 import type { Doc } from "@proyecto/backend/dataModel";
 
+export { getAdminServiceStatusLabel, isUnattendedService } from "@proyecto/backend/serviceClosure";
+
 /** Tabla `services`, campo `serviceType` — 2 valores: app | premium. */
 export const SERVICE_TYPE_LABELS: Record<
   NonNullable<Doc<"services">["serviceType"]>,

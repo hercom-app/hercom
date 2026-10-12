@@ -233,7 +233,7 @@ export const getByShareToken = query({
     if (service === null) {
       return null;
     }
-    if (service.status === "cancelled") {
+    if (service.status === "cancelled" || service.status === "unattended") {
       return {
         serviceId: service._id,
         status: service.status,

@@ -36,6 +36,8 @@ export const serviceStatusValidator = v.union(
   // Legacy status kept for backward compatibility.
   v.literal("en_route"),
   v.literal("finished"),
+  /** Expiró el TTL (2 h) sin chofer; distinto de cancelación por usuario. */
+  v.literal("unattended"),
   v.literal("cancelled"),
 );
 
@@ -71,6 +73,14 @@ export const serviceRequestChannelValidator = v.union(
   v.literal("mobile_app"),
   v.literal("web_comercial"),
   v.literal("phone"),
+);
+
+/** Motivo cuando status = cancelled (no aplica a status = unattended). */
+export const serviceClosureReasonValidator = v.union(
+  v.literal("cancelled_by_client"),
+  v.literal("cancelled_by_staff"),
+  /** Legacy: antes se guardaba cancelled + este motivo. */
+  v.literal("unattended"),
 );
 
 export const notificationTypeValidator = v.union(
@@ -280,6 +290,7 @@ export default defineSchema({
     arrivedDestinationAt: v.optional(v.number()),
     finishedAt: v.optional(v.number()),
     cancelledAt: v.optional(v.number()),
+    closureReason: v.optional(serviceClosureReasonValidator),
   })
     .index("by_client", ["clientId"])
     .index("by_driver", ["driverId"])

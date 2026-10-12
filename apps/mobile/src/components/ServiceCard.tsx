@@ -28,6 +28,7 @@ const STATUS_LABELS: Record<Doc<"services">["status"], string> = {
   arrived_destination: "Llegó al destino",
   en_route: "En camino",
   finished: "Finalizado",
+  unattended: "No atendido",
   cancelled: "Cancelado",
 };
 

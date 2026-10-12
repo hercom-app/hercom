@@ -64,6 +64,7 @@ export function PremiumTripsView() {
           <option value="assigned">Asignado</option>
           <option value="in_progress">En viaje</option>
           <option value="finished">Finalizado</option>
+          <option value="unattended">No atendido</option>
           <option value="cancelled">Cancelado</option>
         </select>
       </AdminRegionFilters>

@@ -10,7 +10,11 @@ import {
   AdminPageHeader,
   AdminTableWrap,
 } from "../components/AdminLayout";
-import { limaDaysAgo, limaToday, liveStatusLabel } from "../lib/liveTrip";
+import {
+  limaDaysAgo,
+  limaToday,
+  revenueRowStatusLabel,
+} from "../lib/liveTrip";
 import { AdminRegionFilters } from "../components/AdminRegionFilters";
 import { AdminPagination, usePagedItems } from "../components/AdminPagination";
 import {
@@ -122,6 +126,7 @@ export function IncomeView({
           >
             <option value="">Todos</option>
             <option value="finished">Finalizado</option>
+            <option value="unattended">No atendido</option>
             <option value="cancelled">Cancelado</option>
             <option value="in_progress">En viaje</option>
             <option value="assigned">Asignado</option>
@@ -153,7 +158,7 @@ export function IncomeView({
         </AdminCard>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <SummaryCard
               label="Viajes en rango"
               value={String(report.totals.trips)}
@@ -162,6 +167,16 @@ export function IncomeView({
               label="Ingreso cerrado"
               value={formatMoney(report.totals.closedGross)}
               hint={`${report.totals.finishedTrips} finalizados`}
+            />
+            <SummaryCard
+              label="No atendidos"
+              value={String(report.totals.unattendedTrips)}
+              hint="Expiraron sin chofer (2 h)"
+            />
+            <SummaryCard
+              label="Cancelados"
+              value={String(report.totals.cancelledTrips)}
+              hint="Cliente u operaciones"
             />
             <SummaryCard
               label="Comisión Hercom"
@@ -208,7 +223,7 @@ export function IncomeView({
                           {formatDateTime(row.activityAt)}
                         </td>
                         <td className={tdClass}>
-                          {liveStatusLabel(row.status)}
+                          {revenueRowStatusLabel(row)}
                         </td>
                         <td className={`${tdClass} hidden capitalize sm:table-cell`}>
                           {row.serviceType}

@@ -1,3 +1,17 @@
+/** Estado en tablas de ingresos (distingue expiración vs cancelación). */
+export function revenueRowStatusLabel(row: {
+  status: string;
+  isUnattended?: boolean;
+}): string {
+  if (row.status === "unattended" || row.isUnattended) {
+    return "No atendido";
+  }
+  if (row.status === "cancelled") {
+    return "Cancelado";
+  }
+  return liveStatusLabel(row.status);
+}
+
 export function liveStatusLabel(status: string): string {
   switch (status) {
     case "heading_to_pickup":
@@ -11,6 +25,8 @@ export function liveStatusLabel(status: string): string {
       return "En el destino";
     case "finished":
       return "Viaje finalizado";
+    case "unattended":
+      return "No atendido";
     case "cancelled":
       return "Cancelado";
     case "pending":

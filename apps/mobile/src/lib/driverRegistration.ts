@@ -28,7 +28,11 @@ export function isDocumentUploadError(error: unknown): boolean {
         error.message.includes("No se pudo leer el archivo") ||
         error.message.includes("No se pudo subir el archivo") ||
         error.message.includes("File does not exist") ||
-        error.message.includes("isn't readable")))
+        error.message.includes("isn't readable") ||
+        error.message.includes("FileSystemUploadTask") ||
+        error.message.includes("ExponentFileSystem.uploadAsync") ||
+        error.message.includes("Unable to upload a file") ||
+        error.message.includes("expected") && error.message.includes("bytes")))
   );
 }
 
@@ -234,6 +238,11 @@ export async function submitDriverApplicationFromPending(
     );
   }
 
+  const experienceYears = Math.floor(pending.drivingExperienceYears);
+  if (!Number.isFinite(experienceYears) || experienceYears < 0 || experienceYears > 60) {
+    throw new Error("Indica tus años de experiencia manejando (0–60).");
+  }
+
   await submitApplication({
     dni: pending.dni,
     firstName: pending.firstName,
@@ -241,7 +250,7 @@ export async function submitDriverApplicationFromPending(
     secondLastName: pending.secondLastName,
     sex: pending.sex,
     birthDate: pending.birthDate,
-    drivingExperienceYears: pending.drivingExperienceYears,
+    drivingExperienceYears: experienceYears,
     licenseNumber: pending.licenseNumber,
     licenseCategory: pending.licenseCategory,
     licenseFormat: pending.licenseFormat,
@@ -264,8 +273,9 @@ export async function uploadToConvex(
   localUri: string,
   contentType: string,
 ): Promise<Id<"_storage">> {
-  const uploadUrl = await generateUploadUrl();
-  const file = await stageReadableLocalFile(localUri, contentType);
+  try {
+    const uploadUrl = await generateUploadUrl();
+    const file = await stageReadableLocalFile(localUri, contentType);
   const bytes = await file.bytes();
   if (bytes.byteLength === 0) {
     throw new DocumentUploadError();
@@ -285,6 +295,12 @@ export async function uploadToConvex(
     throw new DocumentUploadError();
   }
   return parsed.storageId;
+  } catch (error) {
+    if (error instanceof DocumentUploadError || isDocumentUploadError(error)) {
+      throw new DocumentUploadError(error);
+    }
+    throw error;
+  }
 }
 
 function fileExtension(contentType: string, localUri: string): string {
@@ -306,50 +322,101 @@ function isInAppCache(uri: string): boolean {
   return uri.startsWith(cacheRoot);
 }
 
-/** Copia a la caché del proyecto: Expo Go no puede leer DocumentPicker/*.pdf. */
-export async function stageReadableLocalFile(
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function fileIsReadable(file: File): boolean {
+  try {
+    return file.exists && file.size > 0;
+  } catch {
+    return false;
+  }
+}
+
+/** Una pasada: copiar o leer el PDF/imagen a caché estable del app. */
+function stageReadableLocalFileOnce(
   localUri: string,
   contentType: string,
-): Promise<File> {
+): File {
   const source = new File(localUri);
-  try {
-    if (source.exists && source.size > 0 && isInAppCache(localUri)) {
-      return source;
-    }
-  } catch {
-    // Rutas de DocumentPicker en Expo Go no son legibles por FileSystem.
+  if (fileIsReadable(source) && isInAppCache(localUri)) {
+    return source;
   }
 
   const dest = new File(
     Paths.cache,
     `hercom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${fileExtension(contentType, localUri)}`,
   );
-  try {
-    if (source.exists && source.size > 0) {
+
+  if (fileIsReadable(source)) {
+    try {
       source.copy(dest);
-      if (dest.exists && dest.size > 0) {
+      if (
+        fileIsReadable(dest) &&
+        (dest.size === source.size || dest.size > 0)
+      ) {
         return dest;
       }
+    } catch {
+      // fetch fallback below
     }
-  } catch {
-    // Seguir con fetch cuando el sandbox bloquea la copia nativa.
   }
 
-  try {
-    const response = await fetch(localUri);
-    if (!response.ok) {
-      throw new DocumentUploadError();
-    }
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.byteLength === 0) {
-      throw new DocumentUploadError();
-    }
-    dest.write(bytes);
-    return dest;
-  } catch (error) {
-    if (error instanceof DocumentUploadError) {
-      throw error;
-    }
-    throw new DocumentUploadError(error);
+  throw new DocumentUploadError();
+}
+
+async function stageReadableLocalFileViaFetch(
+  localUri: string,
+  contentType: string,
+): Promise<File> {
+  const dest = new File(
+    Paths.cache,
+    `hercom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${fileExtension(contentType, localUri)}`,
+  );
+  const response = await fetch(localUri);
+  if (!response.ok) {
+    throw new DocumentUploadError();
   }
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.byteLength === 0) {
+    throw new DocumentUploadError();
+  }
+  dest.write(bytes);
+  if (!fileIsReadable(dest)) {
+    throw new DocumentUploadError();
+  }
+  return dest;
+}
+
+/**
+ * Tras el selector de documentos, Android a veces tarda en dejar legible el URI.
+ * Reintentos + fetch evitan que el primer intento falle y el segundo funcione.
+ */
+export async function stageReadableLocalFile(
+  localUri: string,
+  contentType: string,
+): Promise<File> {
+  let lastError: unknown = new DocumentUploadError();
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    if (attempt > 0) {
+      await delay(120 * attempt);
+    }
+    try {
+      return stageReadableLocalFileOnce(localUri, contentType);
+    } catch (error) {
+      lastError = error;
+    }
+    try {
+      return await stageReadableLocalFileViaFetch(localUri, contentType);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (lastError instanceof DocumentUploadError) {
+    throw lastError;
+  }
+  throw new DocumentUploadError(lastError);
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Alert, View } from "react-native";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import {
@@ -95,6 +95,7 @@ export function PendingRegistrationSubmit({
         });
         if (!cancelled) {
           setError(message);
+          Alert.alert("No se pudo enviar", message);
         }
       } finally {
         if (!cancelled) {

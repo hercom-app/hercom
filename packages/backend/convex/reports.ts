@@ -7,6 +7,7 @@ import {
 import { requireStaff } from "./lib/auth";
 import { filterServicesByAccess, getAccessContext } from "./lib/adminAccess";
 import { matchesOriginRegion } from "./lib/regionFilters";
+import { isUnattendedService } from "./lib/serviceClosure";
 
 function normalizeMoney(amount: number): number {
   return Math.round(amount * 100) / 100;
@@ -37,7 +38,10 @@ function activityAt(service: {
   if (service.status === "finished" && service.finishedAt !== undefined) {
     return service.finishedAt;
   }
-  if (service.status === "cancelled" && service.cancelledAt !== undefined) {
+  if (
+    (service.status === "cancelled" || service.status === "unattended") &&
+    service.cancelledAt !== undefined
+  ) {
     return service.cancelledAt;
   }
   return service.assignedAt ?? service.requestedAt;
@@ -114,6 +118,8 @@ export const listRevenueForAdmin = query({
         return {
           serviceId: service._id,
           status: service.status,
+          closureReason: service.closureReason ?? null,
+          isUnattended: isUnattendedService(service),
           serviceType: service.serviceType ?? "app",
           origin: service.origin.address,
           destination: service.destination.address,
@@ -128,6 +134,8 @@ export const listRevenueForAdmin = query({
     );
 
     const finished = rows.filter((row) => row.status === "finished");
+    const unattendedClosed = rows.filter((row) => row.isUnattended);
+    const cancelledByUser = rows.filter((row) => row.status === "cancelled");
     const closedGross = sumMoney(finished.map((row) => row.totalPrice));
     const closedCommission = sumMoney(finished.map((row) => row.commission));
     const pipelineGross = sumMoney(rows.map((row) => row.totalPrice));
@@ -148,6 +156,8 @@ export const listRevenueForAdmin = query({
       totals: {
         trips: rows.length,
         finishedTrips: finished.length,
+        unattendedTrips: unattendedClosed.length,
+        cancelledTrips: cancelledByUser.length,
         closedGross,
         closedCommission,
         pipelineGross,

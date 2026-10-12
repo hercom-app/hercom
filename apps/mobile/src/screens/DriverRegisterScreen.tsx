@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   ActionSheetIOS,
   Alert,
+  AppState,
   Image,
   Platform,
   ScrollView,
@@ -135,7 +136,16 @@ export function DriverRegisterScreen({
   const [personalDataConsent, setPersonalDataConsent] = useState(false);
   const [legalDoc, setLegalDoc] = useState<"consent" | "privacy" | null>(null);
   const [reniecLoading, setReniecLoading] = useState(false);
+  const [dniReniecValidated, setDniReniecValidated] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
+
+  const dniCheck = useQuery(
+    api.users.getDniRegistration,
+    dni.length === 8 ? { dni } : "skip",
+  );
+  const dniTakenByOther =
+    dniCheck?.registered === true && dniCheck.isMine !== true;
+  const dniCheckPending = dni.length === 8 && dniCheck === undefined;
 
   const unreadNotifications = (notifications ?? []).filter(
     (n) => n.readAt === undefined,
@@ -225,6 +235,14 @@ export function DriverRegisterScreen({
           name: draft.conductorRecordPdfName,
           kind: "pdf",
         });
+      }
+      if (
+        (draft.dni ?? "").length === 8 &&
+        (draft.firstName ?? "").trim() !== "" &&
+        (draft.firstLastName ?? "").trim() !== "" &&
+        (draft.secondLastName ?? "").trim() !== ""
+      ) {
+        setDniReniecValidated(true);
       }
       setDraftLoaded(true);
     })();
@@ -322,6 +340,17 @@ export function DriverRegisterScreen({
       setFormError("Ingresa un DNI de 8 dígitos antes de validar con RENIEC.");
       return;
     }
+    if (dniCheckPending) {
+      setFormError("Verificando si el DNI está disponible…");
+      return;
+    }
+    if (dniTakenByOther) {
+      const msg =
+        "Este DNI ya está registrado en otra cuenta. Usa otro DNI o contacta a soporte.";
+      setFormError(msg);
+      Alert.alert("DNI ya registrado", msg);
+      return;
+    }
     if (reniecQuota !== undefined && reniecQuota !== null && !reniecQuota.canLookup) {
       Alert.alert(
         "Consulta RENIEC bloqueada",
@@ -335,7 +364,8 @@ export function DriverRegisterScreen({
       setFirstName(result.firstName);
       setFirstLastName(result.firstLastName);
       setSecondLastName(result.secondLastName);
-      Alert.alert("Validación RENIEC", result.securityNotice, [{ text: "Entendido" }]);
+      setDniReniecValidated(true);
+      Alert.alert("DNI validado", result.securityNotice, [{ text: "Entendido" }]);
     } catch (error) {
       const message = convexErrorMessage(error, "No se pudo consultar RENIEC.");
       setFormError(message);
@@ -419,19 +449,41 @@ export function DriverRegisterScreen({
     ]);
   }
 
+  async function waitAfterDocumentPicker(): Promise<void> {
+    const settle = () =>
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, Platform.OS === "android" ? 400 : 150);
+      });
+    if (AppState.currentState === "active") {
+      await settle();
+      return;
+    }
+    await new Promise<void>((resolve) => {
+      const subscription = AppState.addEventListener("change", (state) => {
+        if (state === "active") {
+          subscription.remove();
+          void settle().then(resolve);
+        }
+      });
+    });
+  }
+
   async function handlePickPdf(onPicked: (file: LocalDoc) => void) {
+    setFormError(null);
     const result = await DocumentPicker.getDocumentAsync({
       type: "application/pdf",
       copyToCacheDirectory: true,
+      multiple: false,
     });
     if (result.canceled || result.assets.length === 0) {
       return;
     }
     const file = result.assets[0];
     if (file === undefined) {
-      setFormError("No se pudo leer el archivo PDF seleccionado.");
+      notifyDocumentFileProblem();
       return;
     }
+    await waitAfterDocumentPicker();
     try {
       const staged = await stageReadableLocalFile(file.uri, "application/pdf");
       onPicked({ uri: staged.uri, name: file.name, kind: "pdf" });
@@ -596,8 +648,17 @@ export function DriverRegisterScreen({
     if (!/^\d{8}$/.test(dni.trim())) {
       return "El DNI debe tener exactamente 8 dígitos.";
     }
+    if (dniCheckPending) {
+      return "Verificando si el DNI está disponible…";
+    }
+    if (dniTakenByOther) {
+      return "Este DNI ya está registrado en otra cuenta.";
+    }
+    if (!dniReniecValidated) {
+      return 'Valida tu DNI con el botón «Validar DNI» antes de continuar.';
+    }
     if (firstName.trim() === "") {
-      return "Ingresa tus nombres.";
+      return "Los nombres se completan al validar el DNI.";
     }
     if (firstLastName.trim() === "") {
       return "Ingresa tu apellido paterno.";
@@ -726,11 +787,15 @@ export function DriverRegisterScreen({
       } catch (error) {
         const message = isDocumentUploadError(error)
           ? DOCUMENT_UPLOAD_USER_MESSAGE
-          : convexErrorMessage(error, "No se pudo enviar la solicitud de chofer.");
+          : convexErrorMessage(
+              error,
+              "No se pudo enviar la solicitud de chofer. Revisa tu conexión e intenta de nuevo.",
+            );
         setFormError(message);
-        if (isDocumentUploadError(error)) {
-          Alert.alert("Archivo no válido", message);
-        }
+        Alert.alert(
+          isDocumentUploadError(error) ? "Archivo no válido" : "No se pudo enviar",
+          message,
+        );
         onError?.(message);
       } finally {
         setSubmitting(false);
@@ -788,22 +853,48 @@ export function DriverRegisterScreen({
             </TacticalLabel>
             <UiInput
               value={dni}
-              onChangeText={(v) => setDni(v.replace(/\D/g, "").slice(0, 8))}
+              onChangeText={(v) => {
+                const next = v.replace(/\D/g, "").slice(0, 8);
+                if (next !== dni) {
+                  setDniReniecValidated(false);
+                  setFirstName("");
+                  setFirstLastName("");
+                  setSecondLastName("");
+                }
+                setDni(next);
+                if (formError?.includes("DNI")) {
+                  setFormError(null);
+                }
+              }}
               placeholder="8 dígitos"
               keyboardType="number-pad"
               className="mb-2"
             />
+            {dni.length === 8 && dniCheckPending ? (
+              <TacticalText size={12} className="mb-2">
+                Verificando DNI…
+              </TacticalText>
+            ) : null}
+            {dniTakenByOther ? (
+              <TacticalText
+                size={12}
+                className="mb-2"
+                style={{ color: TACTICAL_COLORS.danger }}
+              >
+                Este DNI ya está registrado en otra cuenta. Usa otro DNI o
+                contacta a soporte.
+              </TacticalText>
+            ) : null}
             <View className="mb-3">
               <UiButton
                 label={
-                  reniecLoading
-                    ? "Consultando RENIEC…"
-                    : "Validar DNI con RENIEC"
+                  reniecLoading ? "Validando DNI…" : "Validar DNI"
                 }
                 variant="secondary"
                 disabled={
                   reniecLoading ||
                   dni.length !== 8 ||
+                  dniCheckPending ||
                   (reniecQuota !== undefined &&
                     reniecQuota !== null &&
                     !reniecQuota.canLookup)
@@ -819,26 +910,18 @@ export function DriverRegisterScreen({
                 </TacticalText>
               )}
             </View>
-            <TacticalLabel className="mb-2">
-              Años de experiencia manejando (*)
-            </TacticalLabel>
-            <UiInput
-              value={yearsDrivingExperience}
-              onChangeText={(v) =>
-                setYearsDrivingExperience(v.replace(/\D/g, "").slice(0, 2))
-              }
-              placeholder="Ej. 5"
-              keyboardType="number-pad"
-              className="mb-3"
-            />
+            <TacticalText size={12} className="mb-3">
+              Nombres y apellidos se llenan solos al validar el DNI (RENIEC).
+            </TacticalText>
             <TacticalLabel className="mb-2">
               Nombres (*)
             </TacticalLabel>
             <UiInput
               value={firstName}
               onChangeText={setFirstName}
-              placeholder="Como figura en tu DNI"
-              className="mb-3"
+              placeholder={dniReniecValidated ? "" : "Valida tu DNI arriba"}
+              editable={false}
+              className="mb-3 opacity-90"
             />
             <TacticalLabel className="mb-2">
               Apellido paterno (*)
@@ -846,8 +929,9 @@ export function DriverRegisterScreen({
             <UiInput
               value={firstLastName}
               onChangeText={setFirstLastName}
-              placeholder="Apellido paterno"
-              className="mb-3"
+              placeholder={dniReniecValidated ? "" : "Valida tu DNI arriba"}
+              editable={false}
+              className="mb-3 opacity-90"
             />
             <TacticalLabel className="mb-2">
               Apellido materno (*)
@@ -855,8 +939,9 @@ export function DriverRegisterScreen({
             <UiInput
               value={secondLastName}
               onChangeText={setSecondLastName}
-              placeholder="Apellido materno"
-              className="mb-4"
+              placeholder={dniReniecValidated ? "" : "Valida tu DNI arriba"}
+              editable={false}
+              className="mb-4 opacity-90"
             />
 
             <TacticalLabel className="mb-2">
@@ -948,6 +1033,19 @@ export function DriverRegisterScreen({
                 />
               ))}
             </View>
+
+            <TacticalLabel className="mb-2">
+              Años de experiencia manejando (*)
+            </TacticalLabel>
+            <UiInput
+              value={yearsDrivingExperience}
+              onChangeText={(v) =>
+                setYearsDrivingExperience(v.replace(/\D/g, "").slice(0, 2))
+              }
+              placeholder="Ej. 5"
+              keyboardType="number-pad"
+              className="mb-4"
+            />
 
             <TacticalLabel className="mb-2">
               Tipo de vehículo (*)

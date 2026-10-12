@@ -146,6 +146,7 @@ export function ServicesView({
           <option value="in_progress">En viaje</option>
           <option value="arrived_destination">Llegó al destino</option>
           <option value="finished">Finalizado</option>
+          <option value="unattended">No atendido</option>
           <option value="cancelled">Cancelado</option>
         </select>
         <select

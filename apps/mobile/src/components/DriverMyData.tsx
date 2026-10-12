@@ -210,13 +210,13 @@ export function DriverMyData({
               />
 
               <TacticalLabel className="mb-2 mt-1">Fotos del brevete</TacticalLabel>
-              {application.licensePhotoUrls.length === 0 ? (
+              {(application.licensePhotoUrls ?? []).length === 0 ? (
                 <TacticalText size={12} className="mb-3">
                   Sin fotos disponibles.
                 </TacticalText>
               ) : (
                 <View className="mb-3 flex-row flex-wrap gap-3">
-                  {application.licensePhotoUrls.map((url, index) => {
+                  {(application.licensePhotoUrls ?? []).map((url, index) => {
                     const label = photoLabels[index] ?? `Foto ${index + 1}`;
                     return (
                       <TouchableOpacity

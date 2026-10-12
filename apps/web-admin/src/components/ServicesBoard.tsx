@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Doc, Id } from "@proyecto/backend/dataModel";
 import {
+  getAdminServiceStatusLabel,
   getRequestChannelLabel,
   getServiceTypeMeta,
 } from "../lib/serviceLabels";
@@ -21,18 +22,6 @@ import {
 import { formatServiceRequestedAt } from "../lib/formatDateTime";
 import { ServiceRouteDetailModal } from "./ServiceRouteDetailModal";
 import { TruncatedAddressCell } from "./TruncatedAddressCell";
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Pendiente",
-  assigned: "Asignado",
-  heading_to_pickup: "Yendo a recoger",
-  arrived_pickup: "Llegó al punto",
-  in_progress: "En viaje",
-  arrived_destination: "Llegó al destino",
-  en_route: "En camino",
-  finished: "Finalizado",
-  cancelled: "Cancelado",
-};
 
 type ServicesBoardProps = {
   services: Doc<"services">[] | undefined;
@@ -194,7 +183,7 @@ export function ServicesBoard({
                     </td>
                     <td className={tdClass}>
                       <span className="text-xs font-medium">
-                        {STATUS_LABELS[service.status] ?? service.status}
+                        {getAdminServiceStatusLabel(service)}
                       </span>
                     </td>
                     <td className={tdClass}>

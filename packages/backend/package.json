@@ -23,6 +23,10 @@
     "./age": {
       "types": "./convex/lib/age.ts",
       "default": "./convex/lib/age.ts"
+    },
+    "./serviceClosure": {
+      "types": "./convex/lib/serviceClosure.ts",
+      "default": "./convex/lib/serviceClosure.ts"
     }
   },
   "scripts": {

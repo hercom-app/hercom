@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Doc } from "@proyecto/backend/dataModel";
+import { getAdminServiceStatusLabel } from "@proyecto/backend/serviceClosure";
 import { AddressAutocomplete } from "../components/AddressAutocomplete";
 import { AdvancePayoutModal } from "../components/AdvancePayoutModal";
 import { DriverOfferModal, type DriverOfferInfo } from "../components/DriverOfferModal";
@@ -88,7 +89,10 @@ const LIMA_REGION = {
   longitudeDelta: 0.045,
 };
 
-const STATUS_LABELS: Record<Doc<"services">["status"], string> = {
+const STATUS_LABELS: Record<
+  Exclude<Doc<"services">["status"], "cancelled" | "unattended">,
+  string
+> = {
   pending: "Pendiente",
   assigned: "Asignado",
   heading_to_pickup: "Yendo a recoger",
@@ -97,8 +101,16 @@ const STATUS_LABELS: Record<Doc<"services">["status"], string> = {
   arrived_destination: "Llegada al destino",
   en_route: "En camino",
   finished: "Finalizado",
-  cancelled: "Cancelado",
 };
+
+function clientServiceStatusLabel(
+  service: Doc<"services">,
+): string {
+  if (service.status === "cancelled" || service.status === "unattended") {
+    return getAdminServiceStatusLabel(service);
+  }
+  return STATUS_LABELS[service.status];
+}
 
 function ClientServiceCard({
   service,
@@ -190,7 +202,7 @@ function ClientServiceCard({
         <>
           <View className="mb-3 flex-row items-center justify-between gap-2">
             <View className="flex-row flex-wrap items-center gap-2">
-              <UiChip label={STATUS_LABELS[service.status]} />
+              <UiChip label={clientServiceStatusLabel(service)} />
               {(service.serviceType ?? "app") === "app" && <UiChip label="App" />}
             </View>
             <TacticalValue size={16} tone="accent">
@@ -274,7 +286,8 @@ function ClientServiceCard({
       {!embedInTripSheet &&
         service.securityCode !== undefined &&
         service.status !== "finished" &&
-        service.status !== "cancelled" && (
+        service.status !== "cancelled" &&
+        service.status !== "unattended" && (
           <View
             className="mt-3 p-4"
             style={{
@@ -599,7 +612,9 @@ export function ClientDashboard() {
   );
   const activeTrip = (services ?? []).find(
     (service) =>
-      service.status !== "finished" && service.status !== "cancelled",
+      service.status !== "finished" &&
+      service.status !== "cancelled" &&
+      service.status !== "unattended",
   );
   const homeMapRegion =
     userCoords !== null

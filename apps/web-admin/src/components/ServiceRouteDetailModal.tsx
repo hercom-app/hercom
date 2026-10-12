@@ -2,21 +2,11 @@ import { useEffect } from "react";
 import type { Doc } from "@proyecto/backend/dataModel";
 import { formatServiceRequestedAt } from "../lib/formatDateTime";
 import {
+  getAdminServiceStatusLabel,
   getRequestChannelLabel,
   getServiceTypeMeta,
 } from "../lib/serviceLabels";
 import { btnPrimaryClass, btnSecondaryClass } from "../lib/adminUi";
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Pendiente",
-  assigned: "Asignado",
-  heading_to_pickup: "Yendo a recoger",
-  arrived_pickup: "Llegó al punto",
-  in_progress: "En viaje",
-  arrived_destination: "Llegó al destino",
-  finished: "Finalizado",
-  cancelled: "Cancelado",
-};
 
 type ServiceRouteDetailModalProps = {
   service: Doc<"services">;
@@ -93,7 +83,7 @@ export function ServiceRouteDetailModal({
             <p className="mt-1 text-sm text-zinc-600">
               {formatServiceRequestedAt(service)}
               {" · "}
-              {STATUS_LABELS[service.status] ?? service.status}
+              {getAdminServiceStatusLabel(service)}
             </p>
             <p className="mt-0.5 text-xs text-zinc-500">
               {typeMeta.label} · Canal: {getRequestChannelLabel(service)} · S/

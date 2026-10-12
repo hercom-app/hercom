@@ -32,6 +32,51 @@ function getRedirectTo(): string {
   return Linking.createURL("/");
 }
 
+/** Código OAuth en query o hash; errores de Google/Convex en query o hash. */
+function parseOAuthReturnUrl(url: string): {
+  code: string | null;
+  errorMessage: string | null;
+} {
+  try {
+    const parsed = new URL(url);
+    const queryCode = parsed.searchParams.get("code");
+    if (queryCode !== null && queryCode !== "") {
+      return { code: queryCode, errorMessage: null };
+    }
+
+    const queryError = parsed.searchParams.get("error");
+    if (queryError !== null) {
+      return {
+        code: null,
+        errorMessage:
+          parsed.searchParams.get("error_description") ??
+          queryError,
+      };
+    }
+
+    const hash = parsed.hash.startsWith("#") ? parsed.hash.slice(1) : parsed.hash;
+    if (hash !== "") {
+      const hashParams = new URLSearchParams(hash);
+      const hashCode = hashParams.get("code");
+      if (hashCode !== null && hashCode !== "") {
+        return { code: hashCode, errorMessage: null };
+      }
+      const hashError = hashParams.get("error");
+      if (hashError !== null) {
+        return {
+          code: null,
+          errorMessage:
+            hashParams.get("error_description") ?? hashError,
+        };
+      }
+    }
+
+    return { code: null, errorMessage: null };
+  } catch {
+    return { code: null, errorMessage: null };
+  }
+}
+
 /** Marca Google (cuatro colores) en un cuadrado pequeño. */
 function GoogleGlyph() {
   return (
@@ -83,9 +128,18 @@ export function GoogleSignInButton({
       );
 
       if (browserResult.type === "success") {
-        const code = new URL(browserResult.url).searchParams.get("code");
+        const { code, errorMessage } = parseOAuthReturnUrl(browserResult.url);
+        if (errorMessage !== null) {
+          onError?.(errorMessage);
+          return;
+        }
         if (code === null) {
-          onError?.("Google no devolvió un código de autorización.");
+          if (__DEV__) {
+            console.warn("[hercom] OAuth return URL sin code:", browserResult.url);
+          }
+          onError?.(
+            "Google no devolvió un código de autorización. Cierra la app, vuelve a abrirla e intenta de nuevo.",
+          );
           return;
         }
         await signIn("google", { code });

@@ -105,7 +105,7 @@ export const submit = mutation({
     birthDate: v.string(),
     licenseNumber: v.string(),
     licenseCategory: v.string(),
-    drivingExperienceYears: v.number(),
+    drivingExperienceYears: v.optional(v.number()),
     licenseFormat: v.optional(
       v.union(v.literal("physical"), v.literal("digital")),
     ),
@@ -159,11 +159,12 @@ export const submit = mutation({
     if (!/^\d{8}$/.test(dni)) {
       throw new Error("DNI inválido.");
     }
-    const drivingExperienceYears = Math.floor(args.drivingExperienceYears);
+    const drivingExperienceYears = Math.floor(args.drivingExperienceYears ?? 0);
     if (
-      !Number.isFinite(drivingExperienceYears) ||
-      drivingExperienceYears < 0 ||
-      drivingExperienceYears > 60
+      args.drivingExperienceYears !== undefined &&
+      (!Number.isFinite(drivingExperienceYears) ||
+        drivingExperienceYears < 0 ||
+        drivingExperienceYears > 60)
     ) {
       throw new Error("Indica tus años de experiencia manejando (0–60).");
     }

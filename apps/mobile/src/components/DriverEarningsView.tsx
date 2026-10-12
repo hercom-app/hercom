@@ -45,6 +45,9 @@ export function DriverEarningsView() {
     );
   }
 
+  const todayTrips = earnings.today.trips ?? [];
+  const weekDays = earnings.week.days ?? [];
+
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
       <UiCard className="mb-4">
@@ -59,15 +62,15 @@ export function DriverEarningsView() {
           {soles(earnings.today.commission)}
         </TacticalText>
         <TacticalText size={12} className="mt-1">
-          {earnings.today.trips.length}{" "}
-          {earnings.today.trips.length === 1 ? "viaje" : "viajes"}
+          {todayTrips.length}{" "}
+          {todayTrips.length === 1 ? "viaje" : "viajes"}
         </TacticalText>
       </UiCard>
 
-      {earnings.today.trips.length === 0 ? (
+      {todayTrips.length === 0 ? (
         <UiEmpty title="Aún no cierras viajes hoy." />
       ) : (
-        earnings.today.trips.map((trip) => (
+        todayTrips.map((trip) => (
           <UiCard key={trip.serviceId} className="mb-3">
             <TacticalText size={13} tone="text">
               {formatTime(trip.finishedAt)} · {trip.origin} → {trip.destination}
@@ -95,7 +98,7 @@ export function DriverEarningsView() {
         </TacticalText>
       </UiCard>
 
-      {earnings.week.days.map((day) => (
+      {weekDays.map((day) => (
         <View
           key={day.dayKey}
           className="mb-2 flex-row items-center justify-between px-4 py-3"

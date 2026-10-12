@@ -105,6 +105,7 @@ export const submit = mutation({
     birthDate: v.string(),
     licenseNumber: v.string(),
     licenseCategory: v.string(),
+    drivingExperienceYears: v.number(),
     licenseFormat: v.optional(
       v.union(v.literal("physical"), v.literal("digital")),
     ),
@@ -158,6 +159,14 @@ export const submit = mutation({
     if (!/^\d{8}$/.test(dni)) {
       throw new Error("DNI inválido.");
     }
+    const drivingExperienceYears = Math.floor(args.drivingExperienceYears);
+    if (
+      !Number.isFinite(drivingExperienceYears) ||
+      drivingExperienceYears < 0 ||
+      drivingExperienceYears > 60
+    ) {
+      throw new Error("Indica tus años de experiencia manejando (0–60).");
+    }
     const licenseFormat = args.licenseFormat ?? "physical";
     if (licenseFormat === "digital") {
       const hasDigitalFile =
@@ -190,6 +199,7 @@ export const submit = mutation({
       firstLastName,
       secondLastName,
       name: fullName,
+      yearsDrivingExperience: drivingExperienceYears,
     });
 
     const consentText = args.personalDataConsentText.trim();
@@ -209,6 +219,7 @@ export const submit = mutation({
       birthDate,
       licenseNumber: args.licenseNumber.trim(),
       licenseCategory: args.licenseCategory,
+      drivingExperienceYears,
       licenseFormat,
       licensePhotoIds: args.licensePhotoIds,
       ...(args.licensePdfId !== undefined
@@ -251,6 +262,9 @@ async function createDriverFromApplication(
     totalTrips: 0,
     fullName,
     dni: application.dni,
+    ...(application.drivingExperienceYears !== undefined
+      ? { yearsDrivingExperience: application.drivingExperienceYears }
+      : {}),
     countryCode: application.countryCode ?? "PE",
     department: application.department ?? "",
     province: application.province ?? "",
@@ -263,6 +277,9 @@ async function createDriverFromApplication(
     firstName: application.firstName,
     firstLastName: application.firstLastName,
     secondLastName: application.secondLastName,
+    ...(application.drivingExperienceYears !== undefined
+      ? { yearsDrivingExperience: application.drivingExperienceYears }
+      : {}),
   });
   return driverId;
 }

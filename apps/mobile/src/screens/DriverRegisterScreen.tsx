@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import {
   DEFAULT_COUNTRY_CODE,
@@ -48,9 +48,15 @@ import {
 } from "../constants/officialDocuments";
 import { PERU_LICENSE_CLASS_A } from "../constants/peruLicenseCategories";
 import {
+  clearDriverRegistrationDraft,
+  DOCUMENT_UPLOAD_USER_MESSAGE,
+  isDocumentUploadError,
+  loadDriverRegistrationDraft,
+  saveDriverRegistrationDraft,
   savePendingDriverRegistration,
   stageReadableLocalFile,
   submitDriverApplicationFromPending,
+  type DriverRegistrationDraft,
   type PendingDriverRegistration,
 } from "../lib/driverRegistration";
 import { composeBirthDate, isAtLeast18 } from "../lib/age";
@@ -85,8 +91,11 @@ export function DriverRegisterScreen({
   const notifications = useQuery(api.notifications.listMine, { limit: 8 });
   const generateUploadUrl = useMutation(api.driverApplications.generateUploadUrl);
   const submitApplication = useMutation(api.driverApplications.submit);
+  const lookupReniec = useAction(api.reniec.lookupDniForDriverApp);
+  const reniecQuota = useQuery(api.reniec.getDriverLookupQuota);
 
   const [dni, setDni] = useState("");
+  const [yearsDrivingExperience, setYearsDrivingExperience] = useState("");
   const [firstName, setFirstName] = useState("");
   const [firstLastName, setFirstLastName] = useState("");
   const [secondLastName, setSecondLastName] = useState("");
@@ -125,6 +134,8 @@ export function DriverRegisterScreen({
   const [menuOpen, setMenuOpen] = useState(false);
   const [personalDataConsent, setPersonalDataConsent] = useState(false);
   const [legalDoc, setLegalDoc] = useState<"consent" | "privacy" | null>(null);
+  const [reniecLoading, setReniecLoading] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   const unreadNotifications = (notifications ?? []).filter(
     (n) => n.readAt === undefined,
@@ -139,7 +150,6 @@ export function DriverRegisterScreen({
       unreadCount={unreadNotifications}
       onSelectItem={() => {
         setMenuOpen(false);
-        onBack();
       }}
     />
   );
@@ -149,6 +159,191 @@ export function DriverRegisterScreen({
       setReadyForGoogle(false);
     }
   }, [personalDataConsent]);
+
+  function notifyDocumentFileProblem() {
+    setFormError(DOCUMENT_UPLOAD_USER_MESSAGE);
+    Alert.alert("Archivo no válido", DOCUMENT_UPLOAD_USER_MESSAGE);
+  }
+
+  useEffect(() => {
+    if (draftLoaded) {
+      return;
+    }
+    void (async () => {
+      const draft = await loadDriverRegistrationDraft();
+      if (draft === null) {
+        setDraftLoaded(true);
+        return;
+      }
+      setDni(draft.dni);
+      setFirstName(draft.firstName);
+      setFirstLastName(draft.firstLastName);
+      setSecondLastName(draft.secondLastName);
+      setSex(draft.sex);
+      setBirthDay(draft.birthDay);
+      setBirthMonth(draft.birthMonth);
+      setBirthYear(draft.birthYear);
+      setYearsDrivingExperience(draft.drivingExperienceYears);
+      setCountryCode(draft.countryCode);
+      setDepartment(draft.department);
+      setProvince(draft.province);
+      setDistrict(draft.district);
+      setLicenseNumber(draft.licenseNumber);
+      setLicenseCategory(draft.licenseCategory);
+      setLicenseFormat(draft.licenseFormat);
+      setVehicleBodyType(draft.vehicleBodyType);
+      setPersonalDataConsent(draft.personalDataConsent);
+      if (draft.licenseFrontUri !== undefined && draft.licenseFrontMime !== undefined) {
+        setLicenseFront({ uri: draft.licenseFrontUri, mimeType: draft.licenseFrontMime });
+      }
+      if (draft.licenseBackUri !== undefined && draft.licenseBackMime !== undefined) {
+        setLicenseBack({ uri: draft.licenseBackUri, mimeType: draft.licenseBackMime });
+      }
+      if (draft.licenseSelfieUri !== undefined && draft.licenseSelfieMime !== undefined) {
+        setLicenseSelfie({ uri: draft.licenseSelfieUri, mimeType: draft.licenseSelfieMime });
+      }
+      if (
+        draft.licenseDigitalUri !== undefined &&
+        draft.licenseDigitalName !== undefined &&
+        draft.licenseDigitalKind !== undefined
+      ) {
+        setLicenseDigital({
+          uri: draft.licenseDigitalUri,
+          name: draft.licenseDigitalName,
+          kind: draft.licenseDigitalKind,
+        });
+      }
+      if (draft.culPdfUri !== undefined && draft.culPdfName !== undefined) {
+        setCulPdf({ uri: draft.culPdfUri, name: draft.culPdfName, kind: "pdf" });
+      }
+      if (
+        draft.conductorRecordPdfUri !== undefined &&
+        draft.conductorRecordPdfName !== undefined
+      ) {
+        setConductorRecordPdf({
+          uri: draft.conductorRecordPdfUri,
+          name: draft.conductorRecordPdfName,
+          kind: "pdf",
+        });
+      }
+      setDraftLoaded(true);
+    })();
+  }, [draftLoaded]);
+
+  useEffect(() => {
+    if (!draftLoaded || submitted) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      const draft: DriverRegistrationDraft = {
+        version: 1,
+        dni,
+        firstName,
+        firstLastName,
+        secondLastName,
+        sex,
+        birthDay,
+        birthMonth,
+        birthYear,
+        drivingExperienceYears: yearsDrivingExperience,
+        countryCode,
+        department,
+        province,
+        district,
+        licenseNumber,
+        licenseCategory,
+        licenseFormat,
+        vehicleBodyType,
+        personalDataConsent,
+        ...(licenseFront !== null
+          ? { licenseFrontUri: licenseFront.uri, licenseFrontMime: licenseFront.mimeType }
+          : {}),
+        ...(licenseBack !== null
+          ? { licenseBackUri: licenseBack.uri, licenseBackMime: licenseBack.mimeType }
+          : {}),
+        ...(licenseSelfie !== null
+          ? {
+              licenseSelfieUri: licenseSelfie.uri,
+              licenseSelfieMime: licenseSelfie.mimeType,
+            }
+          : {}),
+        ...(licenseDigital !== null
+          ? {
+              licenseDigitalUri: licenseDigital.uri,
+              licenseDigitalName: licenseDigital.name,
+              licenseDigitalKind: licenseDigital.kind,
+            }
+          : {}),
+        ...(culPdf !== null
+          ? { culPdfUri: culPdf.uri, culPdfName: culPdf.name }
+          : {}),
+        ...(conductorRecordPdf !== null
+          ? {
+              conductorRecordPdfUri: conductorRecordPdf.uri,
+              conductorRecordPdfName: conductorRecordPdf.name,
+            }
+          : {}),
+      };
+      void saveDriverRegistrationDraft(draft);
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [
+    birthDay,
+    birthMonth,
+    birthYear,
+    conductorRecordPdf,
+    countryCode,
+    culPdf,
+    department,
+    district,
+    dni,
+    draftLoaded,
+    firstLastName,
+    firstName,
+    licenseBack,
+    licenseCategory,
+    licenseDigital,
+    licenseFormat,
+    licenseFront,
+    licenseNumber,
+    licenseSelfie,
+    personalDataConsent,
+    province,
+    secondLastName,
+    sex,
+    submitted,
+    vehicleBodyType,
+    yearsDrivingExperience,
+  ]);
+
+  async function handleValidateReniec() {
+    setFormError(null);
+    if (dni.length !== 8) {
+      setFormError("Ingresa un DNI de 8 dígitos antes de validar con RENIEC.");
+      return;
+    }
+    if (reniecQuota !== undefined && reniecQuota !== null && !reniecQuota.canLookup) {
+      Alert.alert(
+        "Consulta RENIEC bloqueada",
+        "Has usado tus 2 consultas permitidas. No podrás validar otro DNI por 8 horas.",
+      );
+      return;
+    }
+    setReniecLoading(true);
+    try {
+      const result = await lookupReniec({ dni });
+      setFirstName(result.firstName);
+      setFirstLastName(result.firstLastName);
+      setSecondLastName(result.secondLastName);
+      Alert.alert("Validación RENIEC", result.securityNotice, [{ text: "Entendido" }]);
+    } catch (error) {
+      const message = convexErrorMessage(error, "No se pudo consultar RENIEC.");
+      setFormError(message);
+      Alert.alert("RENIEC", message);
+    } finally {
+      setReniecLoading(false);
+    }
+  }
 
   async function pickFromGallery(onPicked: (photo: LocalPhoto) => void) {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -241,7 +436,7 @@ export function DriverRegisterScreen({
       const staged = await stageReadableLocalFile(file.uri, "application/pdf");
       onPicked({ uri: staged.uri, name: file.name, kind: "pdf" });
     } catch {
-      setFormError("No se pudo leer el archivo PDF seleccionado.");
+      notifyDocumentFileProblem();
     }
   }
 
@@ -426,6 +621,10 @@ export function DriverRegisterScreen({
     if (licenseNumber.trim() === "") {
       return "Ingresa el número de brevete.";
     }
+    const years = Number.parseInt(yearsDrivingExperience.trim(), 10);
+    if (!Number.isFinite(years) || years < 0 || years > 60) {
+      return "Indica tus años de experiencia manejando (0–60).";
+    }
     if (vehicleBodyType === null) {
       return "Indica si tu vehículo es auto o camioneta.";
     }
@@ -481,6 +680,8 @@ export function DriverRegisterScreen({
       licensePdfName = licenseDigital!.name;
     }
 
+    const years = Number.parseInt(yearsDrivingExperience.trim(), 10);
+
     const pending: PendingDriverRegistration = {
       dni: dni.trim(),
       firstName,
@@ -488,6 +689,7 @@ export function DriverRegisterScreen({
       secondLastName,
       sex: sex as "M" | "F",
       birthDate: composeBirthDate(birthDay, birthMonth, birthYear)!,
+      drivingExperienceYears: years,
       licenseNumber: licenseNumber.trim(),
       licenseCategory,
       licenseFormat,
@@ -518,14 +720,17 @@ export function DriverRegisterScreen({
           () => generateUploadUrl({}),
           (args) => submitApplication(args),
         );
+        await clearDriverRegistrationDraft();
         setSubmitted(true);
         onSubmitSuccess?.();
       } catch (error) {
-        const message = convexErrorMessage(
-          error,
-          "No se pudo enviar la solicitud de chofer.",
-        );
+        const message = isDocumentUploadError(error)
+          ? DOCUMENT_UPLOAD_USER_MESSAGE
+          : convexErrorMessage(error, "No se pudo enviar la solicitud de chofer.");
         setFormError(message);
+        if (isDocumentUploadError(error)) {
+          Alert.alert("Archivo no válido", message);
+        }
         onError?.(message);
       } finally {
         setSubmitting(false);
@@ -585,6 +790,44 @@ export function DriverRegisterScreen({
               value={dni}
               onChangeText={(v) => setDni(v.replace(/\D/g, "").slice(0, 8))}
               placeholder="8 dígitos"
+              keyboardType="number-pad"
+              className="mb-2"
+            />
+            <View className="mb-3">
+              <UiButton
+                label={
+                  reniecLoading
+                    ? "Consultando RENIEC…"
+                    : "Validar DNI con RENIEC"
+                }
+                variant="secondary"
+                disabled={
+                  reniecLoading ||
+                  dni.length !== 8 ||
+                  (reniecQuota !== undefined &&
+                    reniecQuota !== null &&
+                    !reniecQuota.canLookup)
+                }
+                onPress={() => void handleValidateReniec()}
+              />
+              {reniecQuota !== undefined && reniecQuota !== null && (
+                <TacticalText size={11} className="mt-2">
+                  Consultas RENIEC: {reniecQuota.lookupsUsed}/2
+                  {reniecQuota.lookupsRemaining === 0
+                    ? " · bloqueo 8 h activo"
+                    : ""}
+                </TacticalText>
+              )}
+            </View>
+            <TacticalLabel className="mb-2">
+              Años de experiencia manejando (*)
+            </TacticalLabel>
+            <UiInput
+              value={yearsDrivingExperience}
+              onChangeText={(v) =>
+                setYearsDrivingExperience(v.replace(/\D/g, "").slice(0, 2))
+              }
+              placeholder="Ej. 5"
               keyboardType="number-pad"
               className="mb-3"
             />

@@ -4,6 +4,33 @@ import { File, Paths } from "expo-file-system";
 import * as SecureStore from "expo-secure-store";
 
 const PENDING_KEY = "pendingDriverRegistration";
+const DRAFT_KEY = "driverRegistrationDraft";
+
+/** Mensaje único cuando falla leer/subir un PDF o imagen de documento. */
+export const DOCUMENT_UPLOAD_USER_MESSAGE =
+  "Verifica tu documento y sube otro. Problemas con ese archivo.";
+
+export class DocumentUploadError extends Error {
+  constructor(cause?: unknown) {
+    super(DOCUMENT_UPLOAD_USER_MESSAGE);
+    this.name = "DocumentUploadError";
+    if (cause !== undefined) {
+      this.cause = cause;
+    }
+  }
+}
+
+export function isDocumentUploadError(error: unknown): boolean {
+  return (
+    error instanceof DocumentUploadError ||
+    (error instanceof Error &&
+      (error.message === DOCUMENT_UPLOAD_USER_MESSAGE ||
+        error.message.includes("No se pudo leer el archivo") ||
+        error.message.includes("No se pudo subir el archivo") ||
+        error.message.includes("File does not exist") ||
+        error.message.includes("isn't readable")))
+  );
+}
 
 export type PendingDriverRegistration = {
   dni: string;
@@ -12,6 +39,7 @@ export type PendingDriverRegistration = {
   secondLastName: string;
   sex: "M" | "F";
   birthDate: string;
+  drivingExperienceYears: number;
   licenseNumber: string;
   licenseCategory: string;
   licenseFormat: "physical" | "digital";
@@ -30,6 +58,68 @@ export type PendingDriverRegistration = {
   personalDataConsent: true;
   personalDataConsentText: string;
 };
+
+/** Borrador parcial de inscripción (sobrevive recargas de la app). */
+export type DriverRegistrationDraft = {
+  version: 1;
+  dni: string;
+  firstName: string;
+  firstLastName: string;
+  secondLastName: string;
+  sex: "M" | "F" | null;
+  birthDay: string;
+  birthMonth: string;
+  birthYear: string;
+  drivingExperienceYears: string;
+  countryCode: string;
+  department: string;
+  province: string;
+  district: string;
+  licenseNumber: string;
+  licenseCategory: string;
+  licenseFormat: "physical" | "digital";
+  vehicleBodyType: "auto" | "camioneta" | null;
+  personalDataConsent: boolean;
+  licenseFrontUri?: string;
+  licenseFrontMime?: string;
+  licenseBackUri?: string;
+  licenseBackMime?: string;
+  licenseSelfieUri?: string;
+  licenseSelfieMime?: string;
+  licenseDigitalUri?: string;
+  licenseDigitalName?: string;
+  licenseDigitalKind?: "image" | "pdf";
+  culPdfUri?: string;
+  culPdfName?: string;
+  conductorRecordPdfUri?: string;
+  conductorRecordPdfName?: string;
+};
+
+export async function saveDriverRegistrationDraft(
+  draft: DriverRegistrationDraft,
+): Promise<void> {
+  await SecureStore.setItemAsync(DRAFT_KEY, JSON.stringify(draft));
+}
+
+export async function loadDriverRegistrationDraft(): Promise<DriverRegistrationDraft | null> {
+  const raw = await SecureStore.getItemAsync(DRAFT_KEY);
+  if (raw === null) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(raw) as DriverRegistrationDraft;
+    if (parsed.version !== 1) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearDriverRegistrationDraft(): Promise<void> {
+  await SecureStore.deleteItemAsync(DRAFT_KEY);
+}
 
 export async function savePendingDriverRegistration(
   data: PendingDriverRegistration,
@@ -56,6 +146,9 @@ export async function loadPendingDriverRegistration(): Promise<PendingDriverRegi
       await SecureStore.deleteItemAsync(PENDING_KEY);
       return null;
     }
+    if (typeof parsed.drivingExperienceYears !== "number") {
+      parsed.drivingExperienceYears = 0;
+    }
     return parsed;
   } catch {
     await SecureStore.deleteItemAsync(PENDING_KEY);
@@ -74,6 +167,7 @@ type SubmitDriverApplicationArgs = {
   secondLastName: string;
   sex: "M" | "F";
   birthDate: string;
+  drivingExperienceYears: number;
   licenseNumber: string;
   licenseCategory: string;
   licenseFormat: "physical" | "digital";
@@ -147,6 +241,7 @@ export async function submitDriverApplicationFromPending(
     secondLastName: pending.secondLastName,
     sex: pending.sex,
     birthDate: pending.birthDate,
+    drivingExperienceYears: pending.drivingExperienceYears,
     licenseNumber: pending.licenseNumber,
     licenseCategory: pending.licenseCategory,
     licenseFormat: pending.licenseFormat,
@@ -173,7 +268,7 @@ export async function uploadToConvex(
   const file = await stageReadableLocalFile(localUri, contentType);
   const bytes = await file.bytes();
   if (bytes.byteLength === 0) {
-    throw new Error("No se pudo leer el archivo.");
+    throw new DocumentUploadError();
   }
   const response = await expoFetch(uploadUrl, {
     method: "POST",
@@ -183,11 +278,11 @@ export async function uploadToConvex(
     body: bytes,
   });
   if (!response.ok) {
-    throw new Error("No se pudo subir el archivo.");
+    throw new DocumentUploadError();
   }
   const parsed = (await response.json()) as { storageId?: Id<"_storage"> };
   if (parsed.storageId === undefined) {
-    throw new Error("No se pudo subir el archivo.");
+    throw new DocumentUploadError();
   }
   return parsed.storageId;
 }
@@ -240,14 +335,21 @@ export async function stageReadableLocalFile(
     // Seguir con fetch cuando el sandbox bloquea la copia nativa.
   }
 
-  const response = await fetch(localUri);
-  if (!response.ok) {
-    throw new Error("No se pudo leer el archivo.");
+  try {
+    const response = await fetch(localUri);
+    if (!response.ok) {
+      throw new DocumentUploadError();
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength === 0) {
+      throw new DocumentUploadError();
+    }
+    dest.write(bytes);
+    return dest;
+  } catch (error) {
+    if (error instanceof DocumentUploadError) {
+      throw error;
+    }
+    throw new DocumentUploadError(error);
   }
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength === 0) {
-    throw new Error("No se pudo leer el archivo.");
-  }
-  dest.write(bytes);
-  return dest;
 }

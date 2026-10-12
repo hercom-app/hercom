@@ -1,15 +1,13 @@
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { action } from "./_generated/server";
+import { action, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-
-type ReniecDniResponse = {
-  first_name: string;
-  first_last_name: string;
-  second_last_name: string;
-  full_name: string;
-  document_number: string;
-};
+import { fetchReniecDniFromDecolecta } from "./lib/fetchReniecDni";
+import {
+  RENIEC_DRIVER_MAX_LOOKUPS,
+  assertReniecDriverLookupAllowed,
+  normalizeReniecDriverQuota,
+} from "./lib/reniecDriverQuota";
 
 /**
  * Consulta RENIEC vía Decolecta. Solo staff del panel interno.
@@ -26,11 +24,51 @@ export const lookupDni = action({
     }
     await ctx.runQuery(internal.users.assertStaffCaller, {});
 
-    const apiKey = process.env.DECOLECTA_API_KEY;
-    if (apiKey === undefined || apiKey === "") {
-      throw new Error(
-        "DECOLECTA_API_KEY no configurada en Convex. Ver docs/registro-chofer.md",
-      );
+    const dni = args.dni.trim();
+    if (!/^\d{8}$/.test(dni)) {
+      throw new Error("El DNI debe tener exactamente 8 dígitos.");
+    }
+
+    return await fetchReniecDniFromDecolecta(dni);
+  },
+});
+
+/** Estado de cuota RENIEC para inscripción chofer (app móvil). */
+export const getDriverLookupQuota = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      return null;
+    }
+    const user = await ctx.db.get(userId);
+    if (user === null) {
+      return null;
+    }
+    const { count, blockedUntil } = normalizeReniecDriverQuota(user);
+    const now = Date.now();
+    const blocked =
+      blockedUntil !== undefined && now < blockedUntil ? blockedUntil : null;
+    return {
+      lookupsUsed: count,
+      lookupsRemaining: Math.max(0, RENIEC_DRIVER_MAX_LOOKUPS - count),
+      blockedUntil: blocked,
+      canLookup: blocked === null && count < RENIEC_DRIVER_MAX_LOOKUPS,
+    };
+  },
+});
+
+/**
+ * RENIEC para chofer en app móvil. Máx. 2 consultas; luego bloqueo 8 h.
+ */
+export const lookupDniForDriverApp = action({
+  args: {
+    dni: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new Error("No autenticado: se requiere iniciar sesión.");
     }
 
     const dni = args.dni.trim();
@@ -38,31 +76,36 @@ export const lookupDni = action({
       throw new Error("El DNI debe tener exactamente 8 dígitos.");
     }
 
-    const url = `https://api.decolecta.com/v1/reniec/dni?numero=${dni}`;
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+    const quotaBefore = await ctx.runQuery(
+      internal.users.getReniecDriverQuotaForUser,
+      { userId },
+    );
+    assertReniecDriverLookupAllowed(
+      quotaBefore.count,
+      quotaBefore.blockedUntil,
+    );
+
+    const result = await fetchReniecDniFromDecolecta(dni);
+
+    const quotaAfter: {
+      lookupsUsed: number;
+      lookupsRemaining: number;
+      blockedUntil: number | null;
+    } = await ctx.runMutation(internal.users.recordReniecDriverLookup, {
+      userId,
     });
 
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(
-        response.status === 404
-          ? "DNI no encontrado en RENIEC."
-          : `Error RENIEC (${response.status}): ${body}`,
-      );
-    }
+    const securityNotice =
+      quotaAfter.lookupsRemaining === 0
+        ? "Has usado tus 2 consultas RENIEC. No podrás validar otro DNI por 8 horas."
+        : `Consulta RENIEC registrada. Te queda ${quotaAfter.lookupsRemaining} consulta antes del bloqueo de 8 horas.`;
 
-    const data = (await response.json()) as ReniecDniResponse;
     return {
-      firstName: data.first_name,
-      firstLastName: data.first_last_name,
-      secondLastName: data.second_last_name,
-      fullName: data.full_name,
-      documentNumber: data.document_number,
+      ...result,
+      lookupsUsed: quotaAfter.lookupsUsed,
+      lookupsRemaining: quotaAfter.lookupsRemaining,
+      blockedUntil: quotaAfter.blockedUntil,
+      securityNotice,
     };
   },
 });

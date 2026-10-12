@@ -11,7 +11,13 @@ import { ActivityIndicator, View } from "react-native";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Doc } from "@proyecto/backend/dataModel";
-import { loadAppMode, saveAppMode, type AppMode } from "../lib/appMode";
+import {
+  loadAppMode,
+  loadDriverRegistrationOpen,
+  saveAppMode,
+  saveDriverRegistrationOpen,
+  type AppMode,
+} from "../lib/appMode";
 import { TACTICAL_COLORS } from "../constants/theme";
 
 type DriverApplicationStatus = Doc<"driverApplications">["status"] | null;
@@ -63,6 +69,14 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
       } else {
         setModeState("client");
       }
+      const registrationOpen = await loadDriverRegistrationOpen();
+      if (
+        registrationOpen &&
+        !hasDriverProfile &&
+        application?.status !== "pending"
+      ) {
+        setShowDriverRegistration(true);
+      }
       setReady(true);
     })();
   }, [application, canUseClientMode, driver, hasDriverProfile, me]);
@@ -91,8 +105,14 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
       driverApplicationStatus,
       hasPendingDriverApplication,
       showDriverRegistration,
-      openDriverRegistration: () => setShowDriverRegistration(true),
-      closeDriverRegistration: () => setShowDriverRegistration(false),
+      openDriverRegistration: () => {
+        setShowDriverRegistration(true);
+        void saveDriverRegistrationOpen(true);
+      },
+      closeDriverRegistration: () => {
+        setShowDriverRegistration(false);
+        void saveDriverRegistrationOpen(false);
+      },
       userName: me?.name ?? me?.email ?? "",
     }),
     [

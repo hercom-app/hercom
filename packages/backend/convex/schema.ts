@@ -138,6 +138,11 @@ export default defineSchema({
     /** Selfie de identidad del cliente (obligatoria para pedir servicio). */
     selfieStorageId: v.optional(v.id("_storage")),
     identityVerifiedAt: v.optional(v.number()),
+    /** Años manejando (declarado en inscripción chofer). */
+    yearsDrivingExperience: v.optional(v.number()),
+    /** Consultas RENIEC desde app chofer (máx. 2, luego bloqueo 8 h). */
+    reniecDriverLookupCount: v.optional(v.number()),
+    reniecDriverLookupBlockedUntil: v.optional(v.number()),
   })
     .index("email", ["email"])
     .index("phone", ["phone"])
@@ -175,6 +180,7 @@ export default defineSchema({
     // Datos de cobro (anticipo 25% del cliente → chofer).
     fullName: v.optional(v.string()),
     dni: v.optional(v.string()),
+    yearsDrivingExperience: v.optional(v.number()),
     yape: v.optional(v.string()),
     plin: v.optional(v.string()),
     bankAccount1: v.optional(v.string()),
@@ -203,6 +209,8 @@ export default defineSchema({
     birthDate: v.optional(v.string()),
     licenseNumber: v.string(),
     licenseCategory: v.string(),
+    /** Años de experiencia manejando (declarado por el postulante). */
+    drivingExperienceYears: v.optional(v.number()),
     licenseFormat: v.optional(
       v.union(v.literal("physical"), v.literal("digital")),
     ),

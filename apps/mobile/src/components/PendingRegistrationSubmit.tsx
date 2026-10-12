@@ -4,6 +4,8 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import {
   clearPendingDriverRegistration,
+  DOCUMENT_UPLOAD_USER_MESSAGE,
+  isDocumentUploadError,
   loadPendingDriverRegistration,
   submitDriverApplicationFromPending,
 } from "../lib/driverRegistration";
@@ -78,10 +80,12 @@ export function PendingRegistrationSubmit({
         );
         await clearPendingDriverRegistration();
       } catch (submitError) {
-        const message = convexErrorMessage(
-          submitError,
-          "No se pudo enviar la solicitud de chofer.",
-        );
+        const message = isDocumentUploadError(submitError)
+          ? DOCUMENT_UPLOAD_USER_MESSAGE
+          : convexErrorMessage(
+              submitError,
+              "No se pudo enviar la solicitud de chofer.",
+            );
         void recordLog({
           action: "driverApplications.submit",
           message,

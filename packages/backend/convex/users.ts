@@ -16,6 +16,11 @@ import {
   isValidDni,
   normalizeDni,
 } from "./lib/identity";
+import {
+  RENIEC_DRIVER_MAX_LOOKUPS,
+  afterReniecDriverLookupSuccess,
+  normalizeReniecDriverQuota,
+} from "./lib/reniecDriverQuota";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -466,6 +471,40 @@ export const ensureVisibleClientByEmail = internalMutation({
       role: next?.role ?? user.role,
       name: next?.name ?? user.name ?? null,
       patched: Object.keys(patch),
+    };
+  },
+});
+
+export const getReniecDriverQuotaForUser = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (user === null) {
+      throw new Error("Usuario no encontrado.");
+    }
+    return normalizeReniecDriverQuota(user);
+  },
+});
+
+export const recordReniecDriverLookup = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (user === null) {
+      throw new Error("Usuario no encontrado.");
+    }
+    const { count, blockedUntil } = normalizeReniecDriverQuota(user);
+    const next = afterReniecDriverLookupSuccess(count);
+    await ctx.db.patch(args.userId, {
+      reniecDriverLookupCount: next.count,
+      ...(next.blockedUntil !== undefined
+        ? { reniecDriverLookupBlockedUntil: next.blockedUntil }
+        : { reniecDriverLookupBlockedUntil: undefined }),
+    });
+    return {
+      lookupsUsed: next.count,
+      lookupsRemaining: Math.max(0, RENIEC_DRIVER_MAX_LOOKUPS - next.count),
+      blockedUntil: next.blockedUntil ?? null,
     };
   },
 });

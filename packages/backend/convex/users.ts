@@ -493,7 +493,7 @@ export const recordReniecDriverLookup = internalMutation({
     if (user === null) {
       throw new Error("Usuario no encontrado.");
     }
-    const { count, blockedUntil } = normalizeReniecDriverQuota(user);
+    const { count } = normalizeReniecDriverQuota(user);
     const next = afterReniecDriverLookupSuccess(count);
     await ctx.db.patch(args.userId, {
       reniecDriverLookupCount: next.count,

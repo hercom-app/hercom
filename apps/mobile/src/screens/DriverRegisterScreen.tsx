@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActionSheetIOS,
   Alert,
@@ -14,6 +14,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
+import { normalizePersonNamePart } from "@proyecto/backend/personName";
 import {
   DEFAULT_COUNTRY_CODE,
   DriverRegionFields,
@@ -26,7 +27,13 @@ import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { HamburgerButton } from "../components/HamburgerButton";
 import { OfficialDocumentHint } from "../components/OfficialDocumentHint";
 import { SideDrawer } from "../components/SideDrawer";
-import { UiButton, UiCard, UiChip, UiInput } from "../components/ui";
+import {
+  UiButton,
+  UiCard,
+  UiChip,
+  UiFieldError,
+  UiInput,
+} from "../components/ui";
 import {
   TacticalLabel,
   TacticalPanel,
@@ -61,7 +68,13 @@ import {
   type PendingDriverRegistration,
 } from "../lib/driverRegistration";
 import { composeBirthDate, isAtLeast18 } from "../lib/age";
+import {
+  getDriverRegistrationFieldErrors,
+  getInvalidDriverRegistrationFields,
+  type DriverRegistrationFieldKey,
+} from "../lib/driverRegistrationValidation";
 import { convexErrorMessage } from "../lib/convexErrorMessage";
+import { AppModal } from "../components/AppModal";
 import { LegalDocumentModal } from "../components/LegalDocumentModal";
 import {
   DRIVER_PERSONAL_DATA_CONSENT,
@@ -137,7 +150,14 @@ export function DriverRegisterScreen({
   const [legalDoc, setLegalDoc] = useState<"consent" | "privacy" | null>(null);
   const [reniecLoading, setReniecLoading] = useState(false);
   const [dniReniecValidated, setDniReniecValidated] = useState(false);
+  const [reniecManualFallback, setReniecManualFallback] = useState(false);
+  const [reniecManualMessage, setReniecManualMessage] = useState<string | null>(
+    null,
+  );
+  const namesEditable = reniecManualFallback;
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [incompleteModalVisible, setIncompleteModalVisible] = useState(false);
 
   const dniCheck = useQuery(
     api.users.getDniRegistration,
@@ -236,7 +256,12 @@ export function DriverRegisterScreen({
           kind: "pdf",
         });
       }
-      if (
+      if (draft.reniecManualFallback === true) {
+        setReniecManualFallback(true);
+        setReniecManualMessage(
+          "Servicio de RENIEC no disponible, ingrese sus datos manualmente.",
+        );
+      } else if (
         (draft.dni ?? "").length === 8 &&
         (draft.firstName ?? "").trim() !== "" &&
         (draft.firstLastName ?? "").trim() !== "" &&
@@ -301,6 +326,7 @@ export function DriverRegisterScreen({
               conductorRecordPdfName: conductorRecordPdf.name,
             }
           : {}),
+        ...(reniecManualFallback ? { reniecManualFallback: true } : {}),
       };
       void saveDriverRegistrationDraft(draft);
     }, 700);
@@ -330,6 +356,7 @@ export function DriverRegisterScreen({
     secondLastName,
     sex,
     submitted,
+    reniecManualFallback,
     vehicleBodyType,
     yearsDrivingExperience,
   ]);
@@ -361,6 +388,19 @@ export function DriverRegisterScreen({
     setReniecLoading(true);
     try {
       const result = await lookupReniec({ dni });
+      if (result.outcome === "service_unavailable") {
+        setReniecManualFallback(true);
+        setReniecManualMessage(result.message);
+        setDniReniecValidated(false);
+        setFirstName("");
+        setFirstLastName("");
+        setSecondLastName("");
+        setFormError(result.message);
+        Alert.alert("RENIEC", result.message);
+        return;
+      }
+      setReniecManualFallback(false);
+      setReniecManualMessage(null);
       setFirstName(result.firstName);
       setFirstLastName(result.firstLastName);
       setSecondLastName(result.secondLastName);
@@ -559,6 +599,8 @@ export function DriverRegisterScreen({
     label: string,
     photo: LocalPhoto | null,
     onPicked: (photo: LocalPhoto) => void,
+    invalid = false,
+    errorMessage: string | null = null,
   ) {
     return (
       <View className="mb-3">
@@ -571,8 +613,8 @@ export function DriverRegisterScreen({
           style={{
             backgroundColor: TACTICAL_COLORS.surfaceSunken,
             borderRadius: TACTICAL_RADIUS.panel,
-            borderWidth: 1,
-            borderColor: TACTICAL_BORDER,
+            borderWidth: invalid ? 2 : 1,
+            borderColor: invalid ? TACTICAL_COLORS.danger : TACTICAL_BORDER,
           }}
         >
           {photo !== null ? (
@@ -604,6 +646,7 @@ export function DriverRegisterScreen({
             </TacticalLabel>
           </TouchableOpacity>
         ) : null}
+        <UiFieldError message={errorMessage} />
       </View>
     );
   }
@@ -613,6 +656,8 @@ export function DriverRegisterScreen({
     emptyLabel: string,
     doc: LocalDoc | null,
     onPick: () => void,
+    invalid = false,
+    errorMessage: string | null = null,
   ) {
     return (
       <View className="mb-6">
@@ -622,6 +667,8 @@ export function DriverRegisterScreen({
           style={{
             backgroundColor: TACTICAL_COLORS.dataBandBg,
             borderRadius: TACTICAL_RADIUS.panel,
+            borderWidth: invalid ? 2 : 1,
+            borderColor: invalid ? TACTICAL_COLORS.danger : "transparent",
           }}
         >
           <TacticalLabel tone="accent" className="text-center">
@@ -640,86 +687,20 @@ export function DriverRegisterScreen({
             </TacticalLabel>
           </TouchableOpacity>
         ) : null}
+        <UiFieldError message={errorMessage} />
       </View>
     );
   }
 
-  function validateForm(): string | null {
-    if (!/^\d{8}$/.test(dni.trim())) {
-      return "El DNI debe tener exactamente 8 dígitos.";
-    }
-    if (dniCheckPending) {
-      return "Verificando si el DNI está disponible…";
-    }
-    if (dniTakenByOther) {
-      return "Este DNI ya está registrado en otra cuenta.";
-    }
-    if (!dniReniecValidated) {
-      return 'Valida tu DNI con el botón «Validar DNI» antes de continuar.';
-    }
-    if (firstName.trim() === "") {
-      return "Los nombres se completan al validar el DNI.";
-    }
-    if (firstLastName.trim() === "") {
-      return "Ingresa tu apellido paterno.";
-    }
-    if (secondLastName.trim() === "") {
-      return "Ingresa tu apellido materno.";
-    }
-    if (sex === null) {
-      return "Selecciona tu sexo.";
-    }
-    const birthDate = composeBirthDate(birthDay, birthMonth, birthYear);
-    if (birthDate === null) {
-      return "Ingresa tu fecha de nacimiento.";
-    }
-    if (!isAtLeast18(birthDate)) {
-      return "Debes ser mayor de 18 años para registrarte como chofer.";
-    }
-    if (department === "" || province === "" || district === "") {
-      return "Selecciona país, departamento, provincia y distrito.";
-    }
-    if (licenseNumber.trim() === "") {
-      return "Ingresa el número de brevete.";
-    }
-    const years = Number.parseInt(yearsDrivingExperience.trim(), 10);
-    if (!Number.isFinite(years) || years < 0 || years > 60) {
-      return "Indica tus años de experiencia manejando (0–60).";
-    }
-    if (vehicleBodyType === null) {
-      return "Indica si tu vehículo es auto o camioneta.";
-    }
-    if (licenseFormat === "physical") {
-      if (licenseFront === null || licenseBack === null || licenseSelfie === null) {
-        return "Sube anverso, reverso y selfie con el brevete físico.";
-      }
-    } else {
-      if (licenseDigital === null) {
-        return "Sube el brevete digital (PDF o imagen).";
-      }
-      if (licenseSelfie === null) {
-        return "Sube la selfie sosteniendo el brevete impreso.";
-      }
-    }
-    if (conductorRecordPdf === null) {
-      return "Sube el récord de conductor en PDF.";
-    }
-    if (culPdf === null) {
-      return "Sube el CUL en PDF.";
-    }
-    if (!personalDataConsent) {
-      return "Marca la casilla para firmar digitalmente la autorización de tus datos personales.";
-    }
-    return null;
-  }
-
   async function handlePrepareSubmit() {
-    setFormError(null);
-    const validationError = validateForm();
-    if (validationError !== null) {
-      setFormError(validationError);
+    if (invalidFields.size > 0) {
+      setSubmitAttempted(true);
+      setIncompleteModalVisible(true);
       return;
     }
+    setSubmitAttempted(false);
+    setIncompleteModalVisible(false);
+    setFormError(null);
 
     let licensePhotoUris: LocalPhoto[];
     let licensePdfUri: string | undefined;
@@ -769,6 +750,7 @@ export function DriverRegisterScreen({
       district,
       personalDataConsent: true,
       personalDataConsentText: DRIVER_PERSONAL_DATA_CONSENT.fullText,
+      ...(reniecManualFallback ? { reniecManualEntry: true } : {}),
     };
 
     await savePendingDriverRegistration(pending);
@@ -806,7 +788,149 @@ export function DriverRegisterScreen({
     setReadyForGoogle(true);
   }
 
-  const formComplete = validateForm() === null;
+  const composedBirthDate = composeBirthDate(birthDay, birthMonth, birthYear);
+  const birthDateValid = composedBirthDate !== null;
+  const birthDateAdult =
+    composedBirthDate !== null && isAtLeast18(composedBirthDate);
+
+  const invalidFields = useMemo(
+    () =>
+      getInvalidDriverRegistrationFields({
+        dni,
+        dniCheckPending,
+        dniTakenByOther,
+        dniReniecValidated,
+        reniecManualFallback,
+        firstName,
+        firstLastName,
+        secondLastName,
+        sex,
+        birthDay,
+        birthMonth,
+        birthYear,
+        birthDateValid,
+        birthDateAdult,
+        department,
+        province,
+        district,
+        licenseNumber,
+        yearsDrivingExperience,
+        vehicleBodyType,
+        licenseFormat,
+        licenseFront,
+        licenseBack,
+        licenseSelfie,
+        licenseDigital,
+        conductorRecordPdf,
+        culPdf,
+        personalDataConsent,
+      }),
+    [
+      dni,
+      dniCheckPending,
+      dniTakenByOther,
+      dniReniecValidated,
+      reniecManualFallback,
+      firstName,
+      firstLastName,
+      secondLastName,
+      sex,
+      birthDay,
+      birthMonth,
+      birthYear,
+      birthDateValid,
+      birthDateAdult,
+      department,
+      province,
+      district,
+      licenseNumber,
+      yearsDrivingExperience,
+      vehicleBodyType,
+      licenseFormat,
+      licenseFront,
+      licenseBack,
+      licenseSelfie,
+      licenseDigital,
+      conductorRecordPdf,
+      culPdf,
+      personalDataConsent,
+    ],
+  );
+
+  const fieldErrors = useMemo(
+    () =>
+      getDriverRegistrationFieldErrors({
+        dni,
+        dniCheckPending,
+        dniTakenByOther,
+        dniReniecValidated,
+        reniecManualFallback,
+        firstName,
+        firstLastName,
+        secondLastName,
+        sex,
+        birthDay,
+        birthMonth,
+        birthYear,
+        birthDateValid,
+        birthDateAdult,
+        department,
+        province,
+        district,
+        licenseNumber,
+        yearsDrivingExperience,
+        vehicleBodyType,
+        licenseFormat,
+        licenseFront,
+        licenseBack,
+        licenseSelfie,
+        licenseDigital,
+        conductorRecordPdf,
+        culPdf,
+        personalDataConsent,
+      }),
+    [
+      dni,
+      dniCheckPending,
+      dniTakenByOther,
+      dniReniecValidated,
+      reniecManualFallback,
+      firstName,
+      firstLastName,
+      secondLastName,
+      sex,
+      birthDay,
+      birthMonth,
+      birthYear,
+      birthDateValid,
+      birthDateAdult,
+      department,
+      province,
+      district,
+      licenseNumber,
+      yearsDrivingExperience,
+      vehicleBodyType,
+      licenseFormat,
+      licenseFront,
+      licenseBack,
+      licenseSelfie,
+      licenseDigital,
+      conductorRecordPdf,
+      culPdf,
+      personalDataConsent,
+    ],
+  );
+
+  function fieldInvalid(key: DriverRegistrationFieldKey): boolean {
+    return submitAttempted && invalidFields.has(key);
+  }
+
+  function fieldError(key: DriverRegistrationFieldKey): string | null {
+    if (!submitAttempted) {
+      return null;
+    }
+    return fieldErrors.get(key) ?? null;
+  }
 
   return (
     <TacticalScreen>
@@ -848,6 +972,20 @@ export function DriverRegisterScreen({
           </UiCard>
         ) : (
           <UiCard>
+            {submitAttempted && invalidFields.size > 0 ? (
+              <TacticalPanel
+                tone="sunken"
+                className="mb-4 gap-1 p-3"
+                style={{ borderColor: TACTICAL_COLORS.danger }}
+              >
+                <TacticalLabel tone="text">
+                  {`Revisa ${invalidFields.size} campo${invalidFields.size === 1 ? "" : "s"} obligatorio${invalidFields.size === 1 ? "" : "s"}`}
+                </TacticalLabel>
+                <TacticalText size={12}>
+                  Cada campo incompleto tiene un mensaje en rojo debajo.
+                </TacticalText>
+              </TacticalPanel>
+            ) : null}
             <TacticalLabel className="mb-2">
               DNI (*)
             </TacticalLabel>
@@ -857,6 +995,8 @@ export function DriverRegisterScreen({
                 const next = v.replace(/\D/g, "").slice(0, 8);
                 if (next !== dni) {
                   setDniReniecValidated(false);
+                  setReniecManualFallback(false);
+                  setReniecManualMessage(null);
                   setFirstName("");
                   setFirstLastName("");
                   setSecondLastName("");
@@ -869,7 +1009,9 @@ export function DriverRegisterScreen({
               placeholder="8 dígitos"
               keyboardType="number-pad"
               className="mb-2"
+              invalid={fieldInvalid("dni")}
             />
+            <UiFieldError message={fieldError("dni")} className="mb-2" />
             {dni.length === 8 && dniCheckPending ? (
               <TacticalText size={12} className="mb-2">
                 Verificando DNI…
@@ -885,7 +1027,19 @@ export function DriverRegisterScreen({
                 contacta a soporte.
               </TacticalText>
             ) : null}
-            <View className="mb-3">
+            <View
+              className="mb-3"
+              style={
+                fieldInvalid("dniReniec")
+                  ? {
+                      borderWidth: 2,
+                      borderColor: TACTICAL_COLORS.danger,
+                      borderRadius: TACTICAL_RADIUS.panel,
+                      padding: 4,
+                    }
+                  : undefined
+              }
+            >
               <UiButton
                 label={
                   reniecLoading ? "Validando DNI…" : "Validar DNI"
@@ -910,18 +1064,35 @@ export function DriverRegisterScreen({
                 </TacticalText>
               )}
             </View>
-            <TacticalText size={12} className="mb-3">
-              Nombres y apellidos se llenan solos al validar el DNI (RENIEC).
-            </TacticalText>
+            <UiFieldError message={fieldError("dniReniec")} className="mb-3" />
+            {reniecManualMessage !== null ? (
+              <TacticalText
+                size={12}
+                className="mb-3"
+                style={{ color: TACTICAL_COLORS.warning }}
+              >
+                {reniecManualMessage}
+              </TacticalText>
+            ) : (
+              <TacticalText size={12} className="mb-3">
+                Nombres y apellidos se llenan solos al validar el DNI (RENIEC).
+              </TacticalText>
+            )}
             <TacticalLabel className="mb-2">
               Nombres (*)
             </TacticalLabel>
             <UiInput
               value={firstName}
               onChangeText={setFirstName}
-              placeholder={dniReniecValidated ? "" : "Valida tu DNI arriba"}
-              editable={false}
-              className="mb-3 opacity-90"
+              onBlur={() => setFirstName((v) => normalizePersonNamePart(v))}
+              placeholder={
+                namesEditable || dniReniecValidated
+                  ? ""
+                  : "Valida tu DNI arriba"
+              }
+              editable={namesEditable}
+              className={`mb-3 ${namesEditable ? "" : "opacity-90"}`}
+              invalid={fieldInvalid("names")}
             />
             <TacticalLabel className="mb-2">
               Apellido paterno (*)
@@ -929,9 +1100,17 @@ export function DriverRegisterScreen({
             <UiInput
               value={firstLastName}
               onChangeText={setFirstLastName}
-              placeholder={dniReniecValidated ? "" : "Valida tu DNI arriba"}
-              editable={false}
-              className="mb-3 opacity-90"
+              onBlur={() =>
+                setFirstLastName((v) => normalizePersonNamePart(v))
+              }
+              placeholder={
+                namesEditable || dniReniecValidated
+                  ? ""
+                  : "Valida tu DNI arriba"
+              }
+              editable={namesEditable}
+              className={`mb-3 ${namesEditable ? "" : "opacity-90"}`}
+              invalid={fieldInvalid("names")}
             />
             <TacticalLabel className="mb-2">
               Apellido materno (*)
@@ -939,10 +1118,19 @@ export function DriverRegisterScreen({
             <UiInput
               value={secondLastName}
               onChangeText={setSecondLastName}
-              placeholder={dniReniecValidated ? "" : "Valida tu DNI arriba"}
-              editable={false}
-              className="mb-4 opacity-90"
+              onBlur={() =>
+                setSecondLastName((v) => normalizePersonNamePart(v))
+              }
+              placeholder={
+                namesEditable || dniReniecValidated
+                  ? ""
+                  : "Valida tu DNI arriba"
+              }
+              editable={namesEditable}
+              className={`mb-4 ${namesEditable ? "" : "opacity-90"}`}
+              invalid={fieldInvalid("names")}
             />
+            <UiFieldError message={fieldError("names")} className="mb-4" />
 
             <TacticalLabel className="mb-2">
               Fecha de nacimiento (*)
@@ -954,6 +1142,7 @@ export function DriverRegisterScreen({
                 placeholder="DD"
                 keyboardType="number-pad"
                 className="flex-1"
+                invalid={fieldInvalid("birthDate")}
               />
               <UiInput
                 value={birthMonth}
@@ -963,6 +1152,7 @@ export function DriverRegisterScreen({
                 placeholder="MM"
                 keyboardType="number-pad"
                 className="flex-1"
+                invalid={fieldInvalid("birthDate")}
               />
               <UiInput
                 value={birthYear}
@@ -972,8 +1162,10 @@ export function DriverRegisterScreen({
                 placeholder="AAAA"
                 keyboardType="number-pad"
                 className="flex-1"
+                invalid={fieldInvalid("birthDate")}
               />
             </View>
+            <UiFieldError message={fieldError("birthDate")} className="mb-2" />
             {composeBirthDate(birthDay, birthMonth, birthYear) !== null &&
             !isAtLeast18(composeBirthDate(birthDay, birthMonth, birthYear)!) ? (
               <TacticalText
@@ -995,9 +1187,11 @@ export function DriverRegisterScreen({
                   label={value === "M" ? "Masculino" : "Femenino"}
                   selected={sex === value}
                   onPress={() => setSex(value)}
+                  invalid={fieldInvalid("sex") && sex !== value}
                 />
               ))}
             </View>
+            <UiFieldError message={fieldError("sex")} className="mb-4" />
 
             <DriverRegionFields
               countryCode={countryCode}
@@ -1008,6 +1202,12 @@ export function DriverRegisterScreen({
               onDepartmentChange={setDepartment}
               onProvinceChange={setProvince}
               onDistrictChange={setDistrict}
+              invalidDepartment={fieldInvalid("department")}
+              invalidProvince={fieldInvalid("province")}
+              invalidDistrict={fieldInvalid("district")}
+              errorDepartment={fieldError("department")}
+              errorProvince={fieldError("province")}
+              errorDistrict={fieldError("district")}
             />
 
             <TacticalLabel className="mb-2">
@@ -1018,7 +1218,9 @@ export function DriverRegisterScreen({
               onChangeText={setLicenseNumber}
               placeholder="Ej. Q12345678"
               className="mb-4"
+              invalid={fieldInvalid("licenseNumber")}
             />
+            <UiFieldError message={fieldError("licenseNumber")} className="mb-4" />
 
             <TacticalLabel className="mb-2">
               Categoría de brevete (*)
@@ -1045,7 +1247,9 @@ export function DriverRegisterScreen({
               placeholder="Ej. 5"
               keyboardType="number-pad"
               className="mb-4"
+              invalid={fieldInvalid("experienceYears")}
             />
+            <UiFieldError message={fieldError("experienceYears")} className="mb-4" />
 
             <TacticalLabel className="mb-2">
               Tipo de vehículo (*)
@@ -1055,13 +1259,21 @@ export function DriverRegisterScreen({
                 label="Auto"
                 selected={vehicleBodyType === "auto"}
                 onPress={() => setVehicleBodyType("auto")}
+                invalid={
+                  fieldInvalid("vehicleBodyType") && vehicleBodyType !== "auto"
+                }
               />
               <UiChip
                 label="Camioneta"
                 selected={vehicleBodyType === "camioneta"}
                 onPress={() => setVehicleBodyType("camioneta")}
+                invalid={
+                  fieldInvalid("vehicleBodyType") &&
+                  vehicleBodyType !== "camioneta"
+                }
               />
             </View>
+            <UiFieldError message={fieldError("vehicleBodyType")} className="mb-4" />
 
             <TacticalLabel className="mb-2">
               Tipo de brevete (*)
@@ -1097,16 +1309,22 @@ export function DriverRegisterScreen({
                   "Anverso del brevete",
                   licenseFront,
                   setLicenseFront,
+                  fieldInvalid("licenseFront"),
+                  fieldError("licenseFront"),
                 )}
                 {renderLicensePhotoSlot(
                   "Reverso del brevete",
                   licenseBack,
                   setLicenseBack,
+                  fieldInvalid("licenseBack"),
+                  fieldError("licenseBack"),
                 )}
                 {renderLicensePhotoSlot(
                   "Selfie sosteniendo el brevete",
                   licenseSelfie,
                   setLicenseSelfie,
+                  fieldInvalid("licenseSelfie"),
+                  fieldError("licenseSelfie"),
                 )}
               </>
             ) : (
@@ -1128,6 +1346,8 @@ export function DriverRegisterScreen({
                   style={{
                     backgroundColor: TACTICAL_COLORS.dataBandBg,
                     borderRadius: TACTICAL_RADIUS.panel,
+                    borderWidth: fieldInvalid("licenseDigital") ? 2 : 0,
+                    borderColor: TACTICAL_COLORS.danger,
                   }}
                 >
                   <TacticalLabel tone="accent" className="text-center">
@@ -1136,6 +1356,7 @@ export function DriverRegisterScreen({
                       : "+ Subir PDF o imagen del brevete (*)"}
                   </TacticalLabel>
                 </TouchableOpacity>
+                <UiFieldError message={fieldError("licenseDigital")} className="mb-2" />
                 {licenseDigital !== null ? (
                   <TouchableOpacity
                     onPress={() =>
@@ -1156,6 +1377,8 @@ export function DriverRegisterScreen({
                   "Selfie con brevete impreso",
                   licenseSelfie,
                   setLicenseSelfie,
+                  fieldInvalid("licenseSelfie"),
+                  fieldError("licenseSelfie"),
                 )}
               </>
             )}
@@ -1170,6 +1393,8 @@ export function DriverRegisterScreen({
               "+ Subir PDF del récord de conductor (*)",
               conductorRecordPdf,
               () => void handlePickPdf(setConductorRecordPdf),
+              fieldInvalid("conductorRecord"),
+              fieldError("conductorRecord"),
             )}
 
             <OfficialDocumentHint
@@ -1177,8 +1402,13 @@ export function DriverRegisterScreen({
               linkLabel="Abrir sitio oficial"
               url={CUL_INFO_URL}
             />
-            {renderPdfSlot("CUL", "+ Subir PDF del CUL (*)", culPdf, () =>
-              void handlePickPdf(setCulPdf),
+            {renderPdfSlot(
+              "CUL",
+              "+ Subir PDF del CUL (*)",
+              culPdf,
+              () => void handlePickPdf(setCulPdf),
+              fieldInvalid("cul"),
+              fieldError("cul"),
             )}
 
             <View
@@ -1186,10 +1416,12 @@ export function DriverRegisterScreen({
               style={{
                 backgroundColor: TACTICAL_COLORS.dataBandBg,
                 borderRadius: TACTICAL_RADIUS.panel,
-                borderWidth: 1,
-                borderColor: personalDataConsent
-                  ? TACTICAL_COLORS.accent
-                  : TACTICAL_BORDER,
+                borderWidth: fieldInvalid("personalDataConsent") ? 2 : 1,
+                borderColor: fieldInvalid("personalDataConsent")
+                  ? TACTICAL_COLORS.danger
+                  : personalDataConsent
+                    ? TACTICAL_COLORS.accent
+                    : TACTICAL_BORDER,
               }}
             >
               <TouchableOpacity
@@ -1249,41 +1481,38 @@ export function DriverRegisterScreen({
                 </TouchableOpacity>
               </View>
             </View>
+            <UiFieldError message={fieldError("personalDataConsent")} className="mb-3" />
 
             {formError !== null && (
-              <TacticalPanel
-                tone="sunken"
-                className="mb-4"
-                style={{ borderColor: TACTICAL_COLORS.danger }}
-              >
-                <TacticalText
-                  size={13}
-                  className="text-center"
-                  style={{ color: TACTICAL_COLORS.danger }}
+              <View accessible accessibilityRole="alert">
+                <TacticalPanel
+                  tone="sunken"
+                  className="mb-4"
+                  style={{ borderColor: TACTICAL_COLORS.danger }}
                 >
-                  {formError}
-                </TacticalText>
-              </TacticalPanel>
+                  <TacticalText
+                    size={13}
+                    className="text-center"
+                    style={{ color: TACTICAL_COLORS.danger }}
+                  >
+                    {formError}
+                  </TacticalText>
+                </TacticalPanel>
+              </View>
             )}
 
             {!readyForGoogle && !submitAsAuthenticated ? (
               <UiButton
                 label="Continuar"
                 onPress={() => void handlePrepareSubmit()}
-                disabled={submitting || !formComplete}
+                disabled={submitting}
               />
             ) : submitAsAuthenticated ? (
               <UiButton
                 label="Enviar solicitud de chofer"
                 onPress={() => void handlePrepareSubmit()}
-                disabled={submitting || !formComplete}
+                disabled={submitting}
                 loading={submitting}
-              />
-            ) : !formComplete ? (
-              <UiButton
-                label="Continuar"
-                onPress={() => void handlePrepareSubmit()}
-                disabled
               />
             ) : (
               <View>
@@ -1317,6 +1546,36 @@ export function DriverRegisterScreen({
         body={PRIVACY_POLICY.body}
         onClose={() => setLegalDoc(null)}
       />
+      <AppModal
+        visible={incompleteModalVisible}
+        title="Campos obligatorios"
+        onClose={() => setIncompleteModalVisible(false)}
+        footer={
+          <View className="pt-2">
+            <UiButton
+              label="Entendido"
+              onPress={() => setIncompleteModalVisible(false)}
+            />
+          </View>
+        }
+      >
+        <TacticalText size={15} tone="text" className="text-center">
+          Completa todos los campos obligatorios.
+        </TacticalText>
+        {submitAttempted && fieldErrors.size > 0 ? (
+          <View className="mt-4 gap-2">
+            {[...fieldErrors.entries()].map(([key, line]) => (
+              <TacticalText
+                key={key}
+                size={13}
+                style={{ color: TACTICAL_COLORS.danger }}
+              >
+                {`• ${line}`}
+              </TacticalText>
+            ))}
+          </View>
+        ) : null}
+      </AppModal>
     </TacticalScreen>
   );
 }

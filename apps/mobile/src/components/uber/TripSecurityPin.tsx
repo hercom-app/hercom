@@ -3,15 +3,21 @@ import { HERCOM_COLORS, POPPINS, TYPE, UBER_RADIUS } from "../../constants/theme
 
 type TripSecurityPinProps = {
   pin: string;
+  title?: string;
+  className?: string;
 };
 
 /** Bloque PIN del viaje — fondo azul suave, dígitos grandes. */
-export function TripSecurityPin({ pin }: TripSecurityPinProps) {
+export function TripSecurityPin({
+  pin,
+  title = "PIN de este viaje",
+  className = "mx-4 mb-3",
+}: TripSecurityPinProps) {
   const digits = pin.replace(/\D/g, "").split("").slice(0, 4);
 
   return (
     <View
-      className="mx-4 mb-3 flex-row items-center justify-between px-4 py-3"
+      className={`${className} flex-row items-center justify-between px-4 py-3`}
       style={{
         backgroundColor: HERCOM_COLORS.primarySoft,
         borderRadius: UBER_RADIUS.card,
@@ -24,7 +30,7 @@ export function TripSecurityPin({ pin }: TripSecurityPinProps) {
           color: HERCOM_COLORS.text,
         }}
       >
-        PIN de este viaje
+        {title}
       </Text>
       <View className="flex-row gap-2">
         {digits.map((digit, index) => (

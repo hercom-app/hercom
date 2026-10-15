@@ -69,6 +69,8 @@ import {
 } from "../lib/pickupLocation";
 import { recentDestinationsFromServices } from "../lib/recentDestinations";
 import { isActiveServiceStatus } from "../lib/serviceStatus";
+import { ExtendTripPanel } from "../components/ExtendTripPanel";
+import { canClientExtendTrip } from "../lib/tripExtension";
 import { formatServiceStopsLabel } from "../lib/wazeNavigation";
 import { useAppMode } from "../contexts/AppModeContext";
 import { HERCOM_COLORS, TACTICAL_BORDER, TACTICAL_COLORS, TACTICAL_RADIUS, MONO, POPPINS } from "../constants/theme";
@@ -234,7 +236,16 @@ function ClientServiceCard({
         {formatServiceStopsLabel(service.destination, service.extraDestinations)}
       </TacticalText>
       {canShowLive && (
-        <View className="mt-3">
+        <View className="mt-3 gap-3">
+          <View className="flex-row items-center justify-between">
+            <TacticalLabel tone="text">Emergencia en viaje</TacticalLabel>
+            <HelpFab
+              fallbackCenter={{
+                lat: service.origin.lat,
+                lng: service.origin.lng,
+              }}
+            />
+          </View>
           <UiButton
             label="Ver chofer en vivo · Compartir viaje"
             size="md"
@@ -253,6 +264,11 @@ function ClientServiceCard({
               setEditRouteOpen(true);
             }}
           />
+        </View>
+      )}
+      {canClientExtendTrip(service.status) && (
+        <View className="mt-3">
+          <ExtendTripPanel service={service} />
         </View>
       )}
       {service.status === "assigned" && service.offeredPrice !== undefined && (
@@ -1069,7 +1085,7 @@ export function ClientDashboard() {
 
   if (menuSection === "historial" || menuSection === "notificaciones") {
     return (
-      <View className="flex-1" style={{ backgroundColor: HERCOM_COLORS.canvas }}>
+      <View className="flex-1" style={{ backgroundColor: TACTICAL_COLORS.base }}>
         <UberScreenHeader
           title={
             menuSection === "notificaciones" ? "Notificaciones" : "Mis servicios"

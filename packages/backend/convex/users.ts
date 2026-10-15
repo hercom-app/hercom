@@ -21,6 +21,10 @@ import {
   afterReniecDriverLookupSuccess,
   normalizeReniecDriverQuota,
 } from "./lib/reniecDriverQuota";
+import {
+  formatPeruPersonFullName,
+  normalizePersonNamePart,
+} from "./lib/personName";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -197,14 +201,18 @@ export const submitIdentity = mutation({
     if (!isValidDni(dni)) {
       throw new Error("El DNI debe tener exactamente 8 dígitos.");
     }
-    const firstName = args.firstName.trim();
-    const firstLastName = args.firstLastName.trim();
-    const secondLastName = args.secondLastName.trim();
+    const firstName = normalizePersonNamePart(args.firstName);
+    const firstLastName = normalizePersonNamePart(args.firstLastName);
+    const secondLastName = normalizePersonNamePart(args.secondLastName);
     if (firstName === "" || firstLastName === "" || secondLastName === "") {
       throw new Error("Ingresa tus nombres y apellidos.");
     }
     await assertDniAvailable(ctx, dni, user._id);
-    const fullName = `${firstLastName} ${secondLastName} ${firstName}`.trim();
+    const fullName = formatPeruPersonFullName({
+      firstLastName,
+      secondLastName,
+      firstName,
+    });
     await ctx.db.patch(user._id, {
       dni,
       firstName,

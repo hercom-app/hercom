@@ -139,7 +139,7 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
       style={{
         flex: 1,
         paddingTop: insets.top,
-        backgroundColor: HERCOM_COLORS.canvas,
+        backgroundColor: TACTICAL_COLORS.base,
       }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}

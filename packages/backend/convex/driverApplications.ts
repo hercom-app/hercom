@@ -9,6 +9,10 @@ import { assertDniAvailable } from "./lib/identity";
 import { getAccessContext, originMatchesDistrictScopes } from "./lib/adminAccess";
 import { ensureWallet } from "./driverWallets";
 import { requireAdultBirthDate, getDriverApprovalAgeBlock } from "./lib/age";
+import {
+  formatPeruPersonFullName,
+  normalizePersonNamePart,
+} from "./lib/personName";
 
 /** URL temporal para subir archivos (fotos brevete, CUL PDF). */
 export const generateUploadUrl = mutation({
@@ -120,6 +124,7 @@ export const submit = mutation({
     district: v.string(),
     personalDataConsent: v.literal(true),
     personalDataConsentText: v.string(),
+    reniecManualEntry: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
@@ -188,11 +193,15 @@ export const submit = mutation({
 
     await assertDniAvailable(ctx, dni, user._id);
 
-    const firstName = args.firstName.trim();
-    const firstLastName = args.firstLastName.trim();
-    const secondLastName = args.secondLastName.trim();
+    const firstName = normalizePersonNamePart(args.firstName);
+    const firstLastName = normalizePersonNamePart(args.firstLastName);
+    const secondLastName = normalizePersonNamePart(args.secondLastName);
     const birthDate = requireAdultBirthDate(args.birthDate);
-    const fullName = `${firstLastName} ${secondLastName} ${firstName}`.trim();
+    const fullName = formatPeruPersonFullName({
+      firstLastName,
+      secondLastName,
+      firstName,
+    });
 
     await ctx.db.patch(user._id, {
       dni,
@@ -237,6 +246,9 @@ export const submit = mutation({
       submittedAt: Date.now(),
       personalDataConsentAt: Date.now(),
       personalDataConsentText: consentText,
+      ...(args.reniecManualEntry === true
+        ? { reniecManualEntry: true }
+        : {}),
     });
   },
 });
@@ -245,8 +257,11 @@ async function createDriverFromApplication(
   ctx: MutationCtx,
   application: Doc<"driverApplications">,
 ): Promise<Id<"drivers">> {
-  const fullName =
-    `${application.firstLastName} ${application.secondLastName} ${application.firstName}`.trim();
+  const fullName = formatPeruPersonFullName({
+    firstLastName: application.firstLastName,
+    secondLastName: application.secondLastName,
+    firstName: application.firstName,
+  });
 
   const driverId = await ctx.db.insert("drivers", {
     userId: application.userId,
@@ -449,7 +464,11 @@ export const listForAdmin = query({
 
         return {
           ...application,
-          fullName: `${application.firstLastName} ${application.secondLastName} ${application.firstName}`.trim(),
+          fullName: formatPeruPersonFullName({
+            firstLastName: application.firstLastName,
+            secondLastName: application.secondLastName,
+            firstName: application.firstName,
+          }),
           userName: user?.name ?? null,
           userEmail: user?.email ?? null,
           userPhone: user?.phone ?? null,

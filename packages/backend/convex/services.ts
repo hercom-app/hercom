@@ -7,7 +7,6 @@ import { matchesOriginRegion, resolveCountryCode } from "./lib/regionFilters";
 import { normalizeCountryCode } from "./data/countryCatalog";
 import {
   computeClientAdvance,
-  computePlatformCommission,
   PENDING_SERVICE_TTL_MS,
 } from "./lib/constants";
 import { getMarketByCountry } from "./lib/markets";
@@ -15,7 +14,12 @@ import { applyPromotionToListPrice } from "./lib/promotions";
 import {
   computeClientTotalForOffer,
   computePlatformCommissionForService,
+  resolveServiceHoursAndHourlyRate,
 } from "./lib/pricing";
+import {
+  computeServiceEndsAt,
+  MS_PER_SERVICE_HOUR,
+} from "./lib/commissionTiers";
 import { requireDriver, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
 import { filterServicesByAccess, getAccessContext, isStaffRole, originMatchesDistrictScopes } from "./lib/adminAccess";
 import {
@@ -29,6 +33,9 @@ import {
   isTerminalServiceStatus,
   isUnattendedService,
 } from "./lib/serviceClosure";
+import { resolveDriverLocationForOffers } from "./lib/driverLocation";
+import { resolveMaxDriverOfferDistanceKm } from "./lib/driverOfferDiscovery";
+import { isWithinDriverServiceRadius } from "./lib/geoDistance";
 import type { ServiceClosureReason } from "./lib/serviceClosure";
 
 /**
@@ -166,6 +173,13 @@ export const assignDriver = mutation({
 
     const securityCode = generateSecurityCode();
     const offeredPrice = service.catalogBasePrice ?? service.basePrice;
+    const market = await getMarketByCountry(ctx, service.origin.countryCode);
+    const { serviceHours, hourlyRateSnapshot } = resolveServiceHoursAndHourlyRate(
+      offeredPrice,
+      market,
+      service.serviceHours,
+      service.hourlyRateSnapshot,
+    );
     const clientTotal = computeClientTotalForOffer(
       offeredPrice,
       service.discountRate,
@@ -173,6 +187,7 @@ export const assignDriver = mutation({
     const commission = computePlatformCommissionForService(
       offeredPrice,
       service.discountRate,
+      { serviceHours, hourlyRate: hourlyRateSnapshot, market },
     );
     const advanceAmount = computeClientAdvance(offeredPrice);
     await ctx.db.patch(service._id, {
@@ -181,6 +196,8 @@ export const assignDriver = mutation({
       totalPrice: clientTotal,
       driverCommission: commission,
       advanceAmount,
+      serviceHours,
+      hourlyRateSnapshot,
       securityCode,
       status: "assigned",
       assignedAt: Date.now(),
@@ -210,17 +227,40 @@ export const assignDriver = mutation({
  * Solo muestra pending dentro del TTL (ver PENDING_SERVICE_TTL_MS).
  */
 export const listOpenForOffers = query({
-  args: {},
-  handler: async (ctx) => {
-    await requireDriver(ctx);
+  args: {
+    driverLat: v.optional(v.number()),
+    driverLng: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { driver } = await requireDriver(ctx);
+    const maxDistanceKm = await resolveMaxDriverOfferDistanceKm(
+      ctx,
+      driver.countryCode,
+    );
     const cutoff = Date.now() - PENDING_SERVICE_TTL_MS;
+    const driverLocation = resolveDriverLocationForOffers(
+      driver,
+      args.driverLat,
+      args.driverLng,
+    );
     // Incluye solicitudes propias: útil para QA con un solo equipo/cuenta.
     const pending = await ctx.db
       .query("services")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
       .order("desc")
       .collect();
-    return pending.filter((service) => service.requestedAt >= cutoff);
+    const fresh = pending.filter((service) => service.requestedAt >= cutoff);
+    if (driverLocation === null) {
+      return { maxDistanceKm, services: [] };
+    }
+    const services = fresh.filter((service) =>
+      isWithinDriverServiceRadius(
+        driverLocation,
+        service.origin,
+        maxDistanceKm,
+      ),
+    );
+    return { maxDistanceKm, services };
   },
 });
 
@@ -580,10 +620,19 @@ export const startTripWithCode = mutation({
       );
     }
 
+    const market = await getMarketByCountry(ctx, service.origin.countryCode);
+    const startedAt = Date.now();
+    const hours = service.serviceHours ?? market.minServiceHours;
+    const hourly = service.hourlyRateSnapshot ?? market.hourlyRate;
+    const serviceEndsAt = computeServiceEndsAt(startedAt, hours);
+
     await ctx.db.patch(service._id, {
       status: "in_progress",
-      departedWithClientAt: Date.now(),
+      departedWithClientAt: startedAt,
       currentStopIndex: 0,
+      serviceHours: hours,
+      hourlyRateSnapshot: hourly,
+      serviceEndsAt,
     });
     await ensureServiceTracking(ctx, service._id);
     return {
@@ -592,6 +641,88 @@ export const startTripWithCode = mutation({
         ...service,
         currentStopIndex: 0,
       }),
+    };
+  },
+});
+
+/**
+ * Cliente extiende el servicio +1 hora (tarifa horaria acordada).
+ */
+export const extendService = mutation({
+  args: {
+    serviceId: v.id("services"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null) {
+      throw new Error("Servicio no encontrado.");
+    }
+    if (service.clientId !== user._id) {
+      throw new Error("No autorizado.");
+    }
+    if (
+      service.status !== "in_progress" &&
+      service.status !== "en_route" &&
+      service.status !== "arrived_destination"
+    ) {
+      throw new Error("Solo puedes extender un viaje en curso.");
+    }
+
+    const market = await getMarketByCountry(ctx, service.origin.countryCode);
+    const hourly = service.hourlyRateSnapshot ?? market.hourlyRate;
+    const currentHours = service.serviceHours ?? market.minServiceHours;
+    const nextHours = currentHours + 1;
+    const currentOffer = service.offeredPrice ?? service.catalogBasePrice ?? service.basePrice;
+    const nextOffer = normalizeMoney(currentOffer + hourly);
+
+    const commission = computePlatformCommissionForService(
+      nextOffer,
+      service.discountRate,
+      {
+        serviceHours: nextHours,
+        hourlyRate: hourly,
+        market,
+      },
+    );
+    const clientTotal = computeClientTotalForOffer(
+      nextOffer,
+      service.discountRate,
+    );
+    const baseEndsAt =
+      service.serviceEndsAt ??
+      (service.departedWithClientAt !== undefined
+        ? computeServiceEndsAt(service.departedWithClientAt, currentHours)
+        : Date.now());
+    const serviceEndsAt = baseEndsAt + MS_PER_SERVICE_HOUR;
+
+    await ctx.db.patch(service._id, {
+      offeredPrice: nextOffer,
+      totalPrice: clientTotal,
+      driverCommission: commission,
+      serviceHours: nextHours,
+      hourlyRateSnapshot: hourly,
+      serviceEndsAt,
+      advanceAmount: computeClientAdvance(nextOffer),
+    });
+
+    if (service.driverId !== undefined) {
+      const driver = await ctx.db.get(service.driverId);
+      if (driver !== null) {
+        await createNotification(ctx, {
+          userId: driver.userId,
+          type: "trip_extended",
+          title: "Servicio extendido",
+          message: `El cliente extendió el viaje 1 hora. Nueva tarifa acordada: S/${nextOffer.toFixed(2)}.`,
+          serviceId: service._id,
+        });
+      }
+    }
+
+    return {
+      serviceHours: nextHours,
+      serviceEndsAt,
+      offeredPrice: nextOffer,
     };
   },
 });
@@ -1168,12 +1299,28 @@ async function buildServicePricingFields(
     district: origin.district,
   });
 
+  const { serviceHours, hourlyRateSnapshot } = resolveServiceHoursAndHourlyRate(
+    catalogBasePrice,
+    market,
+  );
+  const commissionOptions = {
+    serviceHours,
+    hourlyRate: hourlyRateSnapshot,
+    market,
+  };
+
   if (applied === null) {
     return {
       catalogBasePrice,
       basePrice: catalogBasePrice,
       totalPrice: catalogBasePrice,
-      driverCommission: computePlatformCommission(catalogBasePrice),
+      driverCommission: computePlatformCommissionForService(
+        catalogBasePrice,
+        undefined,
+        commissionOptions,
+      ),
+      serviceHours,
+      hourlyRateSnapshot,
     };
   }
 
@@ -1184,7 +1331,13 @@ async function buildServicePricingFields(
     basePrice: applied.basePrice,
     discountRate: applied.discountRate,
     totalPrice: applied.basePrice,
-    driverCommission: applied.driverCommissionEstimate,
+    driverCommission: computePlatformCommissionForService(
+      catalogBasePrice,
+      applied.discountRate,
+      commissionOptions,
+    ),
+    serviceHours,
+    hourlyRateSnapshot,
   };
 }
 

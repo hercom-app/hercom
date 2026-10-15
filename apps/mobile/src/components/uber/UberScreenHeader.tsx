@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HamburgerButton } from "../HamburgerButton";
-import { HERCOM_COLORS, POPPINS, TYPE } from "../../constants/theme";
+import { useAppTheme } from "../../contexts/ThemeContext";
+import { POPPINS, TYPE } from "../../constants/theme";
 
 type UberScreenHeaderProps = {
   title: string;
@@ -22,6 +23,7 @@ export function UberScreenHeader({
   variant = "stack",
 }: UberScreenHeaderProps) {
   const insets = useSafeAreaInsets();
+  const { colors, border } = useAppTheme();
   const isMap = variant === "map";
 
   return (
@@ -30,9 +32,9 @@ export function UberScreenHeader({
         paddingTop: isMap ? 0 : insets.top + 4,
         paddingBottom: 12,
         paddingHorizontal: 16,
-        backgroundColor: isMap ? "transparent" : HERCOM_COLORS.white,
+        backgroundColor: isMap ? "transparent" : colors.headerBg,
         borderBottomWidth: isMap ? 0 : 1,
-        borderBottomColor: HERCOM_COLORS.border,
+        borderBottomColor: border,
       }}
     >
       <View className="flex-row items-center gap-3">
@@ -43,7 +45,7 @@ export function UberScreenHeader({
             style={{
               fontFamily: POPPINS.bold,
               fontSize: TYPE.title,
-              color: HERCOM_COLORS.text,
+              color: colors.headerText,
             }}
           >
             {title}
@@ -54,7 +56,7 @@ export function UberScreenHeader({
               style={{
                 fontFamily: POPPINS.regular,
                 fontSize: TYPE.caption,
-                color: HERCOM_COLORS.textMuted,
+                color: colors.headerMuted,
                 marginTop: 2,
               }}
             >

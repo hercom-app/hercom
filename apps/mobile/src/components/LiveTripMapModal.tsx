@@ -20,6 +20,7 @@ import {
   TACTICAL_COLORS,
   TACTICAL_RADIUS,
 } from "../constants/theme";
+import { HelpFab } from "./HelpFab";
 import { TacticalLabel, TacticalText, TacticalTitle } from "./tactical";
 import { buildLiveShareMessage, buildLiveShareUrl } from "../lib/liveShareUrl";
 
@@ -208,7 +209,7 @@ export function LiveTripMapModal({
                   borderRadius: TACTICAL_RADIUS.sharp,
                 }}
               >
-                <TacticalLabel style={{ color: TACTICAL_COLORS.base }}>
+                <TacticalLabel style={{ color: TACTICAL_COLORS.onAccent }}>
                   Compartir
                 </TacticalLabel>
               </TouchableOpacity>
@@ -233,6 +234,22 @@ export function LiveTripMapModal({
           </View>
         ) : (
           <View className="flex-1">
+            <View
+              pointerEvents="box-none"
+              style={{
+                position: "absolute",
+                top: 12,
+                right: 16,
+                zIndex: 20,
+              }}
+            >
+              <HelpFab
+                fallbackCenter={{
+                  lat: live.origin.lat,
+                  lng: live.origin.lng,
+                }}
+              />
+            </View>
             <MapView
               style={{ flex: 1 }}
               provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}

@@ -2,6 +2,12 @@ import {
   MAX_PROMOTION_DISCOUNT_RATE,
   PLATFORM_COMMISSION_RATE,
 } from "./constants";
+import {
+  computeTieredPlatformCommission,
+  inferServiceHoursFromListPrice,
+  type MarketCommissionConfig,
+} from "./commissionTiers";
+import type { MarketPricing } from "./markets";
 
 export type PromotionalPricing = {
   listPrice: number;
@@ -52,14 +58,80 @@ export function computeClientTotalForOffer(
   return computePromotionalPricing(offeredPrice, discountRate).clientPrice;
 }
 
+export function marketToCommissionConfig(
+  market: MarketPricing,
+): MarketCommissionConfig {
+  const config: MarketCommissionConfig = {
+    commissionRate: market.commissionRate,
+  };
+  if (market.commissionRateFromHour3 !== undefined) {
+    config.commissionRateFromHour3 = market.commissionRateFromHour3;
+  }
+  if (market.commissionRateFromHour8 !== undefined) {
+    config.commissionRateFromHour8 = market.commissionRateFromHour8;
+  }
+  if (market.commissionFromHour3 !== undefined) {
+    config.commissionFromHour3 = market.commissionFromHour3;
+  }
+  if (market.commissionFromHour8 !== undefined) {
+    config.commissionFromHour8 = market.commissionFromHour8;
+  }
+  return config;
+}
+
 export function computePlatformCommissionForService(
   offeredPrice: number,
   discountRate: number | undefined,
+  options?: {
+    serviceHours?: number;
+    hourlyRate?: number;
+    market?: MarketPricing;
+  },
 ): number {
-  if (discountRate === undefined || discountRate <= 0) {
-    return normalizeMoney(offeredPrice * PLATFORM_COMMISSION_RATE);
+  const list = normalizeMoney(offeredPrice);
+  let baseCommission: number;
+  if (
+    options?.serviceHours !== undefined &&
+    options.hourlyRate !== undefined &&
+    options.market !== undefined &&
+    options.serviceHours > 0 &&
+    options.hourlyRate > 0
+  ) {
+    baseCommission = computeTieredPlatformCommission(
+      options.hourlyRate,
+      options.serviceHours,
+      marketToCommissionConfig(options.market),
+    );
+  } else {
+    baseCommission = normalizeMoney(list * PLATFORM_COMMISSION_RATE);
   }
-  return computePromotionalPricing(offeredPrice, discountRate).platformCommission;
+
+  if (discountRate === undefined || discountRate <= 0) {
+    return baseCommission;
+  }
+  const promo = computePromotionalPricing(list, discountRate);
+  return normalizeMoney(Math.max(promo.platformCommission, 0));
+}
+
+export function resolveServiceHoursAndHourlyRate(
+  offeredPrice: number,
+  market: MarketPricing,
+  existingHours?: number,
+  existingHourly?: number,
+): { serviceHours: number; hourlyRateSnapshot: number } {
+  if (existingHours !== undefined && existingHourly !== undefined) {
+    return {
+      serviceHours: existingHours,
+      hourlyRateSnapshot: existingHourly,
+    };
+  }
+  const serviceHours = inferServiceHoursFromListPrice(
+    offeredPrice,
+    market.hourlyRate,
+    market.minServiceHours,
+  );
+  const hourlyRateSnapshot = normalizeMoney(offeredPrice / serviceHours);
+  return { serviceHours, hourlyRateSnapshot };
 }
 
 export function getMinimumOfferPrice(service: {

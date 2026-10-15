@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -28,8 +28,16 @@ import { formatServiceStopsLabel } from "../lib/wazeNavigation";
 import type { Id } from "@proyecto/backend/dataModel";
 import { ChecklistRecojoScreen } from "./ChecklistRecojoScreen";
 import { useDriverLiveTracking } from "../hooks/useDriverLiveTracking";
+import {
+  getDriverGpsForOffer,
+  useDriverOfferLocation,
+} from "../hooks/useDriverOfferLocation";
+import { HelpFab } from "../components/HelpFab";
 import { LiveTripMapModal } from "../components/LiveTripMapModal";
 import { UberScreenHeader } from "../components/uber/UberScreenHeader";
+import { DriverWalletBalanceView } from "../components/wallet/DriverWalletBalanceView";
+import { DriverWalletTopUpView } from "../components/wallet/DriverWalletTopUpView";
+import { WalletScreenTransition } from "../components/wallet/WalletScreenTransition";
 import {
   FieldDataBand,
   TacticalButton,
@@ -41,6 +49,7 @@ import {
   TacticalText,
   TacticalValue,
 } from "../components/tactical";
+import { useAppTheme } from "../contexts/ThemeContext";
 import {
   HERCOM_COLORS,
   MONO,
@@ -53,7 +62,7 @@ const MIN_OFFER_PRICE = 80;
 
 export function DriverDashboard() {
   const { userName } = useAppMode();
-  const topUpMine = useMutation(api.driverWallets.topUpMine);
+  const { colors: themeColors } = useAppTheme();
   const submitMyOffer = useMutation(api.serviceOffers.submitMyOffer);
   const markAllNotificationsAsRead = useMutation(api.notifications.markAllAsRead);
   const [checklistServiceId, setChecklistServiceId] =
@@ -66,16 +75,37 @@ export function DriverDashboard() {
   );
   const walletTransactions = useQuery(
     api.driverWallets.listMyTransactions,
-    driver === undefined || driver === null ? "skip" : { limit: 8 },
+    driver === undefined || driver === null ? "skip" : { limit: 25 },
   );
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuSection, setMenuSection] = useState("servicios");
+  const [walletFlow, setWalletFlow] = useState<"balance" | "topup">("balance");
+
   const services = useQuery(
     api.services.listForDriver,
     driver === undefined || driver === null ? "skip" : {},
   );
-  const openServices = useQuery(
+  const offersLocationEnabled =
+    driver?.status === "available" && menuSection === "ofertas";
+  const {
+    coords: offerCoords,
+    error: offerLocationError,
+    loading: offerLocationLoading,
+    refresh: refreshOfferLocation,
+  } = useDriverOfferLocation(offersLocationEnabled);
+
+  const openOffersPayload = useQuery(
     api.services.listOpenForOffers,
-    driver === undefined || driver === null ? "skip" : {},
+    driver === undefined || driver === null || menuSection !== "ofertas"
+      ? "skip"
+      : driver.status !== "available"
+        ? {}
+        : offerCoords !== null
+          ? { driverLat: offerCoords.lat, driverLng: offerCoords.lng }
+          : "skip",
   );
+  const openServices = openOffersPayload?.services ?? [];
+  const maxOfferDistanceKm = openOffersPayload?.maxDistanceKm ?? 10;
   const myPendingOffers = useQuery(
     api.serviceOffers.listMinePending,
     driver === undefined || driver === null ? "skip" : {},
@@ -84,12 +114,6 @@ export function DriverDashboard() {
     api.notifications.listMine,
     driver === undefined || driver === null ? "skip" : { limit: 8 },
   );
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [menuSection, setMenuSection] = useState("servicios");
-  const [topUpAmount, setTopUpAmount] = useState("");
-  const [topUpSubmitting, setTopUpSubmitting] = useState(false);
-  const [topUpMessage, setTopUpMessage] = useState<string | null>(null);
-  const [topUpError, setTopUpError] = useState<string | null>(null);
   const [offerByService, setOfferByService] = useState<Record<string, string>>({});
   const [offeringServiceId, setOfferingServiceId] = useState<string | null>(null);
   const [offerError, setOfferError] = useState<string | null>(null);
@@ -109,12 +133,22 @@ export function DriverDashboard() {
       setChecklistServiceId(null);
       return true;
     }
+    if (menuSection === "saldo" && walletFlow === "topup") {
+      setWalletFlow("balance");
+      return true;
+    }
     if (menuSection !== "servicios") {
       setMenuSection("servicios");
       return true;
     }
     return false;
-  }, [liveMapServiceId, menuOpen, checklistServiceId, menuSection]);
+  }, [liveMapServiceId, menuOpen, checklistServiceId, menuSection, walletFlow]);
+
+  useEffect(() => {
+    if (menuSection !== "saldo") {
+      setWalletFlow("balance");
+    }
+  }, [menuSection]);
 
   useAndroidBackHandler(handleAndroidBack);
   useDriverLiveTracking(services);
@@ -170,9 +204,7 @@ export function DriverDashboard() {
 
 
   const title =
-    menuSection === "saldo"
-      ? "Recargar saldo"
-      : menuSection === "ganancias"
+    menuSection === "ganancias"
         ? "Ganancias"
         : menuSection === "notificaciones"
           ? "Notificaciones"
@@ -183,32 +215,6 @@ export function DriverDashboard() {
               : menuSection === "ofertas"
                 ? "Solicitudes abiertas"
                 : "Servicios";
-
-  async function handleTopUp() {
-    const amount = Number(topUpAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setTopUpError("Ingresa un monto de recarga válido.");
-      setTopUpMessage(null);
-      return;
-    }
-    setTopUpSubmitting(true);
-    setTopUpError(null);
-    setTopUpMessage(null);
-    try {
-      await topUpMine({
-        amount,
-        note: "Recarga desde app de chofer",
-      });
-      setTopUpAmount("");
-      setTopUpMessage("Recarga aplicada correctamente.");
-    } catch (error) {
-      setTopUpError(
-        error instanceof Error ? error.message : "No se pudo registrar la recarga.",
-      );
-    } finally {
-      setTopUpSubmitting(false);
-    }
-  }
 
   const drawer = (
     <SideDrawer
@@ -244,136 +250,41 @@ export function DriverDashboard() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: HERCOM_COLORS.canvas }}>
-      <UberScreenHeader
-        title={title}
-        subtitle="Mis viajes y solicitudes"
-        onOpenMenu={() => setMenuOpen(true)}
-      />
+    <View
+      className="flex-1"
+      style={{
+        backgroundColor: themeColors.base,
+      }}
+    >
+      {menuSection !== "saldo" ? (
+        <UberScreenHeader
+          title={title}
+          subtitle="Mis viajes y solicitudes"
+          onOpenMenu={() => setMenuOpen(true)}
+        />
+      ) : null}
 
-      <View className="flex-1 px-4 pt-4">
+      <View
+        className={`flex-1 ${menuSection === "saldo" ? "" : "px-4 pt-4"}`}
+        style={menuSection === "servicios" ? { position: "relative" } : undefined}
+      >
         {menuSection === "ganancias" ? (
           <DriverEarningsView />
         ) : menuSection === "saldo" ? (
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <TacticalPanel>
-              <FieldDataBand
-                label="Saldo de app"
-                value={`S/${(wallet?.balance ?? 0).toFixed(2)}`}
+          <WalletScreenTransition screenKey={walletFlow}>
+            {walletFlow === "balance" ? (
+              <DriverWalletBalanceView
+                balance={walletBalance}
+                transactions={walletTransactions}
+                onBack={() => setMenuSection("servicios")}
+                onRecargar={() => setWalletFlow("topup")}
               />
-              <TacticalText size={11} className="mt-1">
-                La app descuenta 25% por servicio finalizado. Límite mínimo:
-                S/-10.
-              </TacticalText>
-              {(wallet?.balance ?? 0) <= -10 && (
-                <View className="mt-2">
-                  <TacticalStatus
-                    label="Saldo al límite · recarga"
-                    tone="danger"
-                  />
-                </View>
-              )}
-
-              <View className="mt-4">
-                <TacticalLabel className="mb-2">Monto a recargar</TacticalLabel>
-                <View className="mb-3 flex-row gap-2">
-                  {[10, 20, 50].map((quickAmount) => (
-                    <TouchableOpacity
-                      key={quickAmount}
-                      activeOpacity={0.8}
-                      onPress={() => setTopUpAmount(String(quickAmount))}
-                      className="px-3.5 py-2"
-                      style={{
-                        borderRadius: TACTICAL_RADIUS.sharp,
-                        borderWidth: 1,
-                        borderColor:
-                          topUpAmount === String(quickAmount)
-                            ? TACTICAL_COLORS.accent
-                            : TACTICAL_BORDER,
-                        backgroundColor:
-                          topUpAmount === String(quickAmount)
-                            ? "rgba(161, 196, 253, 0.14)"
-                            : "transparent",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: MONO.bold,
-                          fontSize: 16,
-                          color:
-                            topUpAmount === String(quickAmount)
-                              ? TACTICAL_COLORS.accent
-                              : TACTICAL_COLORS.steel,
-                        }}
-                      >
-                        {`S/${quickAmount}`}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <TacticalInput
-                  mono
-                  value={topUpAmount}
-                  onChangeText={setTopUpAmount}
-                  placeholder="0.00"
-                  keyboardType="decimal-pad"
-                  containerClassName="mb-3"
-                />
-                <TacticalButton
-                  label="Recargar"
-                  onPress={() => void handleTopUp()}
-                  disabled={topUpSubmitting}
-                  loading={topUpSubmitting}
-                />
-                {topUpMessage !== null && (
-                  <Text
-                    className="mt-2 text-xs"
-                    style={{
-                      fontFamily: MONO.medium,
-                      color: TACTICAL_COLORS.success,
-                    }}
-                  >
-                    {topUpMessage}
-                  </Text>
-                )}
-                {topUpError !== null && (
-                  <Text
-                    className="mt-2 text-xs"
-                    style={{
-                      fontFamily: MONO.medium,
-                      color: TACTICAL_COLORS.danger,
-                    }}
-                  >
-                    {topUpError}
-                  </Text>
-                )}
-              </View>
-
-              {(walletTransactions ?? []).length > 0 && (
-                <View className="mt-5">
-                  <TacticalLabel className="mb-2" size={10}>
-                    Movimientos recientes
-                  </TacticalLabel>
-                  {(walletTransactions ?? []).map((tx) => (
-                    <View
-                      key={tx._id}
-                      className="flex-row items-center justify-between py-1.5"
-                    >
-                      <TacticalText size={11}>
-                        {tx.type === "top_up" ? "Recarga" : "Comisión"}
-                      </TacticalText>
-                      <TacticalValue
-                        size={12}
-                        tone={tx.type === "commission_debit" ? "steel" : "accent"}
-                      >
-                        {`${tx.type === "commission_debit" ? "-" : "+"} S/${tx.amount.toFixed(2)}`}
-                      </TacticalValue>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </TacticalPanel>
-          </ScrollView>
+            ) : (
+              <DriverWalletTopUpView
+                onBack={() => setWalletFlow("balance")}
+              />
+            )}
+          </WalletScreenTransition>
         ) : menuSection === "configuracion" ? (
           <DriverMyData driver={driver} fallbackName={userName} />
         ) : menuSection === "notificaciones" ? (
@@ -452,8 +363,44 @@ export function DriverDashboard() {
                   <TacticalLabel tone="accent" className="mb-2">
                     Solicitudes para ofertar
                   </TacticalLabel>
+                  <TacticalPanel tone="sunken" className="mb-2 px-3 py-2">
+                    <TacticalLabel tone="accent">
+                      {`Radio de búsqueda: ${maxOfferDistanceKm} km`}
+                    </TacticalLabel>
+                    <TacticalText size={11} className="mt-1">
+                      Estás viendo solicitudes cuyo origen está como máximo a{" "}
+                      {maxOfferDistanceKm} km de tu ubicación actual. Este tope
+                      lo define Hercom por mercado (configurable en admin).
+                    </TacticalText>
+                  </TacticalPanel>
+                  {offerLocationLoading ? (
+                    <ActivityIndicator
+                      color={TACTICAL_COLORS.accent}
+                      className="my-3"
+                    />
+                  ) : null}
+                  {offerLocationError !== null ? (
+                    <View className="mb-2 gap-2">
+                      <TacticalText size={12} style={{ color: TACTICAL_COLORS.danger }}>
+                        {offerLocationError}
+                      </TacticalText>
+                      <TacticalButton
+                        label="Actualizar ubicación"
+                        variant="secondary"
+                        size="md"
+                        onPress={() => void refreshOfferLocation()}
+                      />
+                    </View>
+                  ) : null}
                 {(openServices ?? []).length === 0 ? (
-                  <TacticalEmpty title="Sin solicitudes abiertas" />
+                  <TacticalEmpty
+                    title="Sin solicitudes cercanas"
+                    subtitle={
+                      driver?.status === "available"
+                        ? `No hay pedidos pending dentro de ${maxOfferDistanceKm} km. Prueba actualizar tu ubicación.`
+                        : "Conéctate como disponible para ver solicitudes."
+                    }
+                  />
                 ) : (
                   <View className="relative">
                     <View
@@ -464,6 +411,8 @@ export function DriverDashboard() {
                         const minPrice =
                           service.catalogBasePrice ?? service.basePrice;
                         const floorPrice = Math.max(MIN_OFFER_PRICE, minPrice);
+                        const maxOfferPrice =
+                          Math.round(floorPrice * 1.5 * 100) / 100;
                         const defaultOffer = String(floorPrice);
                         const alreadyOffered = myOfferByService[service._id];
                         const canAfford = canCoverOfferCommission(
@@ -494,6 +443,9 @@ export function DriverDashboard() {
                                 service.destination,
                                 service.extraDestinations,
                               )}
+                            </TacticalText>
+                            <TacticalText size={10} className="mt-1">
+                              {`Oferta entre S/${floorPrice.toFixed(2)} y S/${maxOfferPrice.toFixed(2)} (tope +50% sobre tarifa base).`}
                             </TacticalText>
                             {alreadyOffered !== undefined ? (
                               <View
@@ -530,18 +482,26 @@ export function DriverDashboard() {
                                       offerByService[service._id] ??
                                       defaultOffer;
                                     const parsed = Number(raw);
-                                    if (
-                                      !Number.isFinite(parsed) ||
-                                      parsed < floorPrice
-                                    ) {
+                                    if (!Number.isFinite(parsed)) {
                                       setOfferByService((prev) => ({
                                         ...prev,
                                         [service._id]: defaultOffer,
                                       }));
+                                      return;
+                                    }
+                                    const clamped = Math.min(
+                                      Math.max(parsed, floorPrice),
+                                      maxOfferPrice,
+                                    );
+                                    if (clamped !== parsed) {
+                                      setOfferByService((prev) => ({
+                                        ...prev,
+                                        [service._id]: String(clamped),
+                                      }));
                                     }
                                   }}
                                   editable={canAfford && isAvailable}
-                                  placeholder={`Oferta >= S/${floorPrice.toFixed(0)}`}
+                                  placeholder={`S/${floorPrice.toFixed(0)} – S/${maxOfferPrice.toFixed(0)}`}
                                   keyboardType="decimal-pad"
                                   containerClassName="flex-1"
                                 />
@@ -570,13 +530,37 @@ export function DriverDashboard() {
                                       );
                                       return;
                                     }
+                                    if (offeredPrice > maxOfferPrice) {
+                                      setOfferError(
+                                        `La oferta no puede superar S/${maxOfferPrice.toFixed(2)}.`,
+                                      );
+                                      return;
+                                    }
                                     setOfferingServiceId(service._id);
                                     setOfferError(null);
-                                    void submitMyOffer({
-                                      serviceId: service._id,
-                                      offeredPrice,
-                                    })
+                                    void (async () => {
+                                      try {
+                                        const gps = await getDriverGpsForOffer();
+                                        return submitMyOffer({
+                                          serviceId: service._id,
+                                          offeredPrice,
+                                          driverLat: gps.lat,
+                                          driverLng: gps.lng,
+                                        });
+                                      } catch (gpsError) {
+                                        const message =
+                                          gpsError instanceof Error
+                                            ? gpsError.message
+                                            : "Activa la ubicación para ofertar.";
+                                        setOfferError(message);
+                                        Alert.alert("Ubicación", message);
+                                        return { ok: false as const, message };
+                                      }
+                                    })()
                                       .then((result) => {
+                                        if (result === undefined) {
+                                          return;
+                                        }
                                         if (result.ok) {
                                           return;
                                         }
@@ -676,6 +660,25 @@ export function DriverDashboard() {
               </View>
             )}
 
+            {menuSection === "servicios" && hasActiveService ? (
+              <View
+                pointerEvents="box-none"
+                style={{
+                  position: "absolute",
+                  top: 4,
+                  right: 0,
+                  zIndex: 30,
+                }}
+              >
+                <HelpFab
+                  fallbackCenter={{
+                    lat: activeServices[0]!.origin.lat,
+                    lng: activeServices[0]!.origin.lng,
+                  }}
+                />
+              </View>
+            ) : null}
+
             {menuSection === "servicios" && (
               <FlatList
                 data={activeServices}
@@ -683,6 +686,7 @@ export function DriverDashboard() {
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="none"
                 removeClippedSubviews={false}
+                contentContainerStyle={{ paddingBottom: 32 }}
                 renderItem={({ item }) => (
                   <ServiceCard
                     service={item}

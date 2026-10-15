@@ -61,6 +61,7 @@ export type PendingDriverRegistration = {
   district: string;
   personalDataConsent: true;
   personalDataConsentText: string;
+  reniecManualEntry?: boolean;
 };
 
 /** Borrador parcial de inscripción (sobrevive recargas de la app). */
@@ -97,6 +98,7 @@ export type DriverRegistrationDraft = {
   culPdfName?: string;
   conductorRecordPdfUri?: string;
   conductorRecordPdfName?: string;
+  reniecManualFallback?: boolean;
 };
 
 export async function saveDriverRegistrationDraft(
@@ -186,6 +188,7 @@ type SubmitDriverApplicationArgs = {
   district: string;
   personalDataConsent: true;
   personalDataConsentText: string;
+  reniecManualEntry?: boolean;
 };
 
 export async function submitDriverApplicationFromPending(
@@ -265,6 +268,9 @@ export async function submitDriverApplicationFromPending(
     district: pending.district,
     personalDataConsent: true,
     personalDataConsentText: pending.personalDataConsentText,
+    ...(pending.reniecManualEntry === true
+      ? { reniecManualEntry: true }
+      : {}),
   });
 }
 

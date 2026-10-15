@@ -7,6 +7,7 @@ import {
   AdminLoading,
   AdminPage,
 } from "../components/AdminLayout";
+import { DistrictPricingRulesPanel } from "../components/DistrictPricingRulesPanel";
 import { btnPrimaryClass, inputClass, labelClass } from "../lib/adminUi";
 
 type MarketFormState = {
@@ -16,6 +17,12 @@ type MarketFormState = {
   hourlyRate: string;
   minServiceHours: string;
   commissionPercent: string;
+  commissionPercentFromHour3: string;
+  commissionPercentFromHour8: string;
+  commissionFromHour3: string;
+  commissionFromHour8: string;
+  maxDriverMarkupPercent: string;
+  maxDriverOfferDistanceKm: string;
   active: boolean;
 };
 
@@ -26,6 +33,12 @@ const EMPTY_FORM: MarketFormState = {
   hourlyRate: "",
   minServiceHours: "",
   commissionPercent: "",
+  commissionPercentFromHour3: "15",
+  commissionPercentFromHour8: "10",
+  commissionFromHour3: "3",
+  commissionFromHour8: "8",
+  maxDriverMarkupPercent: "50",
+  maxDriverOfferDistanceKm: "10",
   active: true,
 };
 
@@ -72,6 +85,20 @@ export function MarketsView() {
       hourlyRate: String(pricing.hourlyRate),
       minServiceHours: String(pricing.minServiceHours),
       commissionPercent: String(pricing.commissionRate * 100),
+      commissionPercentFromHour3: String(
+        (pricing.commissionRateFromHour3 ?? 0.15) * 100,
+      ),
+      commissionPercentFromHour8: String(
+        (pricing.commissionRateFromHour8 ?? 0.1) * 100,
+      ),
+      commissionFromHour3: String(pricing.commissionFromHour3 ?? 3),
+      commissionFromHour8: String(pricing.commissionFromHour8 ?? 8),
+      maxDriverMarkupPercent: String(
+        (pricing.maxDriverMarkupOverBase ?? 0.5) * 100,
+      ),
+      maxDriverOfferDistanceKm: String(
+        pricing.maxDriverOfferDistanceKm ?? 10,
+      ),
       active: pricing.active,
     });
   }, [selectedCountry, pricing]);
@@ -90,6 +117,14 @@ export function MarketsView() {
         hourlyRate: Number(form.hourlyRate),
         minServiceHours: Number(form.minServiceHours),
         commissionRate: Number(form.commissionPercent) / 100,
+        commissionRateFromHour3:
+          Number(form.commissionPercentFromHour3) / 100,
+        commissionRateFromHour8:
+          Number(form.commissionPercentFromHour8) / 100,
+        commissionFromHour3: Number(form.commissionFromHour3),
+        commissionFromHour8: Number(form.commissionFromHour8),
+        maxDriverMarkupOverBase: Number(form.maxDriverMarkupPercent) / 100,
+        maxDriverOfferDistanceKm: Number(form.maxDriverOfferDistanceKm),
         active: form.active,
       });
       setMessage("Mercado guardado.");
@@ -244,8 +279,8 @@ export function MarketsView() {
                   />
                 </Field>
                 <Field
-                  label="Comisión de Hercom (%)"
-                  hint="Porcentaje del viaje que se queda la plataforma. 25 significa 25%."
+                  label="Membresía (comisión) horas 1–2 (%)"
+                  hint="Tramo inicial (típ. 25%)."
                 >
                   <input
                     required
@@ -258,6 +293,121 @@ export function MarketsView() {
                       setForm((current) => ({
                         ...current,
                         commissionPercent: event.target.value,
+                      }))
+                    }
+                    className={inputClass}
+                  />
+                </Field>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <Field
+                  label="Membresía (comisión) desde hora 3 (%)"
+                  hint="Por defecto 15%."
+                >
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    max="100"
+                    step="1"
+                    value={form.commissionPercentFromHour3}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        commissionPercentFromHour3: event.target.value,
+                      }))
+                    }
+                    className={inputClass}
+                  />
+                </Field>
+                <Field label="Desde hora N (3ª hora)">
+                  <input
+                    required
+                    type="number"
+                    min="2"
+                    step="1"
+                    value={form.commissionFromHour3}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        commissionFromHour3: event.target.value,
+                      }))
+                    }
+                    className={inputClass}
+                  />
+                </Field>
+                <Field
+                  label="Membresía (comisión) desde hora 8 (%)"
+                  hint="Por defecto 10%."
+                >
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    max="100"
+                    step="1"
+                    value={form.commissionPercentFromHour8}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        commissionPercentFromHour8: event.target.value,
+                      }))
+                    }
+                    className={inputClass}
+                  />
+                </Field>
+                <Field label="Desde hora N (8ª hora)">
+                  <input
+                    required
+                    type="number"
+                    min="2"
+                    step="1"
+                    value={form.commissionFromHour8}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        commissionFromHour8: event.target.value,
+                      }))
+                    }
+                    className={inputClass}
+                  />
+                </Field>
+                <Field
+                  label="Recargo máx. chofer sobre tarifa base (%)"
+                  hint="Anti-estafa: tope de oferta = base × (1 + este %). Default 50."
+                >
+                  <input
+                    required
+                    type="number"
+                    min="0"
+                    max="200"
+                    step="1"
+                    value={form.maxDriverMarkupPercent}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        maxDriverMarkupPercent: event.target.value,
+                      }))
+                    }
+                    className={inputClass}
+                  />
+                </Field>
+                <Field
+                  label="Radio máx. chofer ↔ origen (km)"
+                  hint="Distancia máxima para ver y ofertar solicitudes. Default 10 km."
+                >
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    max="100"
+                    step="0.5"
+                    value={form.maxDriverOfferDistanceKm}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        maxDriverOfferDistanceKm: event.target.value,
                       }))
                     }
                     className={inputClass}
@@ -317,6 +467,8 @@ export function MarketsView() {
               {error !== null && <p className="text-sm text-red-600">{error}</p>}
             </form>
           </AdminCard>
+
+          <DistrictPricingRulesPanel countryCode={selectedCountry} />
 
           {markets.length === 0 && (
             <AdminEmpty message="No hay países configurados en el catálogo." />

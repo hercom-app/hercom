@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
+import { UiFieldError } from "./ui";
 import { TacticalLabel, TacticalText, TacticalTitle, TacticalValue } from "./tactical";
 import {
   TACTICAL_BORDER,
@@ -29,6 +30,12 @@ type DriverRegionFieldsProps = {
   onDepartmentChange: (value: string) => void;
   onProvinceChange: (value: string) => void;
   onDistrictChange: (value: string) => void;
+  invalidDepartment?: boolean;
+  invalidProvince?: boolean;
+  invalidDistrict?: boolean;
+  errorDepartment?: string | null;
+  errorProvince?: string | null;
+  errorDistrict?: string | null;
 };
 
 type PickerTarget = "country" | "level1" | "level2" | "level3" | null;
@@ -42,6 +49,12 @@ export function DriverRegionFields({
   onDepartmentChange,
   onProvinceChange,
   onDistrictChange,
+  invalidDepartment = false,
+  invalidProvince = false,
+  invalidDistrict = false,
+  errorDepartment = null,
+  errorProvince = null,
+  errorDistrict = null,
 }: DriverRegionFieldsProps) {
   const insets = useSafeAreaInsets();
   const [picker, setPicker] = useState<PickerTarget>(null);
@@ -121,19 +134,21 @@ export function DriverRegionFields({
     countries?.find((country) => country.code === countryCode)?.name ??
     countryCode;
 
-  const fieldStyle = {
-    backgroundColor: TACTICAL_COLORS.surfaceSunken,
-    borderRadius: TACTICAL_RADIUS.sharp,
-    borderWidth: 1,
-    borderColor: TACTICAL_BORDER,
-  };
+  function fieldStyle(invalid: boolean) {
+    return {
+      backgroundColor: TACTICAL_COLORS.surfaceSunken,
+      borderRadius: TACTICAL_RADIUS.sharp,
+      borderWidth: invalid ? 2 : 1,
+      borderColor: invalid ? TACTICAL_COLORS.danger : TACTICAL_BORDER,
+    };
+  }
 
   return (
     <View className="mb-4 gap-2">
       <TouchableOpacity
         onPress={() => setPicker("country")}
         className="px-4 py-3"
-        style={fieldStyle}
+        style={fieldStyle(false)}
       >
         <TacticalLabel>País (*)</TacticalLabel>
         <TacticalValue size={14} className="mt-0.5">
@@ -141,48 +156,57 @@ export function DriverRegionFields({
         </TacticalValue>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        onPress={() => setPicker("level1")}
-        className="px-4 py-3"
-        style={fieldStyle}
-      >
-        <TacticalLabel>{`${level1Label} (*)`}</TacticalLabel>
-        <TacticalValue size={14} className="mt-0.5">
-          {department !== ""
-            ? department
-            : `Selecciona ${level1Label.toLowerCase()}`}
-        </TacticalValue>
-      </TouchableOpacity>
+      <View>
+        <TouchableOpacity
+          onPress={() => setPicker("level1")}
+          className="px-4 py-3"
+          style={fieldStyle(invalidDepartment)}
+        >
+          <TacticalLabel>{`${level1Label} (*)`}</TacticalLabel>
+          <TacticalValue size={14} className="mt-0.5">
+            {department !== ""
+              ? department
+              : `Selecciona ${level1Label.toLowerCase()}`}
+          </TacticalValue>
+        </TouchableOpacity>
+        <UiFieldError message={errorDepartment} />
+      </View>
 
-      <TouchableOpacity
-        onPress={() => department !== "" && setPicker("level2")}
-        disabled={department === ""}
-        className={`px-4 py-3 ${department === "" ? "opacity-50" : ""}`}
-        style={fieldStyle}
-      >
-        <TacticalLabel>{`${level2Label} (*)`}</TacticalLabel>
-        <TacticalValue size={14} className="mt-0.5">
-          {province !== ""
-            ? province
-            : `Selecciona ${level2Label.toLowerCase()}`}
-        </TacticalValue>
-      </TouchableOpacity>
+      <View>
+        <TouchableOpacity
+          onPress={() => department !== "" && setPicker("level2")}
+          disabled={department === ""}
+          className={`px-4 py-3 ${department === "" ? "opacity-50" : ""}`}
+          style={fieldStyle(invalidProvince)}
+        >
+          <TacticalLabel>{`${level2Label} (*)`}</TacticalLabel>
+          <TacticalValue size={14} className="mt-0.5">
+            {province !== ""
+              ? province
+              : `Selecciona ${level2Label.toLowerCase()}`}
+          </TacticalValue>
+        </TouchableOpacity>
+        <UiFieldError message={errorProvince} />
+      </View>
 
-      <TouchableOpacity
-        onPress={() => province !== "" && setPicker("level3")}
-        disabled={department === "" || province === ""}
-        className={`px-4 py-3 ${
-          department === "" || province === "" ? "opacity-50" : ""
-        }`}
-        style={fieldStyle}
-      >
-        <TacticalLabel>{`${level3Label} (*)`}</TacticalLabel>
-        <TacticalValue size={14} className="mt-0.5">
-          {district !== ""
-            ? district
-            : `Selecciona ${level3Label.toLowerCase()}`}
-        </TacticalValue>
-      </TouchableOpacity>
+      <View>
+        <TouchableOpacity
+          onPress={() => province !== "" && setPicker("level3")}
+          disabled={department === "" || province === ""}
+          className={`px-4 py-3 ${
+            department === "" || province === "" ? "opacity-50" : ""
+          }`}
+          style={fieldStyle(invalidDistrict)}
+        >
+          <TacticalLabel>{`${level3Label} (*)`}</TacticalLabel>
+          <TacticalValue size={14} className="mt-0.5">
+            {district !== ""
+              ? district
+              : `Selecciona ${level3Label.toLowerCase()}`}
+          </TacticalValue>
+        </TouchableOpacity>
+        <UiFieldError message={errorDistrict} />
+      </View>
 
       <Modal
         visible={picker !== null}

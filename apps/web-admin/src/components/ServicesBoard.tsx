@@ -90,7 +90,7 @@ export function ServicesBoard({
                   Promo
                 </th>
                 <th className={thClass}>Total</th>
-                <th className={thClass}>Comisión</th>
+                <th className={thClass}>Membresía (comisión)</th>
                 <th className={thClass}>Anticipo</th>
                 <th className={thClass}>Estado</th>
                 <th

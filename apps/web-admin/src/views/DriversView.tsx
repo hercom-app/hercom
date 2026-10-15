@@ -6,6 +6,10 @@ import { AdminRegionFilters } from "../components/AdminRegionFilters";
 import type { DistrictScopeOption } from "../components/AdminRegionFilters";
 import { isDriverApplicantMinor } from "@proyecto/backend/age";
 import {
+  formatPeruPersonFullName,
+  formatPersonNameForDisplay,
+} from "@proyecto/backend/personName";
+import {
   DriverDossierPanel,
   type DriverApplicationForAdmin,
   type DriverFinanceInfo,
@@ -121,7 +125,8 @@ export function DriversView({
       return {
         key: driver._id,
         userId: driver.userId,
-        fullName: driver.fullName ?? "Sin nombre",
+        fullName:
+          formatPersonNameForDisplay(driver.fullName) || "Sin nombre",
         dni: driver.dni,
         department: driver.department,
         province: driver.province,
@@ -162,8 +167,11 @@ export function DriversView({
       .map((application) => ({
         key: `app-${application._id}`,
         userId: application.userId,
-        fullName:
-          `${application.firstLastName} ${application.secondLastName} ${application.firstName}`.trim(),
+        fullName: formatPeruPersonFullName({
+          firstLastName: application.firstLastName,
+          secondLastName: application.secondLastName,
+          firstName: application.firstName,
+        }),
         dni: application.dni,
         department: application.department,
         province: application.province,

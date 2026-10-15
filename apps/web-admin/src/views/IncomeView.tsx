@@ -179,7 +179,7 @@ export function IncomeView({
               hint="Cliente u operaciones"
             />
             <SummaryCard
-              label="Comisión Hercom"
+              label="Membresía (comisión) Hercom"
               value={formatMoney(report.totals.closedCommission)}
             />
             <SummaryCard
@@ -211,7 +211,7 @@ export function IncomeView({
                       <th className={thClass}>Ruta</th>
                       <th className={thClass}>Total</th>
                       <th className={`${thClass} hidden md:table-cell`}>
-                        Comisión
+                        Membresía (comisión)
                       </th>
                       <th className={`${thClass} hidden lg:table-cell`}>Pago</th>
                     </tr>

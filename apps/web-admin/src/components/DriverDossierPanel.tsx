@@ -10,6 +10,7 @@ import {
   DIGITAL_LICENSE_URL,
 } from "../lib/officialDocuments";
 import { getDriverApprovalAgeBlock } from "@proyecto/backend/age";
+import { formatPersonNameForDisplay } from "@proyecto/backend/personName";
 
 export type DriverApplicationForAdmin = FunctionReturnType<
   typeof api.driverApplications.listForAdmin
@@ -79,7 +80,7 @@ type LicenseLookup = {
 };
 
 function displayLookupValue(value: string): string {
-  const trimmed = value.trim();
+  const trimmed = formatPersonNameForDisplay(value);
   return trimmed === "" ? "—" : trimmed;
 }
 
@@ -272,8 +273,19 @@ export function DriverDossierPanel({
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <InfoRow label="Nombre declarado" value={application.fullName} />
+        <InfoRow
+          label="Nombre declarado"
+          value={displayValue(application.fullName)}
+        />
         <InfoRow label="DNI" value={application.dni} />
+        {application.reniecManualEntry === true ? (
+          <div className="md:col-span-2">
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+              Nombres ingresados manualmente (RENIEC no disponible al
+              registrarse).
+            </p>
+          </div>
+        ) : null}
         <InfoRow label="Sexo" value={SEX_LABELS[application.sex]} />
         <InfoRow
           label="Fecha de nacimiento"
@@ -488,7 +500,7 @@ export function DriverDossierPanel({
 }
 
 function displayValue(value: string | undefined): string {
-  const trimmed = value?.trim() ?? "";
+  const trimmed = formatPersonNameForDisplay(value);
   return trimmed === "" ? "—" : trimmed;
 }
 

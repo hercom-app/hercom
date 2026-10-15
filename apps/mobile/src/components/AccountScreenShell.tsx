@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { View } from "react-native";
-import { HERCOM_COLORS } from "../constants/theme";
+import { useAppTheme } from "../contexts/ThemeContext";
 import { UberScreenHeader } from "./uber/UberScreenHeader";
 
 type AccountScreenShellProps = {
@@ -19,8 +19,9 @@ export function AccountScreenShell({
   onOpenMenu,
   children,
 }: AccountScreenShellProps) {
+  const { colors } = useAppTheme();
   return (
-    <View className="flex-1" style={{ backgroundColor: HERCOM_COLORS.canvas }}>
+    <View className="flex-1" style={{ backgroundColor: colors.base }}>
       <UberScreenHeader
         title={title}
         subtitle={subtitle}

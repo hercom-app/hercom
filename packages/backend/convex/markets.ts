@@ -53,6 +53,12 @@ export const listForAdmin = query({
               currencySymbol: market.currencySymbol,
               usdExchangeRate: market.usdExchangeRate,
               commissionRate: market.commissionRate,
+              commissionRateFromHour3: market.commissionRateFromHour3,
+              commissionRateFromHour8: market.commissionRateFromHour8,
+              commissionFromHour3: market.commissionFromHour3,
+              commissionFromHour8: market.commissionFromHour8,
+              maxDriverMarkupOverBase: market.maxDriverMarkupOverBase,
+              maxDriverOfferDistanceKm: market.maxDriverOfferDistanceKm,
               active: market.active,
             }
           : null;
@@ -106,6 +112,12 @@ export const getPublicPricing = query({
       minServiceHours: pricing.minServiceHours,
       minServicePrice: pricing.minServicePrice,
       commissionRate: pricing.commissionRate,
+      commissionRateFromHour3: pricing.commissionRateFromHour3,
+      commissionRateFromHour8: pricing.commissionRateFromHour8,
+      commissionFromHour3: pricing.commissionFromHour3,
+      commissionFromHour8: pricing.commissionFromHour8,
+      maxDriverMarkupOverBase: pricing.maxDriverMarkupOverBase,
+      maxDriverOfferDistanceKm: pricing.maxDriverOfferDistanceKm,
       level1Label: pricing.level1Label,
       level2Label: pricing.level2Label,
       level3Label: pricing.level3Label,
@@ -153,6 +165,12 @@ export const upsert = mutation({
     hourlyRate: v.number(),
     minServiceHours: v.number(),
     commissionRate: v.number(),
+    commissionRateFromHour3: v.optional(v.number()),
+    commissionRateFromHour8: v.optional(v.number()),
+    commissionFromHour3: v.optional(v.number()),
+    commissionFromHour8: v.optional(v.number()),
+    maxDriverMarkupOverBase: v.optional(v.number()),
+    maxDriverOfferDistanceKm: v.optional(v.number()),
     active: v.boolean(),
   },
   handler: async (ctx, args) => {
@@ -179,6 +197,28 @@ export const upsert = mutation({
       hourlyRate: normalizeMoney(args.hourlyRate),
       minServiceHours: Math.round(args.minServiceHours),
       commissionRate: normalizeMoney(args.commissionRate),
+      ...(args.commissionRateFromHour3 !== undefined
+        ? { commissionRateFromHour3: normalizeMoney(args.commissionRateFromHour3) }
+        : {}),
+      ...(args.commissionRateFromHour8 !== undefined
+        ? { commissionRateFromHour8: normalizeMoney(args.commissionRateFromHour8) }
+        : {}),
+      ...(args.commissionFromHour3 !== undefined
+        ? { commissionFromHour3: Math.round(args.commissionFromHour3) }
+        : {}),
+      ...(args.commissionFromHour8 !== undefined
+        ? { commissionFromHour8: Math.round(args.commissionFromHour8) }
+        : {}),
+      ...(args.maxDriverMarkupOverBase !== undefined
+        ? { maxDriverMarkupOverBase: normalizeMoney(args.maxDriverMarkupOverBase) }
+        : {}),
+      ...(args.maxDriverOfferDistanceKm !== undefined
+        ? {
+            maxDriverOfferDistanceKm: normalizeMoney(
+              args.maxDriverOfferDistanceKm,
+            ),
+          }
+        : {}),
       active: args.active,
       updatedAt: Date.now(),
     };

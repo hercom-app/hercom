@@ -160,6 +160,7 @@ export async function createNotification(
       | "driver_arrived_pickup"
       | "advance_confirmed"
       | "trip_route_updated"
+      | "trip_extended"
       | "support_reply";
     title: string;
     message: string;

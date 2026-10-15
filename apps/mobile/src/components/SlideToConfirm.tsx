@@ -141,13 +141,13 @@ export function SlideToConfirm({
         }}
       >
         {loading ? (
-          <ActivityIndicator color={TACTICAL_COLORS.base} />
+          <ActivityIndicator color={TACTICAL_COLORS.onAccent} />
         ) : (
           <Text
             style={{
               fontFamily: MONO.bold,
               fontSize: 18,
-              color: TACTICAL_COLORS.base,
+              color: TACTICAL_COLORS.onAccent,
             }}
           >
             ›

@@ -12,7 +12,7 @@ export function PayoutsPanel() {
   if (pending === undefined || paged === undefined) {
     return (
       <AdminCard>
-        <AdminLoading message="Cargando comisiones…" />
+        <AdminLoading message="Cargando membresías (comisiones)…" />
       </AdminCard>
     );
   }
@@ -20,10 +20,10 @@ export function PayoutsPanel() {
   return (
     <AdminCard>
       <h2 className="mb-4 font-display text-lg font-bold tracking-tight text-slate-900">
-        Comisiones pendientes
+        Membresías (comisiones) pendientes
       </h2>
       {total === 0 ? (
-        <AdminEmpty message="No hay comisiones pendientes." />
+        <AdminEmpty message="No hay membresías (comisiones) pendientes." />
       ) : (
         <>
           <ul className="divide-y divide-slate-100">

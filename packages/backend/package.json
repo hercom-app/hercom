@@ -27,6 +27,10 @@
     "./serviceClosure": {
       "types": "./convex/lib/serviceClosure.ts",
       "default": "./convex/lib/serviceClosure.ts"
+    },
+    "./personName": {
+      "types": "./convex/lib/personName.ts",
+      "default": "./convex/lib/personName.ts"
     }
   },
   "scripts": {

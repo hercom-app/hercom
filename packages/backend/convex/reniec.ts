@@ -2,7 +2,10 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { action, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { fetchReniecDniFromDecolecta } from "./lib/fetchReniecDni";
+import {
+  fetchReniecDniFromDecolecta,
+  ReniecServiceUnavailableError,
+} from "./lib/fetchReniecDni";
 import {
   RENIEC_DRIVER_MAX_LOOKUPS,
   assertReniecDriverLookupAllowed,
@@ -85,27 +88,38 @@ export const lookupDniForDriverApp = action({
       quotaBefore.blockedUntil,
     );
 
-    const result = await fetchReniecDniFromDecolecta(dni);
+    try {
+      const result = await fetchReniecDniFromDecolecta(dni);
 
-    const quotaAfter: {
-      lookupsUsed: number;
-      lookupsRemaining: number;
-      blockedUntil: number | null;
-    } = await ctx.runMutation(internal.users.recordReniecDriverLookup, {
-      userId,
-    });
+      const quotaAfter: {
+        lookupsUsed: number;
+        lookupsRemaining: number;
+        blockedUntil: number | null;
+      } = await ctx.runMutation(internal.users.recordReniecDriverLookup, {
+        userId,
+      });
 
-    const securityNotice =
-      quotaAfter.lookupsRemaining === 0
-        ? "Has usado tus 2 consultas RENIEC. No podrás validar otro DNI por 8 horas."
-        : `Consulta RENIEC registrada. Te queda ${quotaAfter.lookupsRemaining} consulta antes del bloqueo de 8 horas.`;
+      const securityNotice =
+        quotaAfter.lookupsRemaining === 0
+          ? "Has usado tus 2 consultas RENIEC. No podrás validar otro DNI por 8 horas."
+          : `Consulta RENIEC registrada. Te queda ${quotaAfter.lookupsRemaining} consulta antes del bloqueo de 8 horas.`;
 
-    return {
-      ...result,
-      lookupsUsed: quotaAfter.lookupsUsed,
-      lookupsRemaining: quotaAfter.lookupsRemaining,
-      blockedUntil: quotaAfter.blockedUntil,
-      securityNotice,
-    };
+      return {
+        outcome: "success" as const,
+        ...result,
+        lookupsUsed: quotaAfter.lookupsUsed,
+        lookupsRemaining: quotaAfter.lookupsRemaining,
+        blockedUntil: quotaAfter.blockedUntil,
+        securityNotice,
+      };
+    } catch (error) {
+      if (error instanceof ReniecServiceUnavailableError) {
+        return {
+          outcome: "service_unavailable" as const,
+          message: error.message,
+        };
+      }
+      throw error;
+    }
   },
 });

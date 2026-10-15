@@ -97,7 +97,7 @@ export type ThemeColors = {
   headerBg: string;
   headerText: string;
   headerMuted: string;
-  /** Texto sobre botones azul Hercom. */
+  /** Texto sobre botón principal (CTA). */
   onAccent: string;
   /** Banda de dato destacado (tarifa, saldo). */
   dataBandBg: string;
@@ -122,33 +122,36 @@ export const LIGHT_COLORS: ThemeColors = {
   headerBg: "#FFFFFF",
   headerText: HERCOM_COLORS.text,
   headerMuted: HERCOM_COLORS.textMuted,
-  onAccent: "#FFFFFF",
+  onAccent: HERCOM_COLORS.text,
   dataBandBg: HERCOM_COLORS.primarySoft,
   dataBandText: HERCOM_COLORS.text,
   dataBandLabel: HERCOM_COLORS.textSecondary,
 };
 
-/** Oscuro — hangar navy camo, acento Hercom blue. */
+/** CTA principal en oscuro (referencia Yango). */
+export const YANGO_DARK_PRIMARY = "#F5C518";
+
+/** Oscuro — fondo negro, CTA amarillo, texto CTA blanco. */
 export const DARK_COLORS: ThemeColors = {
-  base: ANA.aircraftSeaBlue,
-  baseElevated: ANA.aircraftInsigniaBlue,
-  surface: ANA.strataBlue,
-  surfaceSunken: ANA.navyBlack,
-  accent: HERCOM_COLORS.primary,
-  accentDim: HERCOM_COLORS.primaryDark,
-  steel: ANA.lightGray,
-  text: ANA.aircraftWhite,
-  textStrong: "#F6F5F2",
+  base: "#0A0A0A",
+  baseElevated: "#141414",
+  surface: "#1A1A1A",
+  surfaceSunken: "#0F0F0F",
+  accent: YANGO_DARK_PRIMARY,
+  accentDim: "#D4A812",
+  steel: "#9CA3AF",
+  text: "#D1D5DB",
+  textStrong: "#FFFFFF",
   success: "#3DDC84",
   warning: "#FFB020",
   danger: "#FF4D4D",
-  headerBg: ANA.insigniaBlue,
+  headerBg: "#0A0A0A",
   headerText: "#FFFFFF",
-  headerMuted: "rgba(255, 255, 255, 0.68)",
+  headerMuted: "rgba(255, 255, 255, 0.65)",
   onAccent: "#FFFFFF",
-  dataBandBg: "rgba(11, 112, 254, 0.18)",
-  dataBandText: "#F6F5F2",
-  dataBandLabel: ANA.lightGray,
+  dataBandBg: "#1F1F1F",
+  dataBandText: "#FFFFFF",
+  dataBandLabel: "#9CA3AF",
 };
 
 /** Tokens vivos: `applyColorScheme` los muta para que la app se re-pinte. */
@@ -200,9 +203,9 @@ export const MONO = {
 export const DISPLAY = { regular: INTER.regular, bold: INTER.bold } as const;
 
 const DARK_CHROME = {
-  border: "rgba(107, 132, 184, 0.22)",
-  borderSoft: "rgba(107, 132, 184, 0.12)",
-  gridLine: "rgba(107, 132, 184, 0.04)",
+  border: "rgba(255, 255, 255, 0.12)",
+  borderSoft: "rgba(255, 255, 255, 0.08)",
+  gridLine: "rgba(255, 255, 255, 0.04)",
   glowColor: "transparent",
   glowOpacity: 0,
 } as const;

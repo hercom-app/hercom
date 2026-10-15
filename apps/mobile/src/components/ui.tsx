@@ -153,17 +153,27 @@ type UiChipProps = {
   label: string;
   selected?: boolean;
   onPress?: () => void;
+  invalid?: boolean;
 };
 
-export function UiChip({ label, selected = false, onPress }: UiChipProps) {
+export function UiChip({
+  label,
+  selected = false,
+  onPress,
+  invalid = false,
+}: UiChipProps) {
   const { colors, border } = useAppTheme();
   const body = (
     <View
       className="px-3.5 py-2"
       style={{
         borderRadius: TACTICAL_RADIUS.sharp,
-        borderWidth: 1,
-        borderColor: selected ? colors.accent : border,
+        borderWidth: invalid ? 2 : 1,
+        borderColor: invalid
+          ? colors.danger
+          : selected
+            ? colors.accent
+            : border,
         backgroundColor: selected ? `${colors.accent}18` : colors.surface,
       }}
     >
@@ -220,9 +230,15 @@ export function UiBadge({ count }: UiBadgeProps) {
 
 type UiInputProps = TextInputProps & {
   className?: string;
+  invalid?: boolean;
 };
 
-export function UiInput({ className = "", style, ...props }: UiInputProps) {
+export function UiInput({
+  className = "",
+  style,
+  invalid = false,
+  ...props
+}: UiInputProps) {
   const { colors, border } = useAppTheme();
   return (
     <TextInput
@@ -233,8 +249,8 @@ export function UiInput({ className = "", style, ...props }: UiInputProps) {
         {
           backgroundColor: colors.surface,
           borderRadius: TACTICAL_RADIUS.sharp,
-          borderWidth: 1,
-          borderColor: border,
+          borderWidth: invalid ? 2 : 1,
+          borderColor: invalid ? colors.danger : border,
           color: colors.textStrong,
           fontFamily: POPPINS.regular,
           fontSize: TYPE.bodyLg,
@@ -242,6 +258,40 @@ export function UiInput({ className = "", style, ...props }: UiInputProps) {
         style,
       ]}
     />
+  );
+}
+
+type UiFieldErrorProps = {
+  message: string | null | undefined;
+  visible?: boolean;
+  className?: string;
+};
+
+/** Mensaje de error debajo del campo (patrón Material / apps ride-hailing). */
+export function UiFieldError({
+  message,
+  visible = true,
+  className = "",
+}: UiFieldErrorProps) {
+  const { colors } = useAppTheme();
+  if (!visible || message === null || message === undefined || message === "") {
+    return null;
+  }
+  return (
+    <Text
+      accessible
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      className={`mt-1.5 ${className}`.trim()}
+      style={{
+        fontFamily: POPPINS.medium,
+        fontSize: TYPE.caption,
+        color: colors.danger,
+        lineHeight: 18,
+      }}
+    >
+      {message}
+    </Text>
   );
 }
 

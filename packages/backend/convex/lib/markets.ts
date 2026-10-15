@@ -22,6 +22,12 @@ export type MarketPricing = {
   minServiceHours: number;
   minServicePrice: number;
   commissionRate: number;
+  commissionRateFromHour3?: number;
+  commissionRateFromHour8?: number;
+  commissionFromHour3?: number;
+  commissionFromHour8?: number;
+  maxDriverMarkupOverBase?: number;
+  maxDriverOfferDistanceKm?: number;
   level1Label: string;
   level2Label: string;
   level3Label: string;
@@ -36,7 +42,7 @@ function pricingFromMarket(
 ): MarketPricing {
   const hourlyRate = market.hourlyRate;
   const minServiceHours = market.minServiceHours;
-  return {
+  const pricing: MarketPricing = {
     countryCode: market.countryCode,
     countryName: market.name,
     currencyCode: market.currencyCode,
@@ -51,6 +57,25 @@ function pricingFromMarket(
     level3Label: country.level3Label,
     timezone: country.timezone,
   };
+  if (market.commissionRateFromHour3 !== undefined) {
+    pricing.commissionRateFromHour3 = market.commissionRateFromHour3;
+  }
+  if (market.commissionRateFromHour8 !== undefined) {
+    pricing.commissionRateFromHour8 = market.commissionRateFromHour8;
+  }
+  if (market.commissionFromHour3 !== undefined) {
+    pricing.commissionFromHour3 = market.commissionFromHour3;
+  }
+  if (market.commissionFromHour8 !== undefined) {
+    pricing.commissionFromHour8 = market.commissionFromHour8;
+  }
+  if (market.maxDriverMarkupOverBase !== undefined) {
+    pricing.maxDriverMarkupOverBase = market.maxDriverMarkupOverBase;
+  }
+  if (market.maxDriverOfferDistanceKm !== undefined) {
+    pricing.maxDriverOfferDistanceKm = market.maxDriverOfferDistanceKm;
+  }
+  return pricing;
 }
 
 function fallbackPricing(countryCode: string): MarketPricing {

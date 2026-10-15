@@ -91,6 +91,7 @@ export const notificationTypeValidator = v.union(
   v.literal("driver_arrived_pickup"),
   v.literal("advance_confirmed"),
   v.literal("trip_route_updated"),
+  v.literal("trip_extended"),
   v.literal("support_reply"),
 );
 
@@ -201,6 +202,10 @@ export default defineSchema({
     department: v.optional(v.string()),
     province: v.optional(v.string()),
     district: v.optional(v.string()),
+    /** Última ubicación reportada (ofertas / disponibilidad). */
+    lastLat: v.optional(v.number()),
+    lastLng: v.optional(v.number()),
+    lastLocationAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
     .index("by_status", ["status"]),
@@ -244,6 +249,8 @@ export default defineSchema({
     /** Firma digital (casilla) de autorización de datos personales. */
     personalDataConsentAt: v.optional(v.number()),
     personalDataConsentText: v.optional(v.string()),
+    /** Nombres ingresados a mano porque RENIEC/Decolecta no estaba disponible. */
+    reniecManualEntry: v.optional(v.boolean()),
   })
     .index("by_user", ["userId"])
     .index("by_dni", ["dni"])
@@ -291,6 +298,12 @@ export default defineSchema({
     finishedAt: v.optional(v.number()),
     cancelledAt: v.optional(v.number()),
     closureReason: v.optional(serviceClosureReasonValidator),
+    /** Horas contratadas (mín. mercado; crece con extensiones). */
+    serviceHours: v.optional(v.number()),
+    /** Tarifa horaria al crear/aceptar oferta (para comisión por tramos). */
+    hourlyRateSnapshot: v.optional(v.number()),
+    /** Fin del tiempo contratado (ms); se fija al iniciar viaje con cliente. */
+    serviceEndsAt: v.optional(v.number()),
   })
     .index("by_client", ["clientId"])
     .index("by_driver", ["driverId"])
@@ -454,11 +467,36 @@ export default defineSchema({
     hourlyRate: v.number(),
     minServiceHours: v.number(),
     commissionRate: v.number(),
+    /** Comisión desde la 3.ª hora (default 15%). */
+    commissionRateFromHour3: v.optional(v.number()),
+    /** Comisión desde la 8.ª hora (default 10%). */
+    commissionRateFromHour8: v.optional(v.number()),
+    commissionFromHour3: v.optional(v.number()),
+    commissionFromHour8: v.optional(v.number()),
+    /** Tope de recargo del chofer sobre tarifa base (0.5 = +50%). */
+    maxDriverMarkupOverBase: v.optional(v.number()),
+    /** Radio máximo (km) origen del servicio ↔ chofer para ofertar. */
+    maxDriverOfferDistanceKm: v.optional(v.number()),
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_country", ["countryCode"]),
+
+  /**
+   * Topes de oferta del chofer por distrito (anti-estafa).
+   */
+  districtPricingRules: defineTable({
+    countryCode: v.string(),
+    department: v.string(),
+    province: v.optional(v.string()),
+    district: v.optional(v.string()),
+    maxDriverOfferPrice: v.optional(v.number()),
+    maxDriverMarkupOverBase: v.optional(v.number()),
+    active: v.boolean(),
+    updatedAt: v.number(),
+    updatedBy: v.id("users"),
+  }).index("by_country_department", ["countryCode", "department"]),
 
   /**
    * Promociones festivas por región (país + niveles 1/2/3).

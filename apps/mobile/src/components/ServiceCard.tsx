@@ -5,6 +5,7 @@ import { api } from "@proyecto/backend";
 import type { Doc, Id } from "@proyecto/backend/dataModel";
 import { HelpFab } from "./HelpFab";
 import { SlideToConfirm } from "./SlideToConfirm";
+import { TripSecurityPin } from "./uber/TripSecurityPin";
 import {
   TacticalButton,
   TacticalInput,
@@ -92,6 +93,12 @@ export const ServiceCard = memo(function ServiceCard({
     service.status === "in_progress" ||
     service.status === "en_route" ||
     service.status === "arrived_destination";
+
+  const showTripStartCode =
+    service.securityCode !== undefined &&
+    (service.status === "assigned" ||
+      service.status === "heading_to_pickup" ||
+      service.status === "arrived_pickup");
 
   async function handleConfirmAdvance() {
     setActionError(null);
@@ -188,6 +195,33 @@ export const ServiceCard = memo(function ServiceCard({
           {`S/${(service.offeredPrice ?? service.totalPrice).toFixed(2)}`}
         </TacticalValue>
       </View>
+
+      {showTripStartCode ? (
+        <View className="mb-3">
+          <TripSecurityPin
+            pin={service.securityCode!}
+            title="Código de inicio del servicio"
+            className="mb-2"
+          />
+          <TacticalText size={12} tone="text">
+            {service.status === "arrived_pickup"
+              ? "El cliente debe ver el mismo código en su app. Confírmalo abajo antes de deslizar para salir."
+              : "Conserva este código: lo pedirás al cliente al llegar al punto de partida."}
+          </TacticalText>
+        </View>
+      ) : null}
+
+      {showTripStartCode === false &&
+      (service.status === "assigned" ||
+        service.status === "heading_to_pickup" ||
+        service.status === "arrived_pickup") ? (
+        <TacticalPanel tone="sunken" className="mb-3 p-3">
+          <TacticalText size={13} tone="text">
+            No hay código de inicio en este servicio. Revisa la notificación
+            «Viaje confirmado» o contacta a soporte Hercom.
+          </TacticalText>
+        </TacticalPanel>
+      ) : null}
 
       {canShowLive ? (
         <View className="mb-3 items-end">

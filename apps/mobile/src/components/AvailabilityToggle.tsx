@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
-import { PanResponder, Text, View } from "react-native";
+import { Alert, PanResponder, Text, View } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
+import { getDriverGpsForOffer } from "../hooks/useDriverOfferLocation";
 import { TacticalLabel, TacticalPanel, TacticalStatus } from "./tactical";
 import {
   MONO,
@@ -57,7 +58,27 @@ export function AvailabilityToggle({ status }: { status: DriverStatus }) {
           const target: DriverStatus =
             current === "available" ? "offline" : "available";
           setThumbX(0);
-          void setStatus({ status: target });
+          if (target === "available") {
+            void (async () => {
+              try {
+                const gps = await getDriverGpsForOffer();
+                await setStatus({
+                  status: target,
+                  lat: gps.lat,
+                  lng: gps.lng,
+                });
+              } catch (error) {
+                Alert.alert(
+                  "Ubicación requerida",
+                  error instanceof Error
+                    ? error.message
+                    : "Activa el GPS para conectarte y ver solicitudes a 10 km.",
+                );
+              }
+            })();
+          } else {
+            void setStatus({ status: target });
+          }
           return;
         }
         setThumbX(0);

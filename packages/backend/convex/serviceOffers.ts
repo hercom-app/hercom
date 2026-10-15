@@ -1,10 +1,19 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { computeClientAdvance } from "./lib/constants";
+import { persistDriverLocation } from "./lib/driverLocation";
+import { resolveMaxDriverOfferDistanceKm } from "./lib/driverOfferDiscovery";
+import {
+  formatDistanceKm,
+  haversineDistanceKm,
+  isWithinDriverServiceRadius,
+} from "./lib/geoDistance";
+import { getMarketByCountry } from "./lib/markets";
+import { resolveOfferLimits } from "./lib/offerLimits";
 import {
   computeClientTotalForOffer,
   computePlatformCommissionForService,
-  getMinimumOfferPrice,
+  resolveServiceHoursAndHourlyRate,
 } from "./lib/pricing";
 import { requireDriver, requireUser } from "./lib/auth";
 import { hasSufficientBalance } from "./driverWallets";
@@ -27,6 +36,8 @@ export const submitMyOffer = mutation({
   args: {
     serviceId: v.id("services"),
     offeredPrice: v.number(),
+    driverLat: v.number(),
+    driverLng: v.number(),
   },
   handler: async (ctx, args) => {
     const { driver } = await requireDriver(ctx);
@@ -55,18 +66,52 @@ export const submitMyOffer = mutation({
       };
     }
 
-    const offeredPrice = normalizeMoney(args.offeredPrice);
-    const minOffer = getMinimumOfferPrice(service);
-    if (offeredPrice < minOffer) {
+    const maxDistanceKm = await resolveMaxDriverOfferDistanceKm(
+      ctx,
+      driver.countryCode ?? service.origin.countryCode,
+    );
+    if (
+      !isWithinDriverServiceRadius(
+        { lat: args.driverLat, lng: args.driverLng },
+        service.origin,
+        maxDistanceKm,
+      )
+    ) {
+      const km = haversineDistanceKm(
+        { lat: args.driverLat, lng: args.driverLng },
+        service.origin,
+      );
       return {
         ok: false as const,
-        message: `La oferta debe ser mayor o igual a la tarifa de lista S/${minOffer.toFixed(2)}.`,
+        message: `Estás a ${formatDistanceKm(km)} del origen. Solo puedes ofertar servicios dentro de ${maxDistanceKm} km.`,
+      };
+    }
+    await persistDriverLocation(ctx, driver._id, args.driverLat, args.driverLng);
+
+    const offeredPrice = normalizeMoney(args.offeredPrice);
+    const limits = await resolveOfferLimits(ctx, service);
+    if (offeredPrice < limits.minOfferPrice) {
+      return {
+        ok: false as const,
+        message: `La oferta debe ser mayor o igual a la tarifa de lista S/${limits.minOfferPrice.toFixed(2)}.`,
+      };
+    }
+    if (offeredPrice > limits.maxOfferPrice) {
+      return {
+        ok: false as const,
+        message: `La oferta no puede superar S/${limits.maxOfferPrice.toFixed(2)} (tope: tarifa base + ${Math.round(limits.maxMarkupOverBase * 100)}%${limits.districtRuleApplied ? ", regla del distrito" : ""}).`,
       };
     }
 
+    const market = await getMarketByCountry(ctx, service.origin.countryCode);
+    const { serviceHours, hourlyRateSnapshot } = resolveServiceHoursAndHourlyRate(
+      offeredPrice,
+      market,
+    );
     const projectedCommission = computePlatformCommissionForService(
       offeredPrice,
       service.discountRate,
+      { serviceHours, hourlyRate: hourlyRateSnapshot, market },
     );
     const enoughBalance = await hasSufficientBalance(
       ctx,
@@ -116,6 +161,18 @@ export const submitMyOffer = mutation({
 /**
  * Ofertas pending del chofer autenticado (para no re-ofertar y mostrar monto).
  */
+export const getOfferLimitsForService = query({
+  args: { serviceId: v.id("services") },
+  handler: async (ctx, args) => {
+    await requireDriver(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null) {
+      throw new Error("Servicio no encontrado.");
+    }
+    return resolveOfferLimits(ctx, service);
+  },
+});
+
 export const listMinePending = query({
   args: {},
   handler: async (ctx) => {
@@ -221,9 +278,15 @@ export const acceptOffer = mutation({
       throw new Error("El chofer ya no está disponible.");
     }
 
+    const market = await getMarketByCountry(ctx, service.origin.countryCode);
+    const { serviceHours, hourlyRateSnapshot } = resolveServiceHoursAndHourlyRate(
+      offer.offeredPrice,
+      market,
+    );
     const commission = computePlatformCommissionForService(
       offer.offeredPrice,
       service.discountRate,
+      { serviceHours, hourlyRate: hourlyRateSnapshot, market },
     );
     const clientTotal = computeClientTotalForOffer(
       offer.offeredPrice,
@@ -244,6 +307,8 @@ export const acceptOffer = mutation({
       totalPrice: clientTotal,
       driverCommission: commission,
       advanceAmount,
+      serviceHours,
+      hourlyRateSnapshot,
       securityCode,
       status: "assigned",
       assignedAt: Date.now(),

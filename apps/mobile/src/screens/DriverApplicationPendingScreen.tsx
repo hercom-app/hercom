@@ -7,7 +7,7 @@ import {
   TacticalText,
   TacticalTitle,
 } from "../components/tactical";
-import { HERCOM_COLORS } from "../constants/theme";
+import { HERCOM_COLORS, TACTICAL_COLORS } from "../constants/theme";
 
 type DriverApplicationPendingScreenProps = {
   dni?: string;
@@ -24,7 +24,7 @@ export function DriverApplicationPendingScreen({
   return (
     <View
       className="flex-1 items-center justify-center px-6"
-      style={{ backgroundColor: HERCOM_COLORS.canvas }}
+      style={{ backgroundColor: TACTICAL_COLORS.base }}
     >
       <UiCard className="w-full max-w-sm">
         <TacticalTitle size={19}>Solicitud enviada</TacticalTitle>

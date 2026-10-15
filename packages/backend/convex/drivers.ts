@@ -4,6 +4,9 @@ import { driverStatusValidator } from "./schema";
 import { getCurrentUser, requireDriver, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
 import { driverMatchesDistrictScopes, getAccessContext } from "./lib/adminAccess";
 import { ensureWallet } from "./driverWallets";
+import { persistDriverLocation } from "./lib/driverLocation";
+import { isValidGeoPoint } from "./lib/geoDistance";
+import { normalizePersonNamePart } from "./lib/personName";
 
 /**
  * Lista los choferes disponibles. Usado por el panel admin para asignar.
@@ -105,11 +108,37 @@ export const upsertDriverProfile = mutation({
 export const setStatus = mutation({
   args: {
     status: driverStatusValidator,
+    lat: v.optional(v.number()),
+    lng: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { driver } = await requireDriver(ctx);
+    if (args.status === "available") {
+      if (args.lat === undefined || args.lng === undefined) {
+        throw new Error(
+          "Comparte tu ubicación para activarte y ver solicitudes cercanas (10 km).",
+        );
+      }
+      await persistDriverLocation(ctx, driver._id, args.lat, args.lng);
+    }
     await ctx.db.patch(driver._id, { status: args.status });
     return driver._id;
+  },
+});
+
+/** Actualiza GPS del chofer (pestaña ofertas / antes de ofertar). */
+export const updateMyLocation = mutation({
+  args: {
+    lat: v.number(),
+    lng: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { driver } = await requireDriver(ctx);
+    if (!isValidGeoPoint(args.lat, args.lng)) {
+      throw new Error("Ubicación GPS no válida.");
+    }
+    await persistDriverLocation(ctx, driver._id, args.lat, args.lng);
+    return { ok: true as const };
   },
 });
 
@@ -141,7 +170,7 @@ export const updateMyPayoutProfile = mutation({
   },
   handler: async (ctx, args) => {
     const { driver } = await requireDriver(ctx);
-    const fullName = args.fullName.trim();
+    const fullName = normalizePersonNamePart(args.fullName);
     const dni = args.dni.trim();
     if (fullName.length < 3) {
       throw new Error("Ingresa tus nombres completos.");

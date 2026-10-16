@@ -101,6 +101,35 @@ function displayLookupValue(value: string): string {
   return trimmed === "" ? "—" : trimmed;
 }
 
+function licenseFormatLabel(
+  format: DriverApplicationForAdmin["licenseFormat"],
+): string {
+  if (format === "digital") {
+    return "Electrónico (digital)";
+  }
+  if (format === "physical") {
+    return "Físico";
+  }
+  return "Físico";
+}
+
+function LookupResultLine({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <p className={className ?? ""}>
+      <span className="font-semibold text-slate-800">{label}:</span>{" "}
+      {displayLookupValue(value)}
+    </p>
+  );
+}
+
 export type DriverFinanceInfo = {
   hasProfile: boolean;
   fullName: string | undefined;
@@ -327,14 +356,8 @@ export function DriverDossierPanel({
         <InfoRow label="N.° brevete" value={application.licenseNumber} />
         <InfoRow label="Categoría brevete" value={application.licenseCategory} />
         <InfoRow
-          label="Formato brevete"
-          value={
-            application.licenseFormat === "digital"
-              ? "Digital"
-              : application.licenseFormat === "physical"
-                ? "Físico"
-                : "Físico"
-          }
+          label="Tipo de brevete (declarado)"
+          value={licenseFormatLabel(application.licenseFormat)}
         />
         <InfoRow
           label="Tipo de vehículo"
@@ -391,48 +414,51 @@ export function DriverDossierPanel({
           {reniecResult === null ? null : (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 md:col-span-2">
               <p className={labelClass}>Consulta DNI</p>
-              <p className="text-base font-semibold text-slate-900">
-                {displayLookupValue(reniecResult.fullName)}
-              </p>
-              <div className="mt-2 grid gap-1 text-sm text-slate-700 sm:grid-cols-2">
-                <p>
-                  DNI {displayLookupValue(reniecResult.documentNumber)}
-                  {reniecResult.verificationDigit !== undefined &&
-                  reniecResult.verificationDigit !== ""
-                    ? ` · DV ${displayLookupValue(reniecResult.verificationDigit)}`
-                    : ""}
-                </p>
-                <p>
-                  Nacimiento {formatBirthDate(reniecResult.birthDate)}
-                </p>
-                <p>
-                  Sexo {displayLookupValue(reniecResult.sex ?? "")}
-                </p>
-                <p>
-                  Nombres {displayLookupValue(reniecResult.firstName)}
-                </p>
-                <p>
-                  Ap. paterno{" "}
-                  {displayLookupValue(reniecResult.firstLastName)}
-                </p>
-                <p>
-                  Ap. materno{" "}
-                  {displayLookupValue(reniecResult.secondLastName)}
-                </p>
+              <div className="mt-2 grid gap-1.5 text-sm text-slate-700 sm:grid-cols-2">
+                <LookupResultLine
+                  label="Nombre completo"
+                  value={reniecResult.fullName}
+                  className="sm:col-span-2"
+                />
+                <LookupResultLine
+                  label="DNI"
+                  value={
+                    reniecResult.verificationDigit !== undefined &&
+                    reniecResult.verificationDigit !== ""
+                      ? `${reniecResult.documentNumber} (DV ${reniecResult.verificationDigit})`
+                      : reniecResult.documentNumber
+                  }
+                />
+                <LookupResultLine
+                  label="Fecha de nacimiento"
+                  value={formatBirthDate(reniecResult.birthDate)}
+                />
+                <LookupResultLine
+                  label="Sexo"
+                  value={reniecResult.sex ?? ""}
+                />
+                <LookupResultLine
+                  label="Nombres"
+                  value={reniecResult.firstName}
+                />
+                <LookupResultLine
+                  label="Apellido paterno"
+                  value={reniecResult.firstLastName}
+                />
+                <LookupResultLine
+                  label="Apellido materno"
+                  value={reniecResult.secondLastName}
+                />
                 {reniecResult.civilStatus !== undefined &&
                 reniecResult.civilStatus !== "" ? (
-                  <p>
-                    Estado civil{" "}
-                    {displayLookupValue(reniecResult.civilStatus)}
-                  </p>
-                ) : null}
-                {reniecResult.dataSource !== undefined &&
-                reniecResult.dataSource !== "" ? (
-                  <p>Fuente {displayLookupValue(reniecResult.dataSource)}</p>
+                  <LookupResultLine
+                    label="Estado civil"
+                    value={reniecResult.civilStatus}
+                  />
                 ) : null}
                 {reniecResult.ubigeo !== undefined &&
                 reniecResult.ubigeo !== "" ? (
-                  <p>Ubigeo {displayLookupValue(reniecResult.ubigeo)}</p>
+                  <LookupResultLine label="Ubigeo" value={reniecResult.ubigeo} />
                 ) : null}
                 {(reniecResult.department !== undefined &&
                   reniecResult.department !== "") ||
@@ -440,9 +466,10 @@ export function DriverDossierPanel({
                   reniecResult.province !== "") ||
                 (reniecResult.district !== undefined &&
                   reniecResult.district !== "") ? (
-                  <p className="sm:col-span-2">
-                    Ubicación{" "}
-                    {[
+                  <LookupResultLine
+                    className="sm:col-span-2"
+                    label="Ubicación"
+                    value={[
                       reniecResult.district,
                       reniecResult.province,
                       reniecResult.department,
@@ -451,15 +478,16 @@ export function DriverDossierPanel({
                         (part): part is string =>
                           part !== undefined && part !== "",
                       )
-                      .map((part) => displayLookupValue(part))
                       .join(" · ")}
-                  </p>
+                  />
                 ) : null}
                 {reniecResult.address !== undefined &&
                 reniecResult.address !== "" ? (
-                  <p className="sm:col-span-2">
-                    Dirección {displayLookupValue(reniecResult.address)}
-                  </p>
+                  <LookupResultLine
+                    className="sm:col-span-2"
+                    label="Dirección"
+                    value={reniecResult.address}
+                  />
                 ) : null}
               </div>
             </div>
@@ -473,22 +501,35 @@ export function DriverDossierPanel({
                   {licenseResult.fallbackReason}
                 </p>
               ) : null}
-              <p className="text-base font-semibold text-slate-900">
-                {displayLookupValue(licenseResult.fullName)}
-              </p>
-              <p className="mt-1 text-sm text-slate-700">
-                Licencia {displayLookupValue(licenseResult.licenseNumber)} ·{" "}
-                {displayLookupValue(licenseResult.category)} ·{" "}
-                {displayLookupValue(licenseResult.status)}
-              </p>
-              <p className="mt-1 text-sm text-slate-700">
-                Expedición {displayLookupValue(licenseResult.issuedAt)} ·
-                Vence {displayLookupValue(licenseResult.expiresAt)}
-              </p>
-              <p className="mt-1 text-sm text-slate-700">
-                Restricciones{" "}
-                {displayLookupValue(licenseResult.restrictions)}
-              </p>
+              <div className="mt-2 grid gap-1.5 text-sm text-slate-700 sm:grid-cols-2">
+                <LookupResultLine
+                  label="Nombre completo"
+                  value={licenseResult.fullName}
+                  className="sm:col-span-2"
+                />
+                <LookupResultLine
+                  label="N.° licencia"
+                  value={licenseResult.licenseNumber}
+                />
+                <LookupResultLine
+                  label="Categoría"
+                  value={licenseResult.category}
+                />
+                <LookupResultLine label="Estado" value={licenseResult.status} />
+                <LookupResultLine
+                  label="Expedición"
+                  value={licenseResult.issuedAt}
+                />
+                <LookupResultLine
+                  label="Vencimiento"
+                  value={licenseResult.expiresAt}
+                />
+                <LookupResultLine
+                  label="Restricciones"
+                  value={licenseResult.restrictions}
+                  className="sm:col-span-2"
+                />
+              </div>
             </div>
           )}
         </div>
@@ -496,6 +537,12 @@ export function DriverDossierPanel({
 
       <div className="mt-4">
         <p className={labelClass}>Fotos del brevete</p>
+        <p className="mb-2 text-sm font-medium text-slate-800">
+          Tipo declarado en la app:{" "}
+          <span className="font-semibold text-slate-900">
+            {licenseFormatLabel(application.licenseFormat)}
+          </span>
+        </p>
         {application.licensePhotoUrls.length === 0 ? (
           <p className="text-sm text-slate-500">Sin fotos disponibles.</p>
         ) : (
@@ -536,6 +583,11 @@ export function DriverDossierPanel({
           officialUrl={DIGITAL_LICENSE_URL}
           fileUrl={application.licensePdfUrl ?? null}
           fileLabel="Abrir PDF del brevete"
+          missingFileMessage={
+            application.licenseFormat === "digital"
+              ? "El chofer aún no subió el PDF del brevete digital."
+              : "No aplica: brevete físico (van las fotos anverso/reverso)."
+          }
         />
         <DocumentFileCard
           title="Récord de conductor (MTC)"
@@ -817,6 +869,7 @@ function DocumentFileCard({
   officialUrl,
   fileUrl,
   fileLabel,
+  missingFileMessage = "El chofer aún no subió este PDF.",
 }: {
   title: string;
   description: string;
@@ -824,6 +877,7 @@ function DocumentFileCard({
   officialUrl: string;
   fileUrl: string | null;
   fileLabel: string;
+  missingFileMessage?: string;
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -848,9 +902,7 @@ function DocumentFileCard({
             {fileLabel}
           </a>
         ) : (
-          <p className="text-xs text-slate-500">
-            El chofer aún no subió este PDF.
-          </p>
+          <p className="text-xs text-slate-500">{missingFileMessage}</p>
         )}
       </div>
     </div>

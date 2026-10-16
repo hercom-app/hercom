@@ -3,6 +3,7 @@ import {
   Authenticated,
   AuthLoading,
   Unauthenticated,
+  useConvexAuth,
   useQuery,
 } from "convex/react";
 import { api } from "@proyecto/backend";
@@ -22,15 +23,13 @@ import { SupportView } from "./views/SupportView";
 const SCOPED_SECTIONS: AdminSection[] = ["drivers", "services", "clients", "support"];
 
 function Dashboard() {
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const me = useQuery(api.users.getAdminContext);
   const [section, setSection] = useState<AdminSection>("drivers");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const isHr = me?.role === "hr";
-  const isStaff =
-    me !== null &&
-    me !== undefined &&
-    (me.role === "admin" || me.role === "superadmin" || isHr);
+  const isHr = me?.isHr === true;
+  const isStaff = me?.isStaff === true;
   const isFullAdmin = me?.isFullAdmin === true;
 
   useEffect(() => {
@@ -62,7 +61,7 @@ function Dashboard() {
   const meta = SECTION_META[section];
   const userName = me?.name ?? me?.email ?? "Administrador";
 
-  if (me === undefined) {
+  if (authLoading || me === undefined) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-admin-canvas">
         <div className="flex items-center gap-3 text-sm text-slate-500">
@@ -73,13 +72,34 @@ function Dashboard() {
     );
   }
 
-  if (me === null || !isStaff) {
+  if (isAuthenticated && me === null) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-admin-canvas p-6">
+        <AdminCard className="max-w-md">
+          <p className="text-sm font-medium text-slate-800">
+            Sesión iniciada, pero no hay perfil de usuario en el sistema.
+          </p>
+          <p className="mt-2 text-sm text-slate-600">
+            Cierra sesión e intenta de nuevo, o contacta a soporte Hercom.
+          </p>
+        </AdminCard>
+      </div>
+    );
+  }
+
+  if (!isStaff) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-admin-canvas p-6">
         <AdminCard className="max-w-md">
           <p className="text-sm font-medium text-red-600">
             Tu cuenta no tiene permisos de administrador.
           </p>
+          {me !== null && me.role !== undefined ? (
+            <p className="mt-2 text-sm text-slate-600">
+              Rol actual: <span className="font-medium">{me.role}</span>. Si
+              deberías ser RR.HH. o admin, pide que revisen tu cuenta en Convex.
+            </p>
+          ) : null}
         </AdminCard>
       </div>
     );

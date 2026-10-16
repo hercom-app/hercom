@@ -5,6 +5,7 @@ import { districtScopeValidator, userRoleValidator } from "./schema";
 import {
   districtScopeKey,
   getAccessContext,
+  isStaffRole,
   listDistrictScopes,
 } from "./lib/adminAccess";
 import { normalizeCountryCode } from "./data/countryCatalog";
@@ -116,17 +117,20 @@ export const getAdminContext = query({
     if (user === null) {
       return null;
     }
+    const isStaff = isStaffRole(user.role);
     if (user.role === "hr") {
       return {
         ...user,
+        isStaff: true as const,
         isFullAdmin: false,
         isHr: true as const,
         districtScopes: [],
       };
     }
-    if (user.role !== "admin" && user.role !== "superadmin") {
+    if (!isStaff) {
       return {
         ...user,
+        isStaff: false as const,
         isFullAdmin: false,
         isHr: false as const,
         districtScopes: [],
@@ -135,6 +139,7 @@ export const getAdminContext = query({
     const access = await getAccessContext(ctx, user);
     return {
       ...user,
+      isStaff: true as const,
       isFullAdmin: access.isFullAdmin,
       isHr: false as const,
       districtScopes: access.districtScopes,

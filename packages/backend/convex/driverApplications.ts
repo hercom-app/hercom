@@ -9,6 +9,7 @@ import { assertDniAvailable } from "./lib/identity";
 import {
   canBrowseAllDriverRecords,
   getAccessContext,
+  isHrRole,
   originMatchesDistrictScopes,
 } from "./lib/adminAccess";
 import { ensureWallet } from "./driverWallets";
@@ -398,7 +399,7 @@ export const approve = mutation({
   },
 });
 
-/** Licencia de armas e idiomas — solo RR.HH. (panel interno). */
+/** Licencia de armas e idiomas — RR.HH. y superadmin (panel interno). */
 export const updateHrProfileExtras = mutation({
   args: {
     applicationId: v.id("driverApplications"),
@@ -410,8 +411,11 @@ export const updateHrProfileExtras = mutation({
   },
   handler: async (ctx, args) => {
     const staff = await requireStaff(ctx);
-    if (staff.role !== "hr") {
-      throw new Error("Solo Recursos Humanos puede editar licencia de armas e idiomas.");
+    const access = await getAccessContext(ctx, staff);
+    if (!isHrRole(staff.role) && !access.isFullAdmin) {
+      throw new Error(
+        "No autorizado: solo RR.HH. o superadmin puede editar la ficha RR.HH.",
+      );
     }
 
     const application = await ctx.db.get(args.applicationId);

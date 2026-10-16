@@ -346,22 +346,6 @@ export function DriverDossierPanel({
                 : "—"
           }
         />
-        {canEditHrExtras ? (
-          <div className="md:col-span-2">
-            <HrProfileExtrasForm application={application} />
-          </div>
-        ) : (
-          <>
-            <InfoRow
-              label="Licencia de armas"
-              value={displayValue(application.firearmsLicenseNumber)}
-            />
-            <InfoRow
-              label="Idiomas adicionales"
-              value={formatAdditionalLanguages(application)}
-            />
-          </>
-        )}
         <InfoRow label="Zona" value={formatRegion(application)} />
         <InfoRow
           label="Enviado"
@@ -392,7 +376,7 @@ export function DriverDossierPanel({
             onClick={() => void handleLookupReniec()}
             className={`${btnSecondaryClass} w-full sm:w-auto`}
           >
-            {lookingUpReniec ? "Consultando…" : "Consultar DNI (VerificaPE)"}
+            {lookingUpReniec ? "Consultando…" : "Consultar DNI"}
           </button>
           <button
             type="button"
@@ -400,17 +384,13 @@ export function DriverDossierPanel({
             onClick={() => void handleLookupLicense()}
             className={`${btnSecondaryClass} w-full sm:w-auto`}
           >
-            {lookingUpLicense ? "Consultando…" : "Consultar brevete (Factiliza)"}
+            {lookingUpLicense ? "Consultando…" : "Consultar brevete"}
           </button>
         </div>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
-          {reniecResult === null ? (
-            <p className="text-xs text-slate-500">
-              VerificaPE: nombre oficial y fecha de nacimiento del DNI.
-            </p>
-          ) : (
+          {reniecResult === null ? null : (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 md:col-span-2">
-              <p className={labelClass}>DNI (VerificaPE)</p>
+              <p className={labelClass}>Consulta DNI</p>
               <p className="text-base font-semibold text-slate-900">
                 {displayLookupValue(reniecResult.fullName)}
               </p>
@@ -484,19 +464,9 @@ export function DriverDossierPanel({
               </div>
             </div>
           )}
-          {licenseResult === null ? (
-            <p className="text-xs text-slate-500">
-              Brevete: número, categoría, vigencia y estado.
-            </p>
-          ) : (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-              <p className={labelClass}>
-                Brevete (
-                {licenseResult.source === "factiliza"
-                  ? "Factiliza"
-                  : "VerificaPE, respaldo"}
-                )
-              </p>
+          {licenseResult === null ? null : (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 md:col-span-2">
+              <p className={labelClass}>Consulta brevete</p>
               {licenseResult.fallbackReason !== undefined &&
               licenseResult.fallbackReason !== "" ? (
                 <p className="mb-1 text-xs text-amber-800">
@@ -523,41 +493,6 @@ export function DriverDossierPanel({
           )}
         </div>
       </div>
-
-      {application.status === "pending" && (
-        <div className="mt-4 flex w-full flex-col gap-2">
-          {ageBlock !== null && (
-            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
-              {ageBlock}
-            </p>
-          )}
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
-          <button
-            type="button"
-            disabled={approveDisabled}
-            onClick={() => void handleApprove()}
-            className={`${btnPrimaryClass} w-full sm:w-auto`}
-          >
-            Aprobar solicitud
-          </button>
-          <button
-            type="button"
-            disabled={acting}
-            onClick={() => void handleReject()}
-            className="min-h-11 w-full rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60 sm:w-auto"
-          >
-            Rechazar
-          </button>
-          </div>
-        </div>
-      )}
-
-      {message !== null && (
-        <p className="mt-3 text-sm font-medium text-emerald-700">{message}</p>
-      )}
-      {error !== null && (
-        <p className="mt-3 text-sm font-medium text-red-600">{error}</p>
-      )}
 
       <div className="mt-4">
         <p className={labelClass}>Fotos del brevete</p>
@@ -619,8 +554,63 @@ export function DriverDossierPanel({
           fileLabel="Abrir PDF del CUL"
         />
       </div>
+
+      <div className="mt-5">
+        {canEditHrExtras ? (
+          <HrProfileExtrasForm application={application} />
+        ) : (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-900">Ficha RR.HH.</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <InfoRow
+                label="Licencia de armas"
+                value={displayValue(application.firearmsLicenseNumber)}
+              />
+              <InfoRow
+                label="Idiomas adicionales"
+                value={formatAdditionalLanguages(application)}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
     {showFinance ? <DriverFinanceCard finance={finance} /> : null}
+
+    {message !== null && (
+      <p className="text-sm font-medium text-emerald-700">{message}</p>
+    )}
+    {error !== null && (
+      <p className="text-sm font-medium text-red-600">{error}</p>
+    )}
+
+    {application.status === "pending" && (
+      <div className="flex w-full flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+        {ageBlock !== null && (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+            {ageBlock}
+          </p>
+        )}
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <button
+            type="button"
+            disabled={approveDisabled}
+            onClick={() => void handleApprove()}
+            className={`${btnPrimaryClass} w-full sm:w-auto`}
+          >
+            Aprobar solicitud
+          </button>
+          <button
+            type="button"
+            disabled={acting}
+            onClick={() => void handleReject()}
+            className="min-h-11 w-full rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60 sm:w-auto"
+          >
+            Rechazar
+          </button>
+        </div>
+      </div>
+    )}
     </div>
   );
 }
@@ -690,9 +680,7 @@ function HrProfileExtrasForm({
 
   return (
     <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-      <p className="text-sm font-semibold text-slate-900">
-        Ficha RR.HH. (armas e idiomas)
-      </p>
+      <p className="text-sm font-semibold text-slate-900">Ficha RR.HH.</p>
       <p className="mt-1 text-xs text-slate-500">
         Completa tras entrevista o revisión documental. No lo ve el postulante en
         la app.

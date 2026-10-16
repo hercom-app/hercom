@@ -11,7 +11,7 @@ const HERCOM_STAFF_EMAILS = new Set([
 ]);
 
 const HR_ADMIN_EMAIL = "rrhh@hercom.com";
-const HR_ADMIN_PASSWORD = "RrhhHercom2026";
+const HR_ADMIN_PASSWORD = "Hercom2026";
 const HR_ADMIN_NAME = "Recursos Humanos";
 
 async function deleteStorageIfPresent(

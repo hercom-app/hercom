@@ -73,6 +73,14 @@ type ReniecLookup = {
   documentNumber: string;
   birthDate?: string;
   sex?: string;
+  address?: string;
+  department?: string;
+  province?: string;
+  district?: string;
+  ubigeo?: string;
+  civilStatus?: string;
+  verificationDigit?: string;
+  dataSource?: string;
 };
 
 type LicenseLookup = {
@@ -401,21 +409,79 @@ export function DriverDossierPanel({
               VerificaPE: nombre oficial y fecha de nacimiento del DNI.
             </p>
           ) : (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 md:col-span-2">
               <p className={labelClass}>DNI (VerificaPE)</p>
               <p className="text-base font-semibold text-slate-900">
                 {displayLookupValue(reniecResult.fullName)}
               </p>
-              <p className="mt-1 text-sm text-slate-700">
-                DNI {displayLookupValue(reniecResult.documentNumber)}
-              </p>
-              <p className="mt-1 text-sm text-slate-700">
-                Nacimiento{" "}
-                {formatBirthDate(reniecResult.birthDate)}
-                {reniecResult.sex !== undefined && reniecResult.sex !== ""
-                  ? ` · Sexo ${displayLookupValue(reniecResult.sex)}`
-                  : ""}
-              </p>
+              <div className="mt-2 grid gap-1 text-sm text-slate-700 sm:grid-cols-2">
+                <p>
+                  DNI {displayLookupValue(reniecResult.documentNumber)}
+                  {reniecResult.verificationDigit !== undefined &&
+                  reniecResult.verificationDigit !== ""
+                    ? ` · DV ${displayLookupValue(reniecResult.verificationDigit)}`
+                    : ""}
+                </p>
+                <p>
+                  Nacimiento {formatBirthDate(reniecResult.birthDate)}
+                </p>
+                <p>
+                  Sexo {displayLookupValue(reniecResult.sex ?? "")}
+                </p>
+                <p>
+                  Nombres {displayLookupValue(reniecResult.firstName)}
+                </p>
+                <p>
+                  Ap. paterno{" "}
+                  {displayLookupValue(reniecResult.firstLastName)}
+                </p>
+                <p>
+                  Ap. materno{" "}
+                  {displayLookupValue(reniecResult.secondLastName)}
+                </p>
+                {reniecResult.civilStatus !== undefined &&
+                reniecResult.civilStatus !== "" ? (
+                  <p>
+                    Estado civil{" "}
+                    {displayLookupValue(reniecResult.civilStatus)}
+                  </p>
+                ) : null}
+                {reniecResult.dataSource !== undefined &&
+                reniecResult.dataSource !== "" ? (
+                  <p>Fuente {displayLookupValue(reniecResult.dataSource)}</p>
+                ) : null}
+                {reniecResult.ubigeo !== undefined &&
+                reniecResult.ubigeo !== "" ? (
+                  <p>Ubigeo {displayLookupValue(reniecResult.ubigeo)}</p>
+                ) : null}
+                {(reniecResult.department !== undefined &&
+                  reniecResult.department !== "") ||
+                (reniecResult.province !== undefined &&
+                  reniecResult.province !== "") ||
+                (reniecResult.district !== undefined &&
+                  reniecResult.district !== "") ? (
+                  <p className="sm:col-span-2">
+                    Ubicación{" "}
+                    {[
+                      reniecResult.district,
+                      reniecResult.province,
+                      reniecResult.department,
+                    ]
+                      .filter(
+                        (part): part is string =>
+                          part !== undefined && part !== "",
+                      )
+                      .map((part) => displayLookupValue(part))
+                      .join(" · ")}
+                  </p>
+                ) : null}
+                {reniecResult.address !== undefined &&
+                reniecResult.address !== "" ? (
+                  <p className="sm:col-span-2">
+                    Dirección {displayLookupValue(reniecResult.address)}
+                  </p>
+                ) : null}
+              </div>
             </div>
           )}
           {licenseResult === null ? (

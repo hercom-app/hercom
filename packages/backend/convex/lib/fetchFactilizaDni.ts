@@ -1,4 +1,5 @@
 import type { DniLookupResult } from "./dniLookupTypes";
+import { isFactilizaSuccess } from "./factilizaResponse";
 import {
   IdentityServiceUnavailableError,
   isFactilizaQuotaMessage,
@@ -10,6 +11,7 @@ import {
 } from "./personName";
 
 type FactilizaDniPayload = {
+  status?: number;
   success?: boolean;
   message?: string;
   data?: {
@@ -71,7 +73,7 @@ export async function fetchDniFromFactiliza(dni: string): Promise<DniLookupResul
     throw new Error(`Error Factiliza DNI (${response.status}).`);
   }
 
-  if (!response.ok || payload.success !== true || payload.data === undefined) {
+  if (!isFactilizaSuccess(response.status, payload) || payload.data === undefined) {
     if (response.status === 404) {
       throw new Error("DNI no encontrado.");
     }

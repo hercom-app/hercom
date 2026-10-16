@@ -1,22 +1,59 @@
 import type { LicenseLookupResult } from "./licenseLookupTypes";
+import { pickApiString } from "./pickApiString";
 import { normalizePersonNamePart } from "./personName";
 
 type VerificaPeLicensePayload = {
   success?: boolean;
   message?: string;
-  data?: {
-    numero_documento?: string;
-    nombre_completo?: string;
-    licencia?: {
-      numero?: string;
-      categoria?: string;
-      fecha_expedicion?: string;
-      fecha_vencimiento?: string;
-      estado?: string;
-      restricciones?: string;
-    } | null;
-  };
+  code?: string;
+  data?: Record<string, unknown>;
 };
+
+function mapLicenseRow(
+  row: Record<string, unknown>,
+): Omit<LicenseLookupResult, "documentNumber" | "fullName"> {
+  return {
+    licenseNumber: pickApiString(row, ["numero", "number", "licenseNumber"]),
+    category: pickApiString(row, ["categoria", "category", "class"]),
+    issuedAt: pickApiString(row, [
+      "fecha_expedicion",
+      "fechaExpedicion",
+      "issuedAt",
+      "issueDate",
+    ]),
+    expiresAt: pickApiString(row, [
+      "fecha_vencimiento",
+      "fechaVencimiento",
+      "expiresAt",
+      "expirationDate",
+    ]),
+    status: pickApiString(row, ["estado", "status", "state"]),
+    restrictions: pickApiString(row, [
+      "restricciones",
+      "restrictions",
+      "restriction",
+    ]),
+  };
+}
+
+function extractLicenseBlock(
+  data: Record<string, unknown>,
+): Record<string, unknown> | null {
+  const licencia = data.licencia ?? data.license ?? data.licenses;
+  if (licencia === null || licencia === undefined) {
+    return null;
+  }
+  if (Array.isArray(licencia)) {
+    const first = licencia[0];
+    return first !== undefined && typeof first === "object" && first !== null
+      ? (first as Record<string, unknown>)
+      : null;
+  }
+  if (typeof licencia === "object") {
+    return licencia as Record<string, unknown>;
+  }
+  return null;
+}
 
 export async function fetchLicenseFromVerificaPe(
   dni: string,
@@ -61,15 +98,29 @@ export async function fetchLicenseFromVerificaPe(
     );
   }
 
-  const license = payload.data.licencia;
+  const license = extractLicenseBlock(payload.data);
+  if (license === null) {
+    throw new Error("Licencia no encontrada en la respuesta de VerificaPE.");
+  }
+
+  const fullName =
+    normalizePersonNamePart(
+      pickApiString(payload.data, ["nombre_completo", "fullName", "full_name"]),
+    ) ||
+    [
+      pickApiString(payload.data, ["nombres", "names"]),
+      pickApiString(payload.data, ["apellido_paterno", "paternalSurname"]),
+      pickApiString(payload.data, ["apellido_materno", "maternalSurname"]),
+    ]
+      .filter((part) => part !== "")
+      .map((part) => normalizePersonNamePart(part))
+      .join(" ");
+
   return {
-    documentNumber: payload.data.numero_documento ?? dni,
-    fullName: normalizePersonNamePart(payload.data.nombre_completo ?? ""),
-    licenseNumber: license?.numero ?? "",
-    category: license?.categoria ?? "",
-    issuedAt: license?.fecha_expedicion ?? "",
-    expiresAt: license?.fecha_vencimiento ?? "",
-    status: license?.estado ?? "",
-    restrictions: license?.restricciones ?? "",
+    documentNumber:
+      pickApiString(payload.data, ["numero_documento", "dni", "numero"]) ||
+      dni,
+    fullName,
+    ...mapLicenseRow(license),
   };
 }

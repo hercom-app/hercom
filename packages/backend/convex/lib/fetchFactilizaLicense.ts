@@ -1,4 +1,5 @@
 import type { LicenseLookupResult } from "./licenseLookupTypes";
+import { isFactilizaSuccess } from "./factilizaResponse";
 import {
   FactilizaQuotaExceededError,
   isFactilizaQuotaMessage,
@@ -16,6 +17,7 @@ type FactilizaLicenseRow = {
 };
 
 type FactilizaLicensePayload = {
+  status?: number;
   success?: boolean;
   message?: string;
   data?: {
@@ -96,7 +98,7 @@ export async function fetchLicenseFromFactiliza(
     throw new FactilizaQuotaExceededError(payload.message);
   }
 
-  if (!response.ok || payload.success !== true || payload.data === undefined) {
+  if (!isFactilizaSuccess(response.status, payload)) {
     if (isIdentityServiceUnavailableStatus(response.status)) {
       throw new Error(
         payload.message?.trim() !== ""
@@ -107,10 +109,14 @@ export async function fetchLicenseFromFactiliza(
     throw new Error(
       payload.message?.trim() !== ""
         ? payload.message!
-        : response.status === 404
+        : response.status === 404 || payload.status === 404
           ? "Licencia no encontrada."
           : `Error Factiliza licencia (${response.status}).`,
     );
+  }
+
+  if (payload.data === undefined) {
+    throw new Error("Licencia no encontrada.");
   }
 
   const license = pickPrimaryLicense(payload.data.licencia);

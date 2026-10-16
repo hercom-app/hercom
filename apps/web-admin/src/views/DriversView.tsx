@@ -313,7 +313,7 @@ export function DriversView({
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Buscar nombre, DNI o placa"
+          placeholder="Buscar nombre o DNI"
           className={inputClass}
         />
         <select

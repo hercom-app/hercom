@@ -1054,14 +1054,6 @@ export function DriverRegisterScreen({
                 }
                 onPress={() => void handleValidateReniec()}
               />
-              {reniecQuota !== undefined && reniecQuota !== null && (
-                <TacticalText size={11} className="mt-2">
-                  Consultas RENIEC: {reniecQuota.lookupsUsed}/2
-                  {reniecQuota.lookupsRemaining === 0
-                    ? " · bloqueo 8 h activo"
-                    : ""}
-                </TacticalText>
-              )}
             </View>
             <UiFieldError message={fieldError("dniReniec")} className="mb-3" />
             {reniecManualMessage !== null ? (
@@ -1072,11 +1064,7 @@ export function DriverRegisterScreen({
               >
                 {reniecManualMessage}
               </TacticalText>
-            ) : (
-              <TacticalText size={12} className="mb-3">
-                Nombres y apellidos se llenan solos al validar el DNI (RENIEC).
-              </TacticalText>
-            )}
+            ) : null}
             <TacticalLabel className="mb-2">
               Nombres (*)
             </TacticalLabel>

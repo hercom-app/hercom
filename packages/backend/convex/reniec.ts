@@ -2,39 +2,13 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { action, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import {
-  fetchReniecDniFromDecolecta,
-  ReniecServiceUnavailableError,
-} from "./lib/fetchReniecDni";
+import { fetchDniFromFactiliza } from "./lib/fetchFactilizaDni";
+import { IdentityServiceUnavailableError } from "./lib/identityServiceErrors";
 import {
   RENIEC_DRIVER_MAX_LOOKUPS,
   assertReniecDriverLookupAllowed,
   normalizeReniecDriverQuota,
 } from "./lib/reniecDriverQuota";
-
-/**
- * Consulta RENIEC vía Decolecta. Solo staff del panel interno.
- * La API key vive en Convex (`DECOLECTA_API_KEY`), nunca en el cliente.
- */
-export const lookupDni = action({
-  args: {
-    dni: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw new Error("No autenticado: se requiere iniciar sesión.");
-    }
-    await ctx.runQuery(internal.users.assertStaffCaller, {});
-
-    const dni = args.dni.trim();
-    if (!/^\d{8}$/.test(dni)) {
-      throw new Error("El DNI debe tener exactamente 8 dígitos.");
-    }
-
-    return await fetchReniecDniFromDecolecta(dni);
-  },
-});
 
 /** Estado de cuota RENIEC para inscripción chofer (app móvil). */
 export const getDriverLookupQuota = query({
@@ -62,7 +36,8 @@ export const getDriverLookupQuota = query({
 });
 
 /**
- * RENIEC para chofer en app móvil. Máx. 2 consultas; luego bloqueo 8 h.
+ * Validación DNI chofer (app móvil) vía Factiliza.
+ * Máx. 2 consultas; luego bloqueo 8 h.
  */
 export const lookupDniForDriverApp = action({
   args: {
@@ -89,7 +64,7 @@ export const lookupDniForDriverApp = action({
     );
 
     try {
-      const result = await fetchReniecDniFromDecolecta(dni);
+      const result = await fetchDniFromFactiliza(dni);
 
       const quotaAfter: {
         lookupsUsed: number;
@@ -113,7 +88,7 @@ export const lookupDniForDriverApp = action({
         securityNotice,
       };
     } catch (error) {
-      if (error instanceof ReniecServiceUnavailableError) {
+      if (error instanceof IdentityServiceUnavailableError) {
         return {
           outcome: "service_unavailable" as const,
           message: error.message,

@@ -1,7 +1,7 @@
 # Registro de choferes (app móvil + RENIEC)
 
-Flujo de alta de chofer con validación de DNI vía **Decolecta** y carga de
-documentos en Convex Storage.
+Flujo de alta de chofer con validación de DNI vía **Factiliza** (app) y carga de
+documentos en Convex Storage. Panel interno: DNI **VerificaPE**, brevete **Factiliza** (respaldo VerificaPE).
 
 ---
 
@@ -11,7 +11,7 @@ documentos en Convex Storage.
 flowchart TD
   A[Pestaña Registrarse] --> B[Registro de chofer]
   B --> C[Ingresar DNI + Validar]
-  C --> D[API RENIEC Decolecta]
+  C --> D[API DNI Factiliza]
   D --> E[Nombres autocompletados]
   E --> F[Brevete, sexo, fotos, CUL, récord MTC]
   F --> G[Continuar]
@@ -28,45 +28,33 @@ flowchart TD
 
 ---
 
-## Configurar API Decolecta (obligatorio)
-
-La API key **no va en la app móvil**. Solo en Convex:
+## APIs de identidad (solo Convex, nunca en la app)
 
 ```powershell
 cd packages/backend
-npx convex env set DECOLECTA_API_KEY tu_api_key_de_decolecta
+npx convex env set FACTILIZA_API_TOKEN tu_token_factiliza
+npx convex env set VERIFICAPE_API_KEY tu_api_key_verificape
 ```
 
-> **Estado jul 2026 (cuentas empresa):** si `DECOLECTA_API_KEY` no está en Convex,
-> el botón **Validar** en la app **no consulta RENIEC** (modo demo: nombres a mano).
-> Además, **Modo conductor** puede crear un perfil chofer mínimo sin documentos
-> (`drivers.ensureDemoDriverProfile`). Restaurar esto antes de producción — ver
-> [`0 PENDIENTES Y ENV EMPRESA.md`](./0%20PENDIENTES%20Y%20ENV%20EMPRESA.md).
+| Uso | Proveedor | Action |
+| --- | --- | --- |
+| App chofer — validar DNI | Factiliza | `reniec.lookupDniForDriverApp` |
+| Admin — DNI (fecha nacimiento) | VerificaPE | `verificape.lookupDni` |
+| Admin — brevete | Factiliza → VerificaPE si cupo agotado | `factiliza.lookupLicense` |
 
-Endpoint usado por el backend:
-
-```
-GET https://api.decolecta.com/v1/reniec/dni?numero={DNI}
-Authorization: Bearer {DECOLECTA_API_KEY}
-```
-
-Código: [`packages/backend/convex/reniec.ts`](../packages/backend/convex/reniec.ts)
-
-## Consulta de brevete (VerificaPE)
-
-En el panel interno: **Consultar brevete**. La API key solo en Convex:
-
-```powershell
-cd packages/backend
-npx convex env set VERIFICAPE_API_KEY tu_api_key_de_verificape
-```
+Endpoints:
 
 ```
+GET https://api.factiliza.com/v1/dni/info/{DNI}
+GET https://api.factiliza.com/v1/licencia/info/{DNI}
+GET https://api.verificape.com/v2/dni/{DNI}
 GET https://api.verificape.com/v2/licencia/{DNI}
-Authorization: Bearer {VERIFICAPE_API_KEY}
+Authorization: Bearer {token}
 ```
 
-Código: [`packages/backend/convex/verificape.ts`](../packages/backend/convex/verificape.ts)
+Código: [`reniec.ts`](../packages/backend/convex/reniec.ts), [`factiliza.ts`](../packages/backend/convex/factiliza.ts), [`verificape.ts`](../packages/backend/convex/verificape.ts)
+
+Si `FACTILIZA_API_TOKEN` falta o Factiliza no responde, **Validar DNI** en la app permite ingreso manual (como antes con Decolecta).
 
 ---
 

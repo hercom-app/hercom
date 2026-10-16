@@ -66,6 +66,8 @@ type ReniecLookup = {
   secondLastName: string;
   fullName: string;
   documentNumber: string;
+  birthDate?: string;
+  sex?: string;
 };
 
 type LicenseLookup = {
@@ -77,6 +79,8 @@ type LicenseLookup = {
   expiresAt: string;
   status: string;
   restrictions: string;
+  source: "factiliza" | "verificape";
+  fallbackReason?: string;
 };
 
 function displayLookupValue(value: string): string {
@@ -110,8 +114,8 @@ export function DriverDossierPanel({
   const approveApplication = useMutation(api.driverApplications.approve);
   const rejectApplication = useMutation(api.driverApplications.reject);
   const recordAdminLog = useMutation(api.adminLogs.record);
-  const lookupDni = useAction(api.reniec.lookupDni);
-  const lookupLicense = useAction(api.verificape.lookupLicense);
+  const lookupDni = useAction(api.verificape.lookupDni);
+  const lookupLicense = useAction(api.factiliza.lookupLicense);
   const [acting, setActing] = useState(false);
   const [lookingUpReniec, setLookingUpReniec] = useState(false);
   const [lookingUpLicense, setLookingUpLicense] = useState(false);
@@ -212,7 +216,7 @@ export function DriverDossierPanel({
         "No se pudo consultar RENIEC.",
       );
       void recordAdminLog({
-        action: "reniec.lookupDni",
+        action: "verificape.lookupDni",
         message: lookupMessage,
         detail: errorDetail(lookupError),
       }).catch((logError) => {
@@ -240,7 +244,7 @@ export function DriverDossierPanel({
         "No se pudo consultar el brevete.",
       );
       void recordAdminLog({
-        action: "verificape.lookupLicense",
+        action: "factiliza.lookupLicense",
         message: lookupMessage,
         detail: errorDetail(lookupError),
       }).catch((logError) => {
@@ -343,7 +347,7 @@ export function DriverDossierPanel({
             onClick={() => void handleLookupReniec()}
             className={`${btnSecondaryClass} w-full sm:w-auto`}
           >
-            {lookingUpReniec ? "Consultando…" : "Consultar RENIEC"}
+            {lookingUpReniec ? "Consultando…" : "Consultar DNI (VerificaPE)"}
           </button>
           <button
             type="button"
@@ -351,22 +355,29 @@ export function DriverDossierPanel({
             onClick={() => void handleLookupLicense()}
             className={`${btnSecondaryClass} w-full sm:w-auto`}
           >
-            {lookingUpLicense ? "Consultando…" : "Consultar brevete"}
+            {lookingUpLicense ? "Consultando…" : "Consultar brevete (Factiliza)"}
           </button>
         </div>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           {reniecResult === null ? (
             <p className="text-xs text-slate-500">
-              RENIEC: nombre oficial del DNI.
+              VerificaPE: nombre oficial y fecha de nacimiento del DNI.
             </p>
           ) : (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-              <p className={labelClass}>RENIEC</p>
+              <p className={labelClass}>DNI (VerificaPE)</p>
               <p className="text-base font-semibold text-slate-900">
                 {displayLookupValue(reniecResult.fullName)}
               </p>
               <p className="mt-1 text-sm text-slate-700">
                 DNI {displayLookupValue(reniecResult.documentNumber)}
+              </p>
+              <p className="mt-1 text-sm text-slate-700">
+                Nacimiento{" "}
+                {formatBirthDate(reniecResult.birthDate)}
+                {reniecResult.sex !== undefined && reniecResult.sex !== ""
+                  ? ` · Sexo ${displayLookupValue(reniecResult.sex)}`
+                  : ""}
               </p>
             </div>
           )}
@@ -376,7 +387,19 @@ export function DriverDossierPanel({
             </p>
           ) : (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-              <p className={labelClass}>Brevete (VerificaPE)</p>
+              <p className={labelClass}>
+                Brevete (
+                {licenseResult.source === "factiliza"
+                  ? "Factiliza"
+                  : "VerificaPE, respaldo"}
+                )
+              </p>
+              {licenseResult.fallbackReason !== undefined &&
+              licenseResult.fallbackReason !== "" ? (
+                <p className="mb-1 text-xs text-amber-800">
+                  {licenseResult.fallbackReason}
+                </p>
+              ) : null}
               <p className="text-base font-semibold text-slate-900">
                 {displayLookupValue(licenseResult.fullName)}
               </p>

@@ -249,7 +249,7 @@ export default defineSchema({
     /** Firma digital (casilla) de autorización de datos personales. */
     personalDataConsentAt: v.optional(v.number()),
     personalDataConsentText: v.optional(v.string()),
-    /** Nombres ingresados a mano porque RENIEC/Decolecta no estaba disponible. */
+    /** Nombres ingresados a mano porque la consulta DNI (Factiliza) no estaba disponible. */
     reniecManualEntry: v.optional(v.boolean()),
   })
     .index("by_user", ["userId"])

@@ -62,6 +62,11 @@ export type PendingDriverRegistration = {
   personalDataConsent: true;
   personalDataConsentText: string;
   reniecManualEntry?: boolean;
+  firearmsLicenseNumber?: string;
+  additionalLanguage1?: string;
+  additionalLanguage2?: string;
+  additionalLanguage3?: string;
+  additionalLanguage4?: string;
 };
 
 /** Borrador parcial de inscripción (sobrevive recargas de la app). */
@@ -99,6 +104,11 @@ export type DriverRegistrationDraft = {
   conductorRecordPdfUri?: string;
   conductorRecordPdfName?: string;
   reniecManualFallback?: boolean;
+  firearmsLicenseNumber?: string;
+  additionalLanguage1?: string;
+  additionalLanguage2?: string;
+  additionalLanguage3?: string;
+  additionalLanguage4?: string;
 };
 
 export async function saveDriverRegistrationDraft(
@@ -189,7 +199,31 @@ type SubmitDriverApplicationArgs = {
   personalDataConsent: true;
   personalDataConsentText: string;
   reniecManualEntry?: boolean;
+  firearmsLicenseNumber?: string;
+  additionalLanguage1?: string;
+  additionalLanguage2?: string;
+  additionalLanguage3?: string;
+  additionalLanguage4?: string;
 };
+
+function optionalSubmitString(
+  value: string | undefined,
+  key:
+    | "firearmsLicenseNumber"
+    | "additionalLanguage1"
+    | "additionalLanguage2"
+    | "additionalLanguage3"
+    | "additionalLanguage4",
+): Record<string, string> {
+  if (value === undefined) {
+    return {};
+  }
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return {};
+  }
+  return { [key]: trimmed };
+}
 
 export async function submitDriverApplicationFromPending(
   pending: PendingDriverRegistration,
@@ -271,6 +305,14 @@ export async function submitDriverApplicationFromPending(
     ...(pending.reniecManualEntry === true
       ? { reniecManualEntry: true }
       : {}),
+    ...optionalSubmitString(
+      pending.firearmsLicenseNumber,
+      "firearmsLicenseNumber",
+    ),
+    ...optionalSubmitString(pending.additionalLanguage1, "additionalLanguage1"),
+    ...optionalSubmitString(pending.additionalLanguage2, "additionalLanguage2"),
+    ...optionalSubmitString(pending.additionalLanguage3, "additionalLanguage3"),
+    ...optionalSubmitString(pending.additionalLanguage4, "additionalLanguage4"),
   });
 }
 

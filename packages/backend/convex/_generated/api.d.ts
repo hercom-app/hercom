@@ -55,6 +55,7 @@ import type * as promotions from "../promotions.js";
 import type * as reniec from "../reniec.js";
 import type * as reports from "../reports.js";
 import type * as seed from "../seed.js";
+import type * as seedHrCleanup from "../seedHrCleanup.js";
 import type * as seedOwner from "../seedOwner.js";
 import type * as serviceChecklists from "../serviceChecklists.js";
 import type * as serviceOffers from "../serviceOffers.js";
@@ -119,6 +120,7 @@ declare const fullApi: ApiFromModules<{
   reniec: typeof reniec;
   reports: typeof reports;
   seed: typeof seed;
+  seedHrCleanup: typeof seedHrCleanup;
   seedOwner: typeof seedOwner;
   serviceChecklists: typeof serviceChecklists;
   serviceOffers: typeof serviceOffers;

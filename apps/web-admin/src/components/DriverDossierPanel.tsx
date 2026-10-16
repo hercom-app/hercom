@@ -104,12 +104,26 @@ type DriverDossierPanelProps = {
   application: DriverApplicationForAdmin | null;
   userName: string;
   finance: DriverFinanceInfo;
+  showFinance?: boolean;
 };
+
+function formatAdditionalLanguages(application: DriverApplicationForAdmin): string {
+  const parts = [
+    application.additionalLanguage1,
+    application.additionalLanguage2,
+    application.additionalLanguage3,
+    application.additionalLanguage4,
+  ]
+    .map((value) => value?.trim() ?? "")
+    .filter((value) => value !== "");
+  return parts.length === 0 ? "—" : parts.join(" · ");
+}
 
 export function DriverDossierPanel({
   application,
   userName,
   finance,
+  showFinance = true,
 }: DriverDossierPanelProps) {
   const approveApplication = useMutation(api.driverApplications.approve);
   const rejectApplication = useMutation(api.driverApplications.reject);
@@ -138,7 +152,7 @@ export function DriverDossierPanel({
           {userName} no tiene solicitud de registro (brevete, CUL ni récord de
           conductor) cargada.
         </div>
-        <DriverFinanceCard finance={finance} />
+        {showFinance ? <DriverFinanceCard finance={finance} /> : null}
       </div>
     );
   }
@@ -316,6 +330,14 @@ export function DriverDossierPanel({
                 ? "Auto"
                 : "—"
           }
+        />
+        <InfoRow
+          label="Licencia de armas"
+          value={displayValue(application.firearmsLicenseNumber)}
+        />
+        <InfoRow
+          label="Idiomas adicionales"
+          value={formatAdditionalLanguages(application)}
         />
         <InfoRow label="Zona" value={formatRegion(application)} />
         <InfoRow
@@ -517,7 +539,7 @@ export function DriverDossierPanel({
         />
       </div>
     </div>
-    <DriverFinanceCard finance={finance} />
+    {showFinance ? <DriverFinanceCard finance={finance} /> : null}
     </div>
   );
 }

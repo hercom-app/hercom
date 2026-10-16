@@ -6,7 +6,11 @@ import { normalizeCountryCode } from "./data/countryCatalog";
 import { driverApplicationStatusValidator, sexValidator } from "./schema";
 import { getCurrentUser, requireStaff, requireStaffForRegion, requireUser } from "./lib/auth";
 import { assertDniAvailable } from "./lib/identity";
-import { getAccessContext, originMatchesDistrictScopes } from "./lib/adminAccess";
+import {
+  canBrowseAllDriverRecords,
+  getAccessContext,
+  originMatchesDistrictScopes,
+} from "./lib/adminAccess";
 import { ensureWallet } from "./driverWallets";
 import { requireAdultBirthDate, getDriverApprovalAgeBlock } from "./lib/age";
 import {
@@ -125,6 +129,11 @@ export const submit = mutation({
     personalDataConsent: v.literal(true),
     personalDataConsentText: v.string(),
     reniecManualEntry: v.optional(v.boolean()),
+    firearmsLicenseNumber: v.optional(v.string()),
+    additionalLanguage1: v.optional(v.string()),
+    additionalLanguage2: v.optional(v.string()),
+    additionalLanguage3: v.optional(v.string()),
+    additionalLanguage4: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
@@ -249,9 +258,33 @@ export const submit = mutation({
       ...(args.reniecManualEntry === true
         ? { reniecManualEntry: true }
         : {}),
+      ...optionalTrimmedField(args.firearmsLicenseNumber, "firearmsLicenseNumber"),
+      ...optionalTrimmedField(args.additionalLanguage1, "additionalLanguage1"),
+      ...optionalTrimmedField(args.additionalLanguage2, "additionalLanguage2"),
+      ...optionalTrimmedField(args.additionalLanguage3, "additionalLanguage3"),
+      ...optionalTrimmedField(args.additionalLanguage4, "additionalLanguage4"),
     });
   },
 });
+
+function optionalTrimmedField(
+  value: string | undefined,
+  key:
+    | "firearmsLicenseNumber"
+    | "additionalLanguage1"
+    | "additionalLanguage2"
+    | "additionalLanguage3"
+    | "additionalLanguage4",
+): Record<string, string> {
+  if (value === undefined) {
+    return {};
+  }
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return {};
+  }
+  return { [key]: trimmed };
+}
 
 async function createDriverFromApplication(
   ctx: MutationCtx,
@@ -285,6 +318,26 @@ async function createDriverFromApplication(
     department: application.department ?? "",
     province: application.province ?? "",
     district: application.district ?? "",
+    ...optionalTrimmedField(
+      application.firearmsLicenseNumber,
+      "firearmsLicenseNumber",
+    ),
+    ...optionalTrimmedField(
+      application.additionalLanguage1,
+      "additionalLanguage1",
+    ),
+    ...optionalTrimmedField(
+      application.additionalLanguage2,
+      "additionalLanguage2",
+    ),
+    ...optionalTrimmedField(
+      application.additionalLanguage3,
+      "additionalLanguage3",
+    ),
+    ...optionalTrimmedField(
+      application.additionalLanguage4,
+      "additionalLanguage4",
+    ),
   });
   await ensureWallet(ctx, driverId);
   await ctx.db.patch(application.userId, {
@@ -399,7 +452,7 @@ export const listPending = query({
       .withIndex("by_status", (q) => q.eq("status", "pending"))
       .order("desc")
       .collect();
-    if (!access.isFullAdmin) {
+    if (!canBrowseAllDriverRecords(user, access.isFullAdmin)) {
       applications = applications.filter((application) =>
         originMatchesDistrictScopes(application, access.districtScopes),
       );
@@ -424,7 +477,7 @@ export const listForAdmin = query({
       .order("desc")
       .collect();
 
-    if (!access.isFullAdmin) {
+    if (!canBrowseAllDriverRecords(user, access.isFullAdmin)) {
       applications = applications.filter((application) =>
         originMatchesDistrictScopes(application, access.districtScopes),
       );

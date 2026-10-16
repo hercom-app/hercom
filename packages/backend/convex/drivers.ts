@@ -2,7 +2,11 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { driverStatusValidator } from "./schema";
 import { getCurrentUser, requireDriver, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
-import { driverMatchesDistrictScopes, getAccessContext } from "./lib/adminAccess";
+import {
+  canBrowseAllDriverRecords,
+  driverMatchesDistrictScopes,
+  getAccessContext,
+} from "./lib/adminAccess";
 import { ensureWallet } from "./driverWallets";
 import { persistDriverLocation } from "./lib/driverLocation";
 import { isValidGeoPoint } from "./lib/geoDistance";
@@ -31,7 +35,7 @@ export const listAll = query({
     const user = await requireStaff(ctx);
     const access = await getAccessContext(ctx, user);
     const drivers = await ctx.db.query("drivers").collect();
-    if (access.isFullAdmin) {
+    if (canBrowseAllDriverRecords(user, access.isFullAdmin)) {
       return drivers;
     }
     return drivers.filter((driver) =>

@@ -33,12 +33,13 @@ import {
   thClass,
 } from "../lib/adminUi";
 import type { DistrictScopeOption } from "../components/AdminRegionFilters";
-import { CreateAdminUserForm } from "./TeamView";
+import { CreateAdminUserForm, CreateHrUserForm } from "./TeamView";
 
 const ROLE_LABELS: Record<string, string> = {
   client: "Cliente",
   admin: "Admin",
   superadmin: "Superadmin",
+  hr: "Recursos humanos",
 };
 
 function formatDate(timestamp: number): string {
@@ -48,7 +49,7 @@ function formatDate(timestamp: number): string {
   }).format(new Date(timestamp));
 }
 
-type StaffRoleFilter = "" | "admin" | "superadmin";
+type StaffRoleFilter = "" | "admin" | "superadmin" | "hr";
 
 type AccountsViewProps = {
   isFullAdmin: boolean;
@@ -66,6 +67,7 @@ export function AccountsView({
   const [roleFilter, setRoleFilter] = useState<StaffRoleFilter>("");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [showCreateHr, setShowCreateHr] = useState(false);
 
   const users = useQuery(
     api.users.listAll,
@@ -102,7 +104,10 @@ export function AccountsView({
       }
     } else {
       result = result.filter(
-        (user) => user.role === "admin" || user.role === "superadmin",
+        (user) =>
+          user.role === "admin" ||
+          user.role === "superadmin" ||
+          user.role === "hr",
       );
     }
 
@@ -127,13 +132,28 @@ export function AccountsView({
         title={isClients ? "Clientes" : "Cuentas de usuario"}
         actions={
           !isClients && isFullAdmin ? (
-            <button
-              type="button"
-              className={`${showCreate ? btnSecondaryClass : btnPrimaryClass} w-full sm:w-auto`}
-              onClick={() => setShowCreate((open) => !open)}
-            >
-              {showCreate ? "Cerrar" : "Crear usuario"}
-            </button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <button
+                type="button"
+                className={`${showCreate ? btnSecondaryClass : btnPrimaryClass} w-full sm:w-auto`}
+                onClick={() => {
+                  setShowCreate((open) => !open);
+                  setShowCreateHr(false);
+                }}
+              >
+                {showCreate ? "Cerrar admin" : "Crear admin"}
+              </button>
+              <button
+                type="button"
+                className={`${showCreateHr ? btnSecondaryClass : btnPrimaryClass} w-full sm:w-auto`}
+                onClick={() => {
+                  setShowCreateHr((open) => !open);
+                  setShowCreate(false);
+                }}
+              >
+                {showCreateHr ? "Cerrar RR.HH." : "Crear RR.HH."}
+              </button>
+            </div>
           ) : undefined
         }
       />
@@ -148,6 +168,17 @@ export function AccountsView({
           </p>
           <div className="mt-4">
             <CreateAdminUserForm onCreated={() => setShowCreate(false)} />
+          </div>
+        </AdminCard>
+      ) : null}
+
+      {!isClients && isFullAdmin && showCreateHr ? (
+        <AdminCard>
+          <h3 className="text-base font-semibold text-zinc-900">
+            Nueva cuenta RR.HH.
+          </h3>
+          <div className="mt-4">
+            <CreateHrUserForm onCreated={() => setShowCreateHr(false)} />
           </div>
         </AdminCard>
       ) : null}
@@ -178,6 +209,7 @@ export function AccountsView({
               <option value="">Todos los roles</option>
               <option value="admin">Admins</option>
               <option value="superadmin">Superadmin</option>
+              <option value="hr">Recursos humanos</option>
             </select>
           ) : null}
           <input

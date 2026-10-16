@@ -4,6 +4,7 @@ import type { QueryCtx } from "../_generated/server";
 import {
   canAccessRegion,
   getAccessContext,
+  isHrRole,
   isStaffRole,
 } from "./adminAccess";
 import type { GeoRegion } from "./regionFilters";
@@ -75,6 +76,9 @@ export async function requireStaffForRegion(
   region: GeoRegion,
 ): Promise<Doc<"users">> {
   const user = await requireStaff(ctx);
+  if (isHrRole(user.role)) {
+    return user;
+  }
   const access = await getAccessContext(ctx, user);
   if (canAccessRegion(access, region)) {
     return user;

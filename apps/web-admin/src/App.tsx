@@ -26,20 +26,27 @@ function Dashboard() {
   const [section, setSection] = useState<AdminSection>("drivers");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  const isHr = me?.role === "hr";
   const isStaff =
     me !== null &&
     me !== undefined &&
-    (me.role === "admin" || me.role === "superadmin");
+    (me.role === "admin" || me.role === "superadmin" || isHr);
   const isFullAdmin = me?.isFullAdmin === true;
 
   useEffect(() => {
     if (!isStaff) {
       return;
     }
+    if (isHr) {
+      if (section !== "drivers") {
+        setSection("drivers");
+      }
+      return;
+    }
     if (!isFullAdmin && !SCOPED_SECTIONS.includes(section)) {
       setSection("drivers");
     }
-  }, [isFullAdmin, isStaff, section]);
+  }, [isFullAdmin, isHr, isStaff, section]);
 
   useEffect(() => {
     if (!mobileNavOpen) {
@@ -86,6 +93,7 @@ function Dashboard() {
         userName={userName}
         userEmail={me.email}
         isFullAdmin={isFullAdmin}
+        isHrOnly={isHr}
         mobileOpen={mobileNavOpen}
         onMobileClose={() => setMobileNavOpen(false)}
       />
@@ -131,6 +139,7 @@ function Dashboard() {
           {section === "drivers" && (
             <DriversView
               isFullAdmin={isFullAdmin}
+              showFinance={isFullAdmin}
               districtScopes={me.districtScopes}
             />
           )}

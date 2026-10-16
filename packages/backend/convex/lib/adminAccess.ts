@@ -12,7 +12,21 @@ export type DistrictScope = {
 };
 
 export function isStaffRole(role: Doc<"users">["role"]): boolean {
-  return role === "admin" || role === "superadmin";
+  return (
+    role === "admin" || role === "superadmin" || role === "hr"
+  );
+}
+
+export function isHrRole(role: Doc<"users">["role"]): boolean {
+  return role === "hr";
+}
+
+/** RR.HH. y superadmin ven choferes de todo el país; admin operativo por zona. */
+export function canBrowseAllDriverRecords(
+  user: Pick<Doc<"users">, "role">,
+  isFullAdmin: boolean,
+): boolean {
+  return isFullAdmin || isHrRole(user.role);
 }
 
 export function isFullAdmin(

@@ -61,6 +61,7 @@ function zoneLabel(item: {
 
 type DriversViewProps = {
   isFullAdmin: boolean;
+  showFinance?: boolean;
   districtScopes: DistrictScopeOption[];
 };
 
@@ -82,6 +83,7 @@ type ChoferRow = {
 
 export function DriversView({
   isFullAdmin,
+  showFinance = isFullAdmin,
   districtScopes,
 }: DriversViewProps) {
   const [region, setRegion] = useState<RegionFilter>(EMPTY_REGION_FILTER);
@@ -285,6 +287,7 @@ export function DriversView({
             application={selectedRow.application}
             userName={selectedRow.fullName}
             finance={selectedRow.finance}
+            showFinance={showFinance}
           />
         )}
       </AdminPage>

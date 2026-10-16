@@ -116,10 +116,19 @@ export const getAdminContext = query({
     if (user === null) {
       return null;
     }
+    if (user.role === "hr") {
+      return {
+        ...user,
+        isFullAdmin: false,
+        isHr: true as const,
+        districtScopes: [],
+      };
+    }
     if (user.role !== "admin" && user.role !== "superadmin") {
       return {
         ...user,
         isFullAdmin: false,
+        isHr: false as const,
         districtScopes: [],
       };
     }
@@ -127,6 +136,7 @@ export const getAdminContext = query({
     return {
       ...user,
       isFullAdmin: access.isFullAdmin,
+      isHr: false as const,
       districtScopes: access.districtScopes,
     };
   },
@@ -263,6 +273,11 @@ export const setRole = mutation({
         "Para crear un admin operativo usa el formulario de equipo (con distritos y clave).",
       );
     }
+    if (args.role === "hr") {
+      throw new Error(
+        "Para crear RR.HH. usa el formulario de cuenta RR.HH. (createHrUser).",
+      );
+    }
     await ctx.db.patch(args.userId, { role: args.role });
     if (args.role !== "superadmin") {
       const existing = await listDistrictScopes(ctx, args.userId);
@@ -284,6 +299,9 @@ export const listAll = query({
   },
   handler: async (ctx, args) => {
     const user = await requireStaff(ctx);
+    if (user.role === "hr") {
+      throw new Error("No autorizado: RR.HH. no gestiona cuentas de usuario.");
+    }
     const access = await getAccessContext(ctx, user);
     let users = await ctx.db.query("users").order("desc").collect();
     if (args.role !== undefined) {
@@ -320,6 +338,58 @@ export const listAdmins = query({
 /**
  * Crea un admin operativo con clave y una o más zonas (provincia o distrito).
  */
+/**
+ * Cuenta RR.HH.: solo expedientes de choferes (sin viajes, ingresos ni clientes).
+ */
+export const createHrUser = mutation({
+  args: {
+    email: v.string(),
+    password: v.string(),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireFullAdmin(ctx);
+    const email = args.email.trim().toLowerCase();
+    const name = args.name.trim();
+    const password = args.password;
+    if (email === "" || !email.includes("@")) {
+      throw new Error("Correo inválido.");
+    }
+    if (name === "") {
+      throw new Error("El nombre es obligatorio.");
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      throw new Error(`La clave debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`);
+    }
+
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", email))
+      .unique();
+    if (existing !== null) {
+      throw new Error("Ya existe una cuenta con ese correo.");
+    }
+
+    await createAccount(ctx as never, {
+      provider: "password",
+      account: { id: email, secret: password },
+      profile: { email, name, role: "hr" as const },
+    });
+
+    const created = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", email))
+      .unique();
+    if (created === null) {
+      throw new Error("No se pudo crear la cuenta RR.HH.");
+    }
+    if (created.role !== "hr") {
+      await ctx.db.patch(created._id, { role: "hr", name });
+    }
+    return created._id;
+  },
+});
+
 export const createAdminUser = mutation({
   args: {
     email: v.string(),
@@ -400,6 +470,32 @@ export const updateAdminDistricts = mutation({
         ...district,
       });
     }
+    return args.userId;
+  },
+});
+
+export const setHrPassword = mutation({
+  args: {
+    userId: v.id("users"),
+    password: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireFullAdmin(ctx);
+    const user = await ctx.db.get(args.userId);
+    if (user === null || user.role !== "hr") {
+      throw new Error("Solo se puede cambiar la clave de una cuenta RR.HH.");
+    }
+    const email = user.email?.trim().toLowerCase();
+    if (email === undefined || email === "") {
+      throw new Error("La cuenta no tiene correo.");
+    }
+    if (args.password.length < MIN_PASSWORD_LENGTH) {
+      throw new Error(`La clave debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`);
+    }
+    await modifyAccountCredentials(ctx as never, {
+      provider: "password",
+      account: { id: email, secret: args.password },
+    });
     return args.userId;
   },
 });

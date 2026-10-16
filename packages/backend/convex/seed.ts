@@ -543,6 +543,7 @@ export const clearTripsAndOffers = internalMutation({
 const HERCOM_STAFF_EMAILS = new Set([
   "ricardos@hercom.com",
   "lima@hercom.com",
+  "rrhh@hercom.com",
 ]);
 
 async function purgeDriversClientsAndTrips(

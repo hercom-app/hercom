@@ -132,6 +132,8 @@ const SCOPED_ADMIN_SECTIONS: AdminSection[] = [
   "support",
 ];
 
+const HR_SECTIONS: AdminSection[] = ["drivers"];
+
 export const SECTION_META: Record<
   AdminSection,
   { title: string; description: string }
@@ -148,6 +150,7 @@ type AdminSidebarProps = {
   userName: string;
   userEmail?: string | undefined;
   isFullAdmin: boolean;
+  isHrOnly?: boolean;
   mobileOpen: boolean;
   onMobileClose: () => void;
 };
@@ -158,14 +161,17 @@ export function AdminSidebar({
   userName,
   userEmail,
   isFullAdmin,
+  isHrOnly = false,
   mobileOpen,
   onMobileClose,
 }: AdminSidebarProps) {
   const { signOut } = useAuthActions();
   const supportUnread = useQuery(api.support.getAdminUnreadCount) ?? 0;
-  const navItems = isFullAdmin
-    ? NAV_ITEMS
-    : NAV_ITEMS.filter((item) => SCOPED_ADMIN_SECTIONS.includes(item.id));
+  const navItems = isHrOnly
+    ? NAV_ITEMS.filter((item) => HR_SECTIONS.includes(item.id))
+    : isFullAdmin
+      ? NAV_ITEMS
+      : NAV_ITEMS.filter((item) => SCOPED_ADMIN_SECTIONS.includes(item.id));
 
   const sidebar = (
     <div className="flex h-full flex-col">
@@ -233,7 +239,11 @@ export function AdminSidebar({
               {userName.trim() !== "" ? userName : "Administrador"}
             </p>
             <p className="truncate text-xs text-slate-500">
-              {isFullAdmin ? "Superadmin" : "Admin"}
+              {isHrOnly
+                ? "Recursos humanos"
+                : isFullAdmin
+                  ? "Superadmin"
+                  : "Admin"}
               {userEmail !== undefined && userEmail !== "" ? ` · ${userEmail}` : ""}
             </p>
           </div>

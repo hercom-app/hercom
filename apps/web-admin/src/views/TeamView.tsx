@@ -235,6 +235,89 @@ export function CreateAdminUserForm({
   );
 }
 
+export function CreateHrUserForm({ onCreated }: { onCreated?: () => void }) {
+  const createHr = useMutation(api.users.createHrUser);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPasswordState] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function handleCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setSaving(true);
+    try {
+      await createHr({ name, email, password });
+      setName("");
+      setEmail("");
+      setPasswordState("");
+      onCreated?.();
+    } catch (createError) {
+      setError(
+        createError instanceof Error
+          ? createError.message
+          : "No se pudo crear la cuenta RR.HH.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleCreate} className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className={labelClass}>Nombre</span>
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className={inputClass}
+            required
+          />
+        </label>
+        <label className="block">
+          <span className={labelClass}>Correo</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className={inputClass}
+            required
+          />
+        </label>
+      </div>
+      <label className="block max-w-md">
+        <span className={labelClass}>Clave (mín. 8 caracteres)</span>
+        <input
+          type="password"
+          value={password}
+          onChange={(event) => setPasswordState(event.target.value)}
+          className={inputClass}
+          minLength={8}
+          required
+        />
+      </label>
+      <p className="text-sm text-slate-500">
+        Solo verá la pestaña Choferes (filtros y expedientes). Sin viajes,
+        ingresos ni listado de clientes.
+      </p>
+      {error !== null && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+      <button
+        type="submit"
+        disabled={saving}
+        className={`${btnPrimaryClass} w-full sm:w-auto`}
+      >
+        {saving ? "Creando…" : "Crear cuenta RR.HH."}
+      </button>
+    </form>
+  );
+}
+
 export function TeamView() {
   const admins = useQuery(api.users.listAdmins);
   const { page, setPage, pageCount, total, paged } = usePagedItems(admins);

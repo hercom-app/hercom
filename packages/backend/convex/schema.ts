@@ -11,6 +11,8 @@ export const userRoleValidator = v.union(
   v.literal("driver"),
   v.literal("admin"),
   v.literal("superadmin"),
+  /** Recursos humanos: solo expedientes de choferes (sin viajes ni ingresos). */
+  v.literal("hr"),
 );
 
 export const districtScopeValidator = v.object({
@@ -206,6 +208,12 @@ export default defineSchema({
     lastLat: v.optional(v.number()),
     lastLng: v.optional(v.number()),
     lastLocationAt: v.optional(v.number()),
+    /** N.° licencia de armas (vacío = no declara). */
+    firearmsLicenseNumber: v.optional(v.string()),
+    additionalLanguage1: v.optional(v.string()),
+    additionalLanguage2: v.optional(v.string()),
+    additionalLanguage3: v.optional(v.string()),
+    additionalLanguage4: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_status", ["status"]),
@@ -251,6 +259,11 @@ export default defineSchema({
     personalDataConsentText: v.optional(v.string()),
     /** Nombres ingresados a mano porque la consulta DNI (Factiliza) no estaba disponible. */
     reniecManualEntry: v.optional(v.boolean()),
+    firearmsLicenseNumber: v.optional(v.string()),
+    additionalLanguage1: v.optional(v.string()),
+    additionalLanguage2: v.optional(v.string()),
+    additionalLanguage3: v.optional(v.string()),
+    additionalLanguage4: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_dni", ["dni"])

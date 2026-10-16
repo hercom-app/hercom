@@ -129,11 +129,6 @@ export const submit = mutation({
     personalDataConsent: v.literal(true),
     personalDataConsentText: v.string(),
     reniecManualEntry: v.optional(v.boolean()),
-    firearmsLicenseNumber: v.optional(v.string()),
-    additionalLanguage1: v.optional(v.string()),
-    additionalLanguage2: v.optional(v.string()),
-    additionalLanguage3: v.optional(v.string()),
-    additionalLanguage4: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
@@ -258,11 +253,6 @@ export const submit = mutation({
       ...(args.reniecManualEntry === true
         ? { reniecManualEntry: true }
         : {}),
-      ...optionalTrimmedField(args.firearmsLicenseNumber, "firearmsLicenseNumber"),
-      ...optionalTrimmedField(args.additionalLanguage1, "additionalLanguage1"),
-      ...optionalTrimmedField(args.additionalLanguage2, "additionalLanguage2"),
-      ...optionalTrimmedField(args.additionalLanguage3, "additionalLanguage3"),
-      ...optionalTrimmedField(args.additionalLanguage4, "additionalLanguage4"),
     });
   },
 });
@@ -407,6 +397,54 @@ export const approve = mutation({
     return { applicationId: application._id, driverId };
   },
 });
+
+/** Licencia de armas e idiomas — solo RR.HH. (panel interno). */
+export const updateHrProfileExtras = mutation({
+  args: {
+    applicationId: v.id("driverApplications"),
+    firearmsLicenseNumber: v.optional(v.string()),
+    additionalLanguage1: v.optional(v.string()),
+    additionalLanguage2: v.optional(v.string()),
+    additionalLanguage3: v.optional(v.string()),
+    additionalLanguage4: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const staff = await requireStaff(ctx);
+    if (staff.role !== "hr") {
+      throw new Error("Solo Recursos Humanos puede editar licencia de armas e idiomas.");
+    }
+
+    const application = await ctx.db.get(args.applicationId);
+    if (application === null) {
+      throw new Error("Solicitud no encontrada.");
+    }
+    await requireStaffForRegion(ctx, application);
+
+    const patch = {
+      firearmsLicenseNumber: normalizeOptionalString(args.firearmsLicenseNumber),
+      additionalLanguage1: normalizeOptionalString(args.additionalLanguage1),
+      additionalLanguage2: normalizeOptionalString(args.additionalLanguage2),
+      additionalLanguage3: normalizeOptionalString(args.additionalLanguage3),
+      additionalLanguage4: normalizeOptionalString(args.additionalLanguage4),
+    };
+    await ctx.db.patch(application._id, patch);
+
+    const driver = await ctx.db
+      .query("drivers")
+      .withIndex("by_user", (q) => q.eq("userId", application.userId))
+      .unique();
+    if (driver !== null) {
+      await ctx.db.patch(driver._id, patch);
+    }
+
+    return application._id;
+  },
+});
+
+function normalizeOptionalString(value: string | undefined): string | undefined {
+  const trimmed = (value ?? "").trim();
+  return trimmed === "" ? undefined : trimmed;
+}
 
 /** Rechaza una solicitud de registro. */
 export const reject = mutation({

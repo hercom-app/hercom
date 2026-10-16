@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@proyecto/backend";
-import { btnPrimaryClass, btnSecondaryClass, labelClass } from "../lib/adminUi";
+import {
+  btnPrimaryClass,
+  btnSecondaryClass,
+  inputClass,
+  labelClass,
+} from "../lib/adminUi";
 import { errorDetail, formatConvexError } from "../lib/convexError";
 import {
   CONDUCTOR_RECORD_URL,
@@ -105,6 +110,7 @@ type DriverDossierPanelProps = {
   userName: string;
   finance: DriverFinanceInfo;
   showFinance?: boolean;
+  canEditHrExtras?: boolean;
 };
 
 function formatAdditionalLanguages(application: DriverApplicationForAdmin): string {
@@ -124,6 +130,7 @@ export function DriverDossierPanel({
   userName,
   finance,
   showFinance = true,
+  canEditHrExtras = false,
 }: DriverDossierPanelProps) {
   const approveApplication = useMutation(api.driverApplications.approve);
   const rejectApplication = useMutation(api.driverApplications.reject);
@@ -331,14 +338,22 @@ export function DriverDossierPanel({
                 : "—"
           }
         />
-        <InfoRow
-          label="Licencia de armas"
-          value={displayValue(application.firearmsLicenseNumber)}
-        />
-        <InfoRow
-          label="Idiomas adicionales"
-          value={formatAdditionalLanguages(application)}
-        />
+        {canEditHrExtras ? (
+          <div className="md:col-span-2">
+            <HrProfileExtrasForm application={application} />
+          </div>
+        ) : (
+          <>
+            <InfoRow
+              label="Licencia de armas"
+              value={displayValue(application.firearmsLicenseNumber)}
+            />
+            <InfoRow
+              label="Idiomas adicionales"
+              value={formatAdditionalLanguages(application)}
+            />
+          </>
+        )}
         <InfoRow label="Zona" value={formatRegion(application)} />
         <InfoRow
           label="Enviado"
@@ -547,6 +562,135 @@ export function DriverDossierPanel({
 function displayValue(value: string | undefined): string {
   const trimmed = formatPersonNameForDisplay(value);
   return trimmed === "" ? "—" : trimmed;
+}
+
+function HrProfileExtrasForm({
+  application,
+}: {
+  application: DriverApplicationForAdmin;
+}) {
+  const updateExtras = useMutation(api.driverApplications.updateHrProfileExtras);
+  const [firearmsLicenseNumber, setFirearmsLicenseNumber] = useState(
+    application.firearmsLicenseNumber ?? "",
+  );
+  const [additionalLanguage1, setAdditionalLanguage1] = useState(
+    application.additionalLanguage1 ?? "",
+  );
+  const [additionalLanguage2, setAdditionalLanguage2] = useState(
+    application.additionalLanguage2 ?? "",
+  );
+  const [additionalLanguage3, setAdditionalLanguage3] = useState(
+    application.additionalLanguage3 ?? "",
+  );
+  const [additionalLanguage4, setAdditionalLanguage4] = useState(
+    application.additionalLanguage4 ?? "",
+  );
+  const [saving, setSaving] = useState(false);
+  const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFirearmsLicenseNumber(application.firearmsLicenseNumber ?? "");
+    setAdditionalLanguage1(application.additionalLanguage1 ?? "");
+    setAdditionalLanguage2(application.additionalLanguage2 ?? "");
+    setAdditionalLanguage3(application.additionalLanguage3 ?? "");
+    setAdditionalLanguage4(application.additionalLanguage4 ?? "");
+    setSavedMessage(null);
+    setError(null);
+  }, [application._id]);
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    setSavedMessage(null);
+    try {
+      await updateExtras({
+        applicationId: application._id,
+        firearmsLicenseNumber,
+        additionalLanguage1,
+        additionalLanguage2,
+        additionalLanguage3,
+        additionalLanguage4,
+      });
+      setSavedMessage("Datos RR.HH. guardados.");
+    } catch (saveError) {
+      setError(
+        formatConvexError(saveError, "No se pudieron guardar los datos."),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <p className="text-sm font-semibold text-slate-900">
+        Ficha RR.HH. (armas e idiomas)
+      </p>
+      <p className="mt-1 text-xs text-slate-500">
+        Completa tras entrevista o revisión documental. No lo ve el postulante en
+        la app.
+      </p>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <label className="block md:col-span-2">
+          <span className={labelClass}>Licencia de armas</span>
+          <input
+            value={firearmsLicenseNumber}
+            onChange={(event) => setFirearmsLicenseNumber(event.target.value)}
+            placeholder="N.° de licencia o «No tiene»"
+            className={inputClass}
+          />
+        </label>
+        <label className="block">
+          <span className={labelClass}>Idioma adicional 1</span>
+          <input
+            value={additionalLanguage1}
+            onChange={(event) => setAdditionalLanguage1(event.target.value)}
+            placeholder="Ej. Inglés"
+            className={inputClass}
+          />
+        </label>
+        <label className="block">
+          <span className={labelClass}>Idioma adicional 2</span>
+          <input
+            value={additionalLanguage2}
+            onChange={(event) => setAdditionalLanguage2(event.target.value)}
+            className={inputClass}
+          />
+        </label>
+        <label className="block">
+          <span className={labelClass}>Idioma adicional 3</span>
+          <input
+            value={additionalLanguage3}
+            onChange={(event) => setAdditionalLanguage3(event.target.value)}
+            className={inputClass}
+          />
+        </label>
+        <label className="block">
+          <span className={labelClass}>Idioma adicional 4</span>
+          <input
+            value={additionalLanguage4}
+            onChange={(event) => setAdditionalLanguage4(event.target.value)}
+            className={inputClass}
+          />
+        </label>
+      </div>
+      {error !== null ? (
+        <p className="mt-3 text-sm text-red-600">{error}</p>
+      ) : null}
+      {savedMessage !== null ? (
+        <p className="mt-3 text-sm text-emerald-700">{savedMessage}</p>
+      ) : null}
+      <button
+        type="button"
+        disabled={saving}
+        onClick={() => void handleSave()}
+        className={`${btnPrimaryClass} mt-4 w-full sm:w-auto`}
+      >
+        {saving ? "Guardando…" : "Guardar ficha RR.HH."}
+      </button>
+    </div>
+  );
 }
 
 function DriverFinanceCard({ finance }: { finance: DriverFinanceInfo }) {

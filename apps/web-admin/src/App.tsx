@@ -140,6 +140,7 @@ function Dashboard() {
             <DriversView
               isFullAdmin={isFullAdmin}
               showFinance={isFullAdmin}
+              canEditHrExtras={isHr}
               districtScopes={me.districtScopes}
             />
           )}

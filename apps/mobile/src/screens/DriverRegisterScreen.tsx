@@ -134,12 +134,6 @@ export function DriverRegisterScreen({
   const [licenseDigital, setLicenseDigital] = useState<LocalDoc | null>(null);
   const [vehicleBodyType, setVehicleBodyType] =
     useState<VehicleBodyType | null>(null);
-  const [firearmsLicenseNumber, setFirearmsLicenseNumber] = useState("");
-  const [additionalLanguage1, setAdditionalLanguage1] = useState("");
-  const [additionalLanguage2, setAdditionalLanguage2] = useState("");
-  const [additionalLanguage3, setAdditionalLanguage3] = useState("");
-  const [additionalLanguage4, setAdditionalLanguage4] = useState("");
-
   const [culPdf, setCulPdf] = useState<LocalDoc | null>(null);
   const [conductorRecordPdf, setConductorRecordPdf] = useState<LocalDoc | null>(
     null,
@@ -227,11 +221,6 @@ export function DriverRegisterScreen({
       setLicenseCategory(draft.licenseCategory);
       setLicenseFormat(draft.licenseFormat);
       setVehicleBodyType(draft.vehicleBodyType);
-      setFirearmsLicenseNumber(draft.firearmsLicenseNumber ?? "");
-      setAdditionalLanguage1(draft.additionalLanguage1 ?? "");
-      setAdditionalLanguage2(draft.additionalLanguage2 ?? "");
-      setAdditionalLanguage3(draft.additionalLanguage3 ?? "");
-      setAdditionalLanguage4(draft.additionalLanguage4 ?? "");
       setPersonalDataConsent(draft.personalDataConsent);
       if (draft.licenseFrontUri !== undefined && draft.licenseFrontMime !== undefined) {
         setLicenseFront({ uri: draft.licenseFrontUri, mimeType: draft.licenseFrontMime });
@@ -337,21 +326,6 @@ export function DriverRegisterScreen({
             }
           : {}),
         ...(reniecManualFallback ? { reniecManualFallback: true } : {}),
-        ...(firearmsLicenseNumber.trim() !== ""
-          ? { firearmsLicenseNumber: firearmsLicenseNumber.trim() }
-          : {}),
-        ...(additionalLanguage1.trim() !== ""
-          ? { additionalLanguage1: additionalLanguage1.trim() }
-          : {}),
-        ...(additionalLanguage2.trim() !== ""
-          ? { additionalLanguage2: additionalLanguage2.trim() }
-          : {}),
-        ...(additionalLanguage3.trim() !== ""
-          ? { additionalLanguage3: additionalLanguage3.trim() }
-          : {}),
-        ...(additionalLanguage4.trim() !== ""
-          ? { additionalLanguage4: additionalLanguage4.trim() }
-          : {}),
       };
       void saveDriverRegistrationDraft(draft);
     }, 700);
@@ -384,11 +358,6 @@ export function DriverRegisterScreen({
     reniecManualFallback,
     vehicleBodyType,
     yearsDrivingExperience,
-    firearmsLicenseNumber,
-    additionalLanguage1,
-    additionalLanguage2,
-    additionalLanguage3,
-    additionalLanguage4,
   ]);
 
   async function handleValidateReniec() {
@@ -781,21 +750,6 @@ export function DriverRegisterScreen({
       personalDataConsent: true,
       personalDataConsentText: DRIVER_PERSONAL_DATA_CONSENT.fullText,
       ...(reniecManualFallback ? { reniecManualEntry: true } : {}),
-      ...(firearmsLicenseNumber.trim() !== ""
-        ? { firearmsLicenseNumber: firearmsLicenseNumber.trim() }
-        : {}),
-      ...(additionalLanguage1.trim() !== ""
-        ? { additionalLanguage1: additionalLanguage1.trim() }
-        : {}),
-      ...(additionalLanguage2.trim() !== ""
-        ? { additionalLanguage2: additionalLanguage2.trim() }
-        : {}),
-      ...(additionalLanguage3.trim() !== ""
-        ? { additionalLanguage3: additionalLanguage3.trim() }
-        : {}),
-      ...(additionalLanguage4.trim() !== ""
-        ? { additionalLanguage4: additionalLanguage4.trim() }
-        : {}),
     };
 
     await savePendingDriverRegistration(pending);
@@ -1295,44 +1249,6 @@ export function DriverRegisterScreen({
               invalid={fieldInvalid("experienceYears")}
             />
             <UiFieldError message={fieldError("experienceYears")} className="mb-4" />
-
-            <TacticalLabel className="mb-2">
-              Licencia de armas (opcional)
-            </TacticalLabel>
-            <UiInput
-              value={firearmsLicenseNumber}
-              onChangeText={setFirearmsLicenseNumber}
-              placeholder="N.° de licencia o «No tiene»"
-              className="mb-4"
-            />
-
-            <TacticalLabel className="mb-2">
-              Idiomas adicionales (opcional)
-            </TacticalLabel>
-            <UiInput
-              value={additionalLanguage1}
-              onChangeText={setAdditionalLanguage1}
-              placeholder="Idioma 1 — ej. Inglés"
-              className="mb-2"
-            />
-            <UiInput
-              value={additionalLanguage2}
-              onChangeText={setAdditionalLanguage2}
-              placeholder="Idioma 2"
-              className="mb-2"
-            />
-            <UiInput
-              value={additionalLanguage3}
-              onChangeText={setAdditionalLanguage3}
-              placeholder="Idioma 3"
-              className="mb-2"
-            />
-            <UiInput
-              value={additionalLanguage4}
-              onChangeText={setAdditionalLanguage4}
-              placeholder="Idioma 4"
-              className="mb-4"
-            />
 
             <TacticalLabel className="mb-2">
               Tipo de vehículo (*)

@@ -539,6 +539,117 @@ export const clearTripsAndOffers = internalMutation({
   },
 });
 
+/** Cuentas del panel que no se borran en limpiezas de producción. */
+const HERCOM_STAFF_EMAILS = new Set([
+  "ricardos@hercom.com",
+  "lima@hercom.com",
+]);
+
+async function purgeDriversClientsAndTrips(
+  ctx: MutationCtx,
+  keepIds: Set<Id<"users">>,
+): Promise<{
+  kept: Array<{ email: string | null; name: string | null; role: string }>;
+  removed: Array<{ email: string | null; name: string | null; role: string }>;
+  deletedUsers: number;
+  deletedScopes: number;
+  deleted: Record<string, number>;
+}> {
+  const users = await ctx.db.query("users").collect();
+  const kept = users
+    .filter((user) => keepIds.has(user._id))
+    .map((user) => ({
+      email: user.email ?? null,
+      name: user.name ?? null,
+      role: user.role,
+    }));
+
+  const applications = await ctx.db.query("driverApplications").collect();
+  for (const application of applications) {
+    for (const photoId of application.licensePhotoIds) {
+      await deleteStorageIfPresent(ctx, photoId);
+    }
+    await deleteStorageIfPresent(ctx, application.licensePdfId);
+    await deleteStorageIfPresent(ctx, application.culPdfId);
+    await deleteStorageIfPresent(ctx, application.conductorRecordPdfId);
+  }
+
+  const deleted = {
+    serviceOffers: await wipeTable(ctx, "serviceOffers"),
+    serviceTracking: await wipeTable(ctx, "serviceTracking"),
+    serviceRatings: await wipeTable(ctx, "serviceRatings"),
+    checklists: await wipeTable(ctx, "serviceVehicleChecklists"),
+    payments: await wipeTable(ctx, "payments"),
+    walletTransactions: await wipeTable(ctx, "walletTransactions"),
+    notifications: await wipeTable(ctx, "notifications"),
+    services: await wipeTable(ctx, "services"),
+    payouts: await wipeTable(ctx, "payouts"),
+    driverWallets: await wipeTable(ctx, "driverWallets"),
+    driverApplications: await wipeTable(ctx, "driverApplications"),
+    drivers: await wipeTable(ctx, "drivers"),
+    supportMessages: await wipeTable(ctx, "supportMessages"),
+    supportThreads: await wipeTable(ctx, "supportThreads"),
+  };
+
+  const scopes = await ctx.db.query("adminDistrictScopes").collect();
+  let deletedScopes = 0;
+  for (const scope of scopes) {
+    if (keepIds.has(scope.userId)) {
+      continue;
+    }
+    await ctx.db.delete(scope._id);
+    deletedScopes += 1;
+  }
+
+  let deletedUsers = 0;
+  const removed: Array<{ email: string | null; name: string | null; role: string }> =
+    [];
+  for (const user of users) {
+    if (keepIds.has(user._id)) {
+      continue;
+    }
+    await deleteStorageIfPresent(ctx, user.selfieStorageId);
+    await deleteAuthForUser(ctx, user._id, user.email, user.phone);
+    await ctx.db.delete(user._id);
+    deletedUsers += 1;
+    removed.push({
+      email: user.email ?? null,
+      name: user.name ?? null,
+      role: user.role,
+    });
+  }
+
+  return { kept, removed, deletedUsers, deletedScopes, deleted };
+}
+
+/**
+ * Borra choferes, clientes y viajes. Solo conserva `ricardos@hercom.com` y
+ * `lima@hercom.com` (y sus zonas admin).
+ *
+ *   npx convex run seed:clearDriversKeepHercomStaff
+ *   npx convex run seed:clearDriversKeepHercomStaff --prod
+ */
+export const clearDriversKeepHercomStaff = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    const keepIds = new Set(
+      users
+        .filter((user) => {
+          const email = user.email?.trim().toLowerCase() ?? "";
+          return HERCOM_STAFF_EMAILS.has(email);
+        })
+        .map((user) => user._id),
+    );
+    const result = await purgeDriversClientsAndTrips(ctx, keepIds);
+    return {
+      message: "Choferes y clientes eliminados; solo staff Hercom.",
+      staffEmails: [...HERCOM_STAFF_EMAILS],
+      ...result,
+    };
+  },
+});
+
 /**
  * Borra clientes, choferes, viajes y solicitudes. Conserva usuarios del panel
  * interno (`admin` y `superadmin`) y sus zonas asignadas.
@@ -553,76 +664,10 @@ export const clearNonAdminsAndTrips = internalMutation({
     const keepIds = new Set(
       users.filter(isAdminPanelUser).map((user) => user._id),
     );
-    const kept = users
-      .filter((user) => keepIds.has(user._id))
-      .map((user) => ({
-        email: user.email ?? null,
-        name: user.name ?? null,
-        role: user.role,
-      }));
-
-    const applications = await ctx.db.query("driverApplications").collect();
-    for (const application of applications) {
-      for (const photoId of application.licensePhotoIds) {
-        await deleteStorageIfPresent(ctx, photoId);
-      }
-      await deleteStorageIfPresent(ctx, application.licensePdfId);
-      await deleteStorageIfPresent(ctx, application.culPdfId);
-      await deleteStorageIfPresent(ctx, application.conductorRecordPdfId);
-    }
-
-    const deleted = {
-      serviceOffers: await wipeTable(ctx, "serviceOffers"),
-      serviceTracking: await wipeTable(ctx, "serviceTracking"),
-      serviceRatings: await wipeTable(ctx, "serviceRatings"),
-      checklists: await wipeTable(ctx, "serviceVehicleChecklists"),
-      payments: await wipeTable(ctx, "payments"),
-      walletTransactions: await wipeTable(ctx, "walletTransactions"),
-      notifications: await wipeTable(ctx, "notifications"),
-      services: await wipeTable(ctx, "services"),
-      payouts: await wipeTable(ctx, "payouts"),
-      driverWallets: await wipeTable(ctx, "driverWallets"),
-      driverApplications: await wipeTable(ctx, "driverApplications"),
-      drivers: await wipeTable(ctx, "drivers"),
-      supportMessages: await wipeTable(ctx, "supportMessages"),
-      supportThreads: await wipeTable(ctx, "supportThreads"),
-    };
-
-    const scopes = await ctx.db.query("adminDistrictScopes").collect();
-    let deletedScopes = 0;
-    for (const scope of scopes) {
-      if (keepIds.has(scope.userId)) {
-        continue;
-      }
-      await ctx.db.delete(scope._id);
-      deletedScopes += 1;
-    }
-
-    let deletedUsers = 0;
-    const removed: Array<{ email: string | null; name: string | null; role: string }> =
-      [];
-    for (const user of users) {
-      if (keepIds.has(user._id)) {
-        continue;
-      }
-      await deleteStorageIfPresent(ctx, user.selfieStorageId);
-      await deleteAuthForUser(ctx, user._id, user.email, user.phone);
-      await ctx.db.delete(user._id);
-      deletedUsers += 1;
-      removed.push({
-        email: user.email ?? null,
-        name: user.name ?? null,
-        role: user.role,
-      });
-    }
-
+    const result = await purgeDriversClientsAndTrips(ctx, keepIds);
     return {
       message: "Usuarios no admin y viajes eliminados.",
-      kept,
-      removed,
-      deletedUsers,
-      deletedScopes,
-      deleted,
+      ...result,
     };
   },
 });

@@ -340,6 +340,10 @@ export function DriverDossierPanel({
           value={displayValue(application.fullName)}
         />
         <InfoRow label="DNI" value={application.dni} />
+        <InfoRow
+          label="Correo (Google)"
+          value={displayValue(application.userEmail ?? undefined)}
+        />
         {application.reniecManualEntry === true ? (
           <div className="md:col-span-2">
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">

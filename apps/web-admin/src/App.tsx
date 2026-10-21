@@ -27,6 +27,14 @@ function Dashboard() {
   const me = useQuery(api.users.getAdminContext);
   const [section, setSection] = useState<AdminSection>("drivers");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [driversListResetKey, setDriversListResetKey] = useState(0);
+
+  function handleNavSection(next: AdminSection) {
+    if (next === "drivers") {
+      setDriversListResetKey((key) => key + 1);
+    }
+    setSection(next);
+  }
 
   const isHr = me?.isHr === true;
   const isStaff = me?.isStaff === true;
@@ -109,7 +117,7 @@ function Dashboard() {
     <div className="min-h-dvh overflow-x-hidden bg-admin-canvas">
       <AdminSidebar
         active={section}
-        onChange={setSection}
+        onChange={handleNavSection}
         userName={userName}
         userEmail={me.email}
         isFullAdmin={isFullAdmin}
@@ -162,6 +170,7 @@ function Dashboard() {
               showFinance={isFullAdmin}
               canEditHrExtras={isHr || isFullAdmin}
               districtScopes={me.districtScopes}
+              listResetKey={driversListResetKey}
             />
           )}
           {isFullAdmin && section === "markets" && <MarketsView />}

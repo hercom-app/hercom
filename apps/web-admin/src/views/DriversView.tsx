@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
@@ -33,7 +33,6 @@ import {
 } from "../components/AdminLayout";
 import {
   btnGhostClass,
-  btnSecondaryClass,
   rowClass,
   tableClass,
   tableHeadClass,
@@ -64,6 +63,8 @@ type DriversViewProps = {
   showFinance?: boolean;
   canEditHrExtras?: boolean;
   districtScopes: DistrictScopeOption[];
+  /** Incrementa al pulsar «Choferes» en el menú para salir del detalle. */
+  listResetKey?: number;
 };
 
 type ChoferRow = {
@@ -87,6 +88,7 @@ export function DriversView({
   showFinance = isFullAdmin,
   canEditHrExtras = false,
   districtScopes,
+  listResetKey = 0,
 }: DriversViewProps) {
   const [region, setRegion] = useState<RegionFilter>(EMPTY_REGION_FILTER);
   const [search, setSearch] = useState("");
@@ -94,6 +96,10 @@ export function DriversView({
   const [selectedUserId, setSelectedUserId] = useState<Id<"users"> | null>(
     null,
   );
+
+  useEffect(() => {
+    setSelectedUserId(null);
+  }, [listResetKey]);
 
   const drivers = useQuery(api.drivers.listAll, {});
   const applications = useQuery(api.driverApplications.listForAdmin, {});
@@ -266,15 +272,6 @@ export function DriversView({
                   .join(" · "),
               }
             : {})}
-          actions={
-            <button
-              type="button"
-              className={`${btnSecondaryClass} w-full sm:w-auto`}
-              onClick={() => setSelectedUserId(null)}
-            >
-              Volver a choferes
-            </button>
-          }
         />
         {rows === undefined ? (
           <AdminCard>

@@ -89,12 +89,19 @@ export type PickupCoordinates = {
   lng: number;
 };
 
-/** Solo GPS — rápido (última posición conocida o fix actual). */
+/** Posición cacheada del SO: solo si es reciente (evita mapa en Lima u otro sitio viejo). */
+const LAST_KNOWN_MAX_AGE_MS = 2 * 60 * 1000;
+
+/** Solo GPS — última posición reciente o fix actual. */
 export async function readPickupCoordinates(): Promise<PickupCoordinates> {
   await ensureLocationAccess();
 
   const lastKnown = await Location.getLastKnownPositionAsync();
-  if (lastKnown !== null) {
+  const now = Date.now();
+  if (
+    lastKnown !== null &&
+    now - lastKnown.timestamp <= LAST_KNOWN_MAX_AGE_MS
+  ) {
     return {
       lat: lastKnown.coords.latitude,
       lng: lastKnown.coords.longitude,

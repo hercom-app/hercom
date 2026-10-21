@@ -1,7 +1,38 @@
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { HERCOM_COLORS, POPPINS } from "../../constants/theme";
 import type { RecentDestination } from "../../lib/recentDestinations";
 import { PinGlyph, SearchGlyph } from "./RouteIcons";
+
+const OTHER_HERCOM_SERVICES = [
+  {
+    key: "premium",
+    title: "Chofer Premium",
+    subtitle: "Para personas · rutina y familia",
+    url: "https://hercom-landing.vercel.app/servicios/chofer-premium",
+    background: "#E8F4FC",
+  },
+  {
+    key: "corporativo",
+    title: "Chofer Corporativo",
+    subtitle: "Para empresas · traslados planificados",
+    url: "https://hercom-landing.vercel.app/servicios/chofer-corporativo",
+    background: "#E3F0FA",
+  },
+  {
+    key: "seguro",
+    title: "Chofer Seguro",
+    subtitle: "Para empresarios · licencia de armas",
+    url: "https://hercom-landing.vercel.app/servicios/chofer-seguro",
+    background: "#DCEEF8",
+  },
+  {
+    key: "flota",
+    title: "Chofer de Flota",
+    subtitle: "Maquinaria, buses y ruta larga",
+    url: "https://hercom-landing.vercel.app/servicios/chofer-de-flota",
+    background: "#D6EBF7",
+  },
+] as const;
 
 const BENTO = [
   {
@@ -199,6 +230,66 @@ export function HomeRequestSheet({
                 {card.body}
               </Text>
             </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={{ marginTop: 22 }}>
+        <Text
+          style={{
+            fontFamily: POPPINS.bold,
+            fontSize: 17,
+            lineHeight: 22,
+            color: HERCOM_COLORS.text,
+            marginBottom: 12,
+          }}
+        >
+          Descubre nuestros otros servicios
+        </Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+          {OTHER_HERCOM_SERVICES.map((service) => (
+            <Pressable
+              key={service.key}
+              accessibilityRole="link"
+              accessibilityLabel={service.title}
+              onPress={() => {
+                void Linking.openURL(service.url);
+              }}
+              style={({ pressed }) => ({
+                width: "48%",
+                flexGrow: 1,
+                minWidth: "46%",
+                backgroundColor: service.background,
+                borderRadius: 16,
+                paddingHorizontal: 14,
+                paddingVertical: 14,
+                borderWidth: 1,
+                borderColor: "#C5E3F6",
+                opacity: pressed ? 0.88 : 1,
+              })}
+            >
+              <Text
+                style={{
+                  fontFamily: POPPINS.bold,
+                  fontSize: 15,
+                  lineHeight: 20,
+                  color: HERCOM_COLORS.text,
+                }}
+              >
+                {service.title}
+              </Text>
+              <Text
+                style={{
+                  marginTop: 6,
+                  fontFamily: POPPINS.regular,
+                  fontSize: 12,
+                  lineHeight: 17,
+                  color: HERCOM_COLORS.textSecondary,
+                }}
+              >
+                {service.subtitle}
+              </Text>
+            </Pressable>
           ))}
         </View>
       </View>

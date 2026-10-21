@@ -10,7 +10,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, {
+  Marker,
+  PROVIDER_GOOGLE,
+  type Region,
+} from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
@@ -91,6 +95,45 @@ const LIMA_REGION = {
   latitudeDelta: 0.045,
   longitudeDelta: 0.045,
 };
+
+const HOME_MAP_DELTA = 0.04;
+
+function mapRegionForCenter(
+  coords: { lat: number; lng: number },
+  delta = HOME_MAP_DELTA,
+): Region {
+  return {
+    latitude: coords.lat,
+    longitude: coords.lng,
+    latitudeDelta: delta,
+    longitudeDelta: delta,
+  };
+}
+
+function MapPositionLoadingOverlay({ visible }: { visible: boolean }) {
+  if (!visible) {
+    return null;
+  }
+  return (
+    <View
+      className="absolute inset-0 z-[5] items-center justify-center"
+      style={{ backgroundColor: HERCOM_COLORS.mapFallback }}
+      pointerEvents="none"
+    >
+      <ActivityIndicator size="large" color={HERCOM_COLORS.primary} />
+      <Text
+        style={{
+          marginTop: 12,
+          fontFamily: POPPINS.medium,
+          fontSize: 15,
+          color: HERCOM_COLORS.text,
+        }}
+      >
+        Estamos cargando
+      </Text>
+    </View>
+  );
+}
 
 const STATUS_LABELS: Record<
   Exclude<Doc<"services">["status"], "cancelled" | "unattended">,
@@ -561,6 +604,7 @@ export function ClientDashboard() {
   const [routeAutofocus, setRouteAutofocus] = useState(false);
   const originValueRef = useRef("");
   originValueRef.current = origin;
+  const homeMapRef = useRef<MapView>(null);
 
   const unreadNotifications = (notifications ?? []).filter(
     (notification) => notification.readAt === undefined,
@@ -633,20 +677,31 @@ export function ClientDashboard() {
   const activeTrip = activeClientServices[0];
   const homeMapRegion =
     userCoords !== null
-      ? {
-          latitude: userCoords.lat,
-          longitude: userCoords.lng,
-          latitudeDelta: 0.04,
-          longitudeDelta: 0.04,
-        }
+      ? mapRegionForCenter(userCoords)
       : originLat !== null && originLng !== null
-        ? {
-            latitude: originLat,
-            longitude: originLng,
-            latitudeDelta: 0.04,
-            longitudeDelta: 0.04,
-          }
+        ? mapRegionForCenter({ lat: originLat, lng: originLng })
         : LIMA_REGION;
+
+  useEffect(() => {
+    if (userCoords === null || menuSection !== "ciudad") {
+      return;
+    }
+    homeMapRef.current?.animateToRegion(
+      mapRegionForCenter(userCoords),
+      400,
+    );
+  }, [userCoords, menuSection]);
+
+  const resolvingMapPosition =
+    locationPrompt === "checking" ||
+    pickupResolving ||
+    (locationLoading && userCoords === null);
+  const showMapLoadingOverlay =
+    menuSection === "ciudad" &&
+    resolvingMapPosition &&
+    locationPrompt !== "ask" &&
+    locationPrompt !== "blocked" &&
+    locationPrompt !== "gps-off";
 
   useEffect(() => {
     const showEvent =
@@ -765,6 +820,38 @@ export function ClientDashboard() {
       cancelled = true;
     };
   }, []);
+
+  const previousMenuSectionRef = useRef(menuSection);
+  useEffect(() => {
+    const previous = previousMenuSectionRef.current;
+    previousMenuSectionRef.current = menuSection;
+    if (menuSection !== "ciudad" || previous === "ciudad") {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const status = await getLocationAccessStatus();
+      if (cancelled || !status.permissionGranted || !status.servicesEnabled) {
+        return;
+      }
+      try {
+        const coords = await readPickupCoordinates();
+        if (cancelled) {
+          return;
+        }
+        applyPickupCoordinates(coords);
+        setLocationPrompt("hidden");
+        geocodePickupInBackground(coords);
+      } catch {
+        if (!cancelled) {
+          setShowsBlueDot(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [menuSection]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
@@ -1186,6 +1273,7 @@ export function ClientDashboard() {
         <MapScreenLayout
           map={
             <MapView
+              ref={homeMapRef}
               style={{ flex: 1 }}
               provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
               initialRegion={homeMapRegion}
@@ -1194,6 +1282,9 @@ export function ClientDashboard() {
               loadingEnabled
               loadingIndicatorColor={HERCOM_COLORS.primary}
             />
+          }
+          mapOverlay={
+            <MapPositionLoadingOverlay visible={showMapLoadingOverlay} />
           }
           topOverlay={
             <View className="flex-row items-center gap-3">
@@ -1540,18 +1631,21 @@ export function ClientDashboard() {
         {addressSearchActive ? (
           <View className="flex-1" style={{ backgroundColor: HERCOM_COLORS.mapFallback }}>
             <MapView
+              ref={homeMapRef}
               style={{ flex: 1 }}
               provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
               initialRegion={homeMapRegion}
               showsUserLocation={showsBlueDot}
               showsMyLocationButton={false}
             />
+            <MapPositionLoadingOverlay visible={showMapLoadingOverlay} />
             {addressSearchSheet}
           </View>
         ) : (
           <MapScreenLayout
             map={
               <MapView
+                ref={homeMapRef}
                 key={userCoords === null ? "lima" : "gps"}
                 style={{ flex: 1 }}
                 provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
@@ -1567,6 +1661,9 @@ export function ClientDashboard() {
                   right: 16,
                 }}
               />
+            }
+            mapOverlay={
+              <MapPositionLoadingOverlay visible={showMapLoadingOverlay} />
             }
             topOverlay={
               <View className="flex-row items-center gap-3">

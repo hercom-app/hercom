@@ -282,6 +282,7 @@ export function DriverDashboard() {
             ) : (
               <DriverWalletTopUpView
                 onBack={() => setWalletFlow("balance")}
+                onTopUpComplete={() => setWalletFlow("balance")}
               />
             )}
           </WalletScreenTransition>

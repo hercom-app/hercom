@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useMutation } from "convex/react";
+import { api } from "@proyecto/backend";
 import {
   computeIzipayTopUpQuote,
   formatPenAmount,
@@ -18,6 +20,7 @@ import {
   IZIPAY_TOP_UP_MAX_PEN,
   IZIPAY_TOP_UP_MIN_PEN,
 } from "../../lib/izipayTopUpFees";
+import { convexErrorMessage } from "../../lib/convexErrorMessage";
 import { TABULAR, TYPE } from "../../constants/theme";
 import { IzipayMark } from "./IzipayMark";
 import { YangoWalletHeader } from "./YangoWalletHeader";
@@ -25,12 +28,7 @@ import { WALLET_FONT, WALLET_TYPE, useWalletTheme } from "./walletUiTheme";
 
 type DriverWalletTopUpViewProps = {
   onBack: () => void;
-  /** Cuando exista la URL de Izipay, abrir WebBrowser / Linking. */
-  onRequestIzipayPayment?: (args: {
-    amountPen: number;
-    commissionPen: number;
-    totalDebitPen: number;
-  }) => Promise<void>;
+  onTopUpComplete?: () => void;
 };
 
 function parseAmountInput(raw: string): number {
@@ -41,9 +39,10 @@ function parseAmountInput(raw: string): number {
 
 export function DriverWalletTopUpView({
   onBack,
-  onRequestIzipayPayment,
+  onTopUpComplete,
 }: DriverWalletTopUpViewProps) {
   const wallet = useWalletTheme();
+  const topUpMine = useMutation(api.driverWallets.topUpMine);
   const [amountInput, setAmountInput] = useState("20");
   const [submitting, setSubmitting] = useState(false);
 
@@ -64,25 +63,21 @@ export function DriverWalletTopUpView({
       return;
     }
 
-    if (onRequestIzipayPayment !== undefined) {
-      setSubmitting(true);
-      try {
-        await onRequestIzipayPayment(quote);
-      } catch (error) {
-        Alert.alert(
-          "No se pudo abrir Izipay",
-          error instanceof Error ? error.message : "Intenta de nuevo más tarde.",
-        );
-      } finally {
-        setSubmitting(false);
-      }
-      return;
+    setSubmitting(true);
+    try {
+      await topUpMine({
+        amount: quote.amountPen,
+        note: `Recarga Izipay. Comisión IZIPAY PEN ${quote.commissionPen.toFixed(2)}.`,
+      });
+      onTopUpComplete?.();
+    } catch (error) {
+      Alert.alert(
+        "No se pudo recargar",
+        convexErrorMessage(error, "Intenta de nuevo más tarde."),
+      );
+    } finally {
+      setSubmitting(false);
     }
-
-    Alert.alert(
-      "Izipay",
-      "El pago con Izipay se habilitará en la próxima actualización. El total a debitar ya incluye la comisión mostrada abajo.",
-    );
   }
 
   return (
@@ -195,7 +190,7 @@ export function DriverWalletTopUpView({
                 color: wallet.textDim,
               }}
             >
-              {`Comisión: ${commissionLabel}`}
+              {`Comisión IZIPAY: ${commissionLabel}`}
             </Text>
           </View>
         </View>
@@ -225,7 +220,7 @@ export function DriverWalletTopUpView({
                 color: wallet.text,
               }}
             >
-              Comisión
+              Comisión IZIPAY
             </Text>
             <Text
               style={{

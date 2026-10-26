@@ -317,6 +317,73 @@ export const purgeAllForDemo = internalMutation({
 });
 
 /**
+ * Borra los servicios en curso (y sus filas relacionadas) y libera choferes "busy".
+ * El historial cerrado y los movimientos de saldo no se tocan.
+ * Uso: `npx convex run services:purgeActiveServices --prod`
+ */
+export const purgeActiveServices = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const services = await ctx.db.query("services").collect();
+    const active = services.filter(
+      (service) => !isTerminalServiceStatus(service.status),
+    );
+    const deleteIds = new Set(active.map((service) => service._id));
+
+    const relatedTables = [
+      "serviceOffers",
+      "serviceTracking",
+      "payments",
+      "serviceRatings",
+      "serviceVehicleChecklists",
+    ] as const;
+    let deletedRelated = 0;
+    for (const table of relatedTables) {
+      const rows = await ctx.db.query(table).collect();
+      for (const row of rows) {
+        if (deleteIds.has(row.serviceId)) {
+          await ctx.db.delete(row._id);
+          deletedRelated += 1;
+        }
+      }
+    }
+
+    const notifications = await ctx.db.query("notifications").collect();
+    for (const notification of notifications) {
+      if (
+        notification.serviceId !== undefined &&
+        deleteIds.has(notification.serviceId)
+      ) {
+        await ctx.db.delete(notification._id);
+        deletedRelated += 1;
+      }
+    }
+
+    for (const service of active) {
+      await ctx.db.delete(service._id);
+    }
+
+    const drivers = await ctx.db.query("drivers").collect();
+    const releasedDrivers: string[] = [];
+    for (const driver of drivers) {
+      if (driver.status === "busy") {
+        await ctx.db.patch(driver._id, { status: "available" });
+        releasedDrivers.push(driver.fullName ?? driver._id);
+      }
+    }
+
+    return {
+      deletedServices: active.map((service) => ({
+        serviceId: service._id,
+        status: service.status,
+      })),
+      deletedRelated,
+      releasedDrivers,
+    };
+  },
+});
+
+/**
  * DEMO: deja solo el servicio más reciente (el que acabas de pedir) y borra el resto.
  * Uso: `npx convex run services:keepLatestForDemo`
  */

@@ -75,17 +75,16 @@ function BentoTile({
   fill?: boolean;
   onPress?: () => void;
 }) {
-  const tile = (
-    <View
-      style={{
-        flex: fill ? 1 : undefined,
-        backgroundColor: background,
-        borderRadius: 20,
-        paddingHorizontal: 16,
-        paddingVertical: 16,
-        minHeight,
-      }}
-    >
+  const tileStyle = {
+    ...(fill ? { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0 } : null),
+    backgroundColor: background,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    minHeight,
+  };
+  const content = (
+    <>
       <Text
         style={{
           fontFamily: POPPINS.bold,
@@ -107,11 +106,11 @@ function BentoTile({
       >
         {body}
       </Text>
-    </View>
+    </>
   );
 
   if (onPress === undefined) {
-    return tile;
+    return <View style={tileStyle}>{content}</View>;
   }
 
   return (
@@ -119,13 +118,9 @@ function BentoTile({
       accessibilityRole="link"
       accessibilityLabel={title}
       onPress={onPress}
-      style={({ pressed }) => ({
-        flex: fill ? 1 : undefined,
-        minHeight,
-        opacity: pressed ? 0.88 : 1,
-      })}
+      style={({ pressed }) => [tileStyle, { opacity: pressed ? 0.88 : 1 }]}
     >
-      {tile}
+      {content}
     </Pressable>
   );
 }
@@ -286,7 +281,7 @@ export function HomeRequestSheet({
                 title={service.title}
                 body={service.subtitle}
                 background={service.background}
-                minHeight={124}
+                minHeight={132}
                 fill
                 onPress={() => {
                   void Linking.openURL(service.url);

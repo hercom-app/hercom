@@ -7,7 +7,8 @@ import {
   View,
   type LayoutChangeEvent,
 } from "react-native";
-import { MONO, TACTICAL_COLORS, TACTICAL_RADIUS } from "../constants/theme";
+import { useAppTheme } from "../contexts/ThemeContext";
+import { HERCOM_COLORS, POPPINS } from "../constants/theme";
 
 type SlideToConfirmProps = {
   label: string;
@@ -17,7 +18,7 @@ type SlideToConfirmProps = {
   resetSignal?: string | number;
 };
 
-const KNOB_SIZE = 44;
+const KNOB_SIZE = 52;
 const TRACK_PADDING = 4;
 
 export function SlideToConfirm({
@@ -27,6 +28,7 @@ export function SlideToConfirm({
   loading = false,
   resetSignal,
 }: SlideToConfirmProps) {
+  const { colors } = useAppTheme();
   const [trackWidth, setTrackWidth] = useState(0);
   const translateX = useRef(new Animated.Value(0)).current;
   const currentValue = useRef(0);
@@ -96,32 +98,31 @@ export function SlideToConfirm({
   return (
     <View
       onLayout={handleTrackLayout}
-      className="h-14 w-full px-1"
       accessible
       accessibilityRole="adjustable"
       accessibilityLabel={slideHint}
       accessibilityHint="Desliza el control hacia la derecha para confirmar"
       accessibilityState={{ disabled: disabled || loading }}
       style={{
+        height: KNOB_SIZE + TRACK_PADDING * 2,
+        width: "100%",
         justifyContent: "center",
-        backgroundColor: disabled
-          ? "rgba(91, 132, 177, 0.12)"
-          : "rgba(161, 196, 253, 0.14)",
-        borderRadius: TACTICAL_RADIUS.sharp,
-        borderWidth: 1,
-        borderColor: disabled
-          ? "rgba(91, 132, 177, 0.28)"
-          : TACTICAL_COLORS.accent,
+        borderRadius: 999,
+        backgroundColor: disabled ? colors.surfaceSunken : HERCOM_COLORS.primary,
+        overflow: "hidden",
       }}
     >
-      <View className="absolute left-0 right-0 items-center">
+      <View
+        pointerEvents="none"
+        style={{ position: "absolute", left: 0, right: 0, alignItems: "center" }}
+      >
         <Text
           numberOfLines={1}
           style={{
-            fontFamily: MONO.medium,
-            fontSize: 15,
-            color: disabled ? TACTICAL_COLORS.steel : TACTICAL_COLORS.accent,
-            paddingHorizontal: 56,
+            fontFamily: POPPINS.bold,
+            fontSize: 16,
+            color: disabled ? colors.steel : HERCOM_COLORS.white,
+            paddingHorizontal: KNOB_SIZE + 16,
             textAlign: "center",
           }}
         >
@@ -134,23 +135,22 @@ export function SlideToConfirm({
           transform: [{ translateX }],
           width: KNOB_SIZE,
           height: KNOB_SIZE,
-          borderRadius: TACTICAL_RADIUS.sharp,
+          borderRadius: KNOB_SIZE / 2,
           marginLeft: TRACK_PADDING,
-          backgroundColor: disabled
-            ? TACTICAL_COLORS.steel
-            : TACTICAL_COLORS.accent,
+          backgroundColor: disabled ? colors.steel : HERCOM_COLORS.white,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
         {loading ? (
-          <ActivityIndicator color={TACTICAL_COLORS.onAccent} />
+          <ActivityIndicator color={HERCOM_COLORS.primary} />
         ) : (
           <Text
             style={{
-              fontFamily: MONO.bold,
-              fontSize: 18,
-              color: TACTICAL_COLORS.onAccent,
+              fontFamily: POPPINS.bold,
+              fontSize: 26,
+              marginTop: -3,
+              color: disabled ? colors.surfaceSunken : HERCOM_COLORS.primary,
             }}
           >
             ›

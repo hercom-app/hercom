@@ -10,12 +10,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { TacticalLabel, TacticalText, TacticalTitle } from "./tactical";
-import {
-  TACTICAL_BORDER,
-  TACTICAL_COLORS,
-  TACTICAL_RADIUS,
-} from "../constants/theme";
+import { useAppTheme } from "../contexts/ThemeContext";
+import { HERCOM_COLORS, POPPINS, UBER_RADIUS } from "../constants/theme";
 
 export type CarView = "front" | "rear" | "side" | "diagram";
 
@@ -45,9 +41,11 @@ export const CarDamageCanvas = memo(function CarDamageCanvas({
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
   const { width: screenW, height: screenH } = Dimensions.get("window");
+  const diagramMarkCount = marks.filter((m) => m.view === "diagram").length;
 
-  const embedW = screenW - 24;
+  const embedW = screenW - 40;
   const embedH = embedW / DIAGRAM_ASPECT;
 
   const fullW = screenW - 16;
@@ -58,10 +56,11 @@ export const CarDamageCanvas = memo(function CarDamageCanvas({
 
   return (
     <View>
-      <TacticalText size={12} className="mb-2">
-        Tocá el vehículo para marcar abolladuras. Tocá una marca para
-        quitarla.
-      </TacticalText>
+      <Text style={{ fontFamily: POPPINS.regular, fontSize: 15, color: colors.text, marginBottom: 10 }}>
+        {diagramMarkCount > 0
+          ? `${diagramMarkCount} ${diagramMarkCount === 1 ? "marca" : "marcas"}. Toca una marca para quitarla.`
+          : "Toca el vehículo donde veas una abolladura."}
+      </Text>
 
       <DiagramPad
         width={embedW}
@@ -70,31 +69,16 @@ export const CarDamageCanvas = memo(function CarDamageCanvas({
         onChange={onChange}
       />
 
-      <TouchableOpacity
-        onPress={() => setExpanded(true)}
-        className="mt-3 items-center py-3"
-        style={{
-          backgroundColor: TACTICAL_COLORS.accent,
-          borderRadius: TACTICAL_RADIUS.sharp,
-        }}
-      >
-        <TacticalLabel style={{ color: TACTICAL_COLORS.base }}>
-          Ampliar diagrama a pantalla completa
-        </TacticalLabel>
-      </TouchableOpacity>
-
-      {marks.filter((m) => m.view === "diagram").length > 0 && (
-        <TouchableOpacity
-          onPress={() =>
-            onChange(marks.filter((m) => m.view !== "diagram"))
-          }
-          className="mt-2 py-1"
-        >
-          <TacticalLabel className="text-center" style={{ color: TACTICAL_COLORS.danger }}>
-            Limpiar marcas
-          </TacticalLabel>
-        </TouchableOpacity>
-      )}
+      <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
+        <SoftButton label="Ampliar" onPress={() => setExpanded(true)} />
+        {diagramMarkCount > 0 && (
+          <SoftButton
+            label="Limpiar marcas"
+            danger
+            onPress={() => onChange(marks.filter((m) => m.view !== "diagram"))}
+          />
+        )}
+      </View>
 
       <Modal
         visible={expanded}
@@ -103,31 +87,50 @@ export const CarDamageCanvas = memo(function CarDamageCanvas({
         onRequestClose={() => setExpanded(false)}
       >
         <View
-          className="flex-1"
           style={{
-            backgroundColor: TACTICAL_COLORS.base,
+            flex: 1,
+            backgroundColor: colors.base,
             paddingTop: insets.top + 8,
             paddingBottom: insets.bottom + 8,
           }}
         >
-          <View className="mb-3 flex-row items-center justify-between px-4">
-            <TacticalTitle size={16}>Marcar abolladuras</TacticalTitle>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: 20,
+              marginBottom: 8,
+            }}
+          >
+            <Text style={{ fontFamily: POPPINS.bold, fontSize: 24, color: colors.textStrong }}>
+              Marcar abolladuras
+            </Text>
             <TouchableOpacity
               onPress={() => setExpanded(false)}
-              className="px-4 py-2"
               style={{
-                backgroundColor: TACTICAL_COLORS.accent,
-                borderRadius: TACTICAL_RADIUS.sharp,
+                paddingHorizontal: 20,
+                paddingVertical: 10,
+                borderRadius: 999,
+                backgroundColor: HERCOM_COLORS.primary,
               }}
             >
-              <TacticalLabel style={{ color: TACTICAL_COLORS.base }}>
+              <Text style={{ fontFamily: POPPINS.bold, fontSize: 16, color: HERCOM_COLORS.white }}>
                 Listo
-              </TacticalLabel>
+              </Text>
             </TouchableOpacity>
           </View>
-          <TacticalText size={12} className="mb-3 px-4">
-            Tocá el vehículo. Tocá una marca roja para quitarla.
-          </TacticalText>
+          <Text
+            style={{
+              paddingHorizontal: 20,
+              marginBottom: 12,
+              fontFamily: POPPINS.regular,
+              fontSize: 15,
+              color: colors.text,
+            }}
+          >
+            Toca el vehículo. Toca una marca roja para quitarla.
+          </Text>
           <View className="flex-1 items-center justify-center px-2">
             <DiagramPad
               width={fullWFinal}
@@ -142,6 +145,42 @@ export const CarDamageCanvas = memo(function CarDamageCanvas({
   );
 });
 
+function SoftButton({
+  label,
+  onPress,
+  danger = false,
+}: {
+  label: string;
+  onPress: () => void;
+  danger?: boolean;
+}) {
+  const { colors } = useAppTheme();
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.75}
+      style={{
+        flex: 1,
+        height: 48,
+        borderRadius: 999,
+        backgroundColor: colors.surfaceSunken,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: POPPINS.semibold,
+          fontSize: 16,
+          color: danger ? colors.danger : colors.textStrong,
+        }}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 function DiagramPad({
   width,
   height,
@@ -153,6 +192,7 @@ function DiagramPad({
   marks: DamageMark[];
   onChange: (marks: DamageMark[]) => void;
 }) {
+  const { colors } = useAppTheme();
   const [size, setSize] = useState({ w: width, h: height });
   const diagramMarks = marks.filter((m) => m.view === "diagram");
 
@@ -193,10 +233,10 @@ function DiagramPad({
         width,
         height,
         alignSelf: "center",
-        backgroundColor: TACTICAL_COLORS.surfaceSunken,
-        borderRadius: TACTICAL_RADIUS.panel,
+        backgroundColor: HERCOM_COLORS.white,
+        borderRadius: UBER_RADIUS.card,
         borderWidth: 1,
-        borderColor: TACTICAL_BORDER,
+        borderColor: colors.surfaceSunken,
       }}
     >
       <View pointerEvents="none" style={{ width, height }}>
@@ -223,13 +263,13 @@ function DiagramPad({
             style={{
               borderRadius: 14,
               borderWidth: 2,
-              borderColor: TACTICAL_COLORS.textStrong,
-              backgroundColor: TACTICAL_COLORS.danger,
+              borderColor: HERCOM_COLORS.white,
+              backgroundColor: HERCOM_COLORS.danger,
             }}
           >
             <Text
               className="text-xs font-bold"
-              style={{ color: TACTICAL_COLORS.textStrong }}
+              style={{ color: HERCOM_COLORS.white }}
             >
               ×
             </Text>

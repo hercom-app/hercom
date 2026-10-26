@@ -170,13 +170,21 @@ export function DriverServiceHome({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
         >
-          {activeServices.map((service) => (
-            <ServiceCard
+          {activeServices.map((service, index) => (
+            <View
               key={service._id}
-              service={service}
-              onOpenChecklist={onOpenChecklist}
-              onOpenLiveMap={onOpenLiveMap}
-            />
+              style={
+                index > 0
+                  ? { borderTopWidth: 1, borderTopColor: HERCOM_COLORS.border, paddingTop: 12 }
+                  : undefined
+              }
+            >
+              <ServiceCard
+                service={service}
+                onOpenChecklist={onOpenChecklist}
+                onOpenLiveMap={onOpenLiveMap}
+              />
+            </View>
           ))}
         </ScrollView>
       </UberBottomSheet>

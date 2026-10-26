@@ -4,7 +4,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  TextInput,
+  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -12,23 +12,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
+import { CarDamageCanvas, type DamageMark } from "../components/CarDamageCanvas";
+import { DrawerIcon } from "../components/DrawerIcons";
 import {
-  CarDamageCanvas,
-  type DamageMark,
-} from "../components/CarDamageCanvas";
-import { UiButton, UiCard, UiInput } from "../components/ui";
-import { HelpFab } from "../components/HelpFab";
-import {
-  TacticalLabel,
-  TacticalText,
-  TacticalTitle,
-} from "../components/tactical";
-import {
-  HERCOM_COLORS,
-  TACTICAL_BORDER,
-  TACTICAL_COLORS,
-  TACTICAL_RADIUS,
-} from "../constants/theme";
+  CheckRow,
+  ErrorText,
+  FilledInput,
+  GroupDivider,
+  PillButton,
+  SectionTitle,
+  SoftGroup,
+} from "../components/driver/driverUi";
+import { useAppTheme } from "../contexts/ThemeContext";
+import { HERCOM_COLORS, POPPINS } from "../constants/theme";
 
 type Props = {
   serviceId: Id<"services">;
@@ -37,7 +33,7 @@ type Props = {
 
 export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollView>(null);
+  const { colors, border } = useAppTheme();
   const checklist = useQuery(api.serviceChecklists.getForMyService, {
     serviceId,
   });
@@ -55,7 +51,6 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
   const [insuranceNotes, setInsuranceNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [savedOk, setSavedOk] = useState(false);
   const hasLoadedOnce = useRef(false);
   if (checklist !== undefined) {
     hasLoadedOnce.current = true;
@@ -77,23 +72,25 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
     setInsuranceNotes(checklist.insuranceNotes ?? "");
   }, [checklist?._id]);
 
-  const docsOk = hasPropertyCard && hasSoat && hasTechnicalInspection;
+  const docsDone = [hasPropertyCard, hasSoat, hasTechnicalInspection].filter(Boolean).length;
+  const docsOk = docsDone === 3;
   const hasMarks = damageMarks.length > 0;
   const notesOk = !hasMarks || damageNotes.trim().length > 0;
   const canSave = docsOk && notesOk;
+  const requiredTotal = hasMarks ? 4 : 3;
+  const requiredDone = docsDone + (hasMarks && notesOk ? 1 : 0);
 
   async function handleSave() {
     if (!canSave) {
       setError(
         !docsOk
-          ? "Marca Tarjeta de propiedad, SOAT y Revisión técnica."
-          : "Escribe observaciones si marcaste abolladuras.",
+          ? "Verifica tarjeta de propiedad, SOAT y revisión técnica."
+          : "Describe las abolladuras que marcaste.",
       );
       return;
     }
     setError(null);
     setSaving(true);
-    setSavedOk(false);
     try {
       const yearNum = Number(vehicleYear);
       await upsert({
@@ -114,7 +111,7 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
           ? { insuranceNotes: insuranceNotes.trim() }
           : {}),
       });
-      setSavedOk(true);
+      onBack();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo guardar.");
     } finally {
@@ -125,260 +122,189 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
   if (checklist === undefined && !hasLoadedOnce.current) {
     return (
       <View
-        className="flex-1 items-center justify-center"
-        style={{ backgroundColor: TACTICAL_COLORS.base }}
+        style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.base }}
       >
-        <ActivityIndicator color={TACTICAL_COLORS.accent} />
+        <ActivityIndicator color={colors.accent} />
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      className="flex-1"
-      style={{
-        flex: 1,
-        paddingTop: insets.top,
-        backgroundColor: TACTICAL_COLORS.base,
-      }}
+      style={{ flex: 1, paddingTop: insets.top, backgroundColor: colors.base }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
     >
-      <View
-        className="flex-row items-center px-4 py-3"
-        style={{
-          borderBottomWidth: 1,
-          borderBottomColor: HERCOM_COLORS.border,
-          backgroundColor: HERCOM_COLORS.white,
-        }}
-      >
-        <TouchableOpacity onPress={onBack} className="mr-3 py-1 pr-2">
-          <TacticalLabel tone="accent">
-            ← Volver
-          </TacticalLabel>
+      <View style={{ paddingHorizontal: 12, paddingTop: 8 }}>
+        <TouchableOpacity
+          onPress={onBack}
+          accessibilityLabel="Volver al servicio"
+          style={{
+            width: 48,
+            height: 48,
+            alignItems: "center",
+            justifyContent: "center",
+            transform: [{ rotate: "180deg" }],
+          }}
+        >
+          <DrawerIcon name="chevron" color={colors.textStrong} size={26} />
         </TouchableOpacity>
-        <TacticalTitle size={16} className="flex-1">
-          Checklist de recojo
-        </TacticalTitle>
-        <HelpFab />
       </View>
 
       <ScrollView
-        ref={scrollRef}
-        className="flex-1"
+        style={{ flex: 1 }}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="none"
-        contentContainerStyle={{
-          padding: 16,
-          paddingBottom: insets.bottom + 48,
-        }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
       >
-        <Section title="1. Documentos">
-          <DocToggle
-            label="Tarjeta de propiedad verificada"
-            value={hasPropertyCard}
-            onPress={() => setHasPropertyCard((v) => !v)}
-          />
-          <DocToggle
-            label="SOAT verificado"
-            value={hasSoat}
-            onPress={() => setHasSoat((v) => !v)}
-          />
-          <DocToggle
-            label="Revisión técnica verificada"
-            value={hasTechnicalInspection}
-            onPress={() => setHasTechnicalInspection((v) => !v)}
-          />
+        <Text style={{ fontFamily: POPPINS.bold, fontSize: 30, color: colors.textStrong }}>
+          Checklist de recojo
+        </Text>
+        <Text style={{ marginTop: 4, fontFamily: POPPINS.regular, fontSize: 16, color: colors.text }}>
+          Revisa el vehículo del cliente antes de iniciar el viaje.
+        </Text>
+
+        <View style={{ marginTop: 16, marginBottom: 24 }}>
+          <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.surfaceSunken, overflow: "hidden" }}>
+            <View
+              style={{
+                width: `${(requiredDone / requiredTotal) * 100}%`,
+                height: "100%",
+                borderRadius: 4,
+                backgroundColor: canSave ? HERCOM_COLORS.success : HERCOM_COLORS.primary,
+              }}
+            />
+          </View>
+          <Text style={{ marginTop: 6, fontFamily: POPPINS.medium, fontSize: 14, color: colors.steel }}>
+            {canSave ? "Todo listo para guardar" : `${requiredDone} de ${requiredTotal} obligatorios`}
+          </Text>
+        </View>
+
+        <Section title="Documentos">
+          <SoftGroup>
+            <CheckRow
+              label="Tarjeta de propiedad"
+              checked={hasPropertyCard}
+              onPress={() => setHasPropertyCard((v) => !v)}
+            />
+            <GroupDivider />
+            <CheckRow label="SOAT vigente" checked={hasSoat} onPress={() => setHasSoat((v) => !v)} />
+            <GroupDivider />
+            <CheckRow
+              label="Revisión técnica"
+              checked={hasTechnicalInspection}
+              onPress={() => setHasTechnicalInspection((v) => !v)}
+            />
+          </SoftGroup>
         </Section>
 
-        <Section title="2. Datos del vehículo">
-          <Field
-            label="Marca"
-            value={vehicleMake}
-            onChangeText={setVehicleMake}
-            placeholder="Ej. Toyota"
-          />
-          <Field
-            label="Modelo"
-            value={vehicleModel}
-            onChangeText={setVehicleModel}
-            placeholder="Ej. Corolla"
-          />
-          <Field
-            label="Año"
+        <Section title="Vehículo" optional>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <FilledInput
+              value={vehicleMake}
+              onChangeText={setVehicleMake}
+              placeholder="Marca"
+              accessibilityLabel="Marca"
+              style={{ flex: 1 }}
+            />
+            <FilledInput
+              value={vehicleModel}
+              onChangeText={setVehicleModel}
+              placeholder="Modelo"
+              accessibilityLabel="Modelo"
+              style={{ flex: 1 }}
+            />
+          </View>
+          <FilledInput
             value={vehicleYear}
-            onChangeText={setVehicleYear}
-            placeholder="Ej. 2019"
+            onChangeText={(text) => setVehicleYear(text.replace(/\D/g, "").slice(0, 4))}
+            placeholder="Año"
+            accessibilityLabel="Año"
             keyboardType="number-pad"
+            style={{ marginTop: 10 }}
           />
         </Section>
 
-        <Section title="3. Abolladuras" flush>
+        <Section title="Abolladuras">
           <CarDamageCanvas marks={damageMarks} onChange={setDamageMarks} />
         </Section>
 
-        <Section title="4. Observaciones">
-          <TextInput
+        <Section title="Observaciones" optional={!hasMarks}>
+          <FilledInput
             value={damageNotes}
             onChangeText={setDamageNotes}
-            placeholder={
-              hasMarks
-                ? "Describe las marcas que señalaste"
-                : "Estado general del vehículo"
-            }
-            placeholderTextColor="rgba(91, 132, 177, 0.7)"
+            placeholder={hasMarks ? "Describe las marcas que señalaste" : "Estado general del vehículo"}
             multiline
             textAlignVertical="top"
-            className="min-h-[88px] px-4 py-3.5"
             style={{
-              backgroundColor: TACTICAL_COLORS.surfaceSunken,
-              borderRadius: TACTICAL_RADIUS.panel,
-              borderWidth: 1,
-              borderColor: TACTICAL_BORDER,
-              color: TACTICAL_COLORS.textStrong,
-              fontSize: 15,
+              minHeight: 96,
+              borderWidth: hasMarks && !notesOk ? 2 : 0,
+              borderColor: HERCOM_COLORS.warning,
             }}
           />
         </Section>
 
-        <Section title="5. Seguro">
-          <DocToggle
-            label="Tiene seguro vigente"
-            value={hasInsurance}
-            onPress={() => setHasInsurance((v) => !v)}
-          />
+        <Section title="Seguro" optional>
+          <SoftGroup>
+            <CheckRow
+              label="Tiene seguro vigente"
+              checked={hasInsurance}
+              onPress={() => setHasInsurance((v) => !v)}
+            />
+          </SoftGroup>
           {hasInsurance && (
-            <TextInput
+            <FilledInput
               value={insuranceNotes}
               onChangeText={setInsuranceNotes}
-              placeholder="Póliza o nota"
-              placeholderTextColor="rgba(91, 132, 177, 0.7)"
-              className="mt-2 px-4 py-3.5"
-              style={{
-                backgroundColor: TACTICAL_COLORS.surfaceSunken,
-                borderRadius: TACTICAL_RADIUS.panel,
-                borderWidth: 1,
-                borderColor: TACTICAL_BORDER,
-                color: TACTICAL_COLORS.textStrong,
-                fontSize: 15,
-              }}
+              placeholder="Aseguradora o n.° de póliza"
+              style={{ marginTop: 10 }}
             />
           )}
         </Section>
-
-        {error !== null && (
-          <TacticalText
-            size={12}
-            className="mb-2"
-            style={{ color: TACTICAL_COLORS.danger }}
-          >
-            {error}
-          </TacticalText>
-        )}
-        {savedOk && (
-          <TacticalText
-            size={12}
-            className="mb-2"
-            style={{ color: TACTICAL_COLORS.success }}
-          >
-            Checklist guardado. Volvé a Servicios para iniciar el viaje.
-          </TacticalText>
-        )}
-
-        <UiButton
-          label={saving ? "Guardando…" : "Guardar checklist"}
-          onPress={() => void handleSave()}
-          disabled={saving || !canSave}
-          loading={saving}
-        />
-
-        {savedOk && (
-          <View className="mt-3">
-            <UiButton
-              label="Volver a servicios"
-              variant="ghost"
-              onPress={onBack}
-            />
-          </View>
-        )}
       </ScrollView>
+
+      <View
+        style={{
+          paddingHorizontal: 20,
+          paddingTop: 12,
+          paddingBottom: insets.bottom + 12,
+          borderTopWidth: 1,
+          borderTopColor: border,
+          backgroundColor: colors.base,
+        }}
+      >
+        <PillButton
+          label="Guardar checklist"
+          onPress={() => void handleSave()}
+          loading={saving}
+          disabled={!canSave}
+        />
+        <ErrorText message={error} />
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 function Section({
   title,
+  optional = false,
   children,
-  flush,
 }: {
   title: string;
+  optional?: boolean;
   children: ReactNode;
-  flush?: boolean;
 }) {
+  const { colors } = useAppTheme();
   return (
-    <UiCard className={`mb-5 ${flush ? "overflow-hidden p-3" : ""}`.trim()}>
-      <TacticalLabel tone="accent" className={`mb-3 ${flush ? "px-1" : ""}`}>
+    <View style={{ marginBottom: 28 }}>
+      <SectionTitle>
         {title}
-      </TacticalLabel>
+        {optional && (
+          <Text style={{ fontFamily: POPPINS.regular, fontSize: 15, color: colors.steel }}>
+            {"  · opcional"}
+          </Text>
+        )}
+      </SectionTitle>
       {children}
-    </UiCard>
-  );
-}
-
-function DocToggle({
-  label,
-  value,
-  onPress,
-}: {
-  label: string;
-  value: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      className="mb-2 px-3 py-3"
-      style={{
-        backgroundColor: value
-          ? TACTICAL_COLORS.dataBandBg
-          : TACTICAL_COLORS.surfaceSunken,
-        borderRadius: TACTICAL_RADIUS.panel,
-        borderWidth: 1,
-        borderColor: value ? TACTICAL_COLORS.accent : TACTICAL_BORDER,
-      }}
-    >
-      <TacticalText size={13} tone={value ? "text" : "steel"}>
-        {value ? "✓ " : "○ "}
-        {label}
-      </TacticalText>
-    </TouchableOpacity>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  keyboardType,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  placeholder?: string;
-  keyboardType?: "default" | "number-pad";
-}) {
-  return (
-    <View className="mb-2">
-      <TacticalLabel className="mb-1.5">
-        {label}
-      </TacticalLabel>
-      <UiInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        keyboardType={keyboardType}
-      />
     </View>
   );
 }

@@ -127,7 +127,7 @@ export function DriversView({
     }
 
     const walletByDriverId = new Map(
-      (wallets ?? []).map((wallet) => [wallet.driverId, wallet.balance]),
+      (wallets ?? []).map((wallet) => [wallet.driverId, wallet.tripCredits]),
     );
     const driverUserIds = new Set(drivers.map((driver) => driver.userId));
     const fromDrivers: ChoferRow[] = drivers.map((driver) => {
@@ -163,7 +163,7 @@ export function DriversView({
           bankAccount1: driver.bankAccount1,
           bankAccount2: driver.bankAccount2,
           bankAccount3: driver.bankAccount3,
-          walletBalance: walletByDriverId.get(driver._id),
+          tripCredits: walletByDriverId.get(driver._id),
         },
       };
     });
@@ -205,7 +205,7 @@ export function DriversView({
           bankAccount1: undefined,
           bankAccount2: undefined,
           bankAccount3: undefined,
-          walletBalance: undefined,
+          tripCredits: undefined,
         },
       }));
 

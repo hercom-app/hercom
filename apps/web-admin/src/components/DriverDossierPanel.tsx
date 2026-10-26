@@ -139,7 +139,7 @@ export type DriverFinanceInfo = {
   bankAccount1: string | undefined;
   bankAccount2: string | undefined;
   bankAccount3: string | undefined;
-  walletBalance: number | undefined;
+  tripCredits: number | undefined;
 };
 
 type DriverDossierPanelProps = {
@@ -836,10 +836,14 @@ function DriverFinanceCard({ finance }: { finance: DriverFinanceInfo }) {
             <InfoRow label="DNI de cobro" value={displayValue(finance.dni)} />
             <InfoRow label="Yape" value={displayValue(finance.yape)} />
             <InfoRow label="Plin" value={displayValue(finance.plin)} />
-            {finance.walletBalance !== undefined ? (
+            {finance.tripCredits !== undefined ? (
               <InfoRow
-                label="Saldo de recarga"
-                value={`S/${finance.walletBalance.toFixed(2)}`}
+                label="Viajes prepagados"
+                value={
+                  finance.tripCredits === 1
+                    ? "1 viaje"
+                    : `${finance.tripCredits} viajes`
+                }
               />
             ) : null}
           </div>

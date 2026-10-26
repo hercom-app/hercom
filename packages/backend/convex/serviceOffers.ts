@@ -16,7 +16,7 @@ import {
   resolveServiceHoursAndHourlyRate,
 } from "./lib/pricing";
 import { requireDriver, requireUser } from "./lib/auth";
-import { hasSufficientBalance } from "./driverWallets";
+import { hasTripCreditForService } from "./driverWallets";
 import { createNotification } from "./notifications";
 
 function normalizeMoney(amount: number): number {
@@ -103,26 +103,12 @@ export const submitMyOffer = mutation({
       };
     }
 
-    const market = await getMarketByCountry(ctx, service.origin.countryCode);
-    const { serviceHours, hourlyRateSnapshot } = resolveServiceHoursAndHourlyRate(
-      offeredPrice,
-      market,
-    );
-    const projectedCommission = computePlatformCommissionForService(
-      offeredPrice,
-      service.discountRate,
-      { serviceHours, hourlyRate: hourlyRateSnapshot, market },
-    );
-    const enoughBalance = await hasSufficientBalance(
-      ctx,
-      driver._id,
-      projectedCommission,
-    );
-    if (!enoughBalance) {
+    const hasTrips = await hasTripCreditForService(ctx, driver._id);
+    if (!hasTrips) {
       return {
         ok: false as const,
         message:
-          "Saldo insuficiente para cubrir la comisión de esta oferta. Recarga primero.",
+          "No tienes viajes prepagados. Recarga un paquete antes de ofertar.",
       };
     }
 
@@ -293,10 +279,10 @@ export const acceptOffer = mutation({
       service.discountRate,
     );
     const advanceAmount = computeClientAdvance(offer.offeredPrice);
-    const enoughBalance = await hasSufficientBalance(ctx, driver._id, commission);
-    if (!enoughBalance) {
+    const hasTrips = await hasTripCreditForService(ctx, driver._id);
+    if (!hasTrips) {
       throw new Error(
-        "El chofer seleccionado ya no tiene saldo suficiente. Elige otra oferta.",
+        "El chofer seleccionado ya no tiene viajes prepagados. Elige otra oferta.",
       );
     }
 

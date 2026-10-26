@@ -23,8 +23,8 @@ import {
 import { requireDriver, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
 import { filterServicesByAccess, getAccessContext, isStaffRole, originMatchesDistrictScopes } from "./lib/adminAccess";
 import {
-  debitCommissionForService,
-  hasSufficientBalance,
+  debitTripForService,
+  hasTripCreditForService,
 } from "./driverWallets";
 import { createNotification } from "./notifications";
 import { getCurrentStop, getServiceStops } from "./lib/serviceStops";
@@ -160,14 +160,10 @@ export const assignDriver = mutation({
     if (driver.status !== "available") {
       throw new Error("El chofer no está disponible.");
     }
-    const enoughBalance = await hasSufficientBalance(
-      ctx,
-      driver._id,
-      service.driverCommission,
-    );
-    if (!enoughBalance) {
+    const hasTrips = await hasTripCreditForService(ctx, driver._id);
+    if (!hasTrips) {
       throw new Error(
-        "Saldo insuficiente del chofer para este servicio según regla de límite mínimo S/-10.",
+        "El chofer no tiene viajes prepagados. Debe recargar antes de asignarse servicios.",
       );
     }
 
@@ -557,10 +553,9 @@ export const updateStatus = mutation({
     }
 
     // args.status === "finished"
-    await debitCommissionForService(ctx, {
+    await debitTripForService(ctx, {
       driverId: driver._id,
       serviceId: service._id,
-      amount: service.driverCommission,
     });
     await ctx.db.patch(service._id, {
       status: "finished",

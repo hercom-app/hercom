@@ -87,14 +87,19 @@ export function TopUpsView() {
     `${region.department}|${period}|${driverStatus}|${search}`,
   );
 
-  const filteredTotal =
+  const filteredTrips =
     filteredItems?.reduce((sum, item) => sum + item.amount, 0) ?? 0;
+  const filteredPen =
+    filteredItems?.reduce(
+      (sum, item) => sum + (item.pricePenPaid ?? 0),
+      0,
+    ) ?? 0;
 
   return (
     <AdminPage>
       <AdminPageHeader
         title="Recargas"
-        description="Recargas de billetera de choferes. La región filtra choferes con servicios en esa zona."
+        description="Recargas de viajes prepagados. La región filtra choferes con servicios en esa zona."
       />
 
       <AdminRegionFilters value={region} onChange={setRegion}>
@@ -144,7 +149,11 @@ export function TopUpsView() {
             Total filtrado
           </p>
           <p className="mt-1 font-display text-2xl font-bold tracking-tight text-slate-900">
-            S/{filteredTotal.toFixed(2)}
+            {filteredTrips}{" "}
+            {filteredTrips === 1 ? "viaje" : "viajes"}
+            <span className="ml-2 text-base font-semibold text-slate-500">
+              (S/{filteredPen.toFixed(2)})
+            </span>
           </p>
         </div>
 
@@ -167,8 +176,14 @@ export function TopUpsView() {
                       <span>{formatDateTime(tx.createdAt)}</span>
                     </div>
                   </div>
-                  <p className="shrink-0 font-display text-lg font-bold text-emerald-700">
-                    + S/{tx.amount.toFixed(2)}
+                  <p className="shrink-0 text-right font-display text-lg font-bold text-emerald-700">
+                    + {tx.amount}{" "}
+                    {tx.amount === 1 ? "viaje" : "viajes"}
+                    {tx.pricePenPaid !== undefined ? (
+                      <span className="block text-sm font-semibold text-emerald-600/80">
+                        S/{tx.pricePenPaid.toFixed(2)}
+                      </span>
+                    ) : null}
                   </p>
                 </div>
               </li>

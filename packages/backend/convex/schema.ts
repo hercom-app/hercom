@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
+import { driverTopUpPackageIdValidator } from "./lib/driverTopUpPackages";
 
 /**
  * Validadores reutilizables para los "enums" del dominio.
@@ -55,7 +56,7 @@ export const payoutStatusValidator = v.union(
 
 export const walletTransactionTypeValidator = v.union(
   v.literal("top_up"),
-  v.literal("commission_debit"),
+  v.literal("trip_debit"),
 );
 
 export const serviceOfferStatusValidator = v.union(
@@ -372,23 +373,30 @@ export default defineSchema({
     .index("by_driver_status", ["driverId", "status"]),
 
   /**
-   * Saldo virtual del chofer para demo de recargas (modelo Yango/InDriver).
+   * Viajes prepagados del chofer (recargas por paquete).
    */
   driverWallets: defineTable({
     driverId: v.id("drivers"),
-    balance: v.number(),
+    tripCredits: v.number(),
     updatedAt: v.number(),
   }).index("by_driver", ["driverId"]),
 
   /**
-   * Historial de movimientos del saldo del chofer.
-   * `amount` es siempre positivo; el sentido lo define `type`.
+   * Historial de movimientos de viajes del chofer (incluye recargas).
+   * - `top_up`: recarga de paquete; `tripsPurchased` y `amount` = viajes acreditados;
+   *   `packageId` + `pricePenPaid` identifican el paquete (30→1, 50→2, 100→5).
+   * - `trip_debit`: consumo al cerrar un viaje; `amount` = 1.
    */
   walletTransactions: defineTable({
     driverId: v.id("drivers"),
     type: walletTransactionTypeValidator,
+    /** Viajes del movimiento (+ recarga o − consumo). */
     amount: v.number(),
-    balanceAfter: v.number(),
+    /** Solo recargas: viajes adquiridos con el paquete (igual que `amount` en top_up). */
+    tripsPurchased: v.optional(v.number()),
+    packageId: v.optional(driverTopUpPackageIdValidator),
+    pricePenPaid: v.optional(v.number()),
+    tripsAfter: v.number(),
     serviceId: v.optional(v.id("services")),
     createdByUserId: v.optional(v.id("users")),
     note: v.optional(v.string()),

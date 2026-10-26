@@ -60,7 +60,7 @@ const CLIENT_ACCOUNT: MenuItem[] = [
 const DRIVER_PRIMARY: MenuItem[] = [
   { key: "servicios", label: "Servicios", icon: "car" },
   { key: "ofertas", label: "Solicitudes abiertas", icon: "clipboard" },
-  { key: "saldo", label: "Recargar saldo", icon: "wallet" },
+  { key: "saldo", label: "Recargar viajes", icon: "wallet" },
   { key: "ganancias", label: "Ganancias", icon: "trend" },
   { key: "notificaciones", label: "Notificaciones", icon: "bell" },
 ];

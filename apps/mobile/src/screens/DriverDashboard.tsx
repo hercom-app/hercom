@@ -18,7 +18,8 @@ import { SideDrawer } from "../components/SideDrawer";
 import { SupportChatScreen } from "./SupportChatScreen";
 import { useAppMode } from "../contexts/AppModeContext";
 import { useAndroidBackHandler } from "../hooks/useAndroidBackHandler";
-import { canCoverOfferCommission } from "../lib/offerWallet";
+import { hasTripCreditForOffer } from "../lib/offerWallet";
+import { formatTripCreditsShort } from "../lib/driverWalletDisplay";
 import {
   convexErrorMessage,
   isInsufficientBalanceError,
@@ -188,19 +189,14 @@ export function DriverDashboard() {
     (myPendingOffers ?? []).map((offer) => [offer.serviceId, offer.offeredPrice]),
   );
   const isAvailable = driver.status === "available";
-  const walletBalance = wallet?.balance ?? 0;
-  const canAffordAnyOpen = (openServices ?? []).some((service) =>
-    canCoverOfferCommission(
-      walletBalance,
-      service.catalogBasePrice ?? service.basePrice,
-    ),
-  );
-  const lacksBalance =
-    (openServices ?? []).length > 0 && !canAffordAnyOpen;
-  const offersLocked = !isAvailable || lacksBalance;
+  const tripCredits = wallet?.tripCredits ?? 0;
+  const hasTripsForOffer = hasTripCreditForOffer(tripCredits);
+  const lacksTrips =
+    (openServices ?? []).length > 0 && !hasTripsForOffer;
+  const offersLocked = !isAvailable || lacksTrips;
   const offersLockReason = !isAvailable
     ? "Desliza para ponerte disponible y poder ofertar."
-    : "Saldo insuficiente para cubrir la comisión. Recarga desde el menú.";
+    : "No tienes viajes prepagados. Recarga desde el menú.";
 
 
   const title =
@@ -274,7 +270,7 @@ export function DriverDashboard() {
           <WalletScreenTransition screenKey={walletFlow}>
             {walletFlow === "balance" ? (
               <DriverWalletBalanceView
-                balance={walletBalance}
+                tripCredits={tripCredits}
                 transactions={walletTransactions}
                 onBack={() => setMenuSection("servicios")}
                 onRecargar={() => setWalletFlow("topup")}
@@ -337,7 +333,7 @@ export function DriverDashboard() {
                   activeOpacity={0.8}
                   onPress={() => setMenuSection("saldo")}
                   accessibilityRole="button"
-                  accessibilityLabel={`Saldo disponible, ${(wallet?.balance ?? 0).toFixed(2)} soles. Abrir recargas`}
+                  accessibilityLabel={`Viajes disponibles, ${formatTripCreditsShort(tripCredits)}. Abrir recargas`}
                   className="mb-3 flex-row items-center justify-between px-5 py-4"
                   style={{
                     backgroundColor: TACTICAL_COLORS.surface,
@@ -352,7 +348,7 @@ export function DriverDashboard() {
                 >
                   <TacticalLabel>Saldo disponible</TacticalLabel>
                   <TacticalValue size={15} tone="accent">
-                    {`S/${(wallet?.balance ?? 0).toFixed(2)} ›`}
+                    {`${formatTripCreditsShort(tripCredits)} ›`}
                   </TacticalValue>
                 </TouchableOpacity>
               </>
@@ -416,10 +412,7 @@ export function DriverDashboard() {
                           Math.round(floorPrice * 1.5 * 100) / 100;
                         const defaultOffer = String(floorPrice);
                         const alreadyOffered = myOfferByService[service._id];
-                        const canAfford = canCoverOfferCommission(
-                          walletBalance,
-                          minPrice,
-                        );
+                        const canAfford = hasTripCreditForOffer(tripCredits);
                         return (
                           <TacticalPanel
                             key={service._id}
@@ -632,10 +625,10 @@ export function DriverDashboard() {
                         >
                           {offersLockReason}
                         </TacticalLabel>
-                        {lacksBalance && isAvailable && (
+                        {lacksTrips && isAvailable && (
                           <View className="mt-3">
                             <TacticalButton
-                              label="Recargar saldo"
+                              label="Recargar viajes"
                               variant="secondary"
                               size="md"
                               onPress={() => setMenuSection("saldo")}

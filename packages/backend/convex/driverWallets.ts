@@ -1,9 +1,13 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireDriver, requireFullAdmin } from "./lib/auth";
-import { MIN_DRIVER_WALLET_BALANCE } from "./lib/constants";
+import {
+  driverTopUpPackageIdValidator,
+  getDriverTopUpPackage,
+  type DriverTopUpPackageId,
+} from "./lib/driverTopUpPackages";
 
 const topUpPeriodValidator = v.union(
   v.literal("today"),
@@ -14,8 +18,19 @@ const topUpPeriodValidator = v.union(
 
 type WalletTxType = Doc<"walletTransactions">["type"];
 
+function normalizeTrips(trips: number): number {
+  if (!Number.isFinite(trips)) {
+    return 0;
+  }
+  return Math.max(0, Math.round(trips));
+}
+
+function normalizePen(amount: number): number {
+  return Math.round(amount * 100) / 100;
+}
+
 /**
- * Devuelve el saldo del chofer autenticado (creándolo en 0 si no existe).
+ * Viajes disponibles del chofer autenticado (crea cuenta en 0 si no existe).
  */
 export const getMine = query({
   args: {},
@@ -27,7 +42,7 @@ export const getMine = query({
       .unique();
     return {
       driverId: driver._id,
-      balance: wallet?.balance ?? 0,
+      tripCredits: wallet?.tripCredits ?? 0,
       updatedAt: wallet?.updatedAt ?? 0,
     };
   },
@@ -50,7 +65,7 @@ export const listMyTransactions = query({
 });
 
 /**
- * Vista administrativa de saldos por chofer.
+ * Vista administrativa de viajes prepagados por chofer.
  */
 export const listForAdmin = query({
   args: {},
@@ -71,7 +86,7 @@ export const listForAdmin = query({
           plate: driver.vehicle.plate,
           userName: user?.name ?? "Sin nombre",
           userEmail: user?.email ?? "Sin correo",
-          balance: wallet?.balance ?? 0,
+          tripCredits: wallet?.tripCredits ?? 0,
           updatedAt: wallet?.updatedAt ?? 0,
         };
       }),
@@ -120,12 +135,16 @@ export const listTopUpsForAdmin = query({
         };
       }),
     );
-    const totalAmount = normalizeAmount(items.reduce((sum, item) => sum + item.amount, 0));
+    const totalTrips = items.reduce((sum, item) => sum + item.amount, 0);
+    const totalPricePen = normalizePen(
+      items.reduce((sum, item) => sum + (item.pricePenPaid ?? 0), 0),
+    );
     return {
       period,
       startMs,
       endMs,
-      totalAmount,
+      totalTrips,
+      totalPricePen,
       count: items.length,
       items,
     };
@@ -134,7 +153,6 @@ export const listTopUpsForAdmin = query({
 
 /**
  * Recargas del día para panel admin.
- * Se calcula el día según `timezoneOffsetMinutes` del cliente admin.
  */
 export const listTopUpsTodayForAdmin = query({
   args: {
@@ -166,11 +184,15 @@ export const listTopUpsTodayForAdmin = query({
         };
       }),
     );
-    const totalAmount = normalizeAmount(items.reduce((sum, item) => sum + item.amount, 0));
+    const totalTrips = items.reduce((sum, item) => sum + item.amount, 0);
+    const totalPricePen = normalizePen(
+      items.reduce((sum, item) => sum + (item.pricePenPaid ?? 0), 0),
+    );
     return {
       startMs,
       endMs,
-      totalAmount,
+      totalTrips,
+      totalPricePen,
       count: items.length,
       items,
     };
@@ -178,35 +200,71 @@ export const listTopUpsTodayForAdmin = query({
 });
 
 /**
- * Recarga manual de saldo por parte del chofer autenticado (demo).
- * No usa pasarela; es una simulación para pruebas.
+ * Limpieza total vía CLI (sin sesión admin). Ej.: npx convex run driverWallets:internalWipeAllDriverWalletData --prod
+ */
+export const internalWipeAllDriverWalletData = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const transactions = await ctx.db.query("walletTransactions").collect();
+    for (const tx of transactions) {
+      await ctx.db.delete(tx._id);
+    }
+    const wallets = await ctx.db.query("driverWallets").collect();
+    for (const wallet of wallets) {
+      await ctx.db.delete(wallet._id);
+    }
+    return {
+      deletedTransactions: transactions.length,
+      deletedWallets: wallets.length,
+    };
+  },
+});
+
+/**
+ * Borra historial de billetera y pone viajes en 0 (migración al modelo por viajes).
+ */
+export const resetAllTripAccountsForAdmin = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireFullAdmin(ctx);
+    const transactions = await ctx.db.query("walletTransactions").collect();
+    for (const tx of transactions) {
+      await ctx.db.delete(tx._id);
+    }
+    const wallets = await ctx.db.query("driverWallets").collect();
+    for (const wallet of wallets) {
+      await ctx.db.delete(wallet._id);
+    }
+    return {
+      deletedTransactions: transactions.length,
+      deletedWallets: wallets.length,
+    };
+  },
+});
+
+/**
+ * Recarga de paquete: acredita viajes; Izipay cobra el precio del paquete en la app.
  */
 export const topUpMine = mutation({
   args: {
-    amount: v.number(),
+    packageId: driverTopUpPackageIdValidator,
     note: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { user, driver } = await requireDriver(ctx);
-    const amount = normalizeAmount(args.amount);
-    if (amount <= 0) {
-      throw new Error("El monto de recarga debe ser mayor que 0.");
-    }
-    const note = args.note?.trim();
-    const payload: {
-      driverId: Id<"drivers">;
-      amount: number;
-      type: WalletTxType;
-      createdByUserId?: Id<"users">;
-      note?: string;
-    } = {
+    const pkg = getDriverTopUpPackage(args.packageId);
+    const customNote = args.note?.trim();
+    const defaultNote = `Recarga ${pkg.label} (S/${pkg.pricePen}).`;
+    const note = customNote !== undefined && customNote !== "" ? customNote : defaultNote;
+    return await creditTrips(ctx, {
       driverId: driver._id,
-      amount,
+      trips: pkg.trips,
       type: "top_up",
       createdByUserId: user._id,
-      ...(note !== undefined && note !== "" ? { note } : {}),
-    };
-    return await creditWallet(ctx, payload);
+      packageId: args.packageId,
+      pricePenPaid: pkg.pricePen,
+      note,
+    });
   },
 });
 
@@ -223,65 +281,78 @@ export async function ensureWallet(
   }
   const walletId = await ctx.db.insert("driverWallets", {
     driverId,
-    balance: 0,
+    tripCredits: 0,
     updatedAt: Date.now(),
   });
   return (await ctx.db.get(walletId)) as Doc<"driverWallets">;
 }
 
-export async function hasSufficientBalance(
+export async function getTripCredits(
   ctx: QueryCtx,
   driverId: Id<"drivers">,
-  requiredAmount: number,
-): Promise<boolean> {
+): Promise<number> {
   const wallet = await ctx.db
     .query("driverWallets")
     .withIndex("by_driver", (q) => q.eq("driverId", driverId))
     .unique();
-  const balance = wallet?.balance ?? 0;
-  const projectedBalance = normalizeAmount(balance - normalizeAmount(requiredAmount));
-  return projectedBalance >= MIN_DRIVER_WALLET_BALANCE;
+  return wallet?.tripCredits ?? 0;
 }
 
-export async function debitCommissionForService(
+/** Al menos 1 viaje prepagado para tomar u ofertar un servicio. */
+export async function hasTripCreditForService(
+  ctx: QueryCtx,
+  driverId: Id<"drivers">,
+): Promise<boolean> {
+  return (await getTripCredits(ctx, driverId)) >= 1;
+}
+
+/**
+ * Descuenta 1 viaje al cerrar un servicio (idempotente por serviceId).
+ */
+export async function debitTripForService(
   ctx: MutationCtx,
   args: {
     driverId: Id<"drivers">;
     serviceId: Id<"services">;
-    amount: number;
   },
 ): Promise<Doc<"driverWallets">> {
-  const wallet = await ensureWallet(ctx, args.driverId);
-  const amount = normalizeAmount(args.amount);
-  if (amount <= 0) {
-    throw new Error("El descuento de comisión debe ser mayor que 0.");
+  const existingDebit = await ctx.db
+    .query("walletTransactions")
+    .withIndex("by_service", (q) => q.eq("serviceId", args.serviceId))
+    .collect();
+  if (existingDebit.some((tx) => tx.type === "trip_debit")) {
+    const wallet = await ensureWallet(ctx, args.driverId);
+    return wallet;
   }
-  const projectedBalance = normalizeAmount(wallet.balance - amount);
-  if (projectedBalance < MIN_DRIVER_WALLET_BALANCE) {
+
+  const wallet = await ensureWallet(ctx, args.driverId);
+  if (wallet.tripCredits < 1) {
     throw new Error(
-      `Saldo insuficiente del chofer para descontar comisión. Límite mínimo permitido: S/${MIN_DRIVER_WALLET_BALANCE.toFixed(2)}.`,
+      "El chofer no tiene viajes prepagados suficientes para cerrar este servicio.",
     );
   }
-  const nextBalance = projectedBalance;
-  await ctx.db.patch(wallet._id, { balance: nextBalance, updatedAt: Date.now() });
+  const nextCredits = normalizeTrips(wallet.tripCredits - 1);
+  await ctx.db.patch(wallet._id, { tripCredits: nextCredits, updatedAt: Date.now() });
   await ctx.db.insert("walletTransactions", {
     driverId: args.driverId,
-    type: "commission_debit",
-    amount,
-    balanceAfter: nextBalance,
+    type: "trip_debit",
+    amount: 1,
+    tripsAfter: nextCredits,
     serviceId: args.serviceId,
     createdAt: Date.now(),
   });
   return (await ctx.db.get(wallet._id)) as Doc<"driverWallets">;
 }
 
-async function creditWallet(
+async function creditTrips(
   ctx: MutationCtx,
   args: {
     driverId: Id<"drivers">;
-    amount: number;
+    trips: number;
     type: WalletTxType;
     createdByUserId?: Id<"users">;
+    packageId?: DriverTopUpPackageId;
+    pricePenPaid?: number;
     note?: string;
   },
 ): Promise<Doc<"driverWallets">> {
@@ -289,23 +360,32 @@ async function creditWallet(
   if (driver === null) {
     throw new Error("Chofer no encontrado.");
   }
+  const trips = normalizeTrips(args.trips);
+  if (trips <= 0) {
+    throw new Error("La recarga debe incluir al menos 1 viaje.");
+  }
   const wallet = await ensureWallet(ctx, args.driverId);
-  const nextBalance = normalizeAmount(wallet.balance + args.amount);
-  await ctx.db.patch(wallet._id, { balance: nextBalance, updatedAt: Date.now() });
+  const nextCredits = normalizeTrips(wallet.tripCredits + trips);
+  await ctx.db.patch(wallet._id, { tripCredits: nextCredits, updatedAt: Date.now() });
   await ctx.db.insert("walletTransactions", {
     driverId: args.driverId,
     type: args.type,
-    amount: args.amount,
-    balanceAfter: nextBalance,
+    amount: trips,
+    ...(args.type === "top_up"
+      ? {
+          tripsPurchased: trips,
+          ...(args.packageId !== undefined ? { packageId: args.packageId } : {}),
+        }
+      : {}),
+    tripsAfter: nextCredits,
+    ...(args.pricePenPaid !== undefined
+      ? { pricePenPaid: normalizePen(args.pricePenPaid) }
+      : {}),
     ...(args.createdByUserId !== undefined ? { createdByUserId: args.createdByUserId } : {}),
     ...(args.note !== undefined ? { note: args.note } : {}),
     createdAt: Date.now(),
   });
   return (await ctx.db.get(wallet._id)) as Doc<"driverWallets">;
-}
-
-function normalizeAmount(amount: number): number {
-  return Math.round(amount * 100) / 100;
 }
 
 function getLocalDayRangeUtc(

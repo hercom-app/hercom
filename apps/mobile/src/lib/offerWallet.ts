@@ -1,16 +1,9 @@
-/** Alineado con packages/backend/convex/lib/constants.ts */
-const PLATFORM_COMMISSION_RATE = 0.25;
-const MIN_DRIVER_WALLET_BALANCE = -10;
-
-export function estimateOfferCommission(offeredPrice: number): number {
-  return Math.round(offeredPrice * PLATFORM_COMMISSION_RATE * 100) / 100;
+/** ¿Tiene al menos un viaje prepagado para ofertar? */
+export function hasTripCreditForOffer(tripCredits: number): boolean {
+  return Math.round(tripCredits) >= 1;
 }
 
-/** ¿El saldo alcanzaría para la comisión de esta oferta? */
-export function canCoverOfferCommission(
-  balance: number,
-  offeredPrice: number,
-): boolean {
-  const projected = balance - estimateOfferCommission(offeredPrice);
-  return projected >= MIN_DRIVER_WALLET_BALANCE;
+export function formatTripCredits(tripCredits: number): string {
+  const n = Math.max(0, Math.round(tripCredits));
+  return n === 1 ? "1 viaje" : `${n} viajes`;
 }

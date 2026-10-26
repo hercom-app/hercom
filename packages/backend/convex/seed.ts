@@ -334,19 +334,22 @@ async function ensureDemoWalletBalance(
   driverId: Id<"drivers">,
 ): Promise<void> {
   const wallet = await ensureWallet(ctx, driverId);
-  if (wallet.balance >= 50) {
+  if (wallet.tripCredits >= 5) {
     return;
   }
   await ctx.db.patch(wallet._id, {
-    balance: 50,
+    tripCredits: 5,
     updatedAt: Date.now(),
   });
   await ctx.db.insert("walletTransactions", {
     driverId,
     type: "top_up",
-    amount: 50,
-    balanceAfter: 50,
-    note: "Recarga seed demo",
+    amount: 5,
+    tripsPurchased: 5,
+    packageId: "trips_5",
+    tripsAfter: 5,
+    pricePenPaid: 100,
+    note: "Recarga seed demo (5 viajes)",
     createdAt: Date.now(),
   });
 }
@@ -518,13 +521,13 @@ export const clearTripsAndOffers = internalMutation({
         .query("walletTransactions")
         .withIndex("by_driver", (q) => q.eq("driverId", driver._id))
         .collect();
-      const balance = remaining.reduce(
+      const tripCredits = remaining.reduce(
         (sum, tx) =>
           tx.type === "top_up" ? sum + tx.amount : sum - tx.amount,
         0,
       );
       await ctx.db.patch(wallet._id, {
-        balance: Math.max(0, balance),
+        tripCredits: Math.max(0, Math.round(tripCredits)),
         updatedAt: Date.now(),
       });
     }

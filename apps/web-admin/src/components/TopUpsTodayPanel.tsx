@@ -29,7 +29,13 @@ export function TopUpsTodayPanel() {
 
       <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
         <p className="text-xs text-slate-500">Total recargado hoy</p>
-        <p className="text-xl font-bold text-slate-900">S/{topUps.totalAmount.toFixed(2)}</p>
+        <p className="text-xl font-bold text-slate-900">
+          {topUps.totalTrips}{" "}
+          {topUps.totalTrips === 1 ? "viaje" : "viajes"}
+          <span className="ml-2 text-sm font-semibold text-slate-500">
+            (S/{topUps.totalPricePen.toFixed(2)})
+          </span>
+        </p>
       </div>
 
       {topUps.items.length === 0 ? (
@@ -43,7 +49,14 @@ export function TopUpsTodayPanel() {
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium text-slate-800">{tx.userName}</span>
-                <span className="font-bold text-slate-900">+ S/{tx.amount.toFixed(2)}</span>
+                <span className="text-right font-bold text-slate-900">
+                  + {tx.amount} {tx.amount === 1 ? "viaje" : "viajes"}
+                  {tx.pricePenPaid !== undefined ? (
+                    <span className="block text-xs font-semibold text-slate-500">
+                      S/{tx.pricePenPaid.toFixed(2)}
+                    </span>
+                  ) : null}
+                </span>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
                 <span>{tx.userEmail}</span>

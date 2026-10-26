@@ -2,8 +2,9 @@
 export const IZIPAY_TOP_UP_FEE_RATE = 0.0248;
 export const IZIPAY_TOP_UP_FEE_FIXED_PEN = 0.34;
 
-export const IZIPAY_TOP_UP_MIN_PEN = 1;
-export const IZIPAY_TOP_UP_MAX_PEN = 60;
+/** Rango de precios de paquetes de recarga (1 / 2 / 5 viajes). */
+export const IZIPAY_TOP_UP_MIN_PEN = 30;
+export const IZIPAY_TOP_UP_MAX_PEN = 100;
 
 export type IzipayTopUpQuote = {
   amountPen: number;

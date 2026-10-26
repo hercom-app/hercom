@@ -37,6 +37,13 @@
         "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyBbjTrcUBbeNw84CP_0BDOWoTe99WiHJWQ",
         "EXPO_PUBLIC_LIVE_SHARE_BASE_URL": "https://hercom-landing.vercel.app"
       }
+    },
+    "production-apk": {
+      "extends": "production",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {

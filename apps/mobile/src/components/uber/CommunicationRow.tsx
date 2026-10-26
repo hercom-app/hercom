@@ -1,5 +1,5 @@
 import { Text, TouchableOpacity, View } from "react-native";
-import { HERCOM_COLORS, POPPINS, TYPE, UBER_RADIUS } from "../../constants/theme";
+import { HERCOM_COLORS, POPPINS, UBER_RADIUS } from "../../constants/theme";
 
 type CommunicationRowProps = {
   onMessage?: () => void;
@@ -26,9 +26,11 @@ export function CommunicationRow({
       >
         <Text style={{ marginRight: 8 }}>💬</Text>
         <Text
+          numberOfLines={1}
           style={{
+            flex: 1,
             fontFamily: POPPINS.regular,
-            fontSize: TYPE.body,
+            fontSize: 15,
             color: HERCOM_COLORS.textMuted,
           }}
         >

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -43,62 +43,16 @@ const EMPTY_LISTS: NearbyHealthLists = { hospitals: [], clinics: [] };
 export function HelpFab({ fallbackCenter }: HelpFabProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [healthOpen, setHealthOpen] = useState(false);
-  const [healthLoading, setHealthLoading] = useState(false);
-  const [healthError, setHealthError] = useState<string | null>(null);
-  const [lists, setLists] = useState<NearbyHealthLists>(EMPTY_LISTS);
 
   async function dialEmergency(phone: string) {
     setMenuOpen(false);
     await Linking.openURL(`tel:${phone}`);
   }
 
-  async function handleNearestHealth() {
+  function handleNearestHealth() {
     setMenuOpen(false);
     setHealthOpen(true);
-    setHealthLoading(true);
-    setHealthError(null);
-    setLists(EMPTY_LISTS);
-    try {
-      let lat = fallbackCenter?.lat;
-      let lng = fallbackCenter?.lng;
-      try {
-        const gps = await detectPickupLocation();
-        lat = gps.lat;
-        lng = gps.lng;
-      } catch {
-        if (lat === undefined || lng === undefined) {
-          throw new Error(
-            "Activa el GPS o define un origen para buscar cerca.",
-          );
-        }
-      }
-      const results = await fetchNearbyHealthCenters(lat!, lng!);
-      setLists(results);
-      if (results.hospitals.length === 0 && results.clinics.length === 0) {
-        setHealthError("No se encontraron hospitales o clínicas cerca.");
-      }
-    } catch (error) {
-      setHealthError(
-        error instanceof Error
-          ? error.message
-          : "No se pudieron cargar hospitales o clínicas.",
-      );
-    } finally {
-      setHealthLoading(false);
-    }
   }
-
-  async function handleSelectPlace(place: NearbyHealthPlace) {
-    setHealthOpen(false);
-    await openWazeNavigation({
-      address: place.address,
-      lat: place.lat,
-      lng: place.lng,
-    });
-  }
-
-  const hasResults =
-    lists.hospitals.length > 0 || lists.clinics.length > 0;
 
   return (
     <>
@@ -214,7 +168,7 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => void handleNearestHealth()}
+              onPress={handleNearestHealth}
               className="px-4 py-4"
               style={{
                 borderRadius: TACTICAL_RADIUS.panel,
@@ -239,71 +193,158 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
         </Pressable>
       </Modal>
 
-      <Modal
+      <NearbyHealthModal
         visible={healthOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setHealthOpen(false)}
+        onClose={() => setHealthOpen(false)}
+        fallbackCenter={fallbackCenter}
+      />
+    </>
+  );
+}
+
+/** Hospitales y clínicas cercanas; busca al abrirse y guía con Waze. */
+export function NearbyHealthModal({
+  visible,
+  onClose,
+  fallbackCenter,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  fallbackCenter?: { lat: number; lng: number };
+}) {
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [healthError, setHealthError] = useState<string | null>(null);
+  const [lists, setLists] = useState<NearbyHealthLists>(EMPTY_LISTS);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+    let cancelled = false;
+    setHealthLoading(true);
+    setHealthError(null);
+    setLists(EMPTY_LISTS);
+    void (async () => {
+      try {
+        let lat = fallbackCenter?.lat;
+        let lng = fallbackCenter?.lng;
+        try {
+          const gps = await detectPickupLocation();
+          lat = gps.lat;
+          lng = gps.lng;
+        } catch {
+          if (lat === undefined || lng === undefined) {
+            throw new Error(
+              "Activa el GPS o define un origen para buscar cerca.",
+            );
+          }
+        }
+        const results = await fetchNearbyHealthCenters(lat!, lng!);
+        if (cancelled) {
+          return;
+        }
+        setLists(results);
+        if (results.hospitals.length === 0 && results.clinics.length === 0) {
+          setHealthError("No se encontraron hospitales o clínicas cerca.");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setHealthError(
+            error instanceof Error
+              ? error.message
+              : "No se pudieron cargar hospitales o clínicas.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setHealthLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // El centro de respaldo es un objeto nuevo en cada render; solo buscar al abrir.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  async function handleSelectPlace(place: NearbyHealthPlace) {
+    onClose();
+    await openWazeNavigation({
+      address: place.address,
+      lat: place.lat,
+      lng: place.lng,
+    });
+  }
+
+  const hasResults =
+    lists.hospitals.length > 0 || lists.clinics.length > 0;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View
+        className="flex-1 justify-end"
+        style={{ backgroundColor: "rgba(17, 22, 34, 0.72)" }}
       >
         <View
-          className="flex-1 justify-end"
-          style={{ backgroundColor: "rgba(17, 22, 34, 0.72)" }}
+          className="max-h-[75%] px-5 pb-8 pt-3"
+          style={{
+            backgroundColor: TACTICAL_COLORS.base,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+          }}
         >
-          <View
-            className="max-h-[75%] px-5 pb-8 pt-3"
-            style={{
-              backgroundColor: TACTICAL_COLORS.base,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-            }}
-          >
-            <View className="mb-3 flex-row items-center justify-between">
-              <TacticalTitle size={17}>Hospitales y clínicas</TacticalTitle>
-              <TouchableOpacity onPress={() => setHealthOpen(false)}>
-                <TacticalLabel tone="accent">Cerrar</TacticalLabel>
-              </TouchableOpacity>
-            </View>
-
-            {healthLoading && (
-              <View className="items-center py-10">
-                <ActivityIndicator color={TACTICAL_COLORS.danger} />
-                <TacticalText size={12} className="mt-3">
-                  Buscando hospitales y clínicas…
-                </TacticalText>
-              </View>
-            )}
-
-            {healthError !== null && !healthLoading && (
-              <Text
-                className="py-6 text-center text-xs"
-                style={{ fontFamily: MONO.medium, color: TACTICAL_COLORS.danger }}
-              >
-                {healthError}
-              </Text>
-            )}
-
-            {!healthLoading && hasResults && (
-              <View style={{ maxHeight: "100%" }}>
-                {lists.hospitals.length > 0 && (
-                  <PlaceSection
-                    title="Hospitales"
-                    places={lists.hospitals}
-                    onSelect={handleSelectPlace}
-                  />
-                )}
-                {lists.clinics.length > 0 && (
-                  <PlaceSection
-                    title="Clínicas"
-                    places={lists.clinics}
-                    onSelect={handleSelectPlace}
-                  />
-                )}
-              </View>
-            )}
+          <View className="mb-3 flex-row items-center justify-between">
+            <TacticalTitle size={17}>Hospitales y clínicas</TacticalTitle>
+            <TouchableOpacity onPress={onClose}>
+              <TacticalLabel tone="accent">Cerrar</TacticalLabel>
+            </TouchableOpacity>
           </View>
+
+          {healthLoading && (
+            <View className="items-center py-10">
+              <ActivityIndicator color={TACTICAL_COLORS.danger} />
+              <TacticalText size={12} className="mt-3">
+                Buscando hospitales y clínicas…
+              </TacticalText>
+            </View>
+          )}
+
+          {healthError !== null && !healthLoading && (
+            <Text
+              className="py-6 text-center text-xs"
+              style={{ fontFamily: MONO.medium, color: TACTICAL_COLORS.danger }}
+            >
+              {healthError}
+            </Text>
+          )}
+
+          {!healthLoading && hasResults && (
+            <View style={{ maxHeight: "100%" }}>
+              {lists.hospitals.length > 0 && (
+                <PlaceSection
+                  title="Hospitales"
+                  places={lists.hospitals}
+                  onSelect={handleSelectPlace}
+                />
+              )}
+              {lists.clinics.length > 0 && (
+                <PlaceSection
+                  title="Clínicas"
+                  places={lists.clinics}
+                  onSelect={handleSelectPlace}
+                />
+              )}
+            </View>
+          )}
         </View>
-      </Modal>
-    </>
+      </View>
+    </Modal>
   );
 }
 

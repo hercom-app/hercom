@@ -14,11 +14,22 @@ export type DrawerIconName =
   | "trend"
   | "card"
   | "logout"
-  | "close";
+  | "close"
+  | "navigate"
+  | "list"
+  | "user"
+  | "phone"
+  | "share"
+  | "key"
+  | "medical"
+  | "chevron";
 
 type DrawerIconProps = {
   name: DrawerIconName;
   selected?: boolean;
+  /** Fuerza el color del trazo (ignora `selected`). */
+  color?: string;
+  size?: number;
 };
 
 function strokeOf(selected: boolean | undefined): string {
@@ -26,11 +37,16 @@ function strokeOf(selected: boolean | undefined): string {
 }
 
 /** Iconos de trazo gris, mismo lenguaje visual que Seguridad / Configuración. */
-export function DrawerIcon({ name, selected = false }: DrawerIconProps) {
-  const stroke = strokeOf(selected);
+export function DrawerIcon({
+  name,
+  selected = false,
+  color,
+  size = 22,
+}: DrawerIconProps) {
+  const stroke = color ?? strokeOf(selected);
   const common = {
-    width: 22,
-    height: 22,
+    width: size,
+    height: size,
     viewBox: "0 0 24 24",
     fill: "none" as const,
     stroke,
@@ -128,8 +144,62 @@ export function DrawerIcon({ name, selected = false }: DrawerIconProps) {
       );
     case "close":
       return (
-        <Svg {...common} width={18} height={18}>
+        <Svg {...common} width={size === 22 ? 18 : size} height={size === 22 ? 18 : size}>
           <Path d="M6 6l12 12M18 6L6 18" />
+        </Svg>
+      );
+    case "navigate":
+      return (
+        <Svg {...common}>
+          <Path d="M20 4L4 11l7 2 2 7 7-16z" />
+        </Svg>
+      );
+    case "list":
+      return (
+        <Svg {...common}>
+          <Rect x="5" y="3.5" width="14" height="17" rx="2" />
+          <Path d="M9 8.5h6M9 12h6M9 15.5h4" />
+        </Svg>
+      );
+    case "user":
+      return (
+        <Svg {...common}>
+          <Circle cx="12" cy="8.5" r="3.5" />
+          <Path d="M5 20a7 7 0 0114 0" />
+        </Svg>
+      );
+    case "phone":
+      return (
+        <Svg {...common}>
+          <Path d="M6.6 3.5h2.6l1.4 4.2-2 1.4a11 11 0 006.3 6.3l1.4-2 4.2 1.4v2.6a2 2 0 01-2.2 2A16.5 16.5 0 014.6 5.7a2 2 0 012-2.2z" />
+        </Svg>
+      );
+    case "share":
+      return (
+        <Svg {...common}>
+          <Path d="M14 5l6 6-6 6" />
+          <Path d="M20 11h-8a7 7 0 00-7 7v1" />
+        </Svg>
+      );
+    case "key":
+      return (
+        <Svg {...common}>
+          <Path d="M12 3l8 3.2v6.3c0 4.7-3.2 8.1-8 9.5-4.8-1.4-8-4.8-8-9.5V6.2L12 3z" />
+          <Circle cx="12" cy="11" r="2" />
+          <Path d="M12 13v3" />
+        </Svg>
+      );
+    case "medical":
+      return (
+        <Svg {...common}>
+          <Rect x="4" y="4" width="16" height="16" rx="3" />
+          <Path d="M12 8v8M8 12h8" />
+        </Svg>
+      );
+    case "chevron":
+      return (
+        <Svg {...common} width={18} height={18}>
+          <Path d="M9 6l6 6-6 6" />
         </Svg>
       );
   }

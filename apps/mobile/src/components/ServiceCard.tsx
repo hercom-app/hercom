@@ -3,7 +3,6 @@ import { Text, View } from "react-native";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Doc, Id } from "@proyecto/backend/dataModel";
-import { HelpFab } from "./HelpFab";
 import { SlideToConfirm } from "./SlideToConfirm";
 import { TripSecurityPin } from "./uber/TripSecurityPin";
 import {
@@ -200,8 +199,9 @@ export const ServiceCard = memo(function ServiceCard({
         <View className="mb-3">
           <TripSecurityPin
             pin={service.securityCode!}
-            title="Código de inicio del servicio"
-            className="mb-2"
+            title="Código del viaje"
+            inset={false}
+            style={{ marginBottom: 8 }}
           />
           <TacticalText size={12} tone="text">
             {service.status === "arrived_pickup"
@@ -223,31 +223,18 @@ export const ServiceCard = memo(function ServiceCard({
         </TacticalPanel>
       ) : null}
 
-      {canShowLive ? (
-        <View className="mb-3 items-end">
-          <HelpFab
-            fallbackCenter={{
-              lat: service.origin.lat,
-              lng: service.origin.lng,
-            }}
-          />
-        </View>
-      ) : null}
-
-      <View className="mb-3">
-        <View className="flex-row">
-          <TacticalLabel className="w-20" tone="text">
-            Origen
-          </TacticalLabel>
-          <TacticalText size={15} tone="text" className="flex-1">
+      <View className="mb-3" style={{ gap: 10 }}>
+        <View>
+          <TacticalLabel tone="text">Origen</TacticalLabel>
+          <TacticalText size={15} tone="text" className="mt-0.5">
             {service.origin.address}
           </TacticalText>
         </View>
-        <View className="mt-1.5 flex-row">
-          <TacticalLabel className="w-20" tone="text">
+        <View>
+          <TacticalLabel tone="text">
             {totalStops > 1 ? "Paradas" : "Destino"}
           </TacticalLabel>
-          <TacticalText size={15} tone="text" className="flex-1">
+          <TacticalText size={15} tone="text" className="mt-0.5">
             {formatServiceStopsLabel(
               service.destination,
               service.extraDestinations,

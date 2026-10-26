@@ -9,7 +9,7 @@ export type DriverGpsCoords = {
 };
 
 /**
- * Ubicación del chofer para filtrar ofertas (radio 10 km en servidor).
+ * Ubicación del chofer para filtrar ofertas (radio del chofer en servidor).
  */
 export function useDriverOfferLocation(enabled: boolean) {
   const updateMyLocation = useMutation(api.drivers.updateMyLocation);
@@ -23,7 +23,7 @@ export function useDriverOfferLocation(enabled: boolean) {
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (!permission.granted) {
-        setError("Activa la ubicación para ver solicitudes a 10 km.");
+        setError("Activa la ubicación para ver solicitudes cercanas.");
         setCoords(null);
         return null;
       }

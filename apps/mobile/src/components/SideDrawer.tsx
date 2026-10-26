@@ -57,19 +57,6 @@ const CLIENT_ACCOUNT: MenuItem[] = [
   { key: "configuracion", label: "Mi Información", icon: "gear" },
 ];
 
-const DRIVER_PRIMARY: MenuItem[] = [
-  { key: "servicios", label: "Servicios", icon: "car" },
-  { key: "ofertas", label: "Solicitudes abiertas", icon: "clipboard" },
-  { key: "saldo", label: "Recargar viajes", icon: "wallet" },
-  { key: "ganancias", label: "Ganancias", icon: "trend" },
-  { key: "notificaciones", label: "Notificaciones", icon: "bell" },
-];
-
-const DRIVER_ACCOUNT: MenuItem[] = [
-  { key: "ayuda", label: "Ayuda", icon: "chat" },
-  { key: "configuracion", label: "Mis datos", icon: "gear" },
-];
-
 function MenuRow({
   item,
   selected,
@@ -153,8 +140,9 @@ export function SideDrawer({
     }
   }, [slide, visible]);
 
-  const primary = mode === "driver" ? DRIVER_PRIMARY : CLIENT_PRIMARY;
-  const account = mode === "driver" ? DRIVER_ACCOUNT : CLIENT_ACCOUNT;
+  // El chofer navega con DriverTabBar; este menú es solo del cliente.
+  const primary = CLIENT_PRIMARY;
+  const account = CLIENT_ACCOUNT;
   const modeButtonLabel =
     mode === "client" ? "Modo conductor" : "Modo cliente";
 

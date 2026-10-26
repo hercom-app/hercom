@@ -209,6 +209,8 @@ export default defineSchema({
     lastLat: v.optional(v.number()),
     lastLng: v.optional(v.number()),
     lastLocationAt: v.optional(v.number()),
+    /** Radio de búsqueda elegido por el chofer (km); tope = máximo del mercado. */
+    offerRadiusKm: v.optional(v.number()),
     /** N.° licencia de armas (vacío = no declara). */
     firearmsLicenseNumber: v.optional(v.string()),
     additionalLanguage1: v.optional(v.string()),

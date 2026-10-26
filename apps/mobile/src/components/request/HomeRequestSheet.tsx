@@ -9,28 +9,32 @@ const OTHER_HERCOM_SERVICES = [
     title: "Chofer Premium",
     subtitle: "Para personas · rutina y familia",
     url: "https://hercom-landing.vercel.app/servicios/chofer-premium",
-    background: "#E8F4FC",
+    background: "#E8F1FF",
+    span: "full",
   },
   {
     key: "corporativo",
     title: "Chofer Corporativo",
     subtitle: "Para empresas · traslados planificados",
     url: "https://hercom-landing.vercel.app/servicios/chofer-corporativo",
-    background: "#E3F0FA",
+    background: "#F3E8FF",
+    span: "half",
   },
   {
     key: "seguro",
     title: "Chofer Seguro",
     subtitle: "Para empresarios · licencia de armas",
     url: "https://hercom-landing.vercel.app/servicios/chofer-seguro",
-    background: "#DCEEF8",
+    background: "#E5F6F0",
+    span: "half",
   },
   {
     key: "flota",
     title: "Chofer de Flota",
     subtitle: "Maquinaria, buses y ruta larga",
     url: "https://hercom-landing.vercel.app/servicios/chofer-de-flota",
-    background: "#D6EBF7",
+    background: "#FFF0E4",
+    span: "full",
   },
 ] as const;
 
@@ -54,6 +58,77 @@ const BENTO = [
     background: "#FFE8DC",
   },
 ] as const;
+
+function BentoTile({
+  title,
+  body,
+  background,
+  minHeight,
+  fill = false,
+  onPress,
+}: {
+  title: string;
+  body: string;
+  background: string;
+  minHeight?: number;
+  /** Ocupa la mitad de una fila. En un scroll, las tarjetas anchas no usan flex. */
+  fill?: boolean;
+  onPress?: () => void;
+}) {
+  const tile = (
+    <View
+      style={{
+        flex: fill ? 1 : undefined,
+        backgroundColor: background,
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        minHeight,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: POPPINS.bold,
+          fontSize: minHeight !== undefined ? 16 : 17,
+          lineHeight: minHeight !== undefined ? 21 : 22,
+          color: HERCOM_COLORS.text,
+        }}
+      >
+        {title}
+      </Text>
+      <Text
+        style={{
+          marginTop: 6,
+          fontFamily: POPPINS.regular,
+          fontSize: minHeight !== undefined ? 13 : 14,
+          lineHeight: minHeight !== undefined ? 18 : 20,
+          color: HERCOM_COLORS.textSecondary,
+        }}
+      >
+        {body}
+      </Text>
+    </View>
+  );
+
+  if (onPress === undefined) {
+    return tile;
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={title}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: fill ? 1 : undefined,
+        minHeight,
+        opacity: pressed ? 0.88 : 1,
+      })}
+    >
+      {tile}
+    </Pressable>
+  );
+}
 
 type HomeRequestSheetProps = {
   recents: RecentDestination[];
@@ -165,133 +240,69 @@ export function HomeRequestSheet({
       )}
 
       <View style={{ marginTop: 16, gap: 10 }}>
-        <View
-          style={{
-            backgroundColor: BENTO[0].background,
-            borderRadius: 20,
-            paddingHorizontal: 16,
-            paddingVertical: 16,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: POPPINS.bold,
-              fontSize: 17,
-              lineHeight: 22,
-              color: HERCOM_COLORS.text,
-            }}
-          >
-            {BENTO[0].title}
-          </Text>
-          <Text
-            style={{
-              marginTop: 4,
-              fontFamily: POPPINS.regular,
-              fontSize: 14,
-              lineHeight: 20,
-              color: HERCOM_COLORS.textSecondary,
-            }}
-          >
-            {BENTO[0].body}
-          </Text>
-        </View>
+        <BentoTile
+          title={BENTO[0].title}
+          body={BENTO[0].body}
+          background={BENTO[0].background}
+        />
         <View style={{ flexDirection: "row", gap: 10 }}>
           {BENTO.slice(1).map((card) => (
-            <View
+            <BentoTile
               key={card.key}
-              style={{
-                flex: 1,
-                backgroundColor: card.background,
-                borderRadius: 20,
-                paddingHorizontal: 14,
-                paddingVertical: 14,
-                minHeight: 132,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: POPPINS.bold,
-                  fontSize: 16,
-                  lineHeight: 21,
-                  color: HERCOM_COLORS.text,
-                }}
-              >
-                {card.title}
-              </Text>
-              <Text
-                style={{
-                  marginTop: 6,
-                  fontFamily: POPPINS.regular,
-                  fontSize: 13,
-                  lineHeight: 18,
-                  color: HERCOM_COLORS.textSecondary,
-                }}
-              >
-                {card.body}
-              </Text>
-            </View>
+              title={card.title}
+              body={card.body}
+              background={card.background}
+              minHeight={132}
+              fill
+            />
           ))}
         </View>
       </View>
 
-      <View style={{ marginTop: 22 }}>
+      <View style={{ marginTop: 22, gap: 10 }}>
         <Text
           style={{
             fontFamily: POPPINS.bold,
             fontSize: 17,
             lineHeight: 22,
             color: HERCOM_COLORS.text,
-            marginBottom: 12,
           }}
         >
           Descubre nuestros otros servicios
         </Text>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-          {OTHER_HERCOM_SERVICES.map((service) => (
-            <Pressable
-              key={service.key}
-              accessibilityRole="link"
-              accessibilityLabel={service.title}
-              onPress={() => {
-                void Linking.openURL(service.url);
-              }}
-              style={({ pressed }) => ({
-                width: "48%",
-                flexGrow: 1,
-                minWidth: "46%",
-                backgroundColor: service.background,
-                borderRadius: 16,
-                paddingHorizontal: 14,
-                paddingVertical: 14,
-                borderWidth: 1,
-                borderColor: "#C5E3F6",
-                opacity: pressed ? 0.88 : 1,
-              })}
-            >
-              <Text
-                style={{
-                  fontFamily: POPPINS.bold,
-                  fontSize: 15,
-                  lineHeight: 20,
-                  color: HERCOM_COLORS.text,
+        <BentoTile
+          title={OTHER_HERCOM_SERVICES[0].title}
+          body={OTHER_HERCOM_SERVICES[0].subtitle}
+          background={OTHER_HERCOM_SERVICES[0].background}
+          onPress={() => {
+            void Linking.openURL(OTHER_HERCOM_SERVICES[0].url);
+          }}
+        />
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          {OTHER_HERCOM_SERVICES.filter((service) => service.span === "half").map(
+            (service) => (
+              <BentoTile
+                key={service.key}
+                title={service.title}
+                body={service.subtitle}
+                background={service.background}
+                minHeight={124}
+                fill
+                onPress={() => {
+                  void Linking.openURL(service.url);
                 }}
-              >
-                {service.title}
-              </Text>
-              <Text
-                style={{
-                  marginTop: 6,
-                  fontFamily: POPPINS.regular,
-                  fontSize: 12,
-                  lineHeight: 17,
-                  color: HERCOM_COLORS.textSecondary,
-                }}
-              >
-                {service.subtitle}
-              </Text>
-            </Pressable>
-          ))}
+              />
+            ),
+          )}
         </View>
+        <BentoTile
+          title={OTHER_HERCOM_SERVICES[3].title}
+          body={OTHER_HERCOM_SERVICES[3].subtitle}
+          background={OTHER_HERCOM_SERVICES[3].background}
+          onPress={() => {
+            void Linking.openURL(OTHER_HERCOM_SERVICES[3].url);
+          }}
+        />
       </View>
 
       {error !== null && (

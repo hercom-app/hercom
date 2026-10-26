@@ -18,7 +18,8 @@ type WalletTx = Doc<"walletTransactions">;
 type DriverWalletBalanceViewProps = {
   tripCredits: number;
   transactions: WalletTx[] | undefined;
-  onBack: () => void;
+  /** Sin `onBack` no se dibuja cabecera (vista embebida en una pestaña). */
+  onBack?: () => void;
   onRecargar: () => void;
 };
 
@@ -48,10 +49,18 @@ export function DriverWalletBalanceView({
 
   return (
     <View style={{ flex: 1, backgroundColor: wallet.bg }}>
-      <YangoWalletHeader title="Viajes disponibles" onBack={onBack} />
+      {onBack !== undefined && (
+        <YangoWalletHeader title="Viajes disponibles" onBack={onBack} />
+      )}
 
       <View style={{ flex: 1, paddingHorizontal: 20 }}>
-        <View style={{ alignItems: "center", paddingTop: 8, paddingBottom: 28 }}>
+        <View
+          style={{
+            alignItems: "center",
+            paddingTop: onBack !== undefined ? 8 : 24,
+            paddingBottom: 28,
+          }}
+        >
           <Text
             style={{
               fontFamily: WALLET_FONT.bold,

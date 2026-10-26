@@ -116,10 +116,13 @@ export function SlideToConfirm({
     >
       <View className="absolute left-0 right-0 items-center">
         <Text
+          numberOfLines={1}
           style={{
             fontFamily: MONO.medium,
-            fontSize: 16,
+            fontSize: 15,
             color: disabled ? TACTICAL_COLORS.steel : TACTICAL_COLORS.accent,
+            paddingHorizontal: 56,
+            textAlign: "center",
           }}
         >
           {loading ? "Procesando…" : label}

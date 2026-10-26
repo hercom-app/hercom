@@ -9,6 +9,11 @@ import {
 } from "./lib/adminAccess";
 import { ensureWallet } from "./driverWallets";
 import { persistDriverLocation } from "./lib/driverLocation";
+import {
+  MIN_DRIVER_OFFER_RADIUS_KM,
+  resolveDriverOfferRadiusKm,
+  resolveMaxDriverOfferDistanceKm,
+} from "./lib/driverOfferDiscovery";
 import { isValidGeoPoint } from "./lib/geoDistance";
 import { normalizePersonNamePart } from "./lib/personName";
 
@@ -120,7 +125,7 @@ export const setStatus = mutation({
     if (args.status === "available") {
       if (args.lat === undefined || args.lng === undefined) {
         throw new Error(
-          "Comparte tu ubicación para activarte y ver solicitudes cercanas (10 km).",
+          "Comparte tu ubicación para activarte y ver solicitudes cercanas.",
         );
       }
       await persistDriverLocation(ctx, driver._id, args.lat, args.lng);
@@ -143,6 +148,39 @@ export const updateMyLocation = mutation({
     }
     await persistDriverLocation(ctx, driver._id, args.lat, args.lng);
     return { ok: true as const };
+  },
+});
+
+/** Radio de búsqueda del chofer y el tope permitido por su mercado. */
+export const getMyOfferRadius = query({
+  args: {},
+  handler: async (ctx) => {
+    const { driver } = await requireDriver(ctx);
+    const { radiusKm, marketMaxKm } = await resolveDriverOfferRadiusKm(
+      ctx,
+      driver,
+    );
+    return { radiusKm, marketMaxKm, minKm: MIN_DRIVER_OFFER_RADIUS_KM };
+  },
+});
+
+export const setMyOfferRadius = mutation({
+  args: { radiusKm: v.number() },
+  handler: async (ctx, args) => {
+    const { driver } = await requireDriver(ctx);
+    if (!Number.isFinite(args.radiusKm)) {
+      throw new Error("Radio no válido.");
+    }
+    const marketMaxKm = await resolveMaxDriverOfferDistanceKm(
+      ctx,
+      driver.countryCode,
+    );
+    const radiusKm = Math.min(
+      Math.max(Math.round(args.radiusKm), MIN_DRIVER_OFFER_RADIUS_KM),
+      marketMaxKm,
+    );
+    await ctx.db.patch(driver._id, { offerRadiusKm: radiusKm });
+    return { radiusKm, marketMaxKm };
   },
 });
 

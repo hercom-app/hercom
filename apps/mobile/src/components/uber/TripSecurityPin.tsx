@@ -1,52 +1,97 @@
-import { Text, View } from "react-native";
-import { HERCOM_COLORS, POPPINS, TYPE, UBER_RADIUS } from "../../constants/theme";
+import { Text, View, type StyleProp, type ViewStyle } from "react-native";
+import { useAppTheme } from "../../contexts/ThemeContext";
+import { HERCOM_COLORS, POPPINS, UBER_RADIUS } from "../../constants/theme";
 
 type TripSecurityPinProps = {
   pin: string;
   title?: string;
-  className?: string;
+  /**
+   * Margen lateral. En una tarjeta que ya tiene padding (chofer, historial)
+   * debe ir en false para no empujar el bloque fuera de la pantalla.
+   */
+  inset?: boolean;
+  style?: StyleProp<ViewStyle>;
 };
 
-/** Bloque PIN del viaje — fondo azul suave, dígitos grandes. */
+const BOX = 46;
+const GAP = 8;
+
+/** Código de 4 dígitos, centrado y contenido en el ancho del padre. */
 export function TripSecurityPin({
   pin,
-  title = "PIN de este viaje",
-  className = "mx-4 mb-3",
+  title = "Código del viaje",
+  inset = true,
+  style,
 }: TripSecurityPinProps) {
+  const { scheme, colors } = useAppTheme();
   const digits = pin.replace(/\D/g, "").split("").slice(0, 4);
+  const band =
+    scheme === "dark" ? colors.surfaceSunken : HERCOM_COLORS.primarySoft;
+  const boxBg = scheme === "dark" ? colors.surface : HERCOM_COLORS.white;
 
   return (
     <View
-      className={`${className} flex-row items-center justify-between px-4 py-3`}
-      style={{
-        backgroundColor: HERCOM_COLORS.primarySoft,
-        borderRadius: UBER_RADIUS.card,
-      }}
+      style={[
+        {
+          alignSelf: "stretch",
+          marginHorizontal: inset ? 16 : 0,
+          marginBottom: 12,
+          paddingHorizontal: 12,
+          paddingVertical: 12,
+          backgroundColor: band,
+          borderRadius: UBER_RADIUS.card,
+          alignItems: "center",
+        },
+        style,
+      ]}
     >
       <Text
+        numberOfLines={2}
         style={{
           fontFamily: POPPINS.medium,
-          fontSize: TYPE.body,
-          color: HERCOM_COLORS.text,
+          fontSize: 14,
+          lineHeight: 18,
+          color: colors.textStrong,
+          textAlign: "center",
+          marginBottom: 10,
         }}
       >
         {title}
       </Text>
-      <View className="flex-row gap-2">
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+          alignSelf: "center",
+          gap: GAP,
+          width: "100%",
+          maxWidth: digits.length * BOX + Math.max(digits.length - 1, 0) * GAP,
+        }}
+      >
         {digits.map((digit, index) => (
           <View
             key={`${digit}-${index}`}
-            className="h-12 w-10 items-center justify-center"
             style={{
-              backgroundColor: HERCOM_COLORS.white,
-              borderRadius: 8,
+              flex: 1,
+              height: BOX,
+              maxWidth: BOX,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: boxBg,
+              borderRadius: 10,
             }}
           >
             <Text
               style={{
                 fontFamily: POPPINS.bold,
-                fontSize: TYPE.title,
-                color: HERCOM_COLORS.primary,
+                fontSize: 22,
+                lineHeight: 26,
+                color: colors.accent,
+                textAlign: "center",
+                textAlignVertical: "center",
+                fontVariant: ["tabular-nums"],
+                includeFontPadding: false,
               }}
             >
               {digit}

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { computeClientAdvance } from "./lib/constants";
 import { persistDriverLocation } from "./lib/driverLocation";
-import { resolveMaxDriverOfferDistanceKm } from "./lib/driverOfferDiscovery";
+import { resolveDriverOfferRadiusKm } from "./lib/driverOfferDiscovery";
 import {
   formatDistanceKm,
   haversineDistanceKm,
@@ -66,9 +66,10 @@ export const submitMyOffer = mutation({
       };
     }
 
-    const maxDistanceKm = await resolveMaxDriverOfferDistanceKm(
+    const { radiusKm: maxDistanceKm } = await resolveDriverOfferRadiusKm(
       ctx,
-      driver.countryCode ?? service.origin.countryCode,
+      driver,
+      service.origin.countryCode,
     );
     if (
       !isWithinDriverServiceRadius(

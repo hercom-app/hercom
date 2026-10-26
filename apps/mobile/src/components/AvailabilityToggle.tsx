@@ -5,9 +5,10 @@ import { api } from "@proyecto/backend";
 import { getDriverGpsForOffer } from "../hooks/useDriverOfferLocation";
 import { TacticalLabel, TacticalPanel, TacticalStatus } from "./tactical";
 import {
+  HERCOM_COLORS,
   MONO,
+  POPPINS,
   TACTICAL_COLORS,
-  TACTICAL_RADIUS,
 } from "../constants/theme";
 
 type DriverStatus = "available" | "busy" | "offline";
@@ -33,7 +34,14 @@ const THUMB = TRACK_H - INSET * 2;
  * - track (riel): View horizontal redondeada de fondo
  * - thumb (control / perilla): View circular que el usuario arrastra
  */
-export function AvailabilityToggle({ status }: { status: DriverStatus }) {
+export function AvailabilityToggle({
+  status,
+  variant = "panel",
+}: {
+  status: DriverStatus;
+  /** `pill`: solo el riel, botón grande al pie del mapa (pestaña Servicio). */
+  variant?: "panel" | "pill";
+}) {
   const setStatus = useMutation(api.drivers.setStatus);
   const [trackWidth, setTrackWidth] = useState(0);
   const [thumbX, setThumbX] = useState(0);
@@ -72,7 +80,7 @@ export function AvailabilityToggle({ status }: { status: DriverStatus }) {
                   "Ubicación requerida",
                   error instanceof Error
                     ? error.message
-                    : "Activa el GPS para conectarte y ver solicitudes a 10 km.",
+                    : "Activa el GPS para conectarte y ver solicitudes cercanas.",
                 );
               }
             })();
@@ -104,6 +112,94 @@ export function AvailabilityToggle({ status }: { status: DriverStatus }) {
     : isAvailable
       ? TACTICAL_COLORS.success
       : TACTICAL_COLORS.accent;
+
+  if (variant === "pill") {
+    const pillBg = busy
+      ? HERCOM_COLORS.surfaceMuted
+      : isAvailable
+        ? HERCOM_COLORS.success
+        : HERCOM_COLORS.primary;
+    const pillText = busy ? HERCOM_COLORS.textMuted : HERCOM_COLORS.white;
+    const pillLabel = busy
+      ? "En servicio"
+      : isAvailable
+        ? "Desliza para desconectarte"
+        : "Conéctate";
+    return (
+      <View
+        onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
+        accessibilityRole="adjustable"
+        accessibilityLabel={slideLabel}
+        accessibilityHint="Desliza el control hacia la derecha para cambiar tu estado"
+        style={{
+          height: TRACK_H,
+          borderRadius: 999,
+          backgroundColor: pillBg,
+          justifyContent: "center",
+          overflow: "hidden",
+        }}
+      >
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: THUMB + INSET * 2,
+            right: INSET * 2,
+            alignItems: "center",
+          }}
+        >
+          {!busy && !isAvailable && (
+            <Text
+              style={{
+                fontFamily: POPPINS.medium,
+                fontSize: 13,
+                color: "rgba(255,255,255,0.85)",
+              }}
+            >
+              Desliza para recibir solicitudes
+            </Text>
+          )}
+          <Text
+            numberOfLines={1}
+            style={{
+              fontFamily: POPPINS.bold,
+              fontSize: isAvailable ? 16 : 18,
+              color: pillText,
+            }}
+          >
+            {pillLabel}
+          </Text>
+        </View>
+        {!busy && (
+          <View
+            {...pan.panHandlers}
+            style={{
+              position: "absolute",
+              width: THUMB,
+              height: THUMB,
+              left: INSET + thumbX,
+              top: INSET,
+              borderRadius: 999,
+              backgroundColor: HERCOM_COLORS.white,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: POPPINS.bold,
+                fontSize: 24,
+                lineHeight: 28,
+                color: pillBg,
+              }}
+            >
+              →
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  }
 
   return (
     <TacticalPanel corners active={isAvailable} className="mb-3">

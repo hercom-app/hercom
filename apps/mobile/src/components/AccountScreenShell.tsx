@@ -6,7 +6,7 @@ import { UberScreenHeader } from "./uber/UberScreenHeader";
 type AccountScreenShellProps = {
   title: string;
   subtitle?: string;
-  onOpenMenu: () => void;
+  onOpenMenu?: () => void;
   children: ReactNode;
   /** Mantenido por compatibilidad. */
   variant?: "light" | "tactical";

@@ -24,7 +24,9 @@ import {
 } from "../constants/theme";
 
 type SupportChatScreenProps = {
-  onOpenMenu: () => void;
+  onOpenMenu?: () => void;
+  /** Sin cabecera propia: la pone la pestaña que lo contiene. */
+  embedded?: boolean;
 };
 
 type ChatMessage = {
@@ -43,7 +45,10 @@ function formatTime(timestamp: number): string {
 }
 
 /** Chat de operaciones: el mensaje llega al panel interno de Hercom. */
-export function SupportChatScreen({ onOpenMenu }: SupportChatScreenProps) {
+export function SupportChatScreen({
+  onOpenMenu,
+  embedded = false,
+}: SupportChatScreenProps) {
   const insets = useSafeAreaInsets();
   const messages = useQuery(api.support.listMyMessages);
   const sendMine = useMutation(api.support.sendMine);
@@ -76,12 +81,7 @@ export function SupportChatScreen({ onOpenMenu }: SupportChatScreenProps) {
 
   const rows = (messages ?? []) as ChatMessage[];
 
-  return (
-    <AccountScreenShell
-      variant="tactical"
-      title="Soporte"
-      onOpenMenu={onOpenMenu}
-    >
+  const body = (
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -174,7 +174,7 @@ export function SupportChatScreen({ onOpenMenu }: SupportChatScreenProps) {
         <View
           className="flex-row items-end gap-2 px-3 pt-2"
           style={{
-            paddingBottom: Math.max(insets.bottom, 10),
+            paddingBottom: embedded ? 10 : Math.max(insets.bottom, 10),
             borderTopWidth: 1,
             borderTopColor: TACTICAL_BORDER,
             backgroundColor: TACTICAL_COLORS.baseElevated,
@@ -224,6 +224,19 @@ export function SupportChatScreen({ onOpenMenu }: SupportChatScreenProps) {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+  );
+
+  if (embedded) {
+    return body;
+  }
+
+  return (
+    <AccountScreenShell
+      variant="tactical"
+      title="Soporte"
+      onOpenMenu={onOpenMenu}
+    >
+      {body}
     </AccountScreenShell>
   );
 }

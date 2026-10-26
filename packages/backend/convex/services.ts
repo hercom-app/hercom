@@ -34,7 +34,7 @@ import {
   isUnattendedService,
 } from "./lib/serviceClosure";
 import { resolveDriverLocationForOffers } from "./lib/driverLocation";
-import { resolveMaxDriverOfferDistanceKm } from "./lib/driverOfferDiscovery";
+import { resolveDriverOfferRadiusKm } from "./lib/driverOfferDiscovery";
 import { isWithinDriverServiceRadius } from "./lib/geoDistance";
 import type { ServiceClosureReason } from "./lib/serviceClosure";
 
@@ -229,10 +229,8 @@ export const listOpenForOffers = query({
   },
   handler: async (ctx, args) => {
     const { driver } = await requireDriver(ctx);
-    const maxDistanceKm = await resolveMaxDriverOfferDistanceKm(
-      ctx,
-      driver.countryCode,
-    );
+    const { radiusKm: maxDistanceKm, marketMaxKm } =
+      await resolveDriverOfferRadiusKm(ctx, driver);
     const cutoff = Date.now() - PENDING_SERVICE_TTL_MS;
     const driverLocation = resolveDriverLocationForOffers(
       driver,
@@ -247,7 +245,7 @@ export const listOpenForOffers = query({
       .collect();
     const fresh = pending.filter((service) => service.requestedAt >= cutoff);
     if (driverLocation === null) {
-      return { maxDistanceKm, services: [] };
+      return { maxDistanceKm, marketMaxKm, services: [] };
     }
     const services = fresh.filter((service) =>
       isWithinDriverServiceRadius(
@@ -256,7 +254,7 @@ export const listOpenForOffers = query({
         maxDistanceKm,
       ),
     );
-    return { maxDistanceKm, services };
+    return { maxDistanceKm, marketMaxKm, services };
   },
 });
 

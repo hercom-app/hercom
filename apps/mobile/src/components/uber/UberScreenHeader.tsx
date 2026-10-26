@@ -8,7 +8,8 @@ import { POPPINS, TYPE } from "../../constants/theme";
 type UberScreenHeaderProps = {
   title: string;
   subtitle?: string;
-  onOpenMenu: () => void;
+  /** Sin `onOpenMenu` no hay botón de menú (navegación por pestañas). */
+  onOpenMenu?: () => void;
   trailing?: ReactNode;
   /** En pantallas secundarias sobre canvas blanco. */
   variant?: "map" | "stack";
@@ -38,7 +39,9 @@ export function UberScreenHeader({
       }}
     >
       <View className="flex-row items-center gap-3">
-        <HamburgerButton onPress={onOpenMenu} variant="light" />
+        {onOpenMenu !== undefined && (
+          <HamburgerButton onPress={onOpenMenu} variant="light" />
+        )}
         <View className="min-w-0 flex-1">
           <Text
             numberOfLines={1}

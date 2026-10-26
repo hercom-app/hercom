@@ -37,16 +37,15 @@ import {
   FloatingCircleButton,
   LocationChip,
   MapScreenLayout,
+  TripSecurityPin,
   UberBottomSheet,
   UberScreenHeader,
 } from "../components/uber";
 import {
   TacticalInput,
   TacticalLabel,
-  TacticalPanel,
   TacticalStatus,
   TacticalText,
-  TacticalTitle,
   TacticalValue,
 } from "../components/tactical";
 import { LiveTripMapModal } from "../components/LiveTripMapModal";
@@ -242,8 +241,8 @@ function ClientServiceCard({
     }
   }
 
-  return (
-    <UiCard className={embedInTripSheet ? "mb-0 border-0 shadow-none" : "mb-3"}>
+  const content = (
+    <>
       {!embedInTripSheet && (
         <>
           <View className="mb-3 flex-row items-center justify-between gap-2">
@@ -274,21 +273,23 @@ function ClientServiceCard({
           {`Promo: ${service.promotionName}`}
         </TacticalLabel>
       )}
-      <TacticalText size={12} tone="text">
+      <TacticalText size={15} tone="text">
         {service.origin.address} →{" "}
         {formatServiceStopsLabel(service.destination, service.extraDestinations)}
       </TacticalText>
       {canShowLive && (
         <View className="mt-3 gap-3">
-          <View className="flex-row items-center justify-between">
-            <TacticalLabel tone="text">Emergencia en viaje</TacticalLabel>
-            <HelpFab
-              fallbackCenter={{
-                lat: service.origin.lat,
-                lng: service.origin.lng,
-              }}
-            />
-          </View>
+          {!embedInTripSheet && (
+            <View className="flex-row items-center justify-between">
+              <TacticalLabel tone="text">Emergencia en viaje</TacticalLabel>
+              <HelpFab
+                fallbackCenter={{
+                  lat: service.origin.lat,
+                  lng: service.origin.lng,
+                }}
+              />
+            </View>
+          )}
           <UiButton
             label="Ver chofer en vivo · Compartir viaje"
             size="md"
@@ -348,18 +349,11 @@ function ClientServiceCard({
         service.status !== "finished" &&
         service.status !== "cancelled" &&
         service.status !== "unattended" && (
-          <View
-            className="mt-3 p-4"
-            style={{
-              backgroundColor: TACTICAL_COLORS.dataBandBg,
-              borderRadius: TACTICAL_RADIUS.panel,
-            }}
-          >
-            <TacticalLabel>Código de seguridad</TacticalLabel>
-            <TacticalValue size={20} tone="accent" className="mt-1">
-              {service.securityCode}
-            </TacticalValue>
-          </View>
+          <TripSecurityPin
+            pin={service.securityCode}
+            inset={false}
+            style={{ marginTop: 12 }}
+          />
         )}
       {service.status === "pending" && (
         <View
@@ -523,8 +517,14 @@ function ClientServiceCard({
         onClose={() => setLiveMapOpen(false)}
         title="Chofer en vivo"
       />
-    </UiCard>
+    </>
   );
+
+  if (embedInTripSheet) {
+    return <View>{content}</View>;
+  }
+
+  return <UiCard className="mb-3">{content}</UiCard>;
 }
 
 function fitMapRegion(
@@ -666,7 +666,7 @@ export function ClientDashboard() {
         );
   /** Preview: altura fija razonable (mapa visible arriba). */
   const confirmSheetHeight = Math.round(
-    Math.min(440, Math.max(320, screenHeight * 0.42)),
+    Math.min(560, Math.max(420, screenHeight * 0.58)),
   );
   const homeSheetHeight = Math.round(
     Math.min(640, Math.max(460, screenHeight * 0.64)),
@@ -1815,11 +1815,27 @@ export function ClientDashboard() {
                 paddingBottom: 20,
               }}
             >
-              <TacticalTitle size={18} className="mb-3">
+              <Text
+                style={{
+                  fontFamily: POPPINS.bold,
+                  fontSize: 18,
+                  lineHeight: 24,
+                  color: HERCOM_COLORS.text,
+                  marginBottom: 12,
+                }}
+              >
                 Confirmar viaje
-              </TacticalTitle>
+              </Text>
 
-          <TacticalPanel tone="sunken" className="mb-4">
+          <View
+            style={{
+              backgroundColor: "#F3F4F6",
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+              marginBottom: 16,
+            }}
+          >
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => {
@@ -1828,14 +1844,34 @@ export function ClientDashboard() {
                 setAddressSearchField("origin");
               }}
             >
-              <TacticalLabel>De · tocar para editar</TacticalLabel>
-              <TacticalText size={13} tone="text" className="mt-0.5" numberOfLines={2}>
+              <Text
+                style={{
+                  fontFamily: POPPINS.medium,
+                  fontSize: 13,
+                  color: HERCOM_COLORS.textMuted,
+                }}
+              >
+                De · tocar para editar
+              </Text>
+              <Text
+                numberOfLines={2}
+                style={{
+                  marginTop: 2,
+                  fontFamily: POPPINS.semibold,
+                  fontSize: 15,
+                  lineHeight: 20,
+                  color: HERCOM_COLORS.text,
+                }}
+              >
                 {origin}
-              </TacticalText>
+              </Text>
             </TouchableOpacity>
             <View
-              className="my-2 h-px"
-              style={{ backgroundColor: TACTICAL_BORDER }}
+              style={{
+                height: 1,
+                backgroundColor: HERCOM_COLORS.border,
+                marginVertical: 10,
+              }}
             />
             <TouchableOpacity
               activeOpacity={0.7}
@@ -1845,29 +1881,61 @@ export function ClientDashboard() {
                 setAddressSearchField("destination");
               }}
             >
-              <TacticalLabel>A · tocar para editar</TacticalLabel>
-              <TacticalText size={13} tone="text" className="mt-0.5" numberOfLines={2}>
+              <Text
+                style={{
+                  fontFamily: POPPINS.medium,
+                  fontSize: 13,
+                  color: HERCOM_COLORS.textMuted,
+                }}
+              >
+                A · tocar para editar
+              </Text>
+              <Text
+                numberOfLines={2}
+                style={{
+                  marginTop: 2,
+                  fontFamily: POPPINS.semibold,
+                  fontSize: 15,
+                  lineHeight: 20,
+                  color: HERCOM_COLORS.text,
+                }}
+              >
                 {formatServiceStopsLabel(
                   toServiceLocation(destination),
                   extraDestinations.map((stop) => toServiceLocation(stop)),
                 )}
-              </TacticalText>
+              </Text>
             </TouchableOpacity>
-          </TacticalPanel>
+          </View>
 
-          <TacticalLabel className="mb-2">
+          <Text
+            style={{
+              fontFamily: POPPINS.semibold,
+              fontSize: 16,
+              color: HERCOM_COLORS.text,
+              marginBottom: 4,
+            }}
+          >
             ¿Cuánto tiempo necesitas?
-          </TacticalLabel>
-          <TacticalText size={11} className="mb-3">
+          </Text>
+          <Text
+            style={{
+              fontFamily: POPPINS.regular,
+              fontSize: 13,
+              lineHeight: 18,
+              color: HERCOM_COLORS.textMuted,
+              marginBottom: 12,
+            }}
+          >
             Tarifa {currencySymbol}
             {hourlyRate}/h · mínimo {minServiceHours}h = {currencySymbol}
             {minServicePrice}
-          </TacticalText>
+          </Text>
 
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            className="mb-4"
+            style={{ marginBottom: 16 }}
             contentContainerStyle={{ gap: 8 }}
           >
             {SERVICE_HOUR_OPTIONS.map((hours) => {
@@ -1876,75 +1944,126 @@ export function ClientDashboard() {
                 <TouchableOpacity
                   key={hours}
                   onPress={() => setServiceHours(hours)}
-                  className="px-4 py-3"
                   style={{
-                    backgroundColor: selected
-                      ? TACTICAL_COLORS.accent
-                      : TACTICAL_COLORS.surfaceSunken,
-                    borderRadius: TACTICAL_RADIUS.panel,
-                    borderWidth: 1,
-                    borderColor: selected
-                      ? TACTICAL_COLORS.accent
-                      : TACTICAL_BORDER,
+                    backgroundColor: selected ? HERCOM_COLORS.primary : "#F3F4F6",
+                    borderRadius: 16,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    minWidth: 72,
                   }}
                 >
-                  <TacticalValue
-                    size={14}
-                    tone={selected ? "steel" : "text"}
-                    className="text-center"
+                  <Text
                     style={{
-                      color: selected
-                        ? TACTICAL_COLORS.base
-                        : TACTICAL_COLORS.textStrong,
+                      textAlign: "center",
+                      fontFamily: POPPINS.bold,
+                      fontSize: 16,
+                      color: selected ? HERCOM_COLORS.white : HERCOM_COLORS.text,
                     }}
                   >
                     {hours}h
-                  </TacticalValue>
-                  <TacticalText
-                    size={11}
-                    className="mt-0.5 text-center"
+                  </Text>
+                  <Text
                     style={{
+                      marginTop: 2,
+                      textAlign: "center",
+                      fontFamily: POPPINS.medium,
+                      fontSize: 13,
                       color: selected
-                        ? TACTICAL_COLORS.base
-                        : TACTICAL_COLORS.steel,
+                        ? "rgba(255,255,255,0.9)"
+                        : HERCOM_COLORS.textMuted,
                     }}
                   >
                     {currencySymbol}
                     {hours * hourlyRate}
-                  </TacticalText>
+                  </Text>
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
 
-          <TacticalPanel active className="mb-3 flex-row items-end justify-between">
-            <View>
-              <TacticalLabel tone="accent">
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-end",
+              justifyContent: "space-between",
+              backgroundColor: HERCOM_COLORS.primarySoft,
+              borderRadius: 20,
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+              marginBottom: 12,
+            }}
+          >
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text
+                style={{
+                  fontFamily: POPPINS.medium,
+                  fontSize: 13,
+                  color: HERCOM_COLORS.textSecondary,
+                }}
+              >
                 Tarifa estimada
-              </TacticalLabel>
-              <TacticalValue size={26} tone="accent" className="mt-0.5">
+              </Text>
+              <Text
+                style={{
+                  marginTop: 2,
+                  fontFamily: POPPINS.bold,
+                  fontSize: 28,
+                  lineHeight: 34,
+                  color: HERCOM_COLORS.text,
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
                 {currencySymbol}
                 {listPrice.toFixed(0)}
-              </TacticalValue>
+              </Text>
             </View>
-            <TacticalText size={11} className="pb-1">
+            <Text
+              style={{
+                fontFamily: POPPINS.medium,
+                fontSize: 13,
+                color: HERCOM_COLORS.textMuted,
+                paddingBottom: 4,
+              }}
+            >
               {serviceHours}h × {currencySymbol}
               {hourlyRate}
-            </TacticalText>
-          </TacticalPanel>
+            </Text>
+          </View>
 
           {promoPreview !== undefined && promoPreview !== null && (
-            <TacticalPanel tone="sunken" className="mb-3">
-              <TacticalLabel tone="accent">
+            <View
+              style={{
+                backgroundColor: "#E5F8EA",
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                marginBottom: 12,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: POPPINS.semibold,
+                  fontSize: 14,
+                  color: HERCOM_COLORS.text,
+                }}
+              >
                 Promo: {promoPreview.promotionName} (
                 {(promoPreview.discountRate * 100).toFixed(0)}% off)
-              </TacticalLabel>
-              <TacticalText size={11} className="mt-1">
+              </Text>
+              <Text
+                style={{
+                  marginTop: 4,
+                  fontFamily: POPPINS.regular,
+                  fontSize: 13,
+                  lineHeight: 18,
+                  color: HERCOM_COLORS.textSecondary,
+                }}
+              >
                 Pagas {currencySymbol}
                 {promoPreview.basePrice.toFixed(2)} (lista {currencySymbol}
                 {promoPreview.catalogBasePrice.toFixed(2)}).
-              </TacticalText>
-            </TacticalPanel>
+              </Text>
+            </View>
           )}
 
           <TacticalInput

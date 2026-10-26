@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
-import type { MutationCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { locationValidator, serviceRequestChannelValidator, serviceStatusValidator, serviceTypeValidator } from "./schema";
 import { matchesOriginRegion, resolveCountryCode } from "./lib/regionFilters";
 import { normalizeCountryCode } from "./data/countryCatalog";
@@ -10,6 +10,7 @@ import {
   PENDING_SERVICE_TTL_MS,
 } from "./lib/constants";
 import { getMarketByCountry } from "./lib/markets";
+import type { MarketPricing } from "./lib/markets";
 import { applyPromotionToListPrice } from "./lib/promotions";
 import {
   computeClientTotalForOffer,
@@ -35,7 +36,7 @@ import {
 } from "./lib/serviceClosure";
 import { resolveDriverLocationForOffers } from "./lib/driverLocation";
 import { resolveDriverOfferRadiusKm } from "./lib/driverOfferDiscovery";
-import { isWithinDriverServiceRadius } from "./lib/geoDistance";
+import { estimateRoadLeg, isWithinDriverServiceRadius } from "./lib/geoDistance";
 import type { ServiceClosureReason } from "./lib/serviceClosure";
 
 /**
@@ -247,16 +248,77 @@ export const listOpenForOffers = query({
     if (driverLocation === null) {
       return { maxDistanceKm, marketMaxKm, services: [] };
     }
-    const services = fresh.filter((service) =>
+    const nearby = fresh.filter((service) =>
       isWithinDriverServiceRadius(
         driverLocation,
         service.origin,
         maxDistanceKm,
       ),
     );
+    const marketByCountry = new Map<string, MarketPricing>();
+    const services = [];
+    for (const service of nearby) {
+      const countryKey = service.origin.countryCode ?? "";
+      let market = marketByCountry.get(countryKey);
+      if (market === undefined) {
+        market = await getMarketByCountry(ctx, service.origin.countryCode);
+        marketByCountry.set(countryKey, market);
+      }
+      services.push({
+        ...service,
+        offerCard: await buildOfferCard(ctx, service, driverLocation, market),
+      });
+    }
     return { maxDistanceKm, marketMaxKm, services };
   },
 });
+
+function firstNameForDisplay(user: Doc<"users"> | null): string {
+  const raw = user?.firstName?.trim() || user?.name?.trim() || "";
+  const first = raw.split(/\s+/)[0] ?? "";
+  if (first === "") {
+    return "Cliente";
+  }
+  return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+}
+
+/** Datos de tarjeta en Lista: cliente (sin apellidos), tiempo contratado y tramos estimados. */
+async function buildOfferCard(
+  ctx: QueryCtx,
+  service: Doc<"services">,
+  driverLocation: { lat: number; lng: number },
+  market: MarketPricing,
+) {
+  const listPrice = normalizeMoney(service.catalogBasePrice ?? service.basePrice);
+  const { serviceHours } = resolveServiceHoursAndHourlyRate(
+    listPrice,
+    market,
+    service.serviceHours,
+    service.hourlyRateSnapshot,
+  );
+  const client = await ctx.db.get(service.clientId);
+  const clientServices = await ctx.db
+    .query("services")
+    .withIndex("by_client", (q) => q.eq("clientId", service.clientId))
+    .collect();
+  const clientPhotoUrl =
+    client?.image ??
+    (client?.selfieStorageId !== undefined
+      ? await ctx.storage.getUrl(client.selfieStorageId)
+      : null);
+  const stops = getServiceStops(service);
+  const finalStop = stops[stops.length - 1] ?? service.destination;
+  return {
+    listPrice,
+    serviceHours,
+    clientFirstName: firstNameForDisplay(client),
+    clientPhotoUrl,
+    clientTrips: clientServices.filter((item) => item.status === "finished").length,
+    pickup: estimateRoadLeg([driverLocation, service.origin]),
+    trip: estimateRoadLeg([service.origin, ...stops]),
+    destinationAddress: finalStop.address,
+  };
+}
 
 /**
  * Cancela solicitudes pending más viejas que el TTL.

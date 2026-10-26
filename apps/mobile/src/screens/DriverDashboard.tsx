@@ -13,11 +13,7 @@ import { LiveTripMapModal } from "../components/LiveTripMapModal";
 import { DriverTabBar, type DriverTab } from "../components/driver/DriverTabBar";
 import { DriverServiceHome } from "../components/driver/DriverServiceHome";
 import { DriverRequestsTab } from "../components/driver/DriverRequestsTab";
-import {
-  DriverIncomeTab,
-  type IncomeSection,
-  type WalletFlow,
-} from "../components/driver/DriverIncomeTab";
+import { DriverIncomeTab, type WalletFlow } from "../components/driver/DriverIncomeTab";
 import { DriverChatsTab, type ChatsSection } from "../components/driver/DriverChatsTab";
 import { DriverProfileTab } from "../components/driver/DriverProfileTab";
 import { DriverRadiusSheet } from "../components/driver/DriverRadiusSheet";
@@ -32,7 +28,7 @@ export function DriverDashboard() {
   const hasDriver = driver !== undefined && driver !== null;
 
   const [tab, setTab] = useState<DriverTab>("servicio");
-  const [incomeSection, setIncomeSection] = useState<IncomeSection>("ganancias");
+  const [moneyDayKey, setMoneyDayKey] = useState<string | null>(null);
   const [walletFlow, setWalletFlow] = useState<WalletFlow>("balance");
   const [chatsSection, setChatsSection] = useState<ChatsSection>("soporte");
   const [profileSection, setProfileSection] = useState<"menu" | "datos">("menu");
@@ -45,10 +41,6 @@ export function DriverDashboard() {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   const wallet = useQuery(api.driverWallets.getMine, hasDriver ? {} : "skip");
-  const walletTransactions = useQuery(
-    api.driverWallets.listMyTransactions,
-    hasDriver ? { limit: 25 } : "skip",
-  );
   const services = useQuery(api.services.listForDriver, hasDriver ? {} : "skip");
   const radius = useQuery(api.drivers.getMyOfferRadius, hasDriver ? {} : "skip");
   const myPendingOffers = useQuery(
@@ -100,6 +92,7 @@ export function DriverDashboard() {
     setTab(next);
     if (next !== "ingresos") {
       setWalletFlow("balance");
+      setMoneyDayKey(null);
     }
     if (next !== "perfil") {
       setProfileSection("menu");
@@ -108,7 +101,7 @@ export function DriverDashboard() {
 
   const goToTopUp = useCallback(() => {
     setTab("ingresos");
-    setIncomeSection("viajes");
+    setMoneyDayKey(null);
     setWalletFlow("topup");
   }, []);
 
@@ -125,6 +118,10 @@ export function DriverDashboard() {
       setWalletFlow("balance");
       return true;
     }
+    if (tab === "ingresos" && moneyDayKey !== null) {
+      setMoneyDayKey(null);
+      return true;
+    }
     if (tab === "perfil" && profileSection === "datos") {
       setProfileSection("menu");
       return true;
@@ -134,7 +131,15 @@ export function DriverDashboard() {
       return true;
     }
     return false;
-  }, [liveMapServiceId, checklistServiceId, tab, walletFlow, profileSection, goToTab]);
+  }, [
+    liveMapServiceId,
+    checklistServiceId,
+    tab,
+    walletFlow,
+    moneyDayKey,
+    profileSection,
+    goToTab,
+  ]);
 
   useAndroidBackHandler(handleAndroidBack);
   useDriverLiveTracking(services);
@@ -191,10 +196,7 @@ export function DriverDashboard() {
           onOpenRadius={() => setRadiusOpen(true)}
           onOpenSafety={() => setSafetyOpen(true)}
           onGoToList={() => goToTab("lista")}
-          onGoToEarnings={() => {
-            setIncomeSection("viajes");
-            goToTab("ingresos");
-          }}
+          onGoToEarnings={() => goToTab("ingresos")}
         />
       );
       break;
@@ -204,7 +206,6 @@ export function DriverDashboard() {
           isAvailable={isAvailable && !hasActiveService}
           openServices={openServices}
           loaded={openOffersPayload !== undefined}
-          radiusKm={radiusKm}
           locationLoading={offerLocationLoading}
           locationError={offerLocationError}
           onRefreshLocation={() => void refreshOfferLocation()}
@@ -212,19 +213,16 @@ export function DriverDashboard() {
           tripCredits={tripCredits}
           onGoToTopUp={goToTopUp}
           onGoToService={() => goToTab("servicio")}
-          onOpenRadius={() => setRadiusOpen(true)}
         />
       );
       break;
     case "ingresos":
       content = (
         <DriverIncomeTab
-          section={incomeSection}
-          onSectionChange={setIncomeSection}
           walletFlow={walletFlow}
           onWalletFlowChange={setWalletFlow}
-          tripCredits={tripCredits}
-          transactions={walletTransactions}
+          dayKey={moneyDayKey}
+          onDayChange={setMoneyDayKey}
         />
       );
       break;

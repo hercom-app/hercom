@@ -15,6 +15,7 @@ import type * as data_countryCatalog from "../data/countryCatalog.js";
 import type * as data_peruLocations from "../data/peruLocations.js";
 import type * as districtPricingRules from "../districtPricingRules.js";
 import type * as driverApplications from "../driverApplications.js";
+import type * as driverMoney from "../driverMoney.js";
 import type * as driverWallets from "../driverWallets.js";
 import type * as drivers from "../drivers.js";
 import type * as factiliza from "../factiliza.js";
@@ -83,6 +84,7 @@ declare const fullApi: ApiFromModules<{
   "data/peruLocations": typeof data_peruLocations;
   districtPricingRules: typeof districtPricingRules;
   driverApplications: typeof driverApplications;
+  driverMoney: typeof driverMoney;
   driverWallets: typeof driverWallets;
   drivers: typeof drivers;
   factiliza: typeof factiliza;

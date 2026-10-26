@@ -2,24 +2,20 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   ScrollView,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "@proyecto/backend";
-import type { Doc } from "@proyecto/backend/dataModel";
-import { UberScreenHeader } from "../uber/UberScreenHeader";
-import {
-  TacticalButton,
-  TacticalEmpty,
-  TacticalInput,
-  TacticalLabel,
-  TacticalPanel,
-  TacticalText,
-  TacticalValue,
-} from "../tactical";
+import { TacticalButton } from "../tactical";
+import { DrawerIcon } from "../DrawerIcons";
+import { DriverSheet } from "./DriverSheet";
 import { useAppTheme } from "../../contexts/ThemeContext";
 import { getDriverGpsForOffer } from "../../hooks/useDriverOfferLocation";
 import { hasTripCreditForOffer } from "../../lib/offerWallet";
@@ -27,22 +23,24 @@ import {
   convexErrorMessage,
   isInsufficientBalanceError,
 } from "../../lib/convexErrorMessage";
-import { formatServiceStopsLabel } from "../../lib/wazeNavigation";
-import {
-  MONO,
-  POPPINS,
-  TACTICAL_COLORS,
-  TACTICAL_RADIUS,
-} from "../../constants/theme";
+import { HERCOM_COLORS, POPPINS, TABULAR, UBER_RADIUS } from "../../constants/theme";
+
+export type OpenOfferService = FunctionReturnType<
+  typeof api.services.listOpenForOffers
+>["services"][number];
 
 const MIN_OFFER_PRICE = 80;
+const OFFER_STEP = 5;
+const VISIBLE_CARDS = 5;
+const CARD_GAP = 10;
+const TITLE_BLOCK_HEIGHT = 72;
+const TAB_BAR_HEIGHT = 64;
 
 type DriverRequestsTabProps = {
   isAvailable: boolean;
-  openServices: Doc<"services">[];
-  /** `undefined` mientras carga la consulta. */
+  openServices: OpenOfferService[];
+  /** `false` mientras carga la consulta. */
   loaded: boolean;
-  radiusKm: number;
   locationLoading: boolean;
   locationError: string | null;
   onRefreshLocation: () => void;
@@ -50,15 +48,27 @@ type DriverRequestsTabProps = {
   tripCredits: number;
   onGoToTopUp: () => void;
   onGoToService: () => void;
-  onOpenRadius: () => void;
 };
 
-/** Pestaña Lista: solicitudes abiertas dentro del radio para ofertar. */
+function soles(amount: number): string {
+  return Number.isInteger(amount) ? `S/ ${amount}` : `S/ ${amount.toFixed(2)}`;
+}
+
+function hoursLabel(hours: number): string {
+  return `${Number.isInteger(hours) ? hours : hours.toFixed(1)} h`;
+}
+
+function offerBounds(service: OpenOfferService) {
+  const floor = Math.max(MIN_OFFER_PRICE, service.offerCard.listPrice);
+  const max = Math.round(floor * 1.5 * 100) / 100;
+  return { floor, max };
+}
+
+/** Pestaña Lista: solicitudes abiertas dentro del radio (estilo lista minimalista). */
 export function DriverRequestsTab({
   isAvailable,
   openServices,
   loaded,
-  radiusKm,
   locationLoading,
   locationError,
   onRefreshLocation,
@@ -66,63 +76,56 @@ export function DriverRequestsTab({
   tripCredits,
   onGoToTopUp,
   onGoToService,
-  onOpenRadius,
 }: DriverRequestsTabProps) {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const submitMyOffer = useMutation(api.serviceOffers.submitMyOffer);
-  const [offerByService, setOfferByService] = useState<Record<string, string>>({});
-  const [offeringServiceId, setOfferingServiceId] = useState<string | null>(null);
-  const [offerError, setOfferError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<OpenOfferService | null>(null);
+  const [offerPrice, setOfferPrice] = useState(MIN_OFFER_PRICE);
+  const [submitting, setSubmitting] = useState(false);
 
   const canAfford = hasTripCreditForOffer(tripCredits);
-  const offersLocked = !isAvailable || (openServices.length > 0 && !canAfford);
+  const listHeight =
+    height - insets.top - insets.bottom - TITLE_BLOCK_HEIGHT - TAB_BAR_HEIGHT - 16;
+  const cardHeight = Math.min(
+    170,
+    Math.max(124, Math.floor((listHeight - CARD_GAP * (VISIBLE_CARDS - 1)) / VISIBLE_CARDS)),
+  );
 
-  function submitOffer(
-    service: Doc<"services">,
-    floorPrice: number,
-    maxOfferPrice: number,
-    defaultOffer: string,
-  ) {
-    if (!isAvailable || !canAfford) {
+  function openOffer(service: OpenOfferService) {
+    if (!canAfford) {
+      Alert.alert("Sin viajes prepagados", "Recarga para poder ofertar.", [
+        { text: "Recargar", onPress: onGoToTopUp },
+        { text: "Ahora no" },
+      ]);
       return;
     }
-    const offeredPrice = Number(offerByService[service._id] ?? defaultOffer);
-    if (!Number.isFinite(offeredPrice) || offeredPrice < floorPrice) {
-      setOfferByService((prev) => ({ ...prev, [service._id]: defaultOffer }));
-      setOfferError(`La oferta mínima es S/${floorPrice.toFixed(0)}.`);
+    setOfferPrice(offerBounds(service).floor);
+    setSelected(service);
+  }
+
+  function submitOffer() {
+    if (selected === null) {
       return;
     }
-    if (offeredPrice > maxOfferPrice) {
-      setOfferError(`La oferta no puede superar S/${maxOfferPrice.toFixed(2)}.`);
-      return;
-    }
-    setOfferingServiceId(service._id);
-    setOfferError(null);
+    const service = selected;
+    setSubmitting(true);
     void (async () => {
       try {
         const gps = await getDriverGpsForOffer();
-        return submitMyOffer({
+        const result = await submitMyOffer({
           serviceId: service._id,
-          offeredPrice,
+          offeredPrice: offerPrice,
           driverLat: gps.lat,
           driverLng: gps.lng,
         });
-      } catch (gpsError) {
-        const message =
-          gpsError instanceof Error
-            ? gpsError.message
-            : "Activa la ubicación para ofertar.";
-        setOfferError(message);
-        Alert.alert("Ubicación", message);
-        return undefined;
-      }
-    })()
-      .then((result) => {
-        if (result === undefined || result.ok) {
+        if (result.ok) {
+          setSelected(null);
           return;
         }
-        setOfferError(result.message);
         if (isInsufficientBalanceError(result.message)) {
+          setSelected(null);
           Alert.alert("Saldo insuficiente", result.message, [
             { text: "Recargar", onPress: onGoToTopUp },
             { text: "OK" },
@@ -130,211 +133,437 @@ export function DriverRequestsTab({
           return;
         }
         Alert.alert("No se pudo ofertar", result.message);
-      })
-      .catch((error) => {
-        const message = convexErrorMessage(error, "No se pudo enviar la oferta.");
-        setOfferError(message);
-        Alert.alert("No se pudo ofertar", message);
-      })
-      .finally(() => setOfferingServiceId(null));
+      } catch (error) {
+        Alert.alert(
+          "No se pudo ofertar",
+          convexErrorMessage(error, "Activa la ubicación e inténtalo de nuevo."),
+        );
+      } finally {
+        setSubmitting(false);
+      }
+    })();
   }
+
+  const title = (
+    <Text
+      style={{
+        paddingHorizontal: 20,
+        paddingTop: insets.top + 16,
+        paddingBottom: 12,
+        fontFamily: POPPINS.bold,
+        fontSize: 30,
+        color: colors.textStrong,
+      }}
+    >
+      Lista de solicitudes
+    </Text>
+  );
+
+  if (!isAvailable) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.base }}>
+        {title}
+        <EmptyState
+          title="Estás desconectado"
+          subtitle="Conéctate en Servicio para recibir pedidos de viaje."
+          actionLabel="Ir a Servicio"
+          onAction={onGoToService}
+        />
+      </View>
+    );
+  }
+
+  const showEmpty = loaded && openServices.length === 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.base }}>
-      <UberScreenHeader
-        title="Lista"
-        subtitle="Solicitudes para ofertar"
-        trailing={
-          <TouchableOpacity
-            onPress={onOpenRadius}
-            accessibilityLabel={`Radio de búsqueda ${radiusKm} km. Cambiar`}
+      {title}
+
+      {!canAfford && (
+        <TouchableOpacity
+          onPress={onGoToTopUp}
+          activeOpacity={0.8}
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 10,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderRadius: UBER_RADIUS.card,
+            backgroundColor: HERCOM_COLORS.warningSoft,
+            flexDirection: "row",
+            alignItems: "center",
+          }}
+        >
+          <Text
             style={{
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              borderRadius: 999,
-              backgroundColor: colors.surfaceSunken,
+              flex: 1,
+              fontFamily: POPPINS.medium,
+              fontSize: 15,
+              color: HERCOM_COLORS.text,
             }}
           >
-            <Text style={{ fontFamily: POPPINS.semibold, fontSize: 14, color: colors.textStrong }}>
-              {`${radiusKm} km`}
-            </Text>
-          </TouchableOpacity>
-        }
+            No tienes viajes prepagados. Recarga para ofertar.
+          </Text>
+          <DrawerIcon name="chevron" color={HERCOM_COLORS.text} />
+        </TouchableOpacity>
+      )}
+
+      {locationError !== null ? (
+        <EmptyState
+          title="No pudimos ubicarte"
+          subtitle={locationError}
+          actionLabel="Actualizar"
+          onAction={onRefreshLocation}
+          loading={locationLoading}
+        />
+      ) : !loaded ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator color={colors.accent} />
+        </View>
+      ) : showEmpty ? (
+        <EmptyState
+          title="No hay pedidos de viaje en este momento"
+          subtitle="Aparecerán nuevos viajes, ¡vuelve pronto!"
+          actionLabel="Actualizar"
+          onAction={onRefreshLocation}
+          loading={locationLoading}
+        />
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: CARD_GAP }}
+        >
+          {openServices.map((service) => (
+            <RequestCard
+              key={service._id}
+              service={service}
+              height={cardHeight}
+              myOffer={myOfferByService[service._id]}
+              onPress={() => openOffer(service)}
+            />
+          ))}
+        </ScrollView>
+      )}
+
+      <OfferSheet
+        service={selected}
+        price={offerPrice}
+        onChangePrice={setOfferPrice}
+        submitting={submitting}
+        onSubmit={submitOffer}
+        onClose={() => setSelected(null)}
       />
-
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-      >
-        {!isAvailable ? (
-          <View className="gap-3">
-            <TacticalEmpty
-              title="Estás desconectado"
-              subtitle={`Conéctate en Servicio para ver solicitudes dentro de ${radiusKm} km.`}
-            />
-            <TacticalButton
-              label="Ir a Servicio"
-              variant="secondary"
-              size="md"
-              onPress={onGoToService}
-            />
-          </View>
-        ) : (
-          <>
-            {locationLoading && !loaded ? (
-              <ActivityIndicator color={TACTICAL_COLORS.accent} className="my-6" />
-            ) : null}
-            {locationError !== null ? (
-              <View className="mb-3 gap-2">
-                <TacticalText size={14} style={{ color: TACTICAL_COLORS.danger }}>
-                  {locationError}
-                </TacticalText>
-                <TacticalButton
-                  label="Actualizar ubicación"
-                  variant="secondary"
-                  size="md"
-                  onPress={onRefreshLocation}
-                />
-              </View>
-            ) : null}
-
-            {!canAfford && openServices.length > 0 && (
-              <TacticalPanel tone="sunken" className="mb-3 gap-2 p-4">
-                <TacticalText size={14} tone="text">
-                  No tienes viajes prepagados. Recarga para poder ofertar.
-                </TacticalText>
-                <TacticalButton
-                  label="Recargar viajes"
-                  variant="secondary"
-                  size="md"
-                  onPress={onGoToTopUp}
-                />
-              </TacticalPanel>
-            )}
-
-            {loaded && openServices.length === 0 ? (
-              <TacticalEmpty
-                title="Sin solicitudes cercanas"
-                subtitle={`No hay pedidos dentro de ${radiusKm} km. Amplía tu radio o espera unos minutos.`}
-              />
-            ) : (
-              <View
-                pointerEvents={offersLocked ? "none" : "auto"}
-                style={offersLocked ? { opacity: 0.4 } : undefined}
-              >
-                {openServices.map((service) => {
-                  const minPrice = service.catalogBasePrice ?? service.basePrice;
-                  const floorPrice = Math.max(MIN_OFFER_PRICE, minPrice);
-                  const maxOfferPrice = Math.round(floorPrice * 1.5 * 100) / 100;
-                  const defaultOffer = String(floorPrice);
-                  const alreadyOffered = myOfferByService[service._id];
-                  return (
-                    <TacticalPanel key={service._id} className="mb-3 p-4">
-                      <View className="flex-row items-center justify-between">
-                        <TacticalLabel>Tarifa lista</TacticalLabel>
-                        <TacticalValue size={18} tone="accent">
-                          {`S/${minPrice.toFixed(2)}`}
-                        </TacticalValue>
-                      </View>
-                      {service.discountRate !== undefined && service.discountRate > 0 && (
-                        <TacticalText size={13} className="mt-0.5">
-                          {`Cliente paga S/${service.basePrice.toFixed(2)}`}
-                        </TacticalText>
-                      )}
-                      <TacticalText size={15} tone="text" className="mt-2">
-                        {service.origin.address} →{" "}
-                        {formatServiceStopsLabel(
-                          service.destination,
-                          service.extraDestinations,
-                        )}
-                      </TacticalText>
-                      <TacticalText size={13} className="mt-1">
-                        {`Oferta entre S/${floorPrice.toFixed(2)} y S/${maxOfferPrice.toFixed(2)}.`}
-                      </TacticalText>
-                      {alreadyOffered !== undefined ? (
-                        <View
-                          className="mt-3 px-3 py-2"
-                          style={{
-                            borderRadius: TACTICAL_RADIUS.sharp,
-                            backgroundColor: TACTICAL_COLORS.dataBandBg,
-                          }}
-                        >
-                          <TacticalValue size={15} tone="accent">
-                            {`Ofertaste S/${alreadyOffered.toFixed(2)}`}
-                          </TacticalValue>
-                          <TacticalText size={13} className="mt-0.5">
-                            Esperando respuesta del cliente
-                          </TacticalText>
-                        </View>
-                      ) : (
-                        <View className="mt-3 flex-row items-center gap-2">
-                          <TacticalInput
-                            mono
-                            value={offerByService[service._id] ?? defaultOffer}
-                            onChangeText={(value) =>
-                              setOfferByService((prev) => ({
-                                ...prev,
-                                [service._id]: value,
-                              }))
-                            }
-                            onBlur={() => {
-                              const parsed = Number(
-                                offerByService[service._id] ?? defaultOffer,
-                              );
-                              if (!Number.isFinite(parsed)) {
-                                setOfferByService((prev) => ({
-                                  ...prev,
-                                  [service._id]: defaultOffer,
-                                }));
-                                return;
-                              }
-                              const clamped = Math.min(
-                                Math.max(parsed, floorPrice),
-                                maxOfferPrice,
-                              );
-                              if (clamped !== parsed) {
-                                setOfferByService((prev) => ({
-                                  ...prev,
-                                  [service._id]: String(clamped),
-                                }));
-                              }
-                            }}
-                            editable={canAfford && isAvailable}
-                            placeholder={`S/${floorPrice.toFixed(0)} – S/${maxOfferPrice.toFixed(0)}`}
-                            keyboardType="decimal-pad"
-                            containerClassName="flex-1"
-                          />
-                          <TacticalButton
-                            label="Ofertar"
-                            size="md"
-                            onPress={() =>
-                              submitOffer(service, floorPrice, maxOfferPrice, defaultOffer)
-                            }
-                            disabled={
-                              offeringServiceId === service._id || !canAfford || !isAvailable
-                            }
-                            loading={offeringServiceId === service._id}
-                          />
-                        </View>
-                      )}
-                    </TacticalPanel>
-                  );
-                })}
-              </View>
-            )}
-
-            {offerError !== null && (
-              <Text
-                className="mt-2"
-                style={{ fontFamily: MONO.medium, fontSize: 14, color: TACTICAL_COLORS.danger }}
-              >
-                {offerError}
-              </Text>
-            )}
-          </>
-        )}
-      </ScrollView>
     </View>
+  );
+}
+
+function RequestCard({
+  service,
+  height,
+  myOffer,
+  onPress,
+}: {
+  service: OpenOfferService;
+  height: number;
+  myOffer: number | undefined;
+  onPress: () => void;
+}) {
+  const { colors, border } = useAppTheme();
+  const card = service.offerCard;
+  const offered = myOffer !== undefined;
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={offered}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel={`${soles(card.listPrice)}, ${hoursLabel(card.serviceHours)}, ${card.clientFirstName}. Recojo a ${card.pickup.km} kilómetros.`}
+      style={{
+        height,
+        borderRadius: UBER_RADIUS.card,
+        backgroundColor: colors.surfaceSunken,
+        borderWidth: offered ? 1.5 : 0,
+        borderColor: colors.accent,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        justifyContent: "space-between",
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={{ flex: 1 }}>
+          <Text
+            numberOfLines={1}
+            style={{ fontFamily: POPPINS.bold, fontSize: 26, color: colors.textStrong, ...TABULAR }}
+          >
+            {soles(card.listPrice)}
+            <Text style={{ fontFamily: POPPINS.medium, fontSize: 17, color: colors.steel }}>
+              {`  ·  ${hoursLabel(card.serviceHours)}`}
+            </Text>
+          </Text>
+          {offered && (
+            <Text
+              numberOfLines={1}
+              style={{ fontFamily: POPPINS.semibold, fontSize: 13, color: colors.accent }}
+            >
+              {`Ofertaste ${soles(myOffer)} · esperando al cliente`}
+            </Text>
+          )}
+        </View>
+        <View style={{ alignItems: "flex-end", marginRight: 10, maxWidth: "40%" }}>
+          <Text
+            numberOfLines={1}
+            style={{ fontFamily: POPPINS.semibold, fontSize: 16, color: colors.textStrong }}
+          >
+            {card.clientFirstName}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={{ fontFamily: POPPINS.regular, fontSize: 13, color: colors.steel }}
+          >
+            {card.clientTrips === 0
+              ? "Nuevo"
+              : `${card.clientTrips} ${card.clientTrips === 1 ? "viaje" : "viajes"}`}
+          </Text>
+        </View>
+        <Avatar uri={card.clientPhotoUrl} />
+      </View>
+
+      <View style={{ height: 1, backgroundColor: border }} />
+
+      <View style={{ gap: 4 }}>
+        <LegLine km={card.pickup.km} minutes={card.pickup.minutes} address={service.origin.address} />
+        <LegLine km={card.trip.km} minutes={card.trip.minutes} address={card.destinationAddress} />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function LegLine({ km, minutes, address }: { km: number; minutes: number; address: string }) {
+  const { colors } = useAppTheme();
+  return (
+    <Text
+      numberOfLines={1}
+      style={{ fontFamily: POPPINS.regular, fontSize: 15, color: colors.textStrong }}
+    >
+      <Text style={{ fontFamily: POPPINS.bold }}>{`${km} km · ${minutes} min  `}</Text>
+      {address}
+    </Text>
+  );
+}
+
+function Avatar({ uri, size = 40 }: { uri: string | null; size?: number }) {
+  const { colors } = useAppTheme();
+  if (uri !== null) {
+    return (
+      <Image
+        source={{ uri }}
+        style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.surface }}
+      />
+    );
+  }
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: colors.surface,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <DrawerIcon name="user" color={colors.steel} size={size * 0.5} />
+    </View>
+  );
+}
+
+function EmptyState({
+  title,
+  subtitle,
+  actionLabel,
+  onAction,
+  loading = false,
+}: {
+  title: string;
+  subtitle: string;
+  actionLabel: string;
+  onAction: () => void;
+  loading?: boolean;
+}) {
+  const { colors } = useAppTheme();
+  return (
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
+      <View
+        style={{
+          width: 112,
+          height: 112,
+          borderRadius: 56,
+          backgroundColor: colors.surfaceSunken,
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 20,
+        }}
+      >
+        <DrawerIcon name="list" color={colors.accent} size={52} />
+      </View>
+      <Text
+        style={{
+          fontFamily: POPPINS.bold,
+          fontSize: 20,
+          lineHeight: 26,
+          color: colors.textStrong,
+          textAlign: "center",
+        }}
+      >
+        {title}
+      </Text>
+      <Text
+        style={{
+          marginTop: 6,
+          fontFamily: POPPINS.regular,
+          fontSize: 16,
+          color: colors.text,
+          textAlign: "center",
+        }}
+      >
+        {subtitle}
+      </Text>
+      <TouchableOpacity
+        onPress={onAction}
+        disabled={loading}
+        activeOpacity={0.8}
+        style={{
+          marginTop: 20,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          paddingHorizontal: 22,
+          paddingVertical: 12,
+          borderRadius: 16,
+          backgroundColor: colors.surfaceSunken,
+        }}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color={colors.textStrong} />
+        ) : (
+          <Text style={{ fontSize: 20, color: colors.textStrong, marginTop: -2 }}>↻</Text>
+        )}
+        <Text style={{ fontFamily: POPPINS.medium, fontSize: 17, color: colors.textStrong }}>
+          {actionLabel}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function OfferSheet({
+  service,
+  price,
+  onChangePrice,
+  submitting,
+  onSubmit,
+  onClose,
+}: {
+  service: OpenOfferService | null;
+  price: number;
+  onChangePrice: (price: number) => void;
+  submitting: boolean;
+  onSubmit: () => void;
+  onClose: () => void;
+}) {
+  const { colors } = useAppTheme();
+  if (service === null) {
+    return null;
+  }
+  const card = service.offerCard;
+  const { floor, max } = offerBounds(service);
+  const step = (delta: number) =>
+    onChangePrice(Math.min(max, Math.max(floor, Math.round((price + delta) * 100) / 100)));
+
+  return (
+    <DriverSheet visible title="Tu oferta" onClose={onClose}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 }}>
+        <Avatar uri={card.clientPhotoUrl} size={44} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontFamily: POPPINS.semibold, fontSize: 17, color: colors.textStrong }}>
+            {`${card.clientFirstName} · ${hoursLabel(card.serviceHours)}`}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={{ fontFamily: POPPINS.regular, fontSize: 14, color: colors.steel }}
+          >
+            {`${service.origin.address} → ${card.destinationAddress}`}
+          </Text>
+        </View>
+      </View>
+
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingVertical: 8,
+        }}
+      >
+        <StepButton label="−" onPress={() => step(-OFFER_STEP)} disabled={price <= floor} />
+        <Text
+          style={{ fontFamily: POPPINS.bold, fontSize: 40, color: colors.textStrong, ...TABULAR }}
+        >
+          {soles(price)}
+        </Text>
+        <StepButton label="+" onPress={() => step(OFFER_STEP)} disabled={price >= max} />
+      </View>
+      <Text
+        style={{
+          textAlign: "center",
+          fontFamily: POPPINS.regular,
+          fontSize: 14,
+          color: colors.steel,
+          marginBottom: 16,
+        }}
+      >
+        {`Entre ${soles(floor)} y ${soles(max)}`}
+      </Text>
+
+      <TacticalButton
+        label={`Ofertar ${soles(price)}`}
+        onPress={onSubmit}
+        loading={submitting}
+        disabled={submitting}
+      />
+    </DriverSheet>
+  );
+}
+
+function StepButton({
+  label,
+  onPress,
+  disabled,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled: boolean;
+}) {
+  const { colors } = useAppTheme();
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityLabel={label === "+" ? "Subir oferta" : "Bajar oferta"}
+      style={{
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: colors.surfaceSunken,
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: disabled ? 0.35 : 1,
+      }}
+    >
+      <Text style={{ fontFamily: POPPINS.bold, fontSize: 28, color: colors.textStrong }}>
+        {label}
+      </Text>
+    </TouchableOpacity>
   );
 }

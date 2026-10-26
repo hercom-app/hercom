@@ -9,7 +9,7 @@ export type DriverTab = "servicio" | "lista" | "ingresos" | "chats" | "perfil";
 const TABS: { key: DriverTab; label: string; icon: DrawerIconName }[] = [
   { key: "servicio", label: "Servicio", icon: "navigate" },
   { key: "lista", label: "Lista", icon: "list" },
-  { key: "ingresos", label: "Ingresos", icon: "wallet" },
+  { key: "ingresos", label: "Dinero", icon: "wallet" },
   { key: "chats", label: "Chats", icon: "chat" },
   { key: "perfil", label: "Perfil", icon: "user" },
 ];

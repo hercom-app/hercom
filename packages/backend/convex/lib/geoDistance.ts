@@ -44,6 +44,23 @@ export function isWithinDriverServiceRadius(
   return haversineDistanceKm(driver, origin) <= maxKm;
 }
 
+/** Sin API de rutas: factor calle/línea recta y velocidad media urbana (Lima). */
+const ROAD_DISTANCE_FACTOR = 1.3;
+const URBAN_AVG_SPEED_KMH = 22;
+
+/** Distancia por calle y minutos estimados recorriendo los puntos en orden. */
+export function estimateRoadLeg(
+  points: { lat: number; lng: number }[],
+): { km: number; minutes: number } {
+  let straightKm = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    straightKm += haversineDistanceKm(points[index - 1]!, points[index]!);
+  }
+  const km = Math.round(straightKm * ROAD_DISTANCE_FACTOR * 10) / 10;
+  const minutes = Math.max(1, Math.round((km / URBAN_AVG_SPEED_KMH) * 60));
+  return { km, minutes };
+}
+
 export function formatDistanceKm(km: number): string {
   if (km < 1) {
     return `${Math.round(km * 1000)} m`;

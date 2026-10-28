@@ -4,39 +4,43 @@ import {
   Pressable,
   ScrollView,
   Text,
+  useWindowDimensions,
   View,
   type ImageSourcePropType,
 } from "react-native";
 import { HERCOM_COLORS, POPPINS } from "../../constants/theme";
+import {
+  SAFETY_CLAY_KEY_GLASS,
+  SERVICE_DISCOVERY_IMAGES,
+} from "../../constants/homeAssets";
 import type { RecentDestination } from "../../lib/recentDestinations";
 import { PinGlyph, SearchGlyph } from "./RouteIcons";
 
-/** Cuadrícula 2×2 estilo inDrive: 3 servicios; celda inferior derecha vacía. */
 const SERVICE_DISCOVERY = [
   {
     key: "premium",
     title: "Chofer Premium",
     url: "https://hercom-landing.vercel.app/servicios/chofer-premium",
-    image: require("../../../assets/images/services/chofer-premium.png"),
+    image: SERVICE_DISCOVERY_IMAGES.premium,
   },
   {
     key: "seguro",
     title: "Chofer Seguro",
     url: "https://hercom-landing.vercel.app/servicios/chofer-seguro",
-    image: require("../../../assets/images/services/chofer-seguro.png"),
+    image: SERVICE_DISCOVERY_IMAGES.seguro,
   },
   {
     key: "flota",
     title: "Chofer de Flota",
     url: "https://hercom-landing.vercel.app/servicios/chofer-de-flota",
-    image: require("../../../assets/images/services/chofer-flota.png"),
+    image: SERVICE_DISCOVERY_IMAGES.flota,
   },
 ] as const;
 
 const SERVICE_TILE_HEIGHT = 128;
-const SERVICE_ILLUSTRATION = { width: 92, height: 76 };
-
-const SAFETY_CLAY_IMAGE = require("../../../assets/images/safety-clay-key-glass.png");
+const SERVICE_ILLUSTRATION = { width: 96, height: 80 };
+const HORIZONTAL_PADDING = 16;
+const GRID_GAP = 10;
 
 const SAFETY_TIPS = [
   { key: "vida", label: "No expongas tu vida", tint: "#E8F2FF" },
@@ -44,7 +48,6 @@ const SAFETY_TIPS = [
   { key: "multas", label: "Evita multas", tint: "#FFF4E8" },
 ] as const;
 
-/** Sombra suave tipo clay (volumen + borde claro). */
 const claySurface = (fill: string) => ({
   backgroundColor: fill,
   borderRadius: 20,
@@ -67,7 +70,7 @@ function SafetyAwarenessBlock() {
             minHeight: 152,
             paddingLeft: 18,
             paddingVertical: 16,
-            paddingRight: 8,
+            paddingRight: 10,
             flexDirection: "row",
             alignItems: "center",
             overflow: "hidden",
@@ -111,12 +114,22 @@ function SafetyAwarenessBlock() {
             volante.
           </Text>
         </View>
-        <Image
-          source={SAFETY_CLAY_IMAGE}
-          resizeMode="contain"
-          accessibilityIgnoresInvertColors
-          style={{ width: 118, height: 118, zIndex: 1 }}
-        />
+        <View
+          style={{
+            width: 118,
+            height: 118,
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1,
+          }}
+        >
+          <Image
+            source={SAFETY_CLAY_KEY_GLASS}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+            style={{ width: 118, height: 118 }}
+          />
+        </View>
       </View>
 
       <View style={{ flexDirection: "row", gap: 8 }}>
@@ -157,10 +170,12 @@ function SafetyAwarenessBlock() {
 function ServiceDiscoveryTile({
   title,
   image,
+  width,
   onPress,
 }: {
   title: string;
   image: ImageSourcePropType;
+  width: number;
   onPress: () => void;
 }) {
   return (
@@ -169,8 +184,7 @@ function ServiceDiscoveryTile({
       accessibilityRole="link"
       accessibilityLabel={title}
       style={({ pressed }) => ({
-        flex: 1,
-        minWidth: 0,
+        width,
         height: SERVICE_TILE_HEIGHT,
         borderRadius: 16,
         backgroundColor: "#F3F4F6",
@@ -184,11 +198,12 @@ function ServiceDiscoveryTile({
           position: "absolute",
           top: 14,
           left: 14,
-          right: SERVICE_ILLUSTRATION.width + 8,
+          right: SERVICE_ILLUSTRATION.width + 6,
           fontFamily: POPPINS.semibold,
           fontSize: 15,
           lineHeight: 20,
           color: HERCOM_COLORS.text,
+          zIndex: 2,
         }}
       >
         {title}
@@ -198,24 +213,26 @@ function ServiceDiscoveryTile({
         resizeMode="contain"
         style={{
           position: "absolute",
-          right: 4,
-          bottom: 0,
+          right: 2,
+          bottom: 2,
           width: SERVICE_ILLUSTRATION.width,
           height: SERVICE_ILLUSTRATION.height,
+          zIndex: 1,
         }}
       />
     </Pressable>
   );
 }
 
-function ServiceDiscoveryGrid() {
+function ServiceDiscoveryGrid({ tileWidth }: { tileWidth: number }) {
   const [premium, seguro, flota] = SERVICE_DISCOVERY;
   return (
-    <View style={{ gap: 10 }}>
-      <View style={{ flexDirection: "row", gap: 10 }}>
+    <View style={{ gap: GRID_GAP }}>
+      <View style={{ flexDirection: "row", gap: GRID_GAP }}>
         <ServiceDiscoveryTile
           title={premium.title}
           image={premium.image}
+          width={tileWidth}
           onPress={() => {
             void Linking.openURL(premium.url);
           }}
@@ -223,20 +240,21 @@ function ServiceDiscoveryGrid() {
         <ServiceDiscoveryTile
           title={seguro.title}
           image={seguro.image}
+          width={tileWidth}
           onPress={() => {
             void Linking.openURL(seguro.url);
           }}
         />
       </View>
-      <View style={{ flexDirection: "row", gap: 10 }}>
+      <View style={{ flexDirection: "row", gap: GRID_GAP }}>
         <ServiceDiscoveryTile
           title={flota.title}
           image={flota.image}
+          width={tileWidth}
           onPress={() => {
             void Linking.openURL(flota.url);
           }}
         />
-        <View style={{ flex: 1, minWidth: 0 }} />
       </View>
     </View>
   );
@@ -257,14 +275,20 @@ export function HomeRequestSheet({
   error,
   bottomInset,
 }: HomeRequestSheetProps) {
+  const { width: screenWidth } = useWindowDimensions();
+  const tileWidth = Math.floor(
+    (screenWidth - HORIZONTAL_PADDING * 2 - GRID_GAP) / 2,
+  );
+
   return (
     <ScrollView
       style={{ flex: 1 }}
+      nestedScrollEnabled
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{
-        paddingHorizontal: 16,
-        paddingBottom: bottomInset + 12,
+        paddingHorizontal: HORIZONTAL_PADDING,
+        paddingBottom: bottomInset + 24,
       }}
     >
       <Pressable
@@ -366,7 +390,7 @@ export function HomeRequestSheet({
         >
           Más formas de usar Hercom
         </Text>
-        <ServiceDiscoveryGrid />
+        <ServiceDiscoveryGrid tileWidth={tileWidth} />
       </View>
 
       {error !== null && (

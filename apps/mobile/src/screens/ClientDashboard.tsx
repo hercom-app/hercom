@@ -669,7 +669,7 @@ export function ClientDashboard() {
     Math.min(560, Math.max(420, screenHeight * 0.58)),
   );
   const homeSheetHeight = Math.round(
-    Math.min(640, Math.max(460, screenHeight * 0.64)),
+    Math.min(680, Math.max(500, screenHeight * 0.66)),
   );
   const activeClientServices = (services ?? []).filter((service) =>
     isActiveServiceStatus(service.status),

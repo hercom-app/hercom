@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import {
   Image,
   Linking,
@@ -37,35 +36,120 @@ const SERVICE_DISCOVERY = [
 const SERVICE_TILE_HEIGHT = 128;
 const SERVICE_ILLUSTRATION = { width: 92, height: 76 };
 
-const BENTO = [
-  {
-    key: "rest",
-    title: "Tú descansas, él conduce",
-    body: "Un chofer de remplazo maneja tu auto. Tú solo llegas.",
-    background: "#FFF6D6",
-  },
-  {
-    key: "safe",
-    title: "Llegas seguro",
-    body: "Alcohol, cansancio o estrés: mejor no tomar el volante.",
-    background: "#E5F8EA",
-  },
-  {
-    key: "car",
-    title: "Tu auto contigo",
-    body: "No lo dejas. La ruta es la tuya, en tu vehículo.",
-    background: "#FFE8DC",
-  },
+const SAFETY_CLAY_IMAGE = require("../../../assets/images/safety-clay-key-glass.png");
+
+const SAFETY_TIPS = [
+  { key: "vida", label: "No expongas tu vida", tint: "#E8F2FF" },
+  { key: "accidentes", label: "Evita accidentes", tint: "#EAF8EF" },
+  { key: "multas", label: "Evita multas", tint: "#FFF4E8" },
 ] as const;
 
-const HALF_ROW_MIN_HEIGHT = 132;
+/** Sombra suave tipo clay (volumen + borde claro). */
+const claySurface = (fill: string) => ({
+  backgroundColor: fill,
+  borderRadius: 20,
+  borderWidth: 1,
+  borderColor: "rgba(255, 255, 255, 0.72)",
+  shadowColor: "#64748B",
+  shadowOffset: { width: 0, height: 6 },
+  shadowOpacity: 0.14,
+  shadowRadius: 12,
+  elevation: 4,
+});
 
-/** Dos columnas iguales (50 % / 50 %), como las tarjetas bento de arriba. */
-function BentoHalfRow({ left, right }: { left: ReactNode; right: ReactNode }) {
+function SafetyAwarenessBlock() {
   return (
-    <View style={{ flexDirection: "row", width: "100%", gap: 10 }}>
-      <View style={{ flex: 1, minWidth: 0 }}>{left}</View>
-      <View style={{ flex: 1, minWidth: 0 }}>{right}</View>
+    <View style={{ gap: 10 }}>
+      <View
+        style={[
+          claySurface("#F3F8FF"),
+          {
+            minHeight: 152,
+            paddingLeft: 18,
+            paddingVertical: 16,
+            paddingRight: 8,
+            flexDirection: "row",
+            alignItems: "center",
+            overflow: "hidden",
+          },
+        ]}
+      >
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            right: -24,
+            top: -20,
+            width: 160,
+            height: 160,
+            borderRadius: 80,
+            backgroundColor: "rgba(255, 255, 255, 0.55)",
+          }}
+        />
+        <View style={{ flex: 1, paddingRight: 8, zIndex: 1 }}>
+          <Text
+            style={{
+              fontFamily: POPPINS.bold,
+              fontSize: 17,
+              lineHeight: 22,
+              letterSpacing: 0.2,
+              color: HERCOM_COLORS.text,
+            }}
+          >
+            TU SEGURIDAD ES NUESTRA PRIORIDAD
+          </Text>
+          <Text
+            style={{
+              marginTop: 8,
+              fontFamily: POPPINS.regular,
+              fontSize: 14,
+              lineHeight: 20,
+              color: HERCOM_COLORS.textSecondary,
+            }}
+          >
+            Un chofer de remplazo maneja por ti. Tú llegas sin arriesgar la vida ni el
+            volante.
+          </Text>
+        </View>
+        <Image
+          source={SAFETY_CLAY_IMAGE}
+          resizeMode="contain"
+          accessibilityIgnoresInvertColors
+          style={{ width: 118, height: 118, zIndex: 1 }}
+        />
+      </View>
+
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {SAFETY_TIPS.map((tip) => (
+          <View
+            key={tip.key}
+            style={[
+              claySurface(tip.tint),
+              {
+                flex: 1,
+                minWidth: 0,
+                minHeight: 92,
+                paddingHorizontal: 10,
+                paddingVertical: 12,
+                justifyContent: "center",
+              },
+            ]}
+          >
+            <Text
+              numberOfLines={3}
+              style={{
+                fontFamily: POPPINS.semibold,
+                fontSize: 12,
+                lineHeight: 16,
+                textAlign: "center",
+                color: HERCOM_COLORS.text,
+              }}
+            >
+              {tip.label}
+            </Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -155,76 +239,6 @@ function ServiceDiscoveryGrid() {
         <View style={{ flex: 1, minWidth: 0 }} />
       </View>
     </View>
-  );
-}
-
-function BentoTile({
-  title,
-  body,
-  background,
-  compact = false,
-  minHeight,
-  onPress,
-}: {
-  title: string;
-  body: string;
-  background: string;
-  compact?: boolean;
-  minHeight?: number;
-  onPress?: () => void;
-}) {
-  const tileStyle = {
-    width: "100%" as const,
-    backgroundColor: background,
-    borderRadius: 20,
-    paddingHorizontal: compact ? 12 : 16,
-    paddingVertical: compact ? 14 : 16,
-    minHeight,
-  };
-  const titleSize = compact ? 15 : 17;
-  const bodySize = compact ? 12 : 14;
-
-  const content = (
-    <>
-      <Text
-        numberOfLines={compact ? 2 : 3}
-        style={{
-          fontFamily: POPPINS.bold,
-          fontSize: titleSize,
-          lineHeight: titleSize + 4,
-          color: HERCOM_COLORS.text,
-        }}
-      >
-        {title}
-      </Text>
-      <Text
-        numberOfLines={compact ? 3 : 4}
-        style={{
-          marginTop: 6,
-          fontFamily: POPPINS.regular,
-          fontSize: bodySize,
-          lineHeight: bodySize + 4,
-          color: HERCOM_COLORS.textSecondary,
-        }}
-      >
-        {body}
-      </Text>
-    </>
-  );
-
-  if (onPress === undefined) {
-    return <View style={tileStyle}>{content}</View>;
-  }
-
-  return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel={title}
-      onPress={onPress}
-      style={({ pressed }) => [tileStyle, { opacity: pressed ? 0.88 : 1 }]}
-    >
-      {content}
-    </Pressable>
   );
 }
 
@@ -337,32 +351,8 @@ export function HomeRequestSheet({
         </View>
       )}
 
-      <View style={{ marginTop: 16, gap: 10 }}>
-        <BentoTile
-          title={BENTO[0].title}
-          body={BENTO[0].body}
-          background={BENTO[0].background}
-        />
-        <BentoHalfRow
-          left={
-            <BentoTile
-              title={BENTO[1].title}
-              body={BENTO[1].body}
-              background={BENTO[1].background}
-              compact
-              minHeight={HALF_ROW_MIN_HEIGHT}
-            />
-          }
-          right={
-            <BentoTile
-              title={BENTO[2].title}
-              body={BENTO[2].body}
-              background={BENTO[2].background}
-              compact
-              minHeight={HALF_ROW_MIN_HEIGHT}
-            />
-          }
-        />
+      <View style={{ marginTop: 16 }}>
+        <SafetyAwarenessBlock />
       </View>
 
       <View style={{ marginTop: 22, gap: 10 }}>

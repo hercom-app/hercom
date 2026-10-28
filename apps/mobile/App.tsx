@@ -30,6 +30,7 @@ import { ThemeProvider, useAppTheme } from "./src/contexts/ThemeContext";
 import { SignInScreen } from "./src/screens/SignInScreen";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { HERCOM_COLORS, POPPINS, TYPE } from "./src/constants/theme";
+import { useEasUpdate } from "./src/hooks/useEasUpdate";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -72,6 +73,7 @@ function applyTypeDefaults() {
 }
 
 export default function App() {
+  useEasUpdate();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,

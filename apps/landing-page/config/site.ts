@@ -21,6 +21,10 @@ export const siteConfig = {
       href: "/servicios",
     },
     {
+      label: "Cuidando vidas",
+      href: "/cuidando-vidas",
+    },
+    {
       label: "Contáctanos",
       href: "/contactanos",
     },
@@ -41,6 +45,10 @@ export const siteConfig = {
     {
       label: "Servicios",
       href: "/servicios",
+    },
+    {
+      label: "Cuidando vidas",
+      href: "/cuidando-vidas",
     },
     {
       label: "Contáctanos",

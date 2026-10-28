@@ -19,11 +19,11 @@ import { Faqs } from "@/components/faqs";
 export default function Home() {
   return (
     <>
-      <main className="relative overflow-hidden bg-neutral-200 dark:bg-neutral-900 w-full min-h-screen -mt-16 pt-16 lg:min-h-[600px] lg:py-16 bg-[url(../assets/map-light.webp)] dark:bg-[url(../assets/map-dark.webp)] bg-cover">
+      <main className="relative flex min-h-screen w-full flex-col overflow-hidden bg-neutral-200 bg-[url(../assets/map-light.webp)] bg-cover pt-16 -mt-16 dark:bg-neutral-900 dark:bg-[url(../assets/map-dark.webp)]">
         <div className="absolute z-[2] w-screen top-0 left-0 bg-gradient-to-b from-primary/75 to-transparent h-10" />
-        <div className="section h-full">
-          <div className="flex flex-col items-center justify-between h-full lg:flex-row lg:gap-20">
-            <div className="flex flex-col max-lg:items-center max-[400px]:pt-10 pt-[10vh]">
+        <div className="section flex min-h-[calc(100svh-4rem)] flex-1 items-center">
+          <div className="flex w-full flex-col items-center justify-between lg:flex-row lg:gap-20">
+            <div className="flex flex-col max-lg:items-center">
               <h1
                 className={title({
                   class: "max-lg:text-center lg:font-bold lg:text-balance",

@@ -333,11 +333,33 @@ export const ServiceCard = memo(function ServiceCard({
                   Código del cliente
                 </Text>
                 <Text style={{ fontFamily: POPPINS.regular, fontSize: 14, color: colors.steel }}>
-                  Pídele los 4 dígitos que ve en su app
+                  {service.securityCode !== undefined
+                    ? "Míralo y escríbelo abajo para comparar"
+                    : "Este servicio no tiene código de inicio."}
                 </Text>
               </View>
             </View>
-            <CodeInput value={securityCodeDigits} onChange={setSecurityCodeInput} />
+            {service.securityCode !== undefined && (
+              <>
+                <TripSecurityPin
+                  pin={service.securityCode}
+                  title="Código que debe decirte"
+                  inset={false}
+                  style={{ marginBottom: 0 }}
+                />
+                <Text
+                  style={{
+                    textAlign: "center",
+                    fontFamily: POPPINS.medium,
+                    fontSize: 13,
+                    color: colors.steel,
+                  }}
+                >
+                  Escríbelo aquí
+                </Text>
+                <CodeInput value={securityCodeDigits} onChange={setSecurityCodeInput} />
+              </>
+            )}
           </SoftGroup>
 
           <SlideToConfirm

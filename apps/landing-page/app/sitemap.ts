@@ -15,6 +15,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: "https://www.hercom.pe/cuidando-vidas",
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
       url: "https://www.hercom.pe/servicios",
       lastModified: new Date(),
       changeFrequency: "monthly",

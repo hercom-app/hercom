@@ -4,13 +4,13 @@ import {
   Pressable,
   ScrollView,
   Text,
-  useWindowDimensions,
   View,
   type ImageSourcePropType,
 } from "react-native";
 import { HERCOM_COLORS, POPPINS } from "../../constants/theme";
 import {
   SAFETY_CLAY_KEY_GLASS,
+  SAFETY_TIP_IMAGES,
   SERVICE_DISCOVERY_IMAGES,
 } from "../../constants/homeAssets";
 import type { RecentDestination } from "../../lib/recentDestinations";
@@ -22,6 +22,12 @@ const SERVICE_DISCOVERY = [
     title: "Chofer Premium",
     url: "https://hercom-landing.vercel.app/servicios/chofer-premium",
     image: SERVICE_DISCOVERY_IMAGES.premium,
+  },
+  {
+    key: "corporativo",
+    title: "Chofer Corporativo",
+    url: "https://hercom-landing.vercel.app/servicios/chofer-corporativo",
+    image: null,
   },
   {
     key: "seguro",
@@ -37,16 +43,34 @@ const SERVICE_DISCOVERY = [
   },
 ] as const;
 
-const SERVICE_TILE_HEIGHT = 128;
-const SERVICE_ILLUSTRATION = { width: 96, height: 80 };
+const SERVICE_TILE_HEIGHT = 188;
 const HORIZONTAL_PADDING = 16;
 const GRID_GAP = 10;
 
 const SAFETY_TIPS = [
-  { key: "vida", label: "No expongas tu vida", tint: "#E8F2FF" },
-  { key: "accidentes", label: "Evita accidentes", tint: "#EAF8EF" },
-  { key: "multas", label: "Evita multas", tint: "#FFF4E8" },
+  {
+    key: "vida",
+    label: "No expongas tu vida",
+    tint: "#F8D4C4",
+    image: SAFETY_TIP_IMAGES.cross,
+  },
+  {
+    key: "accidentes",
+    label: "Evita accidentes",
+    tint: "#D7EFE6",
+    image: SAFETY_TIP_IMAGES.car,
+  },
+  {
+    key: "multas",
+    label: "Evita multas",
+    tint: "#F8F0C4",
+    image: SAFETY_TIP_IMAGES.dollar,
+  },
 ] as const;
+
+const COMMERCIAL_BASE =
+  process.env.EXPO_PUBLIC_LIVE_SHARE_BASE_URL?.replace(/\/$/, "") ??
+  "https://hercom-landing.vercel.app";
 
 const claySurface = (fill: string) => ({
   backgroundColor: fill,
@@ -67,69 +91,35 @@ function SafetyAwarenessBlock() {
         style={[
           claySurface("#F3F8FF"),
           {
-            minHeight: 152,
+            minHeight: 132,
             paddingLeft: 18,
             paddingVertical: 16,
-            paddingRight: 10,
+            paddingRight: 0,
             flexDirection: "row",
             alignItems: "center",
-            overflow: "hidden",
+            overflow: "visible",
           },
         ]}
       >
-        <View
-          pointerEvents="none"
+        <Text
           style={{
-            position: "absolute",
-            right: -24,
-            top: -20,
-            width: 160,
-            height: 160,
-            borderRadius: 80,
-            backgroundColor: "rgba(255, 255, 255, 0.55)",
-          }}
-        />
-        <View style={{ flex: 1, paddingRight: 8, zIndex: 1 }}>
-          <Text
-            style={{
-              fontFamily: POPPINS.bold,
-              fontSize: 17,
-              lineHeight: 22,
-              letterSpacing: 0.2,
-              color: HERCOM_COLORS.text,
-            }}
-          >
-            TU SEGURIDAD ES NUESTRA PRIORIDAD
-          </Text>
-          <Text
-            style={{
-              marginTop: 8,
-              fontFamily: POPPINS.regular,
-              fontSize: 14,
-              lineHeight: 20,
-              color: HERCOM_COLORS.textSecondary,
-            }}
-          >
-            Un chofer de remplazo maneja por ti. Tú llegas sin arriesgar la vida ni el
-            volante.
-          </Text>
-        </View>
-        <View
-          style={{
-            width: 118,
-            height: 118,
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1,
+            flex: 1,
+            paddingRight: 4,
+            fontFamily: POPPINS.bold,
+            fontSize: 17,
+            lineHeight: 22,
+            letterSpacing: 0.2,
+            color: HERCOM_COLORS.text,
           }}
         >
-          <Image
-            source={SAFETY_CLAY_KEY_GLASS}
-            resizeMode="contain"
-            accessibilityIgnoresInvertColors
-            style={{ width: 118, height: 118 }}
-          />
-        </View>
+          TU SEGURIDAD ES NUESTRA PRIORIDAD
+        </Text>
+        <Image
+          source={SAFETY_CLAY_KEY_GLASS}
+          resizeMode="contain"
+          accessibilityIgnoresInvertColors
+          style={{ width: 132, height: 132, marginRight: -18 }}
+        />
       </View>
 
       <View style={{ flexDirection: "row", gap: 8 }}>
@@ -141,13 +131,21 @@ function SafetyAwarenessBlock() {
               {
                 flex: 1,
                 minWidth: 0,
-                minHeight: 92,
-                paddingHorizontal: 10,
-                paddingVertical: 12,
-                justifyContent: "center",
+                minHeight: 148,
+                paddingHorizontal: 6,
+                paddingTop: 8,
+                paddingBottom: 10,
+                alignItems: "center",
+                justifyContent: "space-between",
               },
             ]}
           >
+            <Image
+              source={tip.image}
+              resizeMode="contain"
+              accessibilityIgnoresInvertColors
+              style={{ width: "100%", height: 86 }}
+            />
             <Text
               numberOfLines={3}
               style={{
@@ -163,6 +161,32 @@ function SafetyAwarenessBlock() {
           </View>
         ))}
       </View>
+
+      <Pressable
+        onPress={() => {
+          void Linking.openURL(`${COMMERCIAL_BASE}/cuidando-vidas`);
+        }}
+        accessibilityRole="link"
+        accessibilityLabel="Infórmame más sobre cuidar vidas"
+        style={({ pressed }) => ({
+          height: 48,
+          borderRadius: 14,
+          backgroundColor: HERCOM_COLORS.text,
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: pressed ? 0.88 : 1,
+        })}
+      >
+        <Text
+          style={{
+            fontFamily: POPPINS.semibold,
+            fontSize: 15,
+            color: "#FFFFFF",
+          }}
+        >
+          Infórmame más
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -170,12 +194,10 @@ function SafetyAwarenessBlock() {
 function ServiceDiscoveryTile({
   title,
   image,
-  width,
   onPress,
 }: {
   title: string;
-  image: ImageSourcePropType;
-  width: number;
+  image: ImageSourcePropType | null;
   onPress: () => void;
 }) {
   return (
@@ -183,79 +205,66 @@ function ServiceDiscoveryTile({
       onPress={onPress}
       accessibilityRole="link"
       accessibilityLabel={title}
-      style={({ pressed }) => ({
-        width,
-        height: SERVICE_TILE_HEIGHT,
-        borderRadius: 16,
-        backgroundColor: "#F3F4F6",
-        overflow: "hidden",
-        opacity: pressed ? 0.9 : 1,
-      })}
+      style={{ flex: 1, minWidth: 0, height: SERVICE_TILE_HEIGHT }}
     >
-      <Text
-        numberOfLines={2}
+      <View
+        collapsable={false}
         style={{
-          position: "absolute",
-          top: 14,
-          left: 14,
-          right: SERVICE_ILLUSTRATION.width + 6,
-          fontFamily: POPPINS.semibold,
-          fontSize: 15,
-          lineHeight: 20,
-          color: HERCOM_COLORS.text,
-          zIndex: 2,
+          flex: 1,
+          borderRadius: 16,
+          backgroundColor: "#F3F4F6",
+          overflow: "hidden",
+          paddingTop: 12,
+          paddingHorizontal: 12,
+          paddingBottom: 6,
+          justifyContent: "space-between",
         }}
       >
-        {title}
-      </Text>
-      <Image
-        source={image}
-        resizeMode="contain"
-        style={{
-          position: "absolute",
-          right: 2,
-          bottom: 2,
-          width: SERVICE_ILLUSTRATION.width,
-          height: SERVICE_ILLUSTRATION.height,
-          zIndex: 1,
-        }}
-      />
+        <Text
+          numberOfLines={2}
+          style={{
+            fontFamily: POPPINS.semibold,
+            fontSize: 14,
+            lineHeight: 18,
+            color: HERCOM_COLORS.text,
+          }}
+        >
+          {title}
+        </Text>
+        {image !== null ? (
+          <Image
+            source={image}
+            resizeMode="contain"
+            fadeDuration={0}
+            style={{ width: "100%", height: 124, alignSelf: "flex-end" }}
+          />
+        ) : null}
+      </View>
     </Pressable>
   );
 }
 
-function ServiceDiscoveryGrid({ tileWidth }: { tileWidth: number }) {
-  const [premium, seguro, flota] = SERVICE_DISCOVERY;
+function ServiceDiscoveryGrid() {
+  const rows = [SERVICE_DISCOVERY.slice(0, 2), SERVICE_DISCOVERY.slice(2, 4)];
   return (
-    <View style={{ gap: GRID_GAP }}>
-      <View style={{ flexDirection: "row", gap: GRID_GAP }}>
-        <ServiceDiscoveryTile
-          title={premium.title}
-          image={premium.image}
-          width={tileWidth}
-          onPress={() => {
-            void Linking.openURL(premium.url);
-          }}
-        />
-        <ServiceDiscoveryTile
-          title={seguro.title}
-          image={seguro.image}
-          width={tileWidth}
-          onPress={() => {
-            void Linking.openURL(seguro.url);
-          }}
-        />
-      </View>
-      <View style={{ flexDirection: "row", gap: GRID_GAP }}>
-        <ServiceDiscoveryTile
-          title={flota.title}
-          image={flota.image}
-          width={tileWidth}
-          onPress={() => {
-            void Linking.openURL(flota.url);
-          }}
-        />
-      </View>
+    <View style={{ width: "100%", gap: GRID_GAP }}>
+      {rows.map((row) => (
+        <View
+          key={row[0].key}
+          style={{ flexDirection: "row", width: "100%", gap: GRID_GAP }}
+        >
+          {row.map((service) => (
+            <ServiceDiscoveryTile
+              key={service.key}
+              title={service.title}
+              image={service.image}
+              onPress={() => {
+                void Linking.openURL(service.url);
+              }}
+            />
+          ))}
+        </View>
+      ))}
     </View>
   );
 }
@@ -275,11 +284,6 @@ export function HomeRequestSheet({
   error,
   bottomInset,
 }: HomeRequestSheetProps) {
-  const { width: screenWidth } = useWindowDimensions();
-  const tileWidth = Math.floor(
-    (screenWidth - HORIZONTAL_PADDING * 2 - GRID_GAP) / 2,
-  );
-
   return (
     <ScrollView
       style={{ flex: 1 }}
@@ -390,7 +394,7 @@ export function HomeRequestSheet({
         >
           Más formas de usar Hercom
         </Text>
-        <ServiceDiscoveryGrid tileWidth={tileWidth} />
+        <ServiceDiscoveryGrid />
       </View>
 
       {error !== null && (

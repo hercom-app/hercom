@@ -1,6 +1,12 @@
 /** Requires centralizados para que Metro/EAS Update empaqueten las ilustraciones del home. */
 export const SAFETY_CLAY_KEY_GLASS = require("../../assets/images/safety-clay-key-glass.png");
 
+export const SAFETY_TIP_IMAGES = {
+  cross: require("../../assets/images/safety/clay-cross.jpg"),
+  car: require("../../assets/images/safety/clay-car.jpg"),
+  dollar: require("../../assets/images/safety/clay-dollar.jpg"),
+} as const;
+
 export const SERVICE_DISCOVERY_IMAGES = {
   premium: require("../../assets/images/services/chofer-premium.png"),
   seguro: require("../../assets/images/services/chofer-seguro.png"),

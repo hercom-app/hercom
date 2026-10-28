@@ -32,10 +32,10 @@ const serviceIcons: Record<string, () => ReactNode> = {
 export default function Page() {
   return (
     <>
-      <main className="relative overflow-hidden bg-neutral-200 dark:bg-neutral-900 w-full min-h-screen -mt-16 pt-16 lg:min-h-[600px] lg:py-16 bg-[url(../assets/servicios_background.png)] bg-cover bg-[90%_50%] md:bg-[50%_12%]">
+      <main className="relative flex min-h-screen w-full flex-col overflow-hidden bg-neutral-200 bg-[url(../assets/servicios_background.png)] bg-cover bg-[90%_50%] pt-16 -mt-16 dark:bg-neutral-900 md:bg-[50%_12%]">
         <div className="absolute z-[2] w-screen top-0 left-0 bg-gradient-to-b from-primary/75 to-transparent h-10" />
         <div className="absolute top-0 left-0 z-[1] bg-white/75 dark:bg-black/75 w-full h-full" />
-        <div className="section h-full grid place-items-center relative z-[3]">
+        <div className="section relative z-[3] flex min-h-[calc(100svh-4rem)] flex-1 items-center justify-center">
           <hgroup className="space-y-4 flex flex-col">
             <h1
               className={title({

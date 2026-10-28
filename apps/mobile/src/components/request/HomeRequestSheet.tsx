@@ -1,39 +1,41 @@
 import type { ReactNode } from "react";
-import { Linking, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  Image,
+  Linking,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  type ImageSourcePropType,
+} from "react-native";
 import { HERCOM_COLORS, POPPINS } from "../../constants/theme";
 import type { RecentDestination } from "../../lib/recentDestinations";
 import { PinGlyph, SearchGlyph } from "./RouteIcons";
 
-const OTHER_HERCOM_SERVICES = [
+/** Cuadrícula 2×2 estilo inDrive: 3 servicios; celda inferior derecha vacía. */
+const SERVICE_DISCOVERY = [
   {
     key: "premium",
     title: "Chofer Premium",
-    subtitle: "Para personas · rutina y familia",
     url: "https://hercom-landing.vercel.app/servicios/chofer-premium",
-    background: "#E8F1FF",
-  },
-  {
-    key: "corporativo",
-    title: "Corporativo",
-    subtitle: "Chofer corporativo · empresas",
-    url: "https://hercom-landing.vercel.app/servicios/chofer-corporativo",
-    background: "#F3E8FF",
+    image: require("../../../assets/images/services/chofer-premium.png"),
   },
   {
     key: "seguro",
-    title: "Seguro",
-    subtitle: "Chofer seguro · licencia de armas",
+    title: "Chofer Seguro",
     url: "https://hercom-landing.vercel.app/servicios/chofer-seguro",
-    background: "#E5F6F0",
+    image: require("../../../assets/images/services/chofer-seguro.png"),
   },
   {
     key: "flota",
     title: "Chofer de Flota",
-    subtitle: "Maquinaria, buses y ruta larga",
     url: "https://hercom-landing.vercel.app/servicios/chofer-de-flota",
-    background: "#FFF0E4",
+    image: require("../../../assets/images/services/chofer-flota.png"),
   },
 ] as const;
+
+const SERVICE_TILE_HEIGHT = 128;
+const SERVICE_ILLUSTRATION = { width: 92, height: 76 };
 
 const BENTO = [
   {
@@ -64,6 +66,94 @@ function BentoHalfRow({ left, right }: { left: ReactNode; right: ReactNode }) {
     <View style={{ flexDirection: "row", width: "100%", gap: 10 }}>
       <View style={{ flex: 1, minWidth: 0 }}>{left}</View>
       <View style={{ flex: 1, minWidth: 0 }}>{right}</View>
+    </View>
+  );
+}
+
+function ServiceDiscoveryTile({
+  title,
+  image,
+  onPress,
+}: {
+  title: string;
+  image: ImageSourcePropType;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="link"
+      accessibilityLabel={title}
+      style={({ pressed }) => ({
+        flex: 1,
+        minWidth: 0,
+        height: SERVICE_TILE_HEIGHT,
+        borderRadius: 16,
+        backgroundColor: "#F3F4F6",
+        overflow: "hidden",
+        opacity: pressed ? 0.9 : 1,
+      })}
+    >
+      <Text
+        numberOfLines={2}
+        style={{
+          position: "absolute",
+          top: 14,
+          left: 14,
+          right: SERVICE_ILLUSTRATION.width + 8,
+          fontFamily: POPPINS.semibold,
+          fontSize: 15,
+          lineHeight: 20,
+          color: HERCOM_COLORS.text,
+        }}
+      >
+        {title}
+      </Text>
+      <Image
+        source={image}
+        resizeMode="contain"
+        style={{
+          position: "absolute",
+          right: 4,
+          bottom: 0,
+          width: SERVICE_ILLUSTRATION.width,
+          height: SERVICE_ILLUSTRATION.height,
+        }}
+      />
+    </Pressable>
+  );
+}
+
+function ServiceDiscoveryGrid() {
+  const [premium, seguro, flota] = SERVICE_DISCOVERY;
+  return (
+    <View style={{ gap: 10 }}>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <ServiceDiscoveryTile
+          title={premium.title}
+          image={premium.image}
+          onPress={() => {
+            void Linking.openURL(premium.url);
+          }}
+        />
+        <ServiceDiscoveryTile
+          title={seguro.title}
+          image={seguro.image}
+          onPress={() => {
+            void Linking.openURL(seguro.url);
+          }}
+        />
+      </View>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <ServiceDiscoveryTile
+          title={flota.title}
+          image={flota.image}
+          onPress={() => {
+            void Linking.openURL(flota.url);
+          }}
+        />
+        <View style={{ flex: 1, minWidth: 0 }} />
+      </View>
     </View>
   );
 }
@@ -153,8 +243,6 @@ export function HomeRequestSheet({
   error,
   bottomInset,
 }: HomeRequestSheetProps) {
-  const [premium, corporativo, seguro, flota] = OTHER_HERCOM_SERVICES;
-
   return (
     <ScrollView
       style={{ flex: 1 }}
@@ -286,50 +374,9 @@ export function HomeRequestSheet({
             color: HERCOM_COLORS.text,
           }}
         >
-          Descubre nuestros otros servicios
+          Más formas de usar Hercom
         </Text>
-        <BentoTile
-          title={premium.title}
-          body={premium.subtitle}
-          background={premium.background}
-          onPress={() => {
-            void Linking.openURL(premium.url);
-          }}
-        />
-        <BentoHalfRow
-          left={
-            <BentoTile
-              title={corporativo.title}
-              body={corporativo.subtitle}
-              background={corporativo.background}
-              compact
-              minHeight={HALF_ROW_MIN_HEIGHT}
-              onPress={() => {
-                void Linking.openURL(corporativo.url);
-              }}
-            />
-          }
-          right={
-            <BentoTile
-              title={seguro.title}
-              body={seguro.subtitle}
-              background={seguro.background}
-              compact
-              minHeight={HALF_ROW_MIN_HEIGHT}
-              onPress={() => {
-                void Linking.openURL(seguro.url);
-              }}
-            />
-          }
-        />
-        <BentoTile
-          title={flota.title}
-          body={flota.subtitle}
-          background={flota.background}
-          onPress={() => {
-            void Linking.openURL(flota.url);
-          }}
-        />
+        <ServiceDiscoveryGrid />
       </View>
 
       {error !== null && (

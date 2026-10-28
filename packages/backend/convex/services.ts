@@ -768,7 +768,8 @@ export const startTripWithCode = mutation({
 });
 
 /**
- * Cliente extiende el servicio +1 hora (tarifa horaria acordada).
+ * Cliente avisa extensión +1 h: alarga el tiempo operativo del viaje.
+ * El pago de horas extra es directo al chofer; no se recalcula tarifa ni comisión Hercom.
  */
 export const extendService = mutation({
   args: {
@@ -788,29 +789,12 @@ export const extendService = mutation({
       service.status !== "en_route" &&
       service.status !== "arrived_destination"
     ) {
-      throw new Error("Solo puedes extender un viaje en curso.");
+      throw new Error("Solo puedes avisar extensión en un viaje en curso.");
     }
 
     const market = await getMarketByCountry(ctx, service.origin.countryCode);
-    const hourly = service.hourlyRateSnapshot ?? market.hourlyRate;
     const currentHours = service.serviceHours ?? market.minServiceHours;
     const nextHours = currentHours + 1;
-    const currentOffer = service.offeredPrice ?? service.catalogBasePrice ?? service.basePrice;
-    const nextOffer = normalizeMoney(currentOffer + hourly);
-
-    const commission = computePlatformCommissionForService(
-      nextOffer,
-      service.discountRate,
-      {
-        serviceHours: nextHours,
-        hourlyRate: hourly,
-        market,
-      },
-    );
-    const clientTotal = computeClientTotalForOffer(
-      nextOffer,
-      service.discountRate,
-    );
     const baseEndsAt =
       service.serviceEndsAt ??
       (service.departedWithClientAt !== undefined
@@ -819,13 +803,8 @@ export const extendService = mutation({
     const serviceEndsAt = baseEndsAt + MS_PER_SERVICE_HOUR;
 
     await ctx.db.patch(service._id, {
-      offeredPrice: nextOffer,
-      totalPrice: clientTotal,
-      driverCommission: commission,
       serviceHours: nextHours,
-      hourlyRateSnapshot: hourly,
       serviceEndsAt,
-      advanceAmount: computeClientAdvance(nextOffer),
     });
 
     if (service.driverId !== undefined) {
@@ -835,7 +814,8 @@ export const extendService = mutation({
           userId: driver.userId,
           type: "trip_extended",
           title: "Servicio extendido",
-          message: `El cliente extendió el viaje 1 hora. Nueva tarifa acordada: S/${nextOffer.toFixed(2)}.`,
+          message:
+            "El cliente avisó que necesita 1 hora más. Sigue en servicio. Las horas extra se pagan directo a ti, fuera de la app.",
           serviceId: service._id,
         });
       }
@@ -844,7 +824,6 @@ export const extendService = mutation({
     return {
       serviceHours: nextHours,
       serviceEndsAt,
-      offeredPrice: nextOffer,
     };
   },
 });

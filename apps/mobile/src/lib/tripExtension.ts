@@ -1,7 +1,5 @@
 import type { Doc } from "@proyecto/backend/dataModel";
 
-export const EXTEND_SERVICE_PROMPT_MS = 20 * 60 * 1000;
-
 const EXTENDABLE_STATUSES: Doc<"services">["status"][] = [
   "in_progress",
   "en_route",
@@ -34,20 +32,6 @@ export function msUntilServiceEnd(
     return null;
   }
   return endsAt - nowMs;
-}
-
-export function shouldPromptExtendService(
-  service: Doc<"services">,
-  nowMs = Date.now(),
-): boolean {
-  if (!canClientExtendTrip(service.status)) {
-    return false;
-  }
-  const remaining = msUntilServiceEnd(service, nowMs);
-  if (remaining === null) {
-    return false;
-  }
-  return remaining > 0 && remaining <= EXTEND_SERVICE_PROMPT_MS;
 }
 
 export function formatRemainingTime(ms: number): string {

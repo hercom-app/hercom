@@ -14,13 +14,6 @@ type MarketFormState = {
   currencyCode: string;
   currencySymbol: string;
   usdExchangeRate: string;
-  hourlyRate: string;
-  minServiceHours: string;
-  commissionPercent: string;
-  commissionPercentFromHour3: string;
-  commissionPercentFromHour8: string;
-  commissionFromHour3: string;
-  commissionFromHour8: string;
   maxDriverMarkupPercent: string;
   maxDriverOfferDistanceKm: string;
   active: boolean;
@@ -30,17 +23,15 @@ const EMPTY_FORM: MarketFormState = {
   currencyCode: "",
   currencySymbol: "",
   usdExchangeRate: "",
-  hourlyRate: "",
-  minServiceHours: "",
-  commissionPercent: "",
-  commissionPercentFromHour3: "15",
-  commissionPercentFromHour8: "10",
-  commissionFromHour3: "3",
-  commissionFromHour8: "8",
   maxDriverMarkupPercent: "50",
   maxDriverOfferDistanceKm: "10",
   active: true,
 };
+
+/** Valores fijos del producto (no se editan desde admin). */
+const FIXED_HOURLY_RATE = 40;
+const FIXED_MIN_SERVICE_HOURS = 2;
+const FIXED_COMMISSION_RATE = 0.25;
 
 function Field({
   label,
@@ -82,17 +73,6 @@ export function MarketsView() {
       currencyCode: pricing.currencyCode,
       currencySymbol: pricing.currencySymbol,
       usdExchangeRate: String(pricing.usdExchangeRate),
-      hourlyRate: String(pricing.hourlyRate),
-      minServiceHours: String(pricing.minServiceHours),
-      commissionPercent: String(pricing.commissionRate * 100),
-      commissionPercentFromHour3: String(
-        (pricing.commissionRateFromHour3 ?? 0.15) * 100,
-      ),
-      commissionPercentFromHour8: String(
-        (pricing.commissionRateFromHour8 ?? 0.1) * 100,
-      ),
-      commissionFromHour3: String(pricing.commissionFromHour3 ?? 3),
-      commissionFromHour8: String(pricing.commissionFromHour8 ?? 8),
       maxDriverMarkupPercent: String(
         (pricing.maxDriverMarkupOverBase ?? 0.5) * 100,
       ),
@@ -114,15 +94,13 @@ export function MarketsView() {
         currencyCode: form.currencyCode.trim(),
         currencySymbol: form.currencySymbol.trim(),
         usdExchangeRate: Number(form.usdExchangeRate),
-        hourlyRate: Number(form.hourlyRate),
-        minServiceHours: Number(form.minServiceHours),
-        commissionRate: Number(form.commissionPercent) / 100,
-        commissionRateFromHour3:
-          Number(form.commissionPercentFromHour3) / 100,
-        commissionRateFromHour8:
-          Number(form.commissionPercentFromHour8) / 100,
-        commissionFromHour3: Number(form.commissionFromHour3),
-        commissionFromHour8: Number(form.commissionFromHour8),
+        hourlyRate: pricing?.hourlyRate ?? FIXED_HOURLY_RATE,
+        minServiceHours: pricing?.minServiceHours ?? FIXED_MIN_SERVICE_HOURS,
+        commissionRate: pricing?.commissionRate ?? FIXED_COMMISSION_RATE,
+        commissionRateFromHour3: pricing?.commissionRateFromHour3 ?? 0.15,
+        commissionRateFromHour8: pricing?.commissionRateFromHour8 ?? 0.1,
+        commissionFromHour3: pricing?.commissionFromHour3 ?? 3,
+        commissionFromHour8: pricing?.commissionFromHour8 ?? 8,
         maxDriverMarkupOverBase: Number(form.maxDriverMarkupPercent) / 100,
         maxDriverOfferDistanceKm: Number(form.maxDriverOfferDistanceKm),
         active: form.active,
@@ -138,11 +116,6 @@ export function MarketsView() {
       setSubmitting(false);
     }
   }
-
-  const minPrice =
-    pricing !== null && pricing !== undefined
-      ? pricing.hourlyRate * pricing.minServiceHours
-      : null;
 
   return (
     <AdminPage>
@@ -181,6 +154,17 @@ export function MarketsView() {
               </p>
             )}
 
+            <div className="mb-4 rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-950">
+              <p className="font-semibold">Modelo comercial fijo</p>
+              <p className="mt-1">
+                Cliente: tarifa mínima S/80 (2 h × S/40/h). Chofer: recarga viajes
+                prepagados — S/30 (1 viaje), S/50 (2 viajes), S/100 (5 viajes).
+                Cada viaje cerrado consume 1 crédito; la comisión Hercom es el costo
+                del crédito usado. Las horas extra las paga el cliente directo al
+                chofer; en la app solo se avisa la extensión.
+              </p>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-3 md:grid-cols-2">
                 <Field
@@ -217,162 +201,27 @@ export function MarketsView() {
                 </Field>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2">
-                <Field
-                  label="Tipo de cambio"
-                  hint="Cuántos de esta moneda equivalen a 1 dólar. Perú suele estar cerca de 3.75."
-                >
-                  <input
-                    required
-                    type="number"
-                    min="0.0001"
-                    step="0.0001"
-                    value={form.usdExchangeRate}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        usdExchangeRate: event.target.value,
-                      }))
-                    }
-                    className={inputClass}
-                  />
-                </Field>
-                <Field
-                  label="Tarifa horaria"
-                  hint="Precio de una hora de servicio, en esta moneda."
-                >
-                  <input
-                    required
-                    type="number"
-                    min="1"
-                    step="0.01"
-                    value={form.hourlyRate}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        hourlyRate: event.target.value,
-                      }))
-                    }
-                    className={inputClass}
-                  />
-                </Field>
-              </div>
+              <Field
+                label="Tipo de cambio"
+                hint="Cuántos de esta moneda equivalen a 1 dólar. Perú suele estar cerca de 3.75."
+              >
+                <input
+                  required
+                  type="number"
+                  min="0.0001"
+                  step="0.0001"
+                  value={form.usdExchangeRate}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      usdExchangeRate: event.target.value,
+                    }))
+                  }
+                  className={inputClass}
+                />
+              </Field>
 
               <div className="grid gap-3 md:grid-cols-2">
-                <Field
-                  label="Horas mínimas"
-                  hint="El cliente no puede pedir un servicio más corto que esto."
-                >
-                  <input
-                    required
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={form.minServiceHours}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        minServiceHours: event.target.value,
-                      }))
-                    }
-                    className={inputClass}
-                  />
-                </Field>
-                <Field
-                  label="Membresía (comisión) horas 1–2 (%)"
-                  hint="Tramo inicial (típ. 25%)."
-                >
-                  <input
-                    required
-                    type="number"
-                    min="1"
-                    max="100"
-                    step="1"
-                    value={form.commissionPercent}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        commissionPercent: event.target.value,
-                      }))
-                    }
-                    className={inputClass}
-                  />
-                </Field>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-2">
-                <Field
-                  label="Membresía (comisión) desde hora 3 (%)"
-                  hint="Por defecto 15%."
-                >
-                  <input
-                    required
-                    type="number"
-                    min="1"
-                    max="100"
-                    step="1"
-                    value={form.commissionPercentFromHour3}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        commissionPercentFromHour3: event.target.value,
-                      }))
-                    }
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Desde hora N (3ª hora)">
-                  <input
-                    required
-                    type="number"
-                    min="2"
-                    step="1"
-                    value={form.commissionFromHour3}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        commissionFromHour3: event.target.value,
-                      }))
-                    }
-                    className={inputClass}
-                  />
-                </Field>
-                <Field
-                  label="Membresía (comisión) desde hora 8 (%)"
-                  hint="Por defecto 10%."
-                >
-                  <input
-                    required
-                    type="number"
-                    min="1"
-                    max="100"
-                    step="1"
-                    value={form.commissionPercentFromHour8}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        commissionPercentFromHour8: event.target.value,
-                      }))
-                    }
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Desde hora N (8ª hora)">
-                  <input
-                    required
-                    type="number"
-                    min="2"
-                    step="1"
-                    value={form.commissionFromHour8}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        commissionFromHour8: event.target.value,
-                      }))
-                    }
-                    className={inputClass}
-                  />
-                </Field>
                 <Field
                   label="Recargo máx. chofer sobre tarifa base (%)"
                   hint="Anti-estafa: tope de oferta = base × (1 + este %). Default 50."
@@ -429,30 +278,14 @@ export function MarketsView() {
                 />
                 <span>
                   <span className="block font-medium text-zinc-900">
-                    Usar estas tarifas en la app
+                    Usar este mercado en la app
                   </span>
                   <span className="mt-0.5 block text-xs leading-5 text-zinc-500">
-                    Marcado: clientes y choferes de este país ven estos precios.
-                    Desmarcado: esta ficha se ignora y la app cobra como en Perú
-                    (soles) hasta que lo vuelvas a activar.
+                    Marcado: clientes y choferes de este país usan moneda y límites
+                    operativos de esta ficha. Desmarcado: se ignora hasta reactivarlo.
                   </span>
                 </span>
               </label>
-
-              {minPrice !== null && form.currencySymbol !== "" && (
-                <p className="rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-900">
-                  Tarifa mínima estimada: {form.currencySymbol}
-                  {minPrice.toFixed(2)}
-                  {form.usdExchangeRate !== "" &&
-                    Number(form.usdExchangeRate) > 0 && (
-                      <>
-                        {" "}
-                        · US$
-                        {(minPrice / Number(form.usdExchangeRate)).toFixed(2)}
-                      </>
-                    )}
-                </p>
-              )}
 
               <button
                 type="submit"

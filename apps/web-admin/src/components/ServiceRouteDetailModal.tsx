@@ -120,6 +120,18 @@ export function ServiceRouteDetailModal({
           </p>
         </div>
 
+        {(service.passengerName !== undefined || service.forSelf === false) && (
+          <div className="mt-3 text-sm">
+            <p className="text-xs font-semibold text-zinc-500">
+              {service.forSelf === false ? "Para otra persona" : "Para el cliente"}
+            </p>
+            <p className="mt-1 text-zinc-800">
+              {service.passengerName ?? "—"}
+              {service.passengerPhone !== undefined ? ` · ${service.passengerPhone}` : ""}
+            </p>
+          </div>
+        )}
+
         {service.notes !== undefined && service.notes.trim() !== "" && (
           <div className="mt-3 text-sm">
             <p className="text-xs font-semibold text-zinc-500">Notas</p>

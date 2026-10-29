@@ -39,6 +39,47 @@ import { resolveDriverOfferRadiusKm } from "./lib/driverOfferDiscovery";
 import { estimateRoadLeg, isWithinDriverServiceRadius } from "./lib/geoDistance";
 import type { ServiceClosureReason } from "./lib/serviceClosure";
 
+function passengerFields(
+  user: Doc<"users">,
+  args: {
+    forSelf?: boolean;
+    passengerName?: string;
+    passengerPhone?: string;
+  },
+): {
+  forSelf: boolean;
+  passengerName: string;
+  passengerPhone?: string;
+} {
+  const forSelf = args.forSelf !== false;
+  if (forSelf) {
+    const fromParts = [user.firstName, user.firstLastName, user.secondLastName]
+      .map((part) => part?.trim())
+      .filter((part): part is string => part !== undefined && part !== "");
+    const passengerName = (
+      fromParts.join(" ") ||
+      user.name?.trim() ||
+      "Cliente"
+    ).trim();
+    const phone = user.phone?.trim();
+    return {
+      forSelf: true,
+      passengerName,
+      ...(phone !== undefined && phone !== "" ? { passengerPhone: phone } : {}),
+    };
+  }
+  const passengerName = args.passengerName?.trim() ?? "";
+  const passengerPhone = args.passengerPhone?.trim() ?? "";
+  if (passengerName.length < 2) {
+    throw new Error("Indica el nombre de quien va a usar el servicio.");
+  }
+  const digits = passengerPhone.replace(/\D/g, "");
+  if (digits.length < 6) {
+    throw new Error("Indica el teléfono de quien va a usar el servicio.");
+  }
+  return { forSelf: false, passengerName, passengerPhone };
+}
+
 /**
  * Crea una solicitud de servicio (cliente autenticado).
  * Calcula la comisión del chofer a partir del precio total.
@@ -51,6 +92,9 @@ export const createService = mutation({
     basePrice: v.number(),
     notes: v.optional(v.string()),
     requestChannel: v.optional(serviceRequestChannelValidator),
+    forSelf: v.optional(v.boolean()),
+    passengerName: v.optional(v.string()),
+    passengerPhone: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
@@ -80,6 +124,7 @@ export const createService = mutation({
       requestChannel,
       status: "pending",
       ...(args.notes !== undefined ? { notes: args.notes } : {}),
+      ...passengerFields(user, args),
       requestedAt: Date.now(),
     });
   },
@@ -100,6 +145,9 @@ export const createPremiumServiceAsAdmin = mutation({
       v.literal("web_comercial"),
     ),
     notes: v.optional(v.string()),
+    forSelf: v.optional(v.boolean()),
+    passengerName: v.optional(v.string()),
+    passengerPhone: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await requireFullAdmin(ctx);
@@ -129,6 +177,7 @@ export const createPremiumServiceAsAdmin = mutation({
       requestChannel: args.requestChannel,
       status: "pending",
       ...(args.notes !== undefined ? { notes: args.notes } : {}),
+      ...passengerFields(client, args),
       requestedAt: Date.now(),
     });
   },

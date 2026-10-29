@@ -18,6 +18,7 @@ import { DrawerIcon } from "../DrawerIcons";
 import { DriverSheet } from "./DriverSheet";
 import { useAppTheme } from "../../contexts/ThemeContext";
 import { getDriverGpsForOffer } from "../../hooks/useDriverOfferLocation";
+import { toPeopleAddress } from "../../lib/googleGeocoding";
 import { hasTripCreditForOffer } from "../../lib/offerWallet";
 import {
   convexErrorMessage,
@@ -315,15 +316,19 @@ function RequestCard({
             numberOfLines={1}
             style={{ fontFamily: POPPINS.semibold, fontSize: 16, color: colors.textStrong }}
           >
-            {card.clientFirstName}
+            {service.forSelf === false && (service.passengerName?.trim() ?? "") !== ""
+              ? service.passengerName
+              : card.clientFirstName}
           </Text>
           <Text
             numberOfLines={1}
             style={{ fontFamily: POPPINS.regular, fontSize: 13, color: colors.steel }}
           >
-            {card.clientTrips === 0
-              ? "Nuevo"
-              : `${card.clientTrips} ${card.clientTrips === 1 ? "viaje" : "viajes"}`}
+            {service.forSelf === false
+              ? `Pedido por ${card.clientFirstName}`
+              : card.clientTrips === 0
+                ? "Nuevo"
+                : `${card.clientTrips} ${card.clientTrips === 1 ? "viaje" : "viajes"}`}
           </Text>
         </View>
         <Avatar uri={card.clientPhotoUrl} />
@@ -332,8 +337,8 @@ function RequestCard({
       <View style={{ height: 1, backgroundColor: border }} />
 
       <View style={{ gap: 4 }}>
-        <LegLine km={card.pickup.km} minutes={card.pickup.minutes} address={service.origin.address} />
-        <LegLine km={card.trip.km} minutes={card.trip.minutes} address={card.destinationAddress} />
+        <LegLine km={card.pickup.km} minutes={card.pickup.minutes} address={toPeopleAddress(service.origin.address)} />
+        <LegLine km={card.trip.km} minutes={card.trip.minutes} address={toPeopleAddress(card.destinationAddress)} />
       </View>
     </TouchableOpacity>
   );
@@ -487,13 +492,17 @@ function OfferSheet({
         <Avatar uri={card.clientPhotoUrl} size={44} />
         <View style={{ flex: 1 }}>
           <Text style={{ fontFamily: POPPINS.semibold, fontSize: 17, color: colors.textStrong }}>
-            {`${card.clientFirstName} · ${hoursLabel(card.serviceHours)}`}
+            {`${
+              service.forSelf === false && (service.passengerName?.trim() ?? "") !== ""
+                ? service.passengerName
+                : card.clientFirstName
+            } · ${hoursLabel(card.serviceHours)}`}
           </Text>
           <Text
             numberOfLines={1}
             style={{ fontFamily: POPPINS.regular, fontSize: 14, color: colors.steel }}
           >
-            {`${service.origin.address} → ${card.destinationAddress}`}
+            {`${toPeopleAddress(service.origin.address)} → ${toPeopleAddress(card.destinationAddress)}`}
           </Text>
         </View>
       </View>

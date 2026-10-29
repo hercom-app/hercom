@@ -18,7 +18,7 @@ import MapView, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
-import type { Doc } from "@proyecto/backend/dataModel";
+import type { Doc, Id } from "@proyecto/backend/dataModel";
 import { getAdminServiceStatusLabel } from "@proyecto/backend/serviceClosure";
 import { AddressAutocomplete } from "../components/AddressAutocomplete";
 import { AdvancePayoutModal } from "../components/AdvancePayoutModal";
@@ -52,6 +52,7 @@ import { LiveTripMapModal } from "../components/LiveTripMapModal";
 import { HomeRequestSheet } from "../components/request/HomeRequestSheet";
 import { LocationAccessPrompt } from "../components/request/LocationAccessPrompt";
 import { PinPickerScreen } from "../components/request/PinPickerScreen";
+import { UserLocationDot } from "../components/request/UserLocationDot";
 import { CloseGlyph } from "../components/request/RouteIcons";
 import {
   addressDraftFromText,
@@ -59,6 +60,7 @@ import {
   toServiceLocation,
   type AddressDraft,
 } from "../lib/addressDraft";
+import { toPeopleAddress } from "../lib/googleGeocoding";
 import type { SelectedPlace } from "../lib/googlePlaces";
 import {
   applyPickupLocationResult,
@@ -274,9 +276,27 @@ function ClientServiceCard({
         </TacticalLabel>
       )}
       <TacticalText size={15} tone="text">
-        {service.origin.address} →{" "}
-        {formatServiceStopsLabel(service.destination, service.extraDestinations)}
+        {toPeopleAddress(service.origin.address)} →{" "}
+        {formatServiceStopsLabel(
+          {
+            ...service.destination,
+            address: toPeopleAddress(service.destination.address),
+          },
+          service.extraDestinations?.map((stop) => ({
+            ...stop,
+            address: toPeopleAddress(stop.address),
+          })),
+        )}
       </TacticalText>
+      {service.passengerName !== undefined && service.passengerName.trim() !== "" && (
+        <TacticalText size={13} className="mt-2">
+          {service.forSelf === false
+            ? `Para ${service.passengerName}${
+                service.passengerPhone !== undefined ? ` · ${service.passengerPhone}` : ""
+              }`
+            : `Viaja ${service.passengerName}`}
+        </TacticalText>
+      )}
       {canShowLive && (
         <View className="mt-3 gap-3">
           {!embedInTripSheet && (
@@ -585,6 +605,12 @@ export function ClientDashboard() {
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
   const [notes, setNotes] = useState("");
+  const [forSelf, setForSelf] = useState(true);
+  const [passengerName, setPassengerName] = useState("");
+  const [passengerPhone, setPassengerPhone] = useState("");
+  const [selectedActiveServiceId, setSelectedActiveServiceId] =
+    useState<Id<"services"> | null>(null);
+  const [requestingAnother, setRequestingAnother] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [pickupResolving, setPickupResolving] = useState(true);
@@ -666,7 +692,7 @@ export function ClientDashboard() {
         );
   /** Preview: altura fija razonable (mapa visible arriba). */
   const confirmSheetHeight = Math.round(
-    Math.min(560, Math.max(420, screenHeight * 0.58)),
+    Math.min(680, Math.max(480, screenHeight * 0.66)),
   );
   const homeSheetHeight = Math.round(
     Math.min(680, Math.max(500, screenHeight * 0.66)),
@@ -674,7 +700,9 @@ export function ClientDashboard() {
   const activeClientServices = (services ?? []).filter((service) =>
     isActiveServiceStatus(service.status),
   );
-  const activeTrip = activeClientServices[0];
+  const selectedActiveService = activeClientServices.find(
+    (service) => service._id === selectedActiveServiceId,
+  );
   const homeMapRegion =
     userCoords !== null
       ? mapRegionForCenter(userCoords)
@@ -940,13 +968,29 @@ export function ClientDashboard() {
       setError(null);
       return true;
     }
+    if (selectedActiveServiceId !== null) {
+      setSelectedActiveServiceId(null);
+      return true;
+    }
+    if (requestingAnother && flowStep === "compose") {
+      setRequestingAnother(false);
+      return true;
+    }
     if (menuSection !== "ciudad") {
       setMenuSection("ciudad");
       setFlowStep("compose");
       return true;
     }
     return false;
-  }, [menuOpen, pinField, addressSearchField, flowStep, menuSection]);
+  }, [
+    menuOpen,
+    pinField,
+    addressSearchField,
+    flowStep,
+    menuSection,
+    selectedActiveServiceId,
+    requestingAnother,
+  ]);
 
   useAndroidBackHandler(handleAndroidBack);
 
@@ -1066,6 +1110,9 @@ export function ClientDashboard() {
     setProvince("");
     setDistrict("");
     setNotes("");
+    setForSelf(true);
+    setPassengerName("");
+    setPassengerPhone("");
     setFlowStep("compose");
   }
 
@@ -1078,14 +1125,21 @@ export function ClientDashboard() {
       originLng === null ||
       destination.lat === null ||
       destination.lng === null ||
-      listPrice < minServicePrice
+      listPrice < minServicePrice ||
+      (!forSelf &&
+        (passengerName.trim().length < 2 ||
+          passengerPhone.replace(/\D/g, "").length < 6))
     ) {
       setError(
         department === ""
           ? "Espera a que cargue tu dirección de recojo o elígela en el mapa."
           : destination.lat === null || destination.lng === null
             ? "Elige el destino desde la lista de sugerencias o el mapa."
-            : `Completa origen, destino y al menos ${minServiceHours}h (${currencySymbol}${minServicePrice}).`,
+            : !forSelf && passengerName.trim().length < 2
+            ? "Indica el nombre de la persona que va a usar el servicio."
+            : !forSelf && passengerPhone.replace(/\D/g, "").length < 6
+              ? "Indica el teléfono de la persona que va a usar el servicio."
+              : `Completa origen, destino y al menos ${minServiceHours}h (${currencySymbol}${minServicePrice}).`,
       );
       return;
     }
@@ -1113,8 +1167,17 @@ export function ClientDashboard() {
           : {}),
         basePrice: listPrice,
         ...(notes.trim() !== "" ? { notes: notes.trim() } : {}),
+        forSelf,
+        ...(!forSelf
+          ? {
+              passengerName: passengerName.trim(),
+              passengerPhone: passengerPhone.trim(),
+            }
+          : {}),
       });
       resetComposeForm();
+      setRequestingAnother(false);
+      setSelectedActiveServiceId(null);
       setMessage("Solicitud enviada. Espera ofertas y elige un chofer.");
       setMenuSection("historial");
     } catch (submitError) {
@@ -1138,6 +1201,8 @@ export function ClientDashboard() {
         setMenuSection(key);
         if (key === "ciudad") {
           setFlowStep("compose");
+          setRequestingAnother(false);
+          setSelectedActiveServiceId(null);
         }
       }}
     />
@@ -1261,10 +1326,115 @@ export function ClientDashboard() {
     );
   }
 
-  // ——— Home: viaje activo sobre mapa ———
+  // ——— Home: lista de viajes activos, luego el que elija ———
   if (
     menuSection === "ciudad" &&
-    activeTrip !== undefined &&
+    flowStep === "compose" &&
+    !addressSearchActive &&
+    pinField === null &&
+    !requestingAnother &&
+    services !== undefined &&
+    activeClientServices.length > 0 &&
+    selectedActiveService === undefined
+  ) {
+    return (
+      <View className="flex-1" style={{ backgroundColor: TACTICAL_COLORS.base }}>
+        <UberScreenHeader title="Tus viajes" onOpenMenu={() => setMenuOpen(true)} />
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingTop: 16,
+            paddingBottom: insets.bottom + 24,
+          }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text
+            style={{
+              fontFamily: POPPINS.regular,
+              fontSize: 14,
+              lineHeight: 20,
+              color: TACTICAL_COLORS.steel,
+              marginBottom: 12,
+            }}
+          >
+            Elige un viaje para verlo. Puedes tener varios a la vez si alguno es para otra persona.
+          </Text>
+          {activeClientServices.map((service) => (
+            <TouchableOpacity
+              key={service._id}
+              activeOpacity={0.75}
+              onPress={() => setSelectedActiveServiceId(service._id)}
+              style={{
+                backgroundColor: TACTICAL_COLORS.surface,
+                borderRadius: TACTICAL_RADIUS.sharp,
+                borderWidth: 1,
+                borderColor: TACTICAL_BORDER,
+                padding: 14,
+                marginBottom: 10,
+              }}
+            >
+              <Text style={{ fontFamily: POPPINS.medium, fontSize: 13, color: TACTICAL_COLORS.accent }}>
+                {clientServiceStatusLabel(service)}
+              </Text>
+              <Text
+                numberOfLines={2}
+                style={{
+                  marginTop: 4,
+                  fontFamily: POPPINS.semibold,
+                  fontSize: 16,
+                  lineHeight: 22,
+                  color: TACTICAL_COLORS.text,
+                }}
+              >
+                {toPeopleAddress(service.origin.address)}
+              </Text>
+              <Text
+                numberOfLines={2}
+                style={{
+                  marginTop: 2,
+                  fontFamily: POPPINS.regular,
+                  fontSize: 14,
+                  lineHeight: 20,
+                  color: TACTICAL_COLORS.steel,
+                }}
+              >
+                {`→ ${toPeopleAddress(service.destination.address)}`}
+              </Text>
+              {service.passengerName !== undefined && service.passengerName.trim() !== "" && (
+                <Text
+                  style={{
+                    marginTop: 6,
+                    fontFamily: POPPINS.medium,
+                    fontSize: 13,
+                    color: TACTICAL_COLORS.text,
+                  }}
+                >
+                  {service.forSelf === false
+                    ? `Para ${service.passengerName}`
+                    : service.passengerName}
+                </Text>
+              )}
+            </TouchableOpacity>
+          ))}
+          <View className="mt-2">
+            <UiButton
+              label="Pedir otro servicio"
+              onPress={() => {
+                setRequestingAnother(true);
+                setFlowStep("compose");
+              }}
+            />
+          </View>
+        </ScrollView>
+        {drawer}
+      </View>
+    );
+  }
+
+  if (
+    menuSection === "ciudad" &&
+    selectedActiveService !== undefined &&
     flowStep === "compose" &&
     !addressSearchActive
   ) {
@@ -1277,7 +1447,7 @@ export function ClientDashboard() {
               style={{ flex: 1 }}
               provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
               initialRegion={homeMapRegion}
-              showsUserLocation={showsBlueDot}
+              showsUserLocation={false}
               showsMyLocationButton={false}
               loadingEnabled
               loadingIndicatorColor={HERCOM_COLORS.primary}
@@ -1288,6 +1458,20 @@ export function ClientDashboard() {
           }
           topOverlay={
             <View className="flex-row items-center gap-3">
+              <FloatingCircleButton
+                accessibilityLabel="Volver a tus viajes"
+                onPress={() => setSelectedActiveServiceId(null)}
+              >
+                <Text
+                  style={{
+                    fontFamily: MONO.bold,
+                    fontSize: 18,
+                    color: HERCOM_COLORS.text,
+                  }}
+                >
+                  ←
+                </Text>
+              </FloatingCircleButton>
               <HamburgerButton
                 onPress={() => setMenuOpen(true)}
                 variant="light"
@@ -1304,10 +1488,10 @@ export function ClientDashboard() {
           }
           bottomSheet={
             <ClientActiveTripSheet
-              service={activeTrip}
+              service={selectedActiveService}
               sheetHeight={homeSheetHeight}
             >
-              <ClientServiceCard service={activeTrip} embedInTripSheet />
+              <ClientServiceCard service={selectedActiveService} embedInTripSheet />
             </ClientActiveTripSheet>
           }
         />
@@ -1340,7 +1524,7 @@ export function ClientDashboard() {
       <View className="flex-1">
         <PinPickerScreen
           initialCenter={pinCenter}
-          showsUserLocation={showsBlueDot}
+          showsUserLocation={false}
           onCancel={() => setPinField(null)}
           onConfirm={applyPinResult}
         />
@@ -1635,9 +1819,13 @@ export function ClientDashboard() {
               style={{ flex: 1 }}
               provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
               initialRegion={homeMapRegion}
-              showsUserLocation={showsBlueDot}
+              showsUserLocation={false}
               showsMyLocationButton={false}
-            />
+            >
+              {showsBlueDot && userCoords !== null && (
+                <UserLocationDot latitude={userCoords.lat} longitude={userCoords.lng} />
+              )}
+            </MapView>
             <MapPositionLoadingOverlay visible={showMapLoadingOverlay} />
             {addressSearchSheet}
           </View>
@@ -1650,7 +1838,7 @@ export function ClientDashboard() {
                 style={{ flex: 1 }}
                 provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
                 initialRegion={homeMapRegion}
-                showsUserLocation={showsBlueDot}
+                showsUserLocation={false}
                 showsMyLocationButton={false}
                 loadingEnabled
                 loadingIndicatorColor={HERCOM_COLORS.primary}
@@ -1660,7 +1848,11 @@ export function ClientDashboard() {
                   left: 16,
                   right: 16,
                 }}
-              />
+              >
+                {showsBlueDot && userCoords !== null && (
+                  <UserLocationDot latitude={userCoords.lat} longitude={userCoords.lng} />
+                )}
+              </MapView>
             }
             mapOverlay={
               <MapPositionLoadingOverlay visible={showMapLoadingOverlay} />
@@ -1674,7 +1866,7 @@ export function ClientDashboard() {
                 {origin.trim() !== "" ? (
                   <LocationChip
                     label="De dónde"
-                    address={origin}
+                    address={toPeopleAddress(origin)}
                     onPress={() => openAddressSearch("origin")}
                   />
                 ) : (
@@ -1746,7 +1938,7 @@ export function ClientDashboard() {
             provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
             initialRegion={confirmMapRegion}
             mapType="standard"
-            showsUserLocation={showsBlueDot}
+            showsUserLocation={false}
             showsMyLocationButton={false}
             loadingEnabled
             loadingIndicatorColor={HERCOM_COLORS.primary}
@@ -1763,6 +1955,7 @@ export function ClientDashboard() {
                 coordinate={{ latitude: originLat, longitude: originLng }}
                 title="Recojo"
                 pinColor={HERCOM_COLORS.primary}
+                tracksViewChanges={false}
               />
             )}
             {destination.lat !== null && destination.lng !== null && (
@@ -1772,6 +1965,7 @@ export function ClientDashboard() {
                   longitude: destination.lng,
                 }}
                 title="Destino"
+                tracksViewChanges={false}
               />
             )}
           </MapView>
@@ -1863,7 +2057,7 @@ export function ClientDashboard() {
                   color: HERCOM_COLORS.text,
                 }}
               >
-                {origin}
+                {toPeopleAddress(origin)}
               </Text>
             </TouchableOpacity>
             <View
@@ -1901,12 +2095,82 @@ export function ClientDashboard() {
                 }}
               >
                 {formatServiceStopsLabel(
-                  toServiceLocation(destination),
-                  extraDestinations.map((stop) => toServiceLocation(stop)),
+                  {
+                    ...toServiceLocation(destination),
+                    address: toPeopleAddress(destination.address),
+                  },
+                  extraDestinations.map((stop) => ({
+                    ...toServiceLocation(stop),
+                    address: toPeopleAddress(stop.address),
+                  })),
                 )}
               </Text>
             </TouchableOpacity>
           </View>
+
+          <Text
+            style={{
+              fontFamily: POPPINS.semibold,
+              fontSize: 16,
+              color: HERCOM_COLORS.text,
+              marginBottom: 8,
+            }}
+          >
+            ¿Para quién es el servicio?
+          </Text>
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: forSelf ? 16 : 12 }}>
+            {(
+              [
+                { value: true, label: "Para mí" },
+                { value: false, label: "Otra persona" },
+              ] as const
+            ).map((option) => {
+              const selected = forSelf === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.label}
+                  onPress={() => setForSelf(option.value)}
+                  style={{
+                    flex: 1,
+                    borderRadius: 16,
+                    paddingVertical: 12,
+                    backgroundColor: selected ? HERCOM_COLORS.primary : "#F3F4F6",
+                  }}
+                >
+                  <Text
+                    style={{
+                      textAlign: "center",
+                      fontFamily: POPPINS.semibold,
+                      fontSize: 15,
+                      color: selected ? HERCOM_COLORS.white : HERCOM_COLORS.text,
+                    }}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {!forSelf && (
+            <>
+              <TacticalInput
+                label="Nombre"
+                value={passengerName}
+                onChangeText={setPassengerName}
+                placeholder="Nombre de la persona"
+                autoCapitalize="words"
+                containerClassName="mb-3"
+              />
+              <TacticalInput
+                label="Teléfono"
+                value={passengerPhone}
+                onChangeText={setPassengerPhone}
+                placeholder="Teléfono"
+                keyboardType="phone-pad"
+                containerClassName="mb-3"
+              />
+            </>
+          )}
 
           <Text
             style={{

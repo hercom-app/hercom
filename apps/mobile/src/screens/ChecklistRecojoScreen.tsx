@@ -13,6 +13,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
 import { CarDamageCanvas, type DamageMark } from "../components/CarDamageCanvas";
+import { PassengerBanner } from "../components/PassengerBanner";
 import { DrawerIcon } from "../components/DrawerIcons";
 import {
   CheckRow,
@@ -37,6 +38,7 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
   const checklist = useQuery(api.serviceChecklists.getForMyService, {
     serviceId,
   });
+  const service = useQuery(api.services.getById, { serviceId });
   const upsert = useMutation(api.serviceChecklists.upsertPickupChecklist);
 
   const [hasPropertyCard, setHasPropertyCard] = useState(false);
@@ -162,6 +164,13 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
         <Text style={{ marginTop: 4, fontFamily: POPPINS.regular, fontSize: 16, color: colors.text }}>
           Revisa el vehículo del cliente antes de iniciar el viaje.
         </Text>
+        {service !== undefined && service !== null && (
+          <PassengerBanner
+            forSelf={service.forSelf}
+            passengerName={service.passengerName}
+            passengerPhone={service.passengerPhone}
+          />
+        )}
 
         <View style={{ marginTop: 16, marginBottom: 24 }}>
           <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.surfaceSunken, overflow: "hidden" }}>

@@ -1,17 +1,36 @@
 import * as Location from "expo-location";
 import { resolvePeruRegionFromGoogleComponents } from "@proyecto/backend/peruLocations";
-import type { ReverseGeocodeResult } from "./googleGeocoding";
+import {
+  looksLikePlusCode,
+  toPeopleAddress,
+  type ReverseGeocodeResult,
+} from "./googleGeocoding";
+
+function usablePart(value: string | null): string | undefined {
+  if (value === null) return undefined;
+  const trimmed = toPeopleAddress(value);
+  if (trimmed === "" || looksLikePlusCode(trimmed)) return undefined;
+  return trimmed;
+}
 
 function buildAddressFromPlace(place: Location.LocationGeocodedAddress): string {
+  const street = usablePart(place.street);
+  const streetNumber = usablePart(place.streetNumber);
+  const streetLine =
+    street !== undefined
+      ? streetNumber !== undefined
+        ? `${street} ${streetNumber}`
+        : street
+      : undefined;
+  const name = usablePart(place.name);
   const parts = [
-    place.street,
-    place.streetNumber,
-    place.name,
-    place.district,
-    place.city,
-    place.subregion,
-    place.region,
-  ].filter((part): part is string => part !== null && part.trim() !== "");
+    name !== undefined && name !== street ? name : undefined,
+    streetLine,
+    usablePart(place.district),
+    usablePart(place.city),
+    usablePart(place.subregion),
+    usablePart(place.region),
+  ].filter((part): part is string => part !== undefined);
 
   const uniqueParts = [...new Set(parts)];
   return uniqueParts.length > 0 ? uniqueParts.join(", ") : "Ubicación actual";

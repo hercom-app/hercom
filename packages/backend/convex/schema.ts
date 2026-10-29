@@ -305,6 +305,12 @@ export default defineSchema({
     requestChannel: v.optional(serviceRequestChannelValidator),
     status: serviceStatusValidator,
     notes: v.optional(v.string()),
+    /** true = el viaje es para quien lo pide. false = para otra persona. Ausente = para el titular. */
+    forSelf: v.optional(v.boolean()),
+    /** Nombre de quien usa el servicio (el cliente o la otra persona). */
+    passengerName: v.optional(v.string()),
+    /** Teléfono de quien usa el servicio. */
+    passengerPhone: v.optional(v.string()),
     requestedAt: v.number(),
     assignedAt: v.optional(v.number()),
     headingToPickupAt: v.optional(v.number()),

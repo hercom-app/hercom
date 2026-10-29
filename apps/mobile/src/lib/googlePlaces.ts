@@ -4,6 +4,7 @@ import {
   resolvePeruRegionFromGoogleComponents,
   type PeruRegionMatch,
 } from "@proyecto/backend/peruLocations";
+import { toPeopleAddress } from "./googleGeocoding";
 import {
   isGoogleMapsApiKeyConfigured,
   requireGoogleMapsApiKey,
@@ -494,7 +495,7 @@ export async function fetchPlaceDetails(
 
   return {
     placeId,
-    address: data.formattedAddress,
+    address: toPeopleAddress(data.formattedAddress),
     lat: data.location.latitude,
     lng: data.location.longitude,
     ...(region.province !== undefined ? { province: region.province } : {}),

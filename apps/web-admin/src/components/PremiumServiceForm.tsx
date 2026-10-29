@@ -53,6 +53,13 @@ export function PremiumServiceForm() {
         ...(String(form.get("notes") ?? "").trim() !== ""
           ? { notes: String(form.get("notes") ?? "").trim() }
           : {}),
+        forSelf: String(form.get("forSelf")) !== "no",
+        ...(String(form.get("forSelf")) === "no"
+          ? {
+              passengerName: String(form.get("passengerName") ?? "").trim(),
+              passengerPhone: String(form.get("passengerPhone") ?? "").trim(),
+            }
+          : {}),
       });
       setMessage("Solicitud premium registrada.");
       event.currentTarget.reset();
@@ -129,6 +136,20 @@ export function PremiumServiceForm() {
           step="0.01"
           required
           placeholder="Tarifa base (mínimo S/80)"
+          className={inputClass}
+        />
+        <select name="forSelf" className={inputClass} defaultValue="yes">
+          <option value="yes">El servicio es para el cliente</option>
+          <option value="no">El servicio es para otra persona</option>
+        </select>
+        <input
+          name="passengerName"
+          placeholder="Nombre de la persona (si es otra)"
+          className={inputClass}
+        />
+        <input
+          name="passengerPhone"
+          placeholder="Teléfono de la persona (si es otra)"
           className={inputClass}
         />
         <textarea

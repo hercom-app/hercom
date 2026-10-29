@@ -3,6 +3,7 @@ import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Doc, Id } from "@proyecto/backend/dataModel";
+import { PassengerBanner } from "./PassengerBanner";
 import { SlideToConfirm } from "./SlideToConfirm";
 import { TripSecurityPin } from "./uber/TripSecurityPin";
 import { DrawerIcon } from "./DrawerIcons";
@@ -13,6 +14,7 @@ import {
   SoftGroup,
   StatusPill,
 } from "./driver/driverUi";
+import { toPeopleAddress } from "../lib/googleGeocoding";
 import { hasReliableCoordinates, openWazeNavigation } from "../lib/wazeNavigation";
 import { useAppTheme } from "../contexts/ThemeContext";
 import { HERCOM_COLORS, POPPINS, TABULAR } from "../constants/theme";
@@ -192,9 +194,15 @@ export const ServiceCard = memo(function ServiceCard({
         </Text>
       </View>
 
+      <PassengerBanner
+        forSelf={service.forSelf}
+        passengerName={service.passengerName}
+        passengerPhone={service.passengerPhone}
+      />
+
       <RouteStops
-        origin={service.origin.address}
-        stops={serviceStops.map((stop) => stop.address)}
+        origin={toPeopleAddress(service.origin.address)}
+        stops={serviceStops.map((stop) => toPeopleAddress(stop.address))}
         activeIndex={isRunning ? currentStopIndex + 1 : beforePickup ? 0 : -1}
       />
 

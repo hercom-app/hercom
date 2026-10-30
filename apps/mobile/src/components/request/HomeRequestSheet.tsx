@@ -9,10 +9,12 @@ import {
 } from "react-native";
 import { HERCOM_COLORS, POPPINS } from "../../constants/theme";
 import {
+  HOME_IMAGE_URIS,
   SAFETY_CLAY_KEY_GLASS,
   SAFETY_TIP_IMAGES,
   SERVICE_DISCOVERY_IMAGES,
 } from "../../constants/homeAssets";
+import { HomeRemoteImage } from "./HomeRemoteImage";
 import type { RecentDestination } from "../../lib/recentDestinations";
 import { PinGlyph, SearchGlyph } from "./RouteIcons";
 
@@ -114,8 +116,9 @@ function SafetyAwarenessBlock() {
         >
           TU SEGURIDAD ES NUESTRA PRIORIDAD
         </Text>
-        <Image
-          source={SAFETY_CLAY_KEY_GLASS}
+        <HomeRemoteImage
+          uri={HOME_IMAGE_URIS.clay}
+          bundled={SAFETY_CLAY_KEY_GLASS}
           resizeMode="contain"
           accessibilityIgnoresInvertColors
           style={{ width: 132, height: 132, marginRight: -18 }}
@@ -236,6 +239,7 @@ function ServiceDiscoveryTile({
             source={image}
             resizeMode="contain"
             fadeDuration={0}
+            accessibilityIgnoresInvertColors
             style={{ width: "100%", height: 124, alignSelf: "flex-end" }}
           />
         ) : null}
@@ -250,7 +254,7 @@ function ServiceDiscoveryGrid() {
     <View style={{ width: "100%", gap: GRID_GAP }}>
       {rows.map((row) => (
         <View
-          key={row[0].key}
+          key={row.map((s) => s.key).join("-")}
           style={{ flexDirection: "row", width: "100%", gap: GRID_GAP }}
         >
           {row.map((service) => (
@@ -289,10 +293,11 @@ export function HomeRequestSheet({
       style={{ flex: 1 }}
       nestedScrollEnabled
       keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
+      showsVerticalScrollIndicator
       contentContainerStyle={{
         paddingHorizontal: HORIZONTAL_PADDING,
-        paddingBottom: bottomInset + 24,
+        paddingBottom: bottomInset + 48,
+        flexGrow: 1,
       }}
     >
       <Pressable

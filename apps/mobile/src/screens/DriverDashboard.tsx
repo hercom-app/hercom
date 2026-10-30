@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Keyboard, View } from "react-native";
-import { useQuery } from "convex/react";
+import { ActivityIndicator, Keyboard, Modal, ScrollView, View } from "react-native";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
 import { useAppMode } from "../contexts/AppModeContext";
@@ -18,6 +18,7 @@ import { DriverChatsTab, type ChatsSection } from "../components/driver/DriverCh
 import { DriverProfileTab } from "../components/driver/DriverProfileTab";
 import { DriverRadiusSheet } from "../components/driver/DriverRadiusSheet";
 import { DriverSafetyCenterSheet } from "../components/driver/DriverSafetyCenterSheet";
+import { RateServiceStars } from "../components/RateServiceStars";
 import { useAppTheme } from "../contexts/ThemeContext";
 
 export function DriverDashboard() {
@@ -39,6 +40,12 @@ export function DriverDashboard() {
   const [liveMapServiceId, setLiveMapServiceId] =
     useState<Id<"services"> | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [rateClientServiceId, setRateClientServiceId] =
+    useState<Id<"services"> | null>(null);
+  const [driverRatingSubmitting, setDriverRatingSubmitting] = useState(false);
+  const [driverRatingError, setDriverRatingError] = useState<string | null>(null);
+
+  const rateClientAsDriver = useMutation(api.serviceRatings.rateClientAsDriver);
 
   const wallet = useQuery(api.driverWallets.getMine, hasDriver ? {} : "skip");
   const services = useQuery(api.services.listForDriver, hasDriver ? {} : "skip");
@@ -193,6 +200,11 @@ export function DriverDashboard() {
           activeServices={activeServices}
           onOpenChecklist={setChecklistServiceId}
           onOpenLiveMap={setLiveMapServiceId}
+          onTripFinished={(serviceId) => {
+            setRateClientServiceId(serviceId);
+            setDriverRatingError(null);
+            goToTab("ingresos");
+          }}
           onOpenRadius={() => setRadiusOpen(true)}
           onOpenSafety={() => setSafetyOpen(true)}
           onGoToList={() => goToTab("lista")}
@@ -286,6 +298,50 @@ export function DriverDashboard() {
         onClose={() => setLiveMapServiceId(null)}
         title="Compartir viaje"
       />
+
+      <Modal
+        visible={rateClientServiceId !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => {}}
+      >
+        <View style={{ flex: 1, backgroundColor: colors.base, paddingTop: 24 }}>
+          <ScrollView
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <RateServiceStars
+              title="¿Cómo fue el cliente?"
+              subtitle="Obligatorio para cerrar el servicio. Tu valoración ayuda a la comunidad."
+              submitting={driverRatingSubmitting}
+              error={driverRatingError}
+              onSubmit={(score, comment) => {
+                if (rateClientServiceId === null) {
+                  return;
+                }
+                setDriverRatingSubmitting(true);
+                setDriverRatingError(null);
+                void rateClientAsDriver({
+                  serviceId: rateClientServiceId,
+                  score,
+                  ...(comment.trim() !== "" ? { comment: comment.trim() } : {}),
+                })
+                  .then(() => {
+                    setRateClientServiceId(null);
+                  })
+                  .catch((error) => {
+                    setDriverRatingError(
+                      error instanceof Error
+                        ? error.message
+                        : "No se pudo enviar la valoración.",
+                    );
+                  })
+                  .finally(() => setDriverRatingSubmitting(false));
+              }}
+            />
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }

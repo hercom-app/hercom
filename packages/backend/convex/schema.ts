@@ -469,14 +469,19 @@ export default defineSchema({
     .index("by_driver", ["driverId"]),
 
   /**
-   * Valoración del cliente al chofer al finalizar el viaje (1–5 estrellas).
+   * Valoraciones mutuas al finalizar (1–5 estrellas por parte).
+   * `score`: cliente → chofer. `driverScore`: chofer → cliente.
    */
   serviceRatings: defineTable({
     serviceId: v.id("services"),
     clientId: v.id("users"),
     driverId: v.id("drivers"),
-    score: v.number(),
+    score: v.optional(v.number()),
     comment: v.optional(v.string()),
+    clientRatedAt: v.optional(v.number()),
+    driverScore: v.optional(v.number()),
+    driverComment: v.optional(v.string()),
+    driverRatedAt: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_service", ["serviceId"])

@@ -18,21 +18,25 @@ type RateServiceStarsProps = {
   submitting: boolean;
   error: string | null;
   onSubmit: (score: number, comment: string) => void;
+  title?: string;
+  subtitle?: string;
 };
 
 export function RateServiceStars({
   submitting,
   error,
   onSubmit,
+  title = "¿Cómo estuvo el servicio?",
+  subtitle = "Tu valoración queda en el perfil del chofer.",
 }: RateServiceStarsProps) {
   const [score, setScore] = useState(0);
   const [comment, setComment] = useState("");
 
   return (
     <TacticalPanel tone="sunken" className="mt-3">
-      <TacticalLabel tone="accent">¿Cómo estuvo el servicio?</TacticalLabel>
+      <TacticalLabel tone="accent">{title}</TacticalLabel>
       <TacticalText size={11} className="mb-3 mt-1">
-        Tu valoración queda en el perfil del chofer.
+        {subtitle}
       </TacticalText>
 
       <View className="mb-3 flex-row justify-between">

@@ -30,6 +30,7 @@ type DriverServiceHomeProps = {
   activeServices: Doc<"services">[];
   onOpenChecklist: (serviceId: Id<"services">) => void;
   onOpenLiveMap: (serviceId: Id<"services">) => void;
+  onTripFinished?: (serviceId: Id<"services">) => void;
   onOpenRadius: () => void;
   onOpenSafety: () => void;
   onGoToList: () => void;
@@ -123,6 +124,7 @@ export function DriverServiceHome({
   activeServices,
   onOpenChecklist,
   onOpenLiveMap,
+  onTripFinished,
   onOpenRadius,
   onOpenSafety,
   onGoToList,
@@ -183,6 +185,7 @@ export function DriverServiceHome({
                 service={service}
                 onOpenChecklist={onOpenChecklist}
                 onOpenLiveMap={onOpenLiveMap}
+                onTripFinished={onTripFinished}
               />
             </View>
           ))}

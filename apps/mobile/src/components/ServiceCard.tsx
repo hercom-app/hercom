@@ -35,6 +35,8 @@ type Props = {
   service: Doc<"services">;
   onOpenChecklist?: (serviceId: Id<"services">) => void;
   onOpenLiveMap?: (serviceId: Id<"services">) => void;
+  /** Tras finalizar: valorar cliente e ir a Ingresos. */
+  onTripFinished?: (serviceId: Id<"services">) => void;
 };
 
 function soles(amount: number): string {
@@ -46,6 +48,7 @@ export const ServiceCard = memo(function ServiceCard({
   service,
   onOpenChecklist,
   onOpenLiveMap,
+  onTripFinished,
 }: Props) {
   const { colors } = useAppTheme();
   const [securityCodeInput, setSecurityCodeInput] = useState("");
@@ -169,6 +172,7 @@ export const ServiceCard = memo(function ServiceCard({
     setFinishing(true);
     try {
       await updateStatus({ serviceId: service._id, status: "finished" });
+      onTripFinished?.(service._id);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "No se pudo finalizar el viaje.");
       setSlideResetCounter((prev) => prev + 1);
@@ -308,42 +312,16 @@ export const ServiceCard = memo(function ServiceCard({
 
       {service.status === "arrived_pickup" && (
         <View style={{ gap: 12 }}>
-          <TouchableOpacity
-            onPress={() => onOpenChecklist?.(service._id)}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            accessibilityLabel="Abrir checklist de recojo"
-          >
-            <SoftGroup
-              style={{ paddingVertical: 14, flexDirection: "row", alignItems: "center", gap: 14 }}
-            >
-              <StepBadge step={1} done={checklistComplete} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: POPPINS.medium, fontSize: 17, color: colors.textStrong }}>
-                  Checklist del vehículo
-                </Text>
-                <Text style={{ fontFamily: POPPINS.regular, fontSize: 14, color: colors.steel }}>
-                  Documentos, datos y abolladuras
-                </Text>
-              </View>
-              <StatusPill
-                label={checklistComplete ? "Listo" : "Pendiente"}
-                tone={checklistComplete ? "success" : "warning"}
-              />
-              <DrawerIcon name="chevron" color={colors.textStrong} />
-            </SoftGroup>
-          </TouchableOpacity>
-
           <SoftGroup style={{ paddingVertical: 14, gap: 12 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-              <StepBadge step={2} done={canStartTrip} />
+              <StepBadge step={1} done={canStartTrip} />
               <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: POPPINS.medium, fontSize: 17, color: colors.textStrong }}>
                   Código del cliente
                 </Text>
                 <Text style={{ fontFamily: POPPINS.regular, fontSize: 14, color: colors.steel }}>
                   {service.securityCode !== undefined
-                    ? "Míralo y escríbelo abajo para comparar"
+                    ? "Pídeselo al cliente y escríbelo abajo"
                     : "Este servicio no tiene código de inicio."}
                 </Text>
               </View>
@@ -371,13 +349,39 @@ export const ServiceCard = memo(function ServiceCard({
             )}
           </SoftGroup>
 
+          <TouchableOpacity
+            onPress={() => onOpenChecklist?.(service._id)}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Abrir checklist de recojo"
+          >
+            <SoftGroup
+              style={{ paddingVertical: 14, flexDirection: "row", alignItems: "center", gap: 14 }}
+            >
+              <StepBadge step={2} done={checklistComplete} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: POPPINS.medium, fontSize: 17, color: colors.textStrong }}>
+                  Checklist del vehículo
+                </Text>
+                <Text style={{ fontFamily: POPPINS.regular, fontSize: 14, color: colors.steel }}>
+                  Documentos, datos y abolladuras
+                </Text>
+              </View>
+              <StatusPill
+                label={checklistComplete ? "Listo" : "Pendiente"}
+                tone={checklistComplete ? "success" : "warning"}
+              />
+              <DrawerIcon name="chevron" color={colors.textStrong} />
+            </SoftGroup>
+          </TouchableOpacity>
+
           <SlideToConfirm
             label={
               checklistComplete && canStartTrip
                 ? "Desliza para iniciar viaje"
-                : checklistComplete
-                  ? "Ingresa el código"
-                  : "Completa el checklist"
+                : canStartTrip
+                  ? "Completa el checklist"
+                  : "Ingresa el código"
             }
             onSlideComplete={handleSlideStartTrip}
             disabled={!checklistComplete || !canStartTrip}

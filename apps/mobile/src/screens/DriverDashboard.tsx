@@ -284,7 +284,7 @@ export function DriverDashboard() {
         visible={liveMapServiceId !== null}
         serviceId={liveMapServiceId ?? undefined}
         onClose={() => setLiveMapServiceId(null)}
-        title="Mi ubicación en vivo"
+        title="Compartir viaje"
       />
     </View>
   );

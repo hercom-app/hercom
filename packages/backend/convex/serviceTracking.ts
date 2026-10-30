@@ -4,19 +4,12 @@ import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { requireDriver, requireStaff, requireUser } from "./lib/auth";
 import { filterServicesByAccess, getAccessContext, originMatchesDistrictScopes } from "./lib/adminAccess";
+import { ADMIN_LIVE_STATUSES, SHARE_LIVE_STATUSES } from "./lib/liveShare";
 
 const MAX_TRAIL_POINTS = 400;
 const MIN_UPDATE_INTERVAL_MS = 3000;
 const MIN_TRAIL_DISTANCE_M = 25;
 const MIN_TRAIL_INTERVAL_MS = 12000;
-
-const LIVE_STATUSES = new Set([
-  "heading_to_pickup",
-  "arrived_pickup",
-  "in_progress",
-  "en_route",
-  "arrived_destination",
-]);
 
 function makeShareToken(): string {
   const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -110,7 +103,7 @@ export const updateMyLiveLocation = mutation({
     if (service.driverId !== driver._id) {
       throw new Error("Este servicio no está asignado a ti.");
     }
-    if (!LIVE_STATUSES.has(service.status)) {
+    if (!SHARE_LIVE_STATUSES.has(service.status)) {
       return { ok: false as const, reason: "not_live" };
     }
     if (
@@ -195,7 +188,7 @@ export const getForService = query({
     return {
       serviceId: service._id,
       status: service.status,
-      isLive: LIVE_STATUSES.has(service.status),
+      isLive: SHARE_LIVE_STATUSES.has(service.status),
       origin: service.origin,
       destination: service.destination,
       extraDestinations: service.extraDestinations ?? [],
@@ -255,7 +248,7 @@ export const getByShareToken = query({
     return {
       serviceId: service._id,
       status: service.status,
-      isLive: LIVE_STATUSES.has(service.status),
+      isLive: SHARE_LIVE_STATUSES.has(service.status),
       origin: service.origin,
       destination: service.destination,
       extraDestinations: service.extraDestinations ?? [],
@@ -308,7 +301,7 @@ export const getForAdmin = query({
       serviceId: service._id,
       status: service.status,
       requestedAt: service.requestedAt,
-      isLive: LIVE_STATUSES.has(service.status),
+      isLive: SHARE_LIVE_STATUSES.has(service.status),
       origin: service.origin,
       destination: service.destination,
       extraDestinations: service.extraDestinations ?? [],
@@ -336,7 +329,7 @@ export const listLiveForAdmin = query({
     const access = await getAccessContext(ctx, user);
     const services = await ctx.db.query("services").order("desc").collect();
     const live = filterServicesByAccess(services, access).filter((service) =>
-      LIVE_STATUSES.has(service.status),
+      ADMIN_LIVE_STATUSES.has(service.status),
     );
     return await Promise.all(
       live.map(async (service) => {

@@ -63,7 +63,7 @@ export function LiveTripMapModal({
   onClose,
   serviceId,
   shareToken,
-  title = "Viaje en vivo",
+  title = "Compartir viaje",
 }: LiveTripMapModalProps) {
   const insets = useSafeAreaInsets();
   const byService = useQuery(
@@ -287,7 +287,7 @@ export function LiveTripMapModal({
                     longitude: live.lng,
                   }}
                   title="Chofer"
-                  description="Ubicación en vivo"
+                  description="Chofer en ruta"
                   pinColor="#16A34A"
                 />
               )}

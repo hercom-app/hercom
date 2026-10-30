@@ -2,16 +2,9 @@ import { useEffect, useRef } from "react";
 import { AppState, type AppStateStatus } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
-import type { Id } from "@proyecto/backend/dataModel";
+import type { Doc, Id } from "@proyecto/backend/dataModel";
 import * as Location from "expo-location";
-
-const LIVE_STATUSES = new Set([
-  "heading_to_pickup",
-  "arrived_pickup",
-  "in_progress",
-  "en_route",
-  "arrived_destination",
-]);
+import { canShareLiveTrip } from "../lib/serviceStatus";
 
 type TrackableService = {
   _id: Id<"services">;
@@ -19,7 +12,7 @@ type TrackableService = {
 };
 
 /**
- * Publica la ubicación GPS del chofer mientras hay un servicio en vivo.
+ * Publica GPS del chofer solo después de iniciar el viaje (compartir viaje).
  * Nota: con la app en segundo plano (p. ej. Waze) el OS puede pausar el GPS;
  * al volver a Hercom se reanuda.
  */
@@ -32,7 +25,8 @@ export function useDriverLiveTracking(services: TrackableService[] | undefined) 
   const activeIdRef = useRef<Id<"services"> | null>(null);
 
   const liveService =
-    services?.find((service) => LIVE_STATUSES.has(service.status)) ?? null;
+    services?.find((service) => canShareLiveTrip(service.status as Doc<"services">["status"])) ??
+    null;
 
   useEffect(() => {
     let cancelled = false;

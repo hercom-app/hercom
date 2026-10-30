@@ -690,7 +690,7 @@ export const updateStatus = mutation({
         userId: service.clientId,
         type: "driver_heading_pickup",
         title: "Tu chofer salió a recogerte",
-        message: "El chofer va en camino al punto de partida. Puedes ver su ubicación en vivo.",
+        message: "El chofer va en camino al punto de partida.",
         serviceId: service._id,
       });
       return service._id;

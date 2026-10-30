@@ -73,7 +73,7 @@ import {
   type PickupLocationResult,
 } from "../lib/pickupLocation";
 import { recentDestinationsFromServices } from "../lib/recentDestinations";
-import { isActiveServiceStatus } from "../lib/serviceStatus";
+import { canShareLiveTrip, isActiveServiceStatus } from "../lib/serviceStatus";
 import { ExtendTripPanel } from "../components/ExtendTripPanel";
 import { canClientExtendTrip } from "../lib/tripExtension";
 import { formatServiceStopsLabel } from "../lib/wazeNavigation";
@@ -201,12 +201,11 @@ function ClientServiceCard({
       : 0);
   const advanceConfirmed = service.advanceConfirmedAt !== undefined;
   const inProgress = service.status === "in_progress";
-  const canShowLive =
+  const canShareTrip = canShareLiveTrip(service.status);
+  const showTripEmergency =
     service.status === "heading_to_pickup" ||
     service.status === "arrived_pickup" ||
-    service.status === "in_progress" ||
-    service.status === "en_route" ||
-    service.status === "arrived_destination";
+    canShareTrip;
 
   const canCancel =
     service.status === "pending" ||
@@ -297,21 +296,21 @@ function ClientServiceCard({
             : `Viaja ${service.passengerName}`}
         </TacticalText>
       )}
-      {canShowLive && (
-        <View className="mt-3 gap-3">
-          {!embedInTripSheet && (
-            <View className="flex-row items-center justify-between">
-              <TacticalLabel tone="text">Emergencia en viaje</TacticalLabel>
-              <HelpFab
-                fallbackCenter={{
-                  lat: service.origin.lat,
-                  lng: service.origin.lng,
-                }}
-              />
-            </View>
-          )}
+      {showTripEmergency && !embedInTripSheet && (
+        <View className="mt-3 flex-row items-center justify-between">
+          <TacticalLabel tone="text">Emergencia en viaje</TacticalLabel>
+          <HelpFab
+            fallbackCenter={{
+              lat: service.origin.lat,
+              lng: service.origin.lng,
+            }}
+          />
+        </View>
+      )}
+      {canShareTrip && (
+        <View className="mt-3">
           <UiButton
-            label="Ver chofer en vivo · Compartir viaje"
+            label="Compartir viaje"
             size="md"
             onPress={() => setLiveMapOpen(true)}
           />
@@ -535,7 +534,7 @@ function ClientServiceCard({
         visible={liveMapOpen}
         serviceId={service._id}
         onClose={() => setLiveMapOpen(false)}
-        title="Chofer en vivo"
+        title="Compartir viaje"
       />
     </>
   );

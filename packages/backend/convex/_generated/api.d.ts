@@ -39,6 +39,7 @@ import type * as lib_geoDistance from "../lib/geoDistance.js";
 import type * as lib_identity from "../lib/identity.js";
 import type * as lib_identityServiceErrors from "../lib/identityServiceErrors.js";
 import type * as lib_licenseLookupTypes from "../lib/licenseLookupTypes.js";
+import type * as lib_liveShare from "../lib/liveShare.js";
 import type * as lib_markets from "../lib/markets.js";
 import type * as lib_money from "../lib/money.js";
 import type * as lib_offerLimits from "../lib/offerLimits.js";
@@ -108,6 +109,7 @@ declare const fullApi: ApiFromModules<{
   "lib/identity": typeof lib_identity;
   "lib/identityServiceErrors": typeof lib_identityServiceErrors;
   "lib/licenseLookupTypes": typeof lib_licenseLookupTypes;
+  "lib/liveShare": typeof lib_liveShare;
   "lib/markets": typeof lib_markets;
   "lib/money": typeof lib_money;
   "lib/offerLimits": typeof lib_offerLimits;

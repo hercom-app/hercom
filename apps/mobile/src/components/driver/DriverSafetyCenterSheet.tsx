@@ -5,6 +5,7 @@ import { DriverSheet, DriverSheetRow } from "./DriverSheet";
 import { NearbyHealthModal } from "../HelpFab";
 import { TripSecurityPin } from "../uber/TripSecurityPin";
 import { HELP_CONTACTS } from "../../constants/helpContacts";
+import { canShareLiveTrip } from "../../lib/serviceStatus";
 import { HERCOM_COLORS } from "../../constants/theme";
 
 type DriverSafetyCenterSheetProps = {
@@ -29,7 +30,7 @@ export function DriverSafetyCenterSheet({
   const [showCode, setShowCode] = useState(false);
   const [healthOpen, setHealthOpen] = useState(false);
   const securityCode = activeService?.securityCode;
-  const hasTrip = activeService !== undefined;
+  const canShare = activeService !== undefined && canShareLiveTrip(activeService.status);
 
   function close() {
     setShowCode(false);
@@ -70,8 +71,12 @@ export function DriverSafetyCenterSheet({
           <DriverSheetRow
             icon="share"
             title="Compartir viaje"
-            subtitle={hasTrip ? "Comparte tu ubicación en vivo" : "Disponible durante un viaje"}
-            disabled={!hasTrip}
+            subtitle={
+              canShare
+                ? "Enlace para familiares (viaje en curso)"
+                : "Disponible cuando el viaje ya haya iniciado"
+            }
+            disabled={!canShare}
             onPress={() => {
               close();
               onShareTrip();

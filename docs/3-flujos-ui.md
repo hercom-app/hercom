@@ -40,7 +40,7 @@ Móvil: `apps/mobile/src/` · Admin: `apps/web-admin/src/`
 | **Checklist** | — | Checklist de recojo<br>`ChecklistRecojoScreen.tsx` | — |
 | **Inicio de viaje** | Viaje en vivo<br>`LiveTripMapModal.tsx` | Código e iniciar<br>`ServiceCard.tsx` | Tablero · En viaje + mapa<br>`ServicesBoard.tsx`<br>`ServiceLivePanel.tsx` |
 | **Fin de viaje** | Calificar<br>`RateServiceStars.tsx` | Finalizar viaje<br>`ServiceCard.tsx` | Tablero · Finalizado<br>`ServicesBoard.tsx`<br>`PaymentsPanel.tsx`<br>`PayoutsPanel.tsx` |
-| **Compartir viaje** | Viaje en vivo · Compartir<br>`LiveTripMapModal.tsx` | Viaje en vivo · Compartir<br>`LiveTripMapModal.tsx` | Mapa admin + `/live/{token}`<br>`ServiceLivePanel.tsx`<br>Landing `app/live/[token]/page.tsx` |
+| **Compartir viaje** | Solo tras **iniciar** viaje (código OK)<br>`LiveTripMapModal.tsx` | Solo tras **iniciar** viaje<br>`ServiceCard.tsx` · centro seguridad | Mapa admin + `/live/{token}`<br>`ServiceLivePanel.tsx`<br>Landing `app/live/[token]/page.tsx` |
 | **Emergencia** | FAB AYUDA<br>`HelpFab.tsx` | FAB AYUDA<br>`HelpFab.tsx` | — (105 / hospital; no llega al panel) |
 | **Ayuda (chat)** | Chat<br>`SupportChatScreen.tsx` | Chat<br>`SupportChatScreen.tsx` | Soporte<br>`SupportView.tsx` |
 

@@ -16,6 +16,7 @@ import {
 } from "./driver/driverUi";
 import { toPeopleAddress } from "../lib/googleGeocoding";
 import { hasReliableCoordinates, openWazeNavigation } from "../lib/wazeNavigation";
+import { canShareLiveTrip } from "../lib/serviceStatus";
 import { useAppTheme } from "../contexts/ThemeContext";
 import { HERCOM_COLORS, POPPINS, TABULAR } from "../constants/theme";
 
@@ -91,7 +92,7 @@ export const ServiceCard = memo(function ServiceCard({
     service.status === "assigned" ||
     service.status === "heading_to_pickup" ||
     service.status === "arrived_pickup";
-  const canShowLive = service.status !== "assigned" && service.status !== "pending";
+  const canShareTrip = canShareLiveTrip(service.status);
   const navigationTarget =
     service.status === "heading_to_pickup" || service.status === "assigned"
       ? service.origin
@@ -206,7 +207,7 @@ export const ServiceCard = memo(function ServiceCard({
         activeIndex={isRunning ? currentStopIndex + 1 : beforePickup ? 0 : -1}
       />
 
-      {(navigationTarget !== null || (canShowLive && onOpenLiveMap !== undefined)) && (
+      {(navigationTarget !== null || (canShareTrip && onOpenLiveMap !== undefined)) && (
         <View style={{ flexDirection: "row", justifyContent: "center", gap: 8, marginBottom: 16 }}>
           {navigationTarget !== null && (
             <RoundAction
@@ -215,10 +216,10 @@ export const ServiceCard = memo(function ServiceCard({
               onPress={() => void openWazeNavigation(navigationTarget)}
             />
           )}
-          {canShowLive && onOpenLiveMap !== undefined && (
+          {canShareTrip && onOpenLiveMap !== undefined && (
             <RoundAction
               icon="share"
-              label="En vivo"
+              label="Compartir viaje"
               onPress={() => onOpenLiveMap(service._id)}
             />
           )}

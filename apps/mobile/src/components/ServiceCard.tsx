@@ -1,5 +1,5 @@
 import { memo, useRef, useState } from "react";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Platform, Pressable, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Doc, Id } from "@proyecto/backend/dataModel";
@@ -365,7 +365,7 @@ export const ServiceCard = memo(function ServiceCard({
                 >
                   Escríbelo aquí
                 </Text>
-                <CodeInput value={securityCodeDigits} onChange={setSecurityCodeInput} />
+                <CodeInput value={securityCodeInput} onChange={setSecurityCodeInput} />
               </>
             )}
           </SoftGroup>
@@ -412,7 +412,7 @@ export const ServiceCard = memo(function ServiceCard({
         />
       )}
 
-      {service.status === "arrived_destination" && (
+      {(service.status === "arrived_destination" || service.status === "en_route") && (
         <SlideToConfirm
           label="Desliza para finalizar"
           onSlideComplete={handleSlideFinish}
@@ -507,56 +507,84 @@ function StepBadge({ step, done }: { step: number; done: boolean }) {
   );
 }
 
-/** 4 casillas grandes; un TextInput invisible captura el teclado numérico. */
+/** 4 casillas; TextInput transparente encima (Android no enfoca inputs 1×1 dentro de TouchableOpacity). */
 function CodeInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const { colors } = useAppTheme();
   const inputRef = useRef<TextInput>(null);
+  const digits = value.replace(/\D/g, "").slice(0, 4);
   const [focused, setFocused] = useState(false);
+
+  function commit(text: string) {
+    onChange(text.replace(/\D/g, "").slice(0, 4));
+  }
+
   return (
-    <TouchableOpacity
-      activeOpacity={1}
+    <Pressable
       onPress={() => inputRef.current?.focus()}
-      style={{ flexDirection: "row", justifyContent: "center", gap: 10 }}
+      style={{ height: 60, justifyContent: "center" }}
+      accessibilityRole="none"
     >
-      {[0, 1, 2, 3].map((index) => {
-        const digit = value[index];
-        const isCursor = focused && index === Math.min(value.length, 3);
-        return (
-          <View
-            key={index}
-            style={{
-              flex: 1,
-              maxWidth: 60,
-              height: 60,
-              borderRadius: 14,
-              backgroundColor: colors.base,
-              borderWidth: 2,
-              borderColor: isCursor ? HERCOM_COLORS.primary : "transparent",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text style={{ fontFamily: POPPINS.bold, fontSize: 26, color: colors.textStrong, ...TABULAR }}>
-              {digit ?? ""}
-            </Text>
-          </View>
-        );
-      })}
+      <View
+        pointerEvents="none"
+        style={{ flexDirection: "row", justifyContent: "center", gap: 10 }}
+      >
+        {[0, 1, 2, 3].map((index) => {
+          const digit = digits[index];
+          const isCursor = focused && index === Math.min(digits.length, 3);
+          return (
+            <View
+              key={index}
+              style={{
+                flex: 1,
+                maxWidth: 60,
+                height: 60,
+                borderRadius: 14,
+                backgroundColor: colors.base,
+                borderWidth: 2,
+                borderColor: isCursor ? HERCOM_COLORS.primary : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: POPPINS.bold,
+                  fontSize: 26,
+                  color: colors.textStrong,
+                  ...TABULAR,
+                }}
+              >
+                {digit ?? ""}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
       <TextInput
         ref={inputRef}
-        value={value}
-        onChangeText={(text) => onChange(text.replace(/\D/g, "").slice(0, 4))}
+        value={digits}
+        onChangeText={commit}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        keyboardType="number-pad"
+        keyboardType={Platform.OS === "ios" ? "number-pad" : "numeric"}
+        inputMode="numeric"
         maxLength={4}
         autoCorrect={false}
         autoComplete="off"
-        textContentType="oneTimeCode"
+        importantForAutofill="no"
+        showSoftInputOnFocus
         accessibilityLabel="Código del cliente, cuatro dígitos"
         caretHidden
-        style={{ position: "absolute", width: 1, height: 1, opacity: 0 }}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 60,
+          opacity: 0.02,
+          color: "transparent",
+        }}
       />
-    </TouchableOpacity>
+    </Pressable>
   );
 }

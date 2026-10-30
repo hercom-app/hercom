@@ -166,7 +166,7 @@ export function DriverServiceHome({
         style={{ paddingBottom: 8 }}
       >
         <ScrollView
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
         >

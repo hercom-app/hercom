@@ -532,13 +532,48 @@ export const clearTripsAndOffers = internalMutation({
       });
     }
 
+    let toppedUpDrivers = 0;
+    for (const driver of await ctx.db.query("drivers").collect()) {
+      const before = (await ensureWallet(ctx, driver._id)).tripCredits;
+      await ensureDemoWalletBalance(ctx, driver._id);
+      const after = (await ensureWallet(ctx, driver._id)).tripCredits;
+      if (after > before) {
+        toppedUpDrivers += 1;
+      }
+    }
+
     return {
       message: "Viajes y ofertas eliminados.",
       deleted,
       deletedNotifications,
       deletedWalletTransactions,
       resetDrivers,
+      toppedUpDrivers,
     };
+  },
+});
+
+/**
+ * Mínimo 5 viajes prepagados por chofer (auditorías / demos).
+ *
+ *   npx convex run seed:ensureAllDriverTripCredits --prod
+ */
+export const ensureAllDriverTripCredits = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    let toppedUp = 0;
+    for (const driver of await ctx.db.query("drivers").collect()) {
+      const before = (await ensureWallet(ctx, driver._id)).tripCredits;
+      await ensureDemoWalletBalance(ctx, driver._id);
+      const after = (await ensureWallet(ctx, driver._id)).tripCredits;
+      if (after > before) {
+        toppedUp += 1;
+      }
+      if (driver.status !== "available") {
+        await ctx.db.patch(driver._id, { status: "available" });
+      }
+    }
+    return { message: "Choferes con saldo mínimo de viajes.", toppedUp };
   },
 });
 

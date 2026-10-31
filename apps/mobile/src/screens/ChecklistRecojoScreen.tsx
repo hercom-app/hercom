@@ -12,9 +12,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
+import {
+  VEHICLE_PHOTO_SLOT_COUNT,
+  VEHICLE_PHOTO_SLOTS,
+  type VehiclePhotoSlot,
+} from "@proyecto/backend/vehicleChecklistPhotos";
 import { CarDamageCanvas, type DamageMark } from "../components/CarDamageCanvas";
 import { PassengerBanner } from "../components/PassengerBanner";
 import { DrawerIcon } from "../components/DrawerIcons";
+import {
+  countFilledVehiclePhotos,
+  VehicleChecklistPhotos,
+  type VehiclePhotoDraft,
+} from "../components/VehicleChecklistPhotos";
 import {
   CheckRow,
   ErrorText,
@@ -26,6 +36,8 @@ import {
 } from "../components/driver/driverUi";
 import { useAppTheme } from "../contexts/ThemeContext";
 import { HERCOM_COLORS, POPPINS } from "../constants/theme";
+import { convexErrorMessage } from "../lib/convexErrorMessage";
+import { uploadToConvex } from "../lib/driverRegistration";
 
 type Props = {
   serviceId: Id<"services">;
@@ -40,6 +52,7 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
   });
   const service = useQuery(api.services.getById, { serviceId });
   const upsert = useMutation(api.serviceChecklists.upsertPickupChecklist);
+  const generateUploadUrl = useMutation(api.serviceChecklists.generateUploadUrl);
 
   const [hasPropertyCard, setHasPropertyCard] = useState(false);
   const [hasSoat, setHasSoat] = useState(false);
@@ -51,6 +64,9 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
   const [damageNotes, setDamageNotes] = useState("");
   const [hasInsurance, setHasInsurance] = useState(false);
   const [insuranceNotes, setInsuranceNotes] = useState("");
+  const [vehiclePhotos, setVehiclePhotos] = useState<
+    Partial<Record<VehiclePhotoSlot, VehiclePhotoDraft>>
+  >({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasLoadedOnce = useRef(false);
@@ -72,28 +88,63 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
     setDamageNotes(checklist.damageNotes ?? "");
     setHasInsurance(checklist.hasInsurance === true);
     setInsuranceNotes(checklist.insuranceNotes ?? "");
+    const nextPhotos: Partial<Record<VehiclePhotoSlot, VehiclePhotoDraft>> = {};
+    for (const photo of checklist.vehiclePhotos ?? []) {
+      nextPhotos[photo.slot] = {
+        storageId: photo.storageId,
+        url: photo.url,
+      };
+    }
+    setVehiclePhotos(nextPhotos);
   }, [checklist?._id]);
 
   const docsDone = [hasPropertyCard, hasSoat, hasTechnicalInspection].filter(Boolean).length;
   const docsOk = docsDone === 3;
+  const photosDone = countFilledVehiclePhotos(vehiclePhotos);
+  const photosOk = photosDone === VEHICLE_PHOTO_SLOT_COUNT;
   const hasMarks = damageMarks.length > 0;
   const notesOk = !hasMarks || damageNotes.trim().length > 0;
-  const canSave = docsOk && notesOk;
-  const requiredTotal = hasMarks ? 4 : 3;
-  const requiredDone = docsDone + (hasMarks && notesOk ? 1 : 0);
+  const canSave = docsOk && photosOk && notesOk;
+  const requiredTotal = VEHICLE_PHOTO_SLOT_COUNT + (hasMarks ? 4 : 3);
+  const requiredDone = docsDone + photosDone + (hasMarks && notesOk ? 1 : 0);
 
   async function handleSave() {
     if (!canSave) {
       setError(
         !docsOk
           ? "Verifica tarjeta de propiedad, SOAT y revisión técnica."
-          : "Describe las abolladuras que marcaste.",
+          : !photosOk
+            ? "Toma las 6 fotos del vehículo (frente, posterior, laterales, interior y kilometraje)."
+            : "Describe las abolladuras que marcaste.",
       );
       return;
     }
     setError(null);
     setSaving(true);
     try {
+      const uploadedPhotos = [];
+      for (const slot of VEHICLE_PHOTO_SLOTS) {
+        const draft = vehiclePhotos[slot];
+        if (draft?.local !== undefined) {
+          const storageId = await uploadToConvex(
+            () => generateUploadUrl({}),
+            draft.local.uri,
+            draft.local.mimeType,
+          );
+          uploadedPhotos.push({ slot, storageId });
+          continue;
+        }
+        if (draft?.storageId !== undefined) {
+          uploadedPhotos.push({
+            slot,
+            storageId: draft.storageId,
+          });
+          continue;
+        }
+        throw new Error(
+          "Toma las 6 fotos del vehículo (frente, posterior, laterales, interior y kilometraje).",
+        );
+      }
       const yearNum = Number(vehicleYear);
       await upsert({
         serviceId,
@@ -112,10 +163,11 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
         ...(hasInsurance && insuranceNotes.trim()
           ? { insuranceNotes: insuranceNotes.trim() }
           : {}),
+        vehiclePhotos: uploadedPhotos,
       });
       onBack();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo guardar.");
+      setError(convexErrorMessage(e, "No se pudo guardar."));
     } finally {
       setSaving(false);
     }
@@ -204,6 +256,20 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
               onPress={() => setHasTechnicalInspection((v) => !v)}
             />
           </SoftGroup>
+        </Section>
+
+        <Section title="Fotos del vehículo">
+          <VehicleChecklistPhotos
+            photos={vehiclePhotos}
+            onCaptured={(slot, photo) => {
+              setError(null);
+              setVehiclePhotos((current) => ({
+                ...current,
+                [slot]: { local: photo },
+              }));
+            }}
+            onError={setError}
+          />
         </Section>
 
         <Section title="Vehículo" optional>

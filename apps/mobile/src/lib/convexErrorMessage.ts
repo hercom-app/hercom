@@ -8,6 +8,7 @@ const KNOWN_SERVER_MESSAGES = [
   "Debes firmar digitalmente la autorización",
   "Selecciona tu departamento",
   "Debes ser mayor de 18 años",
+  "Faltan las 6 fotos del vehículo",
 ] as const;
 
 /** Extrae el mensaje útil de errores Convex (evita wrappers y «Called by client»). */

@@ -75,6 +75,7 @@ export const ServiceCard = memo(function ServiceCard({
     pickupChecklist.hasPropertyCard &&
     pickupChecklist.hasSoat &&
     pickupChecklist.hasTechnicalInspection === true &&
+    pickupChecklist.photosComplete === true &&
     (!pickupChecklist.hasVehicleDamage ||
       (pickupChecklist.damageNotes ?? "").trim().length > 0);
 

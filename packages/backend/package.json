@@ -35,6 +35,10 @@
     "./driverTopUpPackages": {
       "types": "./convex/lib/driverTopUpPackages.ts",
       "default": "./convex/lib/driverTopUpPackages.ts"
+    },
+    "./vehicleChecklistPhotos": {
+      "types": "./convex/lib/vehicleChecklistPhotos.ts",
+      "default": "./convex/lib/vehicleChecklistPhotos.ts"
     }
   },
   "scripts": {

@@ -1,6 +1,15 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireDriver } from "./lib/auth";
+import type { QueryCtx } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
+import { requireDriver, requireStaff } from "./lib/auth";
+import { getAccessContext, originMatchesDistrictScopes } from "./lib/adminAccess";
+import { vehicleChecklistPhotoValidator } from "./schema";
+import {
+  assertRequiredVehiclePhotos,
+  hasRequiredVehiclePhotos,
+  replaceVehicleChecklistPhotos,
+} from "./lib/vehicleChecklistPhotos";
 
 const damageMarkValidator = v.object({
   view: v.union(
@@ -11,6 +20,39 @@ const damageMarkValidator = v.object({
   ),
   x: v.number(),
   y: v.number(),
+});
+
+async function withPhotoUrls(
+  ctx: QueryCtx,
+  photos: Doc<"serviceVehicleChecklists">["vehiclePhotos"],
+) {
+  if (photos === undefined) {
+    return [];
+  }
+  return await Promise.all(
+    photos.map(async (photo) => ({
+      slot: photo.slot,
+      storageId: photo.storageId,
+      url: await ctx.storage.getUrl(photo.storageId),
+    })),
+  );
+}
+
+function toChecklistResponse(checklist: Doc<"serviceVehicleChecklists">) {
+  return {
+    photosComplete: hasRequiredVehiclePhotos(checklist.vehiclePhotos),
+  };
+}
+
+/**
+ * URL temporal para subir las 6 fotos del vehículo.
+ */
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireDriver(ctx);
+    return await ctx.storage.generateUploadUrl();
+  },
 });
 
 /**
@@ -29,10 +71,53 @@ export const getForMyService = query({
     if (service.driverId !== driver._id) {
       throw new Error("No autorizado.");
     }
-    return await ctx.db
+    const checklist = await ctx.db
       .query("serviceVehicleChecklists")
       .withIndex("by_service", (q) => q.eq("serviceId", service._id))
       .unique();
+    if (checklist === null) {
+      return null;
+    }
+    return {
+      ...checklist,
+      vehiclePhotos: await withPhotoUrls(ctx, checklist.vehiclePhotos),
+      ...toChecklistResponse(checklist),
+    };
+  },
+});
+
+/**
+ * Checklist con URLs de fotos para el panel interno (reclamos).
+ */
+export const getForAdmin = query({
+  args: {
+    serviceId: v.id("services"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireStaff(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null) {
+      return null;
+    }
+    const access = await getAccessContext(ctx, user);
+    if (
+      !access.isFullAdmin &&
+      !originMatchesDistrictScopes(service.origin, access.districtScopes)
+    ) {
+      throw new Error("No autorizado para ver este servicio.");
+    }
+    const checklist = await ctx.db
+      .query("serviceVehicleChecklists")
+      .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+      .unique();
+    if (checklist === null) {
+      return null;
+    }
+    return {
+      ...checklist,
+      vehiclePhotos: await withPhotoUrls(ctx, checklist.vehiclePhotos),
+      ...toChecklistResponse(checklist),
+    };
   },
 });
 
@@ -53,6 +138,7 @@ export const upsertPickupChecklist = mutation({
     vehicleYear: v.optional(v.number()),
     hasInsurance: v.optional(v.boolean()),
     insuranceNotes: v.optional(v.string()),
+    vehiclePhotos: v.array(vehicleChecklistPhotoValidator),
   },
   handler: async (ctx, args) => {
     const { driver } = await requireDriver(ctx);
@@ -66,6 +152,8 @@ export const upsertPickupChecklist = mutation({
     if (service.status !== "arrived_pickup") {
       throw new Error("El checklist solo se registra en estado arrived_pickup.");
     }
+
+    assertRequiredVehiclePhotos(args.vehiclePhotos);
 
     const marks = args.damageMarks ?? [];
     const hasMarks = marks.length > 0;
@@ -100,10 +188,16 @@ export const upsertPickupChecklist = mutation({
         : {}),
       hasInsurance: args.hasInsurance ?? false,
       ...(insuranceNotes ? { insuranceNotes } : {}),
+      vehiclePhotos: args.vehiclePhotos,
       updatedAt: now,
     };
 
     if (existing !== null) {
+      await replaceVehicleChecklistPhotos(
+        ctx,
+        existing.vehiclePhotos,
+        args.vehiclePhotos,
+      );
       await ctx.db.patch(existing._id, payload);
       return existing._id;
     }

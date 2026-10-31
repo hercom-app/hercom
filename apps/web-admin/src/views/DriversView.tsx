@@ -81,6 +81,7 @@ type ChoferRow = {
   registeredAt: number;
   application: DriverApplicationForAdmin | null;
   finance: DriverFinanceInfo;
+  driverId: Id<"drivers"> | null;
 };
 
 export function DriversView({
@@ -154,6 +155,7 @@ export function DriversView({
               ].join(" · "),
         registeredAt: driver._creationTime,
         application: application ?? null,
+        driverId: driver._id,
         finance: {
           hasProfile: true,
           fullName: driver.fullName,
@@ -196,6 +198,7 @@ export function DriversView({
         ].join(" · "),
         registeredAt: application.submittedAt,
         application,
+        driverId: null,
         finance: {
           hasProfile: false,
           fullName: undefined,
@@ -286,6 +289,7 @@ export function DriversView({
             application={selectedRow.application}
             userName={selectedRow.fullName}
             finance={selectedRow.finance}
+            driverId={selectedRow.driverId}
             showFinance={showFinance}
             canEditHrExtras={canEditHrExtras}
           />

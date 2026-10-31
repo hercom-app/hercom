@@ -22,7 +22,14 @@ import {
   MS_PER_SERVICE_HOUR,
 } from "./lib/commissionTiers";
 import { requireDriver, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
-import { filterServicesByAccess, getAccessContext, isStaffRole, originMatchesDistrictScopes } from "./lib/adminAccess";
+import {
+  canBrowseAllDriverRecords,
+  driverMatchesDistrictScopes,
+  filterServicesByAccess,
+  getAccessContext,
+  isStaffRole,
+  originMatchesDistrictScopes,
+} from "./lib/adminAccess";
 import {
   debitTripForService,
   hasTripCreditForService,
@@ -37,6 +44,10 @@ import {
 } from "./lib/serviceClosure";
 import { resolveDriverLocationForOffers } from "./lib/driverLocation";
 import { resolveDriverOfferRadiusKm } from "./lib/driverOfferDiscovery";
+import {
+  formatPersonNameForDisplay,
+  formatPeruPersonFullName,
+} from "./lib/personName";
 import { estimateRoadLeg, isWithinDriverServiceRadius } from "./lib/geoDistance";
 import {
   deleteVehicleChecklistPhotos,
@@ -1275,6 +1286,83 @@ export const listAllForAdmin = query({
       );
     }
     return filterServicesByAccess(services, access);
+  },
+});
+
+/**
+ * Historial de servicios de un chofer para el panel interno:
+ * cobro, horas pedidas, duración real, calificación y comentario del cliente.
+ */
+export const listHistoryForDriverAdmin = query({
+  args: {
+    driverId: v.id("drivers"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireStaff(ctx);
+    const access = await getAccessContext(ctx, user);
+    const driver = await ctx.db.get(args.driverId);
+    if (driver === null) {
+      return [];
+    }
+    if (
+      !canBrowseAllDriverRecords(user, access.isFullAdmin) &&
+      !driverMatchesDistrictScopes(driver, access.districtScopes)
+    ) {
+      return [];
+    }
+
+    const services = await ctx.db
+      .query("services")
+      .withIndex("by_driver", (q) => q.eq("driverId", args.driverId))
+      .order("desc")
+      .collect();
+
+    return await Promise.all(
+      services.map(async (service) => {
+        const rating = await ctx.db
+          .query("serviceRatings")
+          .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+          .unique();
+        const client = await ctx.db.get(service.clientId);
+        const startedAt = service.departedWithClientAt;
+        const finishedAt = service.finishedAt;
+        const clientFromParts =
+          client === null
+            ? ""
+            : formatPeruPersonFullName({
+                firstName: client.firstName ?? "",
+                firstLastName: client.firstLastName ?? "",
+                secondLastName: client.secondLastName ?? "",
+              });
+        const clientName =
+          formatPersonNameForDisplay(client?.name) || clientFromParts || null;
+
+        return {
+          _id: service._id,
+          status: service.status,
+          closureReason: service.closureReason,
+          driverId: service.driverId,
+          assignedAt: service.assignedAt,
+          requestedAt: service.requestedAt,
+          originAddress: service.origin.address,
+          destinationAddress: service.destination.address,
+          chargedAmount: normalizeMoney(
+            service.offeredPrice ?? service.totalPrice,
+          ),
+          requestedHours: service.serviceHours ?? null,
+          executedDurationMs:
+            startedAt !== undefined && finishedAt !== undefined
+              ? Math.max(finishedAt - startedAt, 0)
+              : null,
+          departedWithClientAt: startedAt ?? null,
+          finishedAt: finishedAt ?? null,
+          score: rating?.score ?? null,
+          comment: rating?.comment ?? null,
+          clientName,
+          passengerName: service.passengerName?.trim() || null,
+        };
+      }),
+    );
   },
 });
 

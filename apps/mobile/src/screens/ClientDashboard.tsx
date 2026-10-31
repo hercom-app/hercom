@@ -49,7 +49,10 @@ import {
   TacticalValue,
 } from "../components/tactical";
 import { LiveTripMapModal } from "../components/LiveTripMapModal";
-import { HomeRequestSheet } from "../components/request/HomeRequestSheet";
+import {
+  HomeRequestSheet,
+  type HomeSavedPlace,
+} from "../components/request/HomeRequestSheet";
 import { LocationAccessPrompt } from "../components/request/LocationAccessPrompt";
 import { PinPickerScreen } from "../components/request/PinPickerScreen";
 import { UserLocationDot } from "../components/request/UserLocationDot";
@@ -72,7 +75,10 @@ import {
   resolvePickupAddress,
   type PickupLocationResult,
 } from "../lib/pickupLocation";
-import { recentDestinationsFromServices } from "../lib/recentDestinations";
+import {
+  recentDestinationsFromServices,
+  splitPlaceLabel,
+} from "../lib/recentDestinations";
 import { canShareLiveTrip, isActiveServiceStatus } from "../lib/serviceStatus";
 import { ExtendTripPanel } from "../components/ExtendTripPanel";
 import { canClientExtendTrip } from "../lib/tripExtension";
@@ -568,6 +574,10 @@ export function ClientDashboard() {
   const { userName } = useAppMode();
   const me = useQuery(api.users.getMe);
   const services = useQuery(api.services.listForClient, {});
+  const savedPlaces = useQuery(api.savedPlaces.listMine, {});
+  const setSavedHome = useMutation(api.savedPlaces.setHome);
+  const saveFavoritePlace = useMutation(api.savedPlaces.saveFavorite);
+  const removeSavedPlace = useMutation(api.savedPlaces.remove);
   const createService = useMutation(api.services.createService);
   const markAllNotificationsAsRead = useMutation(api.notifications.markAllAsRead);
   const notifications = useQuery(api.notifications.listMine, { limit: 8 });
@@ -1500,6 +1510,32 @@ export function ClientDashboard() {
   }
 
   const recentDestinations = recentDestinationsFromServices(services);
+  const savedPlaceRows = (savedPlaces ?? []).map((place): HomeSavedPlace => {
+    const label = splitPlaceLabel(place.address);
+    return {
+      id: place._id,
+      kind: place.kind,
+      label: place.label,
+      address: place.address,
+      lat: place.lat,
+      lng: place.lng,
+      title: label.title,
+      ...(label.subtitle !== undefined ? { subtitle: label.subtitle } : {}),
+    };
+  });
+  const homePlace = savedPlaceRows.find((place) => place.kind === "home") ?? null;
+  const favoritePlaces = savedPlaceRows.filter((place) => place.kind === "favorite");
+
+  async function persistSavedPlace(
+    action: () => Promise<unknown>,
+    fallback: string,
+  ) {
+    try {
+      await action();
+    } catch (saveError) {
+      throw new Error(convexErrorMessage(saveError, fallback));
+    }
+  }
   const pinCenter =
     pinField === "origin"
       ? originLat !== null && originLng !== null
@@ -1884,9 +1920,43 @@ export function ClientDashboard() {
               <UberBottomSheet height={homeSheetHeight}>
                 <HomeRequestSheet
                   recents={recentDestinations}
+                  home={homePlace}
+                  favorites={favoritePlaces}
+                  placesReady={savedPlaces !== undefined}
+                  addressRegion={addressRegion}
+                  {...(gpsBias !== undefined ? { gpsCenter: gpsBias } : {})}
                   error={error}
                   bottomInset={insets.bottom}
                   onSearchPress={() => openAddressSearch("destination")}
+                  onSetHome={(place) =>
+                    persistSavedPlace(
+                      () =>
+                        setSavedHome({
+                          label: "Casa",
+                          address: place.address,
+                          lat: place.lat,
+                          lng: place.lng,
+                        }),
+                      "No se pudo guardar tu casa.",
+                    )
+                  }
+                  onSaveFavorite={(place) =>
+                    persistSavedPlace(
+                      () =>
+                        saveFavoritePlace({
+                          address: place.address,
+                          lat: place.lat,
+                          lng: place.lng,
+                        }),
+                      "No se pudo guardar el favorito.",
+                    )
+                  }
+                  onRemovePlace={(placeId) =>
+                    persistSavedPlace(
+                      () => removeSavedPlace({ placeId }),
+                      "No se pudo quitar el lugar.",
+                    )
+                  }
                   onSelectRecent={(place) => {
                     setDestination({
                       address: place.address,

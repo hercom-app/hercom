@@ -115,6 +115,24 @@ Indices:
 - `email` sobre `email`
 - `phone` sobre `phone`
 
+## `savedPlaces` (casa y favoritos del cliente)
+
+Tabla aparte de `users`. Una casa y hasta 4 favoritos por usuario.
+
+Campos:
+- `userId` (id `users`)
+- `kind` (`"home" | "favorite"`)
+- `label` (string): «Casa» o el nombre del favorito
+- `address` (string)
+- `lat` (number)
+- `lng` (number)
+- `updatedAt` (number)
+
+Indice:
+- `by_user` sobre `userId`
+
+Funciones: `savedPlaces.listMine`, `setHome`, `saveFavorite`, `remove`.
+
 ## `drivers` (perfil operativo del chofer)
 
 Campos:
@@ -296,12 +314,32 @@ Campos:
 - `damageNotes` (optional string)
 - `hasPropertyCard` (boolean)
 - `hasSoat` (boolean)
+- `vehiclePhotos` (optional array): 6 tomas `{ slot, storageId }`. Slots: `front`, `rear`, `left`, `right`, `interior`, `odometer`
 - `checkedAt` (number)
 - `updatedAt` (number)
 
 Indices:
 - `by_service` sobre `serviceId`
 - `by_driver` sobre `driverId`
+
+## `serviceRouteArchives` (ruta GPS del servicio, 90 días)
+
+Un archivo por servicio. Mientras corre está `recording`. Al finalizar pasa a `finalized`, se exporta GeoJSON a File Storage y `expiresAt` queda a 90 días. Un cron diario (`purgeExpired`, 09:00 UTC) borra los vencidos.
+
+Campos:
+- `serviceId` (id `services`)
+- `status` (`"recording" | "finalized"`)
+- `trail` (array de `{ lat, lng, t }`)
+- `archivedAt` (optional number)
+- `expiresAt` (optional number)
+- `geoJsonStorageId` (optional id `_storage`)
+- `createdAt` (number)
+
+Indices:
+- `by_service` sobre `serviceId`
+- `by_expires_at` sobre `expiresAt`
+
+Consulta de panel: `serviceRouteArchives.getForAdmin`.
 
 ## `payments` (pago del cliente por servicio)
 

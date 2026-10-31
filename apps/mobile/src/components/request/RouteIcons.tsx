@@ -72,6 +72,19 @@ export function MapGlyph({ size = 22, color = "#0B70FE" }: GlyphProps) {
   );
 }
 
+export function HomeGlyph({ size = 20, color = "#0F172A" }: GlyphProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 10.6L12 4l8 6.6V20a1 1 0 01-1 1h-5.2v-6.2H10.2V21H5a1 1 0 01-1-1v-9.4z"
+        stroke={color}
+        strokeWidth={1.7}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 export function PinGlyph({ size = 20, color = "#0F172A" }: GlyphProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

@@ -11,10 +11,11 @@ En estado **Llegó al punto**, solo un botón abre una pantalla dedicada.
 Servicios (ServiceCard)
   └─ [Abrir checklist]  →  ChecklistRecojoScreen
                               ├─ 1. Documentos
-                              ├─ 2. Datos del vehículo
-                              ├─ 3. Daños (canvas por vista)
-                              ├─ 4. Observaciones
-                              └─ 5. Seguro (opcional)
+                              ├─ 2. Seis fotos del vehículo
+                              ├─ 3. Datos del vehículo
+                              ├─ 4. Daños (canvas por vista)
+                              ├─ 5. Observaciones
+                              └─ 6. Seguro (opcional)
                          → [Guardar] → vuelve a Servicios
                          → código + deslizar para iniciar viaje
 ```
@@ -46,7 +47,22 @@ Una sola pantalla con secciones (scroll). Al final: **Guardar checklist**.
 | SOAT | Sí / No (verificado) |
 | Revisión técnica | Sí / No (verificada) |
 
-### 2. Datos del vehículo
+### 2. Seis fotos del vehículo (obligatorias para guardar)
+
+Tomas en `VehicleChecklistPhotos`. Se suben a Convex Storage y quedan en `serviceVehicleChecklists.vehiclePhotos`.
+
+| Slot | Etiqueta |
+| --- | --- |
+| `front` | Frente |
+| `rear` | Posterior |
+| `left` | Lateral izquierdo |
+| `right` | Lateral derecho |
+| `interior` | Interior |
+| `odometer` | Kilometraje |
+
+Sin las seis, **Guardar** no envía el checklist.
+
+### 3. Datos del vehículo
 
 | Campo | UI |
 | --- | --- |
@@ -54,7 +70,7 @@ Una sola pantalla con secciones (scroll). Al final: **Guardar checklist**.
 | Modelo | texto |
 | Año | número |
 
-### 3. Daños — canvas por vista
+### 4. Daños — canvas por vista
 
 Tres pestañas o pasos: **Anterior** | **Posterior** | **Lateral**.
 
@@ -64,12 +80,12 @@ Cada una:
 - El chofer **toca o marca** zonas con abolladura / daño sobre el canvas
 - Las marcas se guardan como puntos/zonas por vista
 
-### 4. Observaciones
+### 5. Observaciones
 
 - Campo de texto **aparte** (no mezclado con el canvas)
 - Libre: detalle de daños, estado general, etc.
 
-### 5. Seguro (opcional)
+### 6. Seguro (opcional)
 
 - Toggle: ¿Tiene seguro vigente?
 - Si sí: póliza / nota corta (opcional)
@@ -78,13 +94,13 @@ Cada una:
 
 ## Reglas
 
-- No se puede **iniciar viaje** sin: tarjeta de propiedad, SOAT y revisión técnica en sí.
+- No se puede **guardar el checklist** sin: tarjeta de propiedad, SOAT, revisión técnica y las 6 fotos.
 - Canvas y observaciones: recomendados si hay daño; observaciones obligatorias si hay al menos una marca en el canvas.
-- Seguro: nunca bloquea el inicio del viaje.
+- Seguro: nunca bloquea el guardado ni el inicio del viaje.
+- El inicio del viaje sigue pidiendo el checklist guardado y el código de seguridad.
 
 ---
 
 ## Qué reemplaza
 
-Hoy el checklist está **inline** en `ServiceCard` (toggles SOAT / tarjeta / abolladuras).  
-Eso se saca de la tarjeta y pasa a **ChecklistRecojoScreen** según este documento.
+El checklist no vive en la tarjeta de Servicios. `ServiceCard` solo abre `ChecklistRecojoScreen`. Las 6 fotos son parte de ese guardado, no un paso aparte después del viaje.

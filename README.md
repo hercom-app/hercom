@@ -14,6 +14,9 @@ backend único de Convex compartido por tres aplicaciones.
 > **Cambios prod único + registro chofer (sep 2026):**
 > [`docs/0 CAMBIOS PROD Y REGISTRO CHOFER.md`](docs/0%20CAMBIOS%20PROD%20Y%20REGISTRO%20CHOFER.md)
 >
+> **Cambios del 31 oct 2026 (rutas, fotos, casa, seguridad):**
+> [`docs/CAMBIOS 2026-10-31.md`](docs/CAMBIOS%202026-10-31.md)
+>
 > **Setup en PC (arranque rápido):** [`docs/setup-pc.md`](docs/setup-pc.md)
 >
 > **Guía de diseño (elementos UI, CSS/Tailwind, marca Hercom):**

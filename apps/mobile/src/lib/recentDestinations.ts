@@ -16,7 +16,7 @@ type DestinationSource = {
 
 const MAX_RECENTS = 4;
 
-function splitPlaceLabel(address: string): { title: string; subtitle?: string } {
+export function splitPlaceLabel(address: string): { title: string; subtitle?: string } {
   const parts = address
     .split(",")
     .map((part) => part.trim())

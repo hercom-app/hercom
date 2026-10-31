@@ -178,6 +178,22 @@ export default defineSchema({
     .index("by_dni", ["dni"]),
 
   /**
+   * Casa y pocos favoritos del cliente.
+   * Tabla propia: `users` es el documento de auth/identidad y no debe
+   * reescribirse en cada alta o cambio de un lugar. Una casa por usuario
+   * y hasta 4 favoritos; la mutación impone ese tope.
+   */
+  savedPlaces: defineTable({
+    userId: v.id("users"),
+    kind: v.union(v.literal("home"), v.literal("favorite")),
+    label: v.string(),
+    address: v.string(),
+    lat: v.number(),
+    lng: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  /**
    * Zonas asignadas a un admin operativo.
    * Distrito vacío = toda la provincia. Un admin puede mezclar provincias.
    */

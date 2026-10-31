@@ -81,12 +81,29 @@ flowchart TD
 
 ## Flujo de usuario (referencia corta)
 
-1. **Inicio** — buscador «¿A dónde…?», recientes, bento.
-2. **Introduce tu ruta** — De (GPS + geocode), A (Places o pin).
+1. **Inicio** — buscador «¿A dónde…?», **Casa**, favoritos, últimos destinos, bloque de seguridad y otros servicios.
+2. **Introduce tu ruta** — De (GPS + geocode), A (Places o pin). Casa o un favorito rellenan el destino y, si el recojo ya tiene coordenadas, pasan a confirmar.
 3. **Confirmar** — horas, tarifa, «Solicitar servicio».
 4. **Historial** — servicio `pending`, esperar ofertas.
 
 Estados en código: `flowStep` (`compose` | `confirm`), `addressSearchField`, `pinField` para mapa pin.
+
+### Casa y favoritos (`savedPlaces`)
+
+Tabla propia del cliente, no un campo de `users`. Una casa y hasta 4 favoritos.
+
+| Acción en el home | Qué hace |
+| --- | --- |
+| **Configurar** / **Cambiar** en Casa | Busca la dirección y llama `savedPlaces.setHome` |
+| **Guardar** en un destino reciente | Pregunta «Como tu casa» (`setHome`) o «Como favorito» (`saveFavorite`) |
+| Tocar Casa o un favorito | Lo usa como destino del viaje |
+| **Quitar** | `savedPlaces.remove` |
+
+Si la dirección de un favorito pasa a ser la casa, el favorito se borra para no duplicarlo. La misma dirección de favorito actualiza la fila existente. Los últimos destinos siguen saliendo de viajes anteriores y no se muestran si ya están guardados.
+
+### Seguridad en el home
+
+La tarjeta **Tu seguridad es nuestra prioridad** usa la foto `apps/mobile/assets/images/safety/conciencia-accidente.jpg` a tamaño de toda la tarjeta. Debajo hay cuatro avisos sin ilustración: no expongas tu vida o la de otros, evita ir a la cárcel, evita multas, evita accidentes. **Infórmame más** abre `/cuidando-vidas`.
 
 ---
 
@@ -289,6 +306,7 @@ Canal preview habitual: **`preview`**, runtime **`1.0.0`**.
 | --- | --- |
 | Errores Convex en UI | `apps/mobile/src/lib/convexErrorMessage.ts` |
 | Recientes | `apps/mobile/src/lib/recentDestinations.ts` |
+| Casa y favoritos | `packages/backend/convex/savedPlaces.ts` |
 | Sheet inicio | `apps/mobile/src/components/request/HomeRequestSheet.tsx` |
 | Permiso ubicación | `apps/mobile/src/components/request/LocationAccessPrompt.tsx` |
 | Flujo atención post-pending | [`4 RESUMEN FLUJO ATENCION.md`](./4%20RESUMEN%20FLUJO%20ATENCION.md) |

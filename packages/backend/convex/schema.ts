@@ -102,6 +102,21 @@ export const checklistPhaseValidator = v.union(
   v.literal("pickup"),
 );
 
+/** 6 tomas de recojo: 4 exteriores + interior + odómetro. */
+export const vehiclePhotoSlotValidator = v.union(
+  v.literal("front"),
+  v.literal("rear"),
+  v.literal("left"),
+  v.literal("right"),
+  v.literal("interior"),
+  v.literal("odometer"),
+);
+
+export const vehicleChecklistPhotoValidator = v.object({
+  slot: vehiclePhotoSlotValidator,
+  storageId: v.id("_storage"),
+});
+
 export const sexValidator = v.union(v.literal("M"), v.literal("F"));
 
 export const driverApplicationStatusValidator = v.union(
@@ -433,6 +448,7 @@ export default defineSchema({
   /**
    * Checklist de vehiculo/documentos al recoger al cliente.
    * damageMarks: puntos 0–1 sobre canvas (anterior / posterior / lateral).
+   * vehiclePhotos: 6 tomas en Convex Storage (frente, posterior, laterales, interior, odómetro).
    */
   serviceVehicleChecklists: defineTable({
     serviceId: v.id("services"),
@@ -462,6 +478,7 @@ export default defineSchema({
     vehicleYear: v.optional(v.number()),
     hasInsurance: v.optional(v.boolean()),
     insuranceNotes: v.optional(v.string()),
+    vehiclePhotos: v.optional(v.array(vehicleChecklistPhotoValidator)),
     checkedAt: v.number(),
     updatedAt: v.number(),
   })
@@ -573,10 +590,34 @@ export default defineSchema({
         t: v.number(),
       }),
     ),
+    /** Tras finalizar: no recortar trail ni aceptar más GPS. */
+    trailFrozen: v.optional(v.boolean()),
     createdAt: v.number(),
   })
     .index("by_service", ["serviceId"])
     .index("by_share_token", ["shareToken"]),
+
+  /**
+   * Ruta GPS completa del servicio (sin tope en vivo). Al finalizar se conserva
+   * 90 días y se exporta GeoJSON a File Storage.
+   */
+  serviceRouteArchives: defineTable({
+    serviceId: v.id("services"),
+    status: v.union(v.literal("recording"), v.literal("finalized")),
+    trail: v.array(
+      v.object({
+        lat: v.number(),
+        lng: v.number(),
+        t: v.number(),
+      }),
+    ),
+    archivedAt: v.optional(v.number()),
+    expiresAt: v.optional(v.number()),
+    geoJsonStorageId: v.optional(v.id("_storage")),
+    createdAt: v.number(),
+  })
+    .index("by_service", ["serviceId"])
+    .index("by_expires_at", ["expiresAt"]),
 
   /**
    * Hilo de mensajería interna entre un usuario de la app y operaciones.

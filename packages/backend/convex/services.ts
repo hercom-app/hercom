@@ -30,6 +30,7 @@ import {
 import { createNotification } from "./notifications";
 import { getCurrentStop, getServiceStops } from "./lib/serviceStops";
 import { ensureServiceTracking } from "./serviceTracking";
+import { finalizeServiceRouteArchive } from "./lib/serviceRouteArchive";
 import {
   isTerminalServiceStatus,
   isUnattendedService,
@@ -37,6 +38,11 @@ import {
 import { resolveDriverLocationForOffers } from "./lib/driverLocation";
 import { resolveDriverOfferRadiusKm } from "./lib/driverOfferDiscovery";
 import { estimateRoadLeg, isWithinDriverServiceRadius } from "./lib/geoDistance";
+import {
+  deleteVehicleChecklistPhotos,
+  hasRequiredVehiclePhotos,
+  MISSING_VEHICLE_PHOTOS_MESSAGE,
+} from "./lib/vehicleChecklistPhotos";
 import type { ServiceClosureReason } from "./lib/serviceClosure";
 
 function passengerFields(
@@ -446,7 +452,6 @@ export const purgeActiveServices = internalMutation({
       "serviceTracking",
       "payments",
       "serviceRatings",
-      "serviceVehicleChecklists",
     ] as const;
     let deletedRelated = 0;
     for (const table of relatedTables) {
@@ -456,6 +461,14 @@ export const purgeActiveServices = internalMutation({
           await ctx.db.delete(row._id);
           deletedRelated += 1;
         }
+      }
+    }
+    const checklists = await ctx.db.query("serviceVehicleChecklists").collect();
+    for (const checklist of checklists) {
+      if (deleteIds.has(checklist.serviceId)) {
+        await deleteVehicleChecklistPhotos(ctx, checklist.vehiclePhotos);
+        await ctx.db.delete(checklist._id);
+        deletedRelated += 1;
       }
     }
 
@@ -515,7 +528,6 @@ export const keepLatestForDemo = internalMutation({
       "serviceTracking",
       "payments",
       "serviceRatings",
-      "serviceVehicleChecklists",
     ] as const;
     for (const table of relatedTables) {
       const rows = await ctx.db.query(table).collect();
@@ -523,6 +535,13 @@ export const keepLatestForDemo = internalMutation({
         if (deleteIds.has(row.serviceId)) {
           await ctx.db.delete(row._id);
         }
+      }
+    }
+    const checklists = await ctx.db.query("serviceVehicleChecklists").collect();
+    for (const checklist of checklists) {
+      if (deleteIds.has(checklist.serviceId)) {
+        await deleteVehicleChecklistPhotos(ctx, checklist.vehiclePhotos);
+        await ctx.db.delete(checklist._id);
       }
     }
 
@@ -729,14 +748,16 @@ export const updateStatus = mutation({
     }
 
     // args.status === "finished"
+    const finishedAt = Date.now();
     await debitTripForService(ctx, {
       driverId: driver._id,
       serviceId: service._id,
     });
     await ctx.db.patch(service._id, {
       status: "finished",
-      finishedAt: Date.now(),
+      finishedAt,
     });
+    await finalizeServiceRouteArchive(ctx, service._id, finishedAt);
     await ctx.db.patch(driver._id, {
       status: "available",
       totalTrips: driver.totalTrips + 1,
@@ -789,6 +810,9 @@ export const startTripWithCode = mutation({
       throw new Error(
         "Checklist incompleto: confirma Tarjeta de Propiedad, SOAT y Revisión técnica.",
       );
+    }
+    if (!hasRequiredVehiclePhotos(checklist.vehiclePhotos)) {
+      throw new Error(MISSING_VEHICLE_PHOTOS_MESSAGE);
     }
 
     const market = await getMarketByCountry(ctx, service.origin.countryCode);

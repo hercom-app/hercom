@@ -5,6 +5,7 @@ import type { MutationCtx } from "./_generated/server";
 import { requireDriver, requireStaff, requireUser } from "./lib/auth";
 import { filterServicesByAccess, getAccessContext, originMatchesDistrictScopes } from "./lib/adminAccess";
 import { ADMIN_LIVE_STATUSES, SHARE_LIVE_STATUSES } from "./lib/liveShare";
+import { appendRouteArchivePoint } from "./lib/serviceRouteArchive";
 
 const MAX_TRAIL_POINTS = 400;
 const MIN_UPDATE_INTERVAL_MS = 3000;
@@ -120,6 +121,9 @@ export const updateMyLiveLocation = mutation({
     if (tracking === null) {
       throw new Error("Tracking no encontrado.");
     }
+    if (tracking.trailFrozen === true) {
+      return { ok: false as const, reason: "trail_frozen" };
+    }
 
     const now = Date.now();
     if (
@@ -141,6 +145,7 @@ export const updateMyLiveLocation = mutation({
       if (trail.length > MAX_TRAIL_POINTS) {
         trail = trail.slice(trail.length - MAX_TRAIL_POINTS);
       }
+      await appendRouteArchivePoint(ctx, args.serviceId, point);
     }
 
     await ctx.db.patch(trackingId, {

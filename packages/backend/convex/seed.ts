@@ -360,7 +360,6 @@ async function wipeTable(
     | "serviceOffers"
     | "serviceTracking"
     | "serviceRatings"
-    | "serviceVehicleChecklists"
     | "payments"
     | "walletTransactions"
     | "notifications"
@@ -393,6 +392,28 @@ async function deleteStorageIfPresent(
     return;
   }
   await ctx.storage.delete(storageId);
+}
+
+async function wipeVehicleChecklists(ctx: MutationCtx): Promise<number> {
+  const rows = await ctx.db.query("serviceVehicleChecklists").collect();
+  for (const row of rows) {
+    if (row.vehiclePhotos !== undefined) {
+      for (const photo of row.vehiclePhotos) {
+        await deleteStorageIfPresent(ctx, photo.storageId);
+      }
+    }
+    await ctx.db.delete(row._id);
+  }
+  return rows.length;
+}
+
+async function wipeServiceRouteArchives(ctx: MutationCtx): Promise<number> {
+  const rows = await ctx.db.query("serviceRouteArchives").collect();
+  for (const row of rows) {
+    await deleteStorageIfPresent(ctx, row.geoJsonStorageId);
+    await ctx.db.delete(row._id);
+  }
+  return rows.length;
 }
 
 async function deleteAuthForUser(
@@ -475,8 +496,9 @@ export const clearTripsAndOffers = internalMutation({
     const deleted = {
       serviceOffers: await wipeTable(ctx, "serviceOffers"),
       serviceTracking: await wipeTable(ctx, "serviceTracking"),
+      serviceRouteArchives: await wipeServiceRouteArchives(ctx),
       serviceRatings: await wipeTable(ctx, "serviceRatings"),
-      checklists: await wipeTable(ctx, "serviceVehicleChecklists"),
+      checklists: await wipeVehicleChecklists(ctx),
       payments: await wipeTable(ctx, "payments"),
       services: await wipeTable(ctx, "services"),
       payouts: await wipeTable(ctx, "payouts"),
@@ -616,8 +638,9 @@ async function purgeDriversClientsAndTrips(
   const deleted = {
     serviceOffers: await wipeTable(ctx, "serviceOffers"),
     serviceTracking: await wipeTable(ctx, "serviceTracking"),
+    serviceRouteArchives: await wipeServiceRouteArchives(ctx),
     serviceRatings: await wipeTable(ctx, "serviceRatings"),
-    checklists: await wipeTable(ctx, "serviceVehicleChecklists"),
+    checklists: await wipeVehicleChecklists(ctx),
     payments: await wipeTable(ctx, "payments"),
     walletTransactions: await wipeTable(ctx, "walletTransactions"),
     notifications: await wipeTable(ctx, "notifications"),
@@ -726,8 +749,9 @@ export const resetForOwnerKickoff = internalMutation({
     const deleted = {
       serviceOffers: await wipeTable(ctx, "serviceOffers"),
       serviceTracking: await wipeTable(ctx, "serviceTracking"),
+      serviceRouteArchives: await wipeServiceRouteArchives(ctx),
       serviceRatings: await wipeTable(ctx, "serviceRatings"),
-      checklists: await wipeTable(ctx, "serviceVehicleChecklists"),
+      checklists: await wipeVehicleChecklists(ctx),
       payments: await wipeTable(ctx, "payments"),
       walletTransactions: await wipeTable(ctx, "walletTransactions"),
       notifications: await wipeTable(ctx, "notifications"),

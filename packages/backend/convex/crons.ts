@@ -9,4 +9,10 @@ crons.interval(
   internal.services.expireStalePending,
 );
 
+crons.daily(
+  "purge expired route archives",
+  { hourUTC: 9, minuteUTC: 0 },
+  internal.serviceRouteArchives.purgeExpired,
+);
+
 export default crons;

@@ -1,11 +1,11 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
 import { computeMapBounds, liveStatusLabel } from "../lib/liveTrip";
 import { AdminCard, AdminLoading } from "./AdminLayout";
 import { LiveTripMap } from "./LiveTripMap";
-import { btnGhostClass } from "../lib/adminUi";
+import { btnGhostClass, btnSecondaryClass } from "../lib/adminUi";
 import { formatDateTime } from "../lib/formatDateTime";
 
 type ServiceLivePanelProps = {
@@ -13,19 +13,64 @@ type ServiceLivePanelProps = {
   onClose: () => void;
 };
 
+const REPLAY_MS_PER_POINT = 120;
+
 export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) {
   const live = useQuery(api.serviceTracking.getForAdmin, { serviceId });
+  const archivedRoute = useQuery(
+    api.serviceRouteArchives.getForAdmin,
+    live?.status === "finished" ? { serviceId } : "skip",
+  );
+
+  const isFinished = live?.status === "finished";
+  const [replayIndex, setReplayIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const recordedTrail = useMemo(() => {
+    if (archivedRoute?.trail !== undefined && archivedRoute.trail.length > 0) {
+      return archivedRoute.trail.map((point) => ({
+        lat: point.lat,
+        lng: point.lng,
+      }));
+    }
+    if (live?.trail !== undefined && live.trail.length > 0) {
+      return live.trail.map((point) => ({
+        lat: point.lat,
+        lng: point.lng,
+      }));
+    }
+    return [];
+  }, [archivedRoute?.trail, live?.trail]);
+
+  useEffect(() => {
+    setReplayIndex(0);
+    setIsPlaying(false);
+  }, [serviceId, recordedTrail.length]);
+
+  useEffect(() => {
+    if (!isPlaying || recordedTrail.length < 2) {
+      return;
+    }
+    if (replayIndex >= recordedTrail.length - 1) {
+      setIsPlaying(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setReplayIndex((prev) => Math.min(prev + 1, recordedTrail.length - 1));
+    }, REPLAY_MS_PER_POINT);
+    return () => window.clearTimeout(timer);
+  }, [isPlaying, recordedTrail.length, replayIndex]);
 
   const mapData = useMemo(() => {
     if (live === undefined || live === null) {
       return null;
     }
-    const trail = live.trail.map((point) => ({
+    const trail = isFinished ? recordedTrail : live.trail.map((point) => ({
       lat: point.lat,
       lng: point.lng,
     }));
     const driver =
-      live.lat !== null && live.lng !== null
+      !isFinished && live.lat !== null && live.lng !== null
         ? { lat: live.lat, lng: live.lng }
         : null;
     const origin = { lat: live.origin.lat, lng: live.origin.lng };
@@ -37,14 +82,19 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
     if (driver !== null) {
       points.push(driver);
     }
+    const replayPosition =
+      isFinished && trail.length > 0
+        ? trail[Math.min(replayIndex, trail.length - 1)]!
+        : null;
     return {
       origin,
       destination,
       driver,
       trail,
+      replayPosition: isPlaying || replayIndex > 0 ? replayPosition : null,
       bounds: computeMapBounds(points),
     };
-  }, [live]);
+  }, [isFinished, live, recordedTrail, replayIndex, isPlaying]);
 
   const lastUpdated =
     live?.updatedAt !== null && live?.updatedAt !== undefined
@@ -55,12 +105,24 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
         })
       : null;
 
+  const togglePlay = useCallback(() => {
+    if (recordedTrail.length < 2) {
+      return;
+    }
+    if (replayIndex >= recordedTrail.length - 1) {
+      setReplayIndex(0);
+    }
+    setIsPlaying((prev) => !prev);
+  }, [recordedTrail.length, replayIndex]);
+
+  const panelTitle = isFinished ? "Ruta del viaje (archivada)" : "Ubicación en tiempo real";
+
   return (
     <AdminCard>
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="font-display text-lg font-bold tracking-tight text-slate-900">
-            Ubicación en tiempo real
+            {panelTitle}
           </h2>
           {live !== undefined && live !== null && (
             <>
@@ -71,7 +133,9 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
               <p className="mt-0.5 text-sm text-slate-500">
                 {liveStatusLabel(live.status)}
                 {live.driverName !== undefined ? ` · ${live.driverName}` : ""}
-                {lastUpdated !== null ? ` · GPS act. ${lastUpdated}` : ""}
+                {!isFinished && lastUpdated !== null
+                  ? ` · GPS act. ${lastUpdated}`
+                  : ""}
               </p>
             </>
           )}
@@ -89,19 +153,72 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
         </p>
       ) : (
         <>
-          <div className="h-[min(50dvh,380px)] min-h-[240px] overflow-hidden rounded-lg border border-slate-200 sm:h-[380px]">
+          <div className="h-[min(55dvh,420px)] min-h-[260px] overflow-hidden rounded-lg border border-slate-200 sm:h-[420px]">
             <LiveTripMap
-              key={serviceId}
+              key={`${serviceId}-${isFinished ? "rec" : "live"}`}
               origin={mapData.origin}
               destination={mapData.destination}
               driver={mapData.driver}
               trail={mapData.trail}
               center={mapData.bounds.center}
               zoom={mapData.bounds.zoom}
+              replayPosition={mapData.replayPosition}
+              recordedRoute={isFinished && mapData.trail.length > 1}
             />
           </div>
+
+          {isFinished && recordedTrail.length > 1 && (
+            <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={togglePlay}
+                  className={`${btnSecondaryClass} min-h-10 px-4 text-sm font-semibold`}
+                >
+                  {isPlaying ? "Pausar" : "Reproducir ruta"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPlaying(false);
+                    setReplayIndex(0);
+                  }}
+                  className={`${btnGhostClass} min-h-10 text-sm`}
+                >
+                  Reiniciar
+                </button>
+                <span className="text-xs text-slate-600">
+                  Punto {replayIndex + 1} / {recordedTrail.length}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={recordedTrail.length - 1}
+                value={replayIndex}
+                onChange={(event) => {
+                  setIsPlaying(false);
+                  setReplayIndex(Number(event.target.value));
+                }}
+                className="mt-2 w-full accent-hercom"
+                aria-label="Posición en la ruta"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                La línea naranja sigue el recorrido; el mapa Carto muestra calles y
+                manzanas para revisar el trayecto real.
+              </p>
+            </div>
+          )}
+
+          {isFinished && recordedTrail.length <= 1 && (
+            <p className="mt-3 text-sm text-amber-800">
+              Este viaje finalizó sin puntos GPS suficientes para dibujar la ruta.
+              Los viajes nuevos guardan el recorrido completo al cerrar.
+            </p>
+          )}
+
           <div className="mt-3 space-y-1 text-xs text-slate-500">
-            {!live.isLive && (
+            {!live.isLive && !isFinished && (
               <p className="font-semibold text-slate-600">
                 El seguimiento en vivo no está activo en este estado.
               </p>
@@ -117,12 +234,33 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
               <span className="font-semibold text-slate-700">A:</span>{" "}
               {live.destination.address}
             </p>
-            {live.shareToken !== null && (
+            {live.shareToken !== null && !isFinished && (
               <p>
                 Link comercial:{" "}
                 <span className="break-all font-mono text-slate-700">
                   /live/{live.shareToken}
                 </span>
+              </p>
+            )}
+            {archivedRoute !== undefined && archivedRoute !== null && (
+              <p>
+                Ruta archivada: {archivedRoute.pointCount} puntos
+                {archivedRoute.expiresAt !== null
+                  ? ` · retención hasta ${formatDateTime(archivedRoute.expiresAt)}`
+                  : ""}
+                {archivedRoute.geoJsonUrl !== null && (
+                  <>
+                    {" · "}
+                    <a
+                      href={archivedRoute.geoJsonUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-semibold text-slate-700 underline"
+                    >
+                      Descargar GeoJSON
+                    </a>
+                  </>
+                )}
               </p>
             )}
           </div>

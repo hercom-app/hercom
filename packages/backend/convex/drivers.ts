@@ -224,11 +224,18 @@ export const updateMyPayoutProfile = mutation({
       const trimmed = value?.trim() ?? "";
       return trimmed === "" ? undefined : trimmed;
     };
+    const yape = optional(args.yape);
+    const plin = optional(args.plin);
+    if (yape === undefined && plin === undefined) {
+      throw new Error(
+        "Ingresa Yape o Plin. Con uno de los dos el cliente puede adelantarte el anticipo.",
+      );
+    }
     await ctx.db.patch(driver._id, {
       fullName,
       dni,
-      yape: optional(args.yape),
-      plin: optional(args.plin),
+      yape,
+      plin,
       bankAccount1: optional(args.bankAccount1),
       bankAccount2: optional(args.bankAccount2),
       bankAccount3: optional(args.bankAccount3),

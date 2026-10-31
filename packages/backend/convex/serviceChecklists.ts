@@ -211,3 +211,29 @@ export const upsertPickupChecklist = mutation({
     });
   },
 });
+
+/**
+ * Marca la primera vez que el chofer abre el checklist de recojo.
+ * No se vuelve a escribir si ya hay marca.
+ */
+export const markChecklistStarted = mutation({
+  args: {
+    serviceId: v.id("services"),
+  },
+  handler: async (ctx, args) => {
+    const { driver } = await requireDriver(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null || service.driverId !== driver._id) {
+      throw new Error("No autorizado.");
+    }
+    if (service.checklistStartedAt !== undefined) {
+      return service.checklistStartedAt;
+    }
+    if (service.status !== "arrived_pickup") {
+      return null;
+    }
+    const now = Date.now();
+    await ctx.db.patch(service._id, { checklistStartedAt: now });
+    return now;
+  },
+});

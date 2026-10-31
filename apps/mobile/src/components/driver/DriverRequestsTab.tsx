@@ -48,6 +48,8 @@ type DriverRequestsTabProps = {
   myOfferByService: Record<string, number>;
   tripCredits: number;
   onGoToTopUp: () => void;
+  onGoToPayout: () => void;
+  hasPayoutMethod: boolean;
   onGoToService: () => void;
 };
 
@@ -76,6 +78,8 @@ export function DriverRequestsTab({
   myOfferByService,
   tripCredits,
   onGoToTopUp,
+  onGoToPayout,
+  hasPayoutMethod,
   onGoToService,
 }: DriverRequestsTabProps) {
   const { colors } = useAppTheme();
@@ -95,6 +99,17 @@ export function DriverRequestsTab({
   );
 
   function openOffer(service: OpenOfferService) {
+    if (!hasPayoutMethod) {
+      Alert.alert(
+        "Faltan datos de cobro",
+        "Registra Yape o Plin antes de ofertar. El cliente los usa para adelantarte el anticipo.",
+        [
+          { text: "Registrar", onPress: onGoToPayout },
+          { text: "Ahora no" },
+        ],
+      );
+      return;
+    }
     if (!canAfford) {
       Alert.alert("Sin viajes prepagados", "Recarga para poder ofertar.", [
         { text: "Recargar", onPress: onGoToTopUp },
@@ -179,6 +194,35 @@ export function DriverRequestsTab({
   return (
     <View style={{ flex: 1, backgroundColor: colors.base }}>
       {title}
+
+      {!hasPayoutMethod && (
+        <TouchableOpacity
+          onPress={onGoToPayout}
+          activeOpacity={0.8}
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 10,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderRadius: UBER_RADIUS.card,
+            backgroundColor: HERCOM_COLORS.warningSoft,
+            flexDirection: "row",
+            alignItems: "center",
+          }}
+        >
+          <Text
+            style={{
+              flex: 1,
+              fontFamily: POPPINS.medium,
+              fontSize: 15,
+              color: HERCOM_COLORS.text,
+            }}
+          >
+            Registra Yape o Plin para poder ofertar. Sin eso el anticipo no tiene a dónde ir.
+          </Text>
+          <DrawerIcon name="chevron" color={HERCOM_COLORS.text} />
+        </TouchableOpacity>
+      )}
 
       {!canAfford && (
         <TouchableOpacity

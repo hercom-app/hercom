@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { Fragment, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
@@ -11,6 +11,7 @@ import {
   formatRequestedHours,
   RatingCell,
   RouteFileLink,
+  ServiceTimeline,
 } from "./TripReviewFacts";
 import {
   rowClass,
@@ -133,7 +134,8 @@ export function DriverServicesHistory({ driverId }: DriverServicesHistoryProps) 
                             .join(" · ")
                         : service.clientName ?? "—";
                     return (
-                      <tr key={service._id} className={rowClass}>
+                      <Fragment key={service._id}>
+                      <tr className={rowClass}>
                         <td className={`${tdClass} text-slate-500`}>
                           {formatDateTime(service.requestedAt)}
                         </td>
@@ -190,6 +192,19 @@ export function DriverServicesHistory({ driverId }: DriverServicesHistoryProps) 
                           />
                         </td>
                       </tr>
+                      <tr key={`${service._id}-times`} className={rowClass}>
+                        <td colSpan={9} className="bg-slate-50 px-3 py-2 sm:px-4">
+                          <details>
+                            <summary className="cursor-pointer text-xs font-semibold text-slate-600">
+                              Tiempos del viaje
+                            </summary>
+                            <div className="mt-2 max-w-xl">
+                              <ServiceTimeline timeline={service.timeline} />
+                            </div>
+                          </details>
+                        </td>
+                      </tr>
+                      </Fragment>
                     );
                   })}
                 </tbody>

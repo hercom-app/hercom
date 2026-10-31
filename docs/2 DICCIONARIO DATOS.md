@@ -207,14 +207,16 @@ Campos:
 - `requestChannel` (optional `"mobile_app" | "web_comercial" | "phone"`)
 - `status` (`"pending" | "assigned" | "heading_to_pickup" | "arrived_pickup" | "in_progress" | "arrived_destination" | "en_route" (legacy) | "finished" | "cancelled"`)
 - `notes` (optional string)
-- `requestedAt` (number)
-- `assignedAt` (optional number)
-- `headingToPickupAt` (optional number)
-- `arrivedPickupAt` (optional number)
-- `departedWithClientAt` (optional number)
+- `requestedAt` (number, momento en que el cliente pidió)
+- `assignedAt` (optional number, momento en que el cliente eligió chofer o un admin asignó)
+- `headingToPickupAt` (optional number, momento en que el chofer salió)
+- `arrivedPickupAt` (optional number, momento en que el chofer llegó al recojo)
+- `checklistStartedAt` (optional number, primera apertura del checklist de recojo)
+- `departedWithClientAt` (optional number, inicio del viaje tras el código de seguridad)
 - `arrivedDestinationAt` (optional number)
-- `finishedAt` (optional number)
-- `cancelledAt` (optional number)
+- `finishedAt` (optional number, fin del servicio)
+- `cancelledAt` (optional number, cancelación)
+- `extendedAt` (optional array of number, cada extensión de +1 h)
 
 Indices:
 - `by_client` sobre `clientId`
@@ -248,8 +250,8 @@ Campos:
 - `driverId` (id `drivers`)
 - `offeredPrice` (number)
 - `status` (`"pending" | "accepted" | "rejected"`)
-- `createdAt` (number)
-- `respondedAt` (optional number)
+- `createdAt` (number, momento en que el chofer ofertó)
+- `respondedAt` (optional number, momento en que el cliente aceptó o rechazó)
 
 Indices:
 - `by_service` sobre `serviceId`

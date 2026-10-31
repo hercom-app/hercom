@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   AppState,
   Dimensions,
   Keyboard,
@@ -214,16 +215,18 @@ function ClientServiceCard({
     canShareTrip;
 
   const canCancel =
-    service.status === "pending" ||
-    service.status === "assigned" ||
-    service.status === "heading_to_pickup" ||
-    service.status === "arrived_pickup" ||
-    service.status === "en_route";
+    (service.status === "pending" && service.driverId === undefined) ||
+    (service.status === "assigned" && advanceConfirmed);
 
   async function handleCancel() {
     setCancelling(true);
     try {
       await cancelService({ serviceId: service._id });
+    } catch (error) {
+      Alert.alert(
+        "No se pudo cancelar",
+        convexErrorMessage(error, "Inténtalo de nuevo."),
+      );
     } finally {
       setCancelling(false);
     }
@@ -494,9 +497,19 @@ function ClientServiceCard({
               color: TACTICAL_COLORS.danger,
             }}
           >
-            {cancelling ? "CANCELANDO..." : "CANCELAR SOLICITUD"}
+            {cancelling
+              ? "CANCELANDO..."
+              : service.status === "pending"
+                ? "CANCELAR SOLICITUD"
+                : "CANCELAR VIAJE"}
           </Text>
         </TouchableOpacity>
+      )}
+      {service.status === "assigned" && !advanceConfirmed && (
+        <TacticalText size={12} tone="text" className="mt-3">
+          Para cancelar este viaje aceptado, el chofer tiene que confirmar el
+          anticipo. Antes de que alguien acepte, puedes cancelar la solicitud.
+        </TacticalText>
       )}
       <DriverOfferModal
         visible={selectedOffer !== null}

@@ -123,6 +123,7 @@ export function DriverPayoutConfig({
         </TacticalTitle>
         <TacticalText size={12} className="mb-4">
           El cliente verá estos datos para transferirte el 25% antes del viaje.
+          Yape o Plin es obligatorio para ofertar.
         </TacticalText>
 
         {identityLocked === undefined ? (

@@ -16,6 +16,10 @@ import {
   resolveServiceHoursAndHourlyRate,
 } from "./lib/pricing";
 import { requireDriver, requireUser } from "./lib/auth";
+import {
+  hasYapeOrPlin,
+  MISSING_PAYOUT_OFFER_MESSAGE,
+} from "./lib/driverPayout";
 import { hasTripCreditForService } from "./driverWallets";
 import { createNotification } from "./notifications";
 
@@ -45,6 +49,12 @@ export const submitMyOffer = mutation({
       return {
         ok: false as const,
         message: "Debes estar disponible para ofertar.",
+      };
+    }
+    if (!hasYapeOrPlin(driver)) {
+      return {
+        ok: false as const,
+        message: MISSING_PAYOUT_OFFER_MESSAGE,
       };
     }
 
@@ -263,6 +273,11 @@ export const acceptOffer = mutation({
     }
     if (driver.status !== "available") {
       throw new Error("El chofer ya no está disponible.");
+    }
+    if (!hasYapeOrPlin(driver)) {
+      throw new Error(
+        "Este chofer no tiene Yape ni Plin para el anticipo. Elige otra oferta.",
+      );
     }
 
     const market = await getMarketByCountry(ctx, service.origin.countryCode);

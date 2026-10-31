@@ -29,6 +29,7 @@ import type * as lib_constants from "../lib/constants.js";
 import type * as lib_dniLookupTypes from "../lib/dniLookupTypes.js";
 import type * as lib_driverLocation from "../lib/driverLocation.js";
 import type * as lib_driverOfferDiscovery from "../lib/driverOfferDiscovery.js";
+import type * as lib_driverPayout from "../lib/driverPayout.js";
 import type * as lib_driverTopUpPackages from "../lib/driverTopUpPackages.js";
 import type * as lib_factilizaResponse from "../lib/factilizaResponse.js";
 import type * as lib_fetchFactilizaDni from "../lib/fetchFactilizaDni.js";
@@ -103,6 +104,7 @@ declare const fullApi: ApiFromModules<{
   "lib/dniLookupTypes": typeof lib_dniLookupTypes;
   "lib/driverLocation": typeof lib_driverLocation;
   "lib/driverOfferDiscovery": typeof lib_driverOfferDiscovery;
+  "lib/driverPayout": typeof lib_driverPayout;
   "lib/driverTopUpPackages": typeof lib_driverTopUpPackages;
   "lib/factilizaResponse": typeof lib_factilizaResponse;
   "lib/fetchFactilizaDni": typeof lib_fetchFactilizaDni;

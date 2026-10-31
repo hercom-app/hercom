@@ -52,6 +52,9 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
   });
   const service = useQuery(api.services.getById, { serviceId });
   const upsert = useMutation(api.serviceChecklists.upsertPickupChecklist);
+  const markChecklistStarted = useMutation(
+    api.serviceChecklists.markChecklistStarted,
+  );
   const generateUploadUrl = useMutation(api.serviceChecklists.generateUploadUrl);
 
   const [hasPropertyCard, setHasPropertyCard] = useState(false);
@@ -70,9 +73,20 @@ export function ChecklistRecojoScreen({ serviceId, onBack }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasLoadedOnce = useRef(false);
+  const markedChecklistStart = useRef(false);
   if (checklist !== undefined) {
     hasLoadedOnce.current = true;
   }
+
+  useEffect(() => {
+    if (markedChecklistStart.current) {
+      return;
+    }
+    markedChecklistStart.current = true;
+    void markChecklistStarted({ serviceId }).catch(() => {
+      markedChecklistStart.current = false;
+    });
+  }, [markChecklistStarted, serviceId]);
 
   useEffect(() => {
     if (checklist === null || checklist === undefined) return;

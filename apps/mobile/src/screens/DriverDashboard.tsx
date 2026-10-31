@@ -112,6 +112,11 @@ export function DriverDashboard() {
     setWalletFlow("topup");
   }, []);
 
+  const goToPayout = useCallback(() => {
+    setTab("perfil");
+    setProfileSection("datos");
+  }, []);
+
   const handleAndroidBack = useCallback(() => {
     if (liveMapServiceId !== null) {
       setLiveMapServiceId(null);
@@ -224,6 +229,10 @@ export function DriverDashboard() {
           myOfferByService={myOfferByService}
           tripCredits={tripCredits}
           onGoToTopUp={goToTopUp}
+          onGoToPayout={goToPayout}
+          hasPayoutMethod={
+            (driver.yape?.trim() ?? "") !== "" || (driver.plin?.trim() ?? "") !== ""
+          }
           onGoToService={() => goToTab("servicio")}
         />
       );

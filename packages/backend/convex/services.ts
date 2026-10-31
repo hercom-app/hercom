@@ -22,6 +22,7 @@ import {
   MS_PER_SERVICE_HOUR,
 } from "./lib/commissionTiers";
 import { requireDriver, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
+import { hasYapeOrPlin } from "./lib/driverPayout";
 import {
   canBrowseAllDriverRecords,
   driverMatchesDistrictScopes,
@@ -226,6 +227,11 @@ export const assignDriver = mutation({
     }
     if (driver.status !== "available") {
       throw new Error("El chofer no está disponible.");
+    }
+    if (!hasYapeOrPlin(driver)) {
+      throw new Error(
+        "El chofer no tiene Yape ni Plin. No se le asigna un viaje hasta que cargue un medio para el anticipo.",
+      );
     }
     const hasTrips = await hasTripCreditForService(ctx, driver._id);
     if (!hasTrips) {
@@ -886,9 +892,11 @@ export const extendService = mutation({
         : Date.now());
     const serviceEndsAt = baseEndsAt + MS_PER_SERVICE_HOUR;
 
+    const extendedAt = [...(service.extendedAt ?? []), Date.now()];
     await ctx.db.patch(service._id, {
       serviceHours: nextHours,
       serviceEndsAt,
+      extendedAt,
     });
 
     if (service.driverId !== undefined) {
@@ -980,6 +988,12 @@ export const cancelService = mutation({
     }
     if (isTerminalServiceStatus(service.status)) {
       throw new Error("El servicio ya está cerrado.");
+    }
+    if (isOwner && !isAdmin) {
+      const block = clientCancelBlockReason(service);
+      if (block !== null) {
+        throw new Error(block);
+      }
     }
 
     await ctx.db.patch(
@@ -1304,6 +1318,15 @@ async function loadServiceReview(ctx: QueryCtx, service: Doc<"services">) {
       : null;
   const startedAt = service.departedWithClientAt;
   const finishedAt = service.finishedAt;
+  const offers = await ctx.db
+    .query("serviceOffers")
+    .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+    .collect();
+  const acceptedOffer = offers.find((offer) => offer.status === "accepted");
+  const checklist = await ctx.db
+    .query("serviceVehicleChecklists")
+    .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+    .unique();
 
   return {
     chargedAmount: normalizeMoney(service.offeredPrice ?? service.totalPrice),
@@ -1314,6 +1337,20 @@ async function loadServiceReview(ctx: QueryCtx, service: Doc<"services">) {
         : null,
     departedWithClientAt: startedAt ?? null,
     finishedAt: finishedAt ?? null,
+    timeline: {
+      requestedAt: service.requestedAt,
+      offeredAt: acceptedOffer?.createdAt ?? null,
+      chosenAt: service.assignedAt ?? null,
+      advanceAt: service.advanceConfirmedAt ?? null,
+      departedAt: service.headingToPickupAt ?? null,
+      cancelledAt: service.cancelledAt ?? null,
+      arrivedAt: service.arrivedPickupAt ?? null,
+      checklistStartedAt:
+        service.checklistStartedAt ?? checklist?.checkedAt ?? null,
+      tripStartedAt: startedAt ?? null,
+      extendedAt: service.extendedAt ?? [],
+      finishedAt: finishedAt ?? null,
+    },
     score: rating?.score ?? null,
     comment: rating?.comment?.trim() || null,
     driverScore: rating?.driverScore ?? null,
@@ -1518,6 +1555,22 @@ function unattendedServicePatch(closedAt = Date.now()) {
     cancelledAt: closedAt,
     closureReason: undefined,
   };
+}
+
+function clientCancelBlockReason(service: Doc<"services">): string | null {
+  if (service.status === "pending" && service.driverId === undefined) {
+    return null;
+  }
+  if (
+    service.status === "assigned" &&
+    service.advanceConfirmedAt !== undefined
+  ) {
+    return null;
+  }
+  if (service.status === "assigned") {
+    return "Para cancelar un viaje aceptado, el anticipo tiene que estar pagado. Puedes cancelar sin anticipo solo mientras lo estás pidiendo y nadie aceptó.";
+  }
+  return "Solo puedes cancelar cuando recién lo estás pidiendo y nadie aceptó, o un viaje aceptado después de pagar el anticipo y antes de que el chofer salga.";
 }
 
 function closedServicePatch(

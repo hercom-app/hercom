@@ -346,6 +346,8 @@ export default defineSchema({
     assignedAt: v.optional(v.number()),
     headingToPickupAt: v.optional(v.number()),
     arrivedPickupAt: v.optional(v.number()),
+    /** Primera apertura del checklist de recojo (antes de guardarlo). */
+    checklistStartedAt: v.optional(v.number()),
     departedWithClientAt: v.optional(v.number()),
     arrivedDestinationAt: v.optional(v.number()),
     finishedAt: v.optional(v.number()),
@@ -357,6 +359,8 @@ export default defineSchema({
     hourlyRateSnapshot: v.optional(v.number()),
     /** Fin del tiempo contratado (ms); se fija al iniciar viaje con cliente. */
     serviceEndsAt: v.optional(v.number()),
+    /** Cada aviso de extensión (+1 h), en orden, con fecha y hora. */
+    extendedAt: v.optional(v.array(v.number())),
   })
     .index("by_client", ["clientId"])
     .index("by_driver", ["driverId"])

@@ -7,6 +7,7 @@ import { AdminCard, AdminLoading } from "./AdminLayout";
 import { LiveTripMap } from "./LiveTripMap";
 import { btnGhostClass, btnSecondaryClass } from "../lib/adminUi";
 import { formatDateTime } from "../lib/formatDateTime";
+import { TripReviewFacts } from "./TripReviewFacts";
 
 type ServiceLivePanelProps = {
   serviceId: Id<"services">;
@@ -21,6 +22,7 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
     api.serviceRouteArchives.getForAdmin,
     live?.status === "finished" ? { serviceId } : "skip",
   );
+  const review = useQuery(api.services.getReviewForAdmin, { serviceId });
 
   const isFinished = live?.status === "finished";
   const [replayIndex, setReplayIndex] = useState(0);
@@ -248,22 +250,14 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
                 {archivedRoute.expiresAt !== null
                   ? ` · retención hasta ${formatDateTime(archivedRoute.expiresAt)}`
                   : ""}
-                {archivedRoute.geoJsonUrl !== null && (
-                  <>
-                    {" · "}
-                    <a
-                      href={archivedRoute.geoJsonUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-semibold text-slate-700 underline"
-                    >
-                      Descargar GeoJSON
-                    </a>
-                  </>
-                )}
               </p>
             )}
           </div>
+          {review !== undefined && review !== null && (
+            <div className="mt-4">
+              <TripReviewFacts review={review} />
+            </div>
+          )}
         </>
       )}
     </AdminCard>

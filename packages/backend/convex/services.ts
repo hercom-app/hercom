@@ -1289,9 +1289,68 @@ export const listAllForAdmin = query({
   },
 });
 
+async function loadServiceReview(ctx: QueryCtx, service: Doc<"services">) {
+  const rating = await ctx.db
+    .query("serviceRatings")
+    .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+    .unique();
+  const archive = await ctx.db
+    .query("serviceRouteArchives")
+    .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+    .unique();
+  const routeFileUrl =
+    archive?.geoJsonStorageId !== undefined
+      ? await ctx.storage.getUrl(archive.geoJsonStorageId)
+      : null;
+  const startedAt = service.departedWithClientAt;
+  const finishedAt = service.finishedAt;
+
+  return {
+    chargedAmount: normalizeMoney(service.offeredPrice ?? service.totalPrice),
+    requestedHours: service.serviceHours ?? null,
+    executedDurationMs:
+      startedAt !== undefined && finishedAt !== undefined
+        ? Math.max(finishedAt - startedAt, 0)
+        : null,
+    departedWithClientAt: startedAt ?? null,
+    finishedAt: finishedAt ?? null,
+    score: rating?.score ?? null,
+    comment: rating?.comment?.trim() || null,
+    driverScore: rating?.driverScore ?? null,
+    driverComment: rating?.driverComment?.trim() || null,
+    routeFileUrl,
+    routePointCount: archive === null ? null : archive.trail.length,
+    routeArchiveStatus: archive?.status ?? null,
+  };
+}
+
+/**
+ * Datos de revisión de un viaje: tiempos, calificaciones mutuas y archivo de ruta.
+ */
+export const getReviewForAdmin = query({
+  args: {
+    serviceId: v.id("services"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireStaff(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null) {
+      return null;
+    }
+    const access = await getAccessContext(ctx, user);
+    if (
+      !access.isFullAdmin &&
+      !originMatchesDistrictScopes(service.origin, access.districtScopes)
+    ) {
+      throw new Error("No autorizado para ver este servicio.");
+    }
+    return await loadServiceReview(ctx, service);
+  },
+});
+
 /**
  * Historial de servicios de un chofer para el panel interno:
- * cobro, horas pedidas, duración real, calificación y comentario del cliente.
+ * cobro, horas pedidas, duración real, calificaciones mutuas y archivo de ruta.
  */
 export const listHistoryForDriverAdmin = query({
   args: {
@@ -1319,13 +1378,8 @@ export const listHistoryForDriverAdmin = query({
 
     return await Promise.all(
       services.map(async (service) => {
-        const rating = await ctx.db
-          .query("serviceRatings")
-          .withIndex("by_service", (q) => q.eq("serviceId", service._id))
-          .unique();
+        const review = await loadServiceReview(ctx, service);
         const client = await ctx.db.get(service.clientId);
-        const startedAt = service.departedWithClientAt;
-        const finishedAt = service.finishedAt;
         const clientFromParts =
           client === null
             ? ""
@@ -1346,18 +1400,7 @@ export const listHistoryForDriverAdmin = query({
           requestedAt: service.requestedAt,
           originAddress: service.origin.address,
           destinationAddress: service.destination.address,
-          chargedAmount: normalizeMoney(
-            service.offeredPrice ?? service.totalPrice,
-          ),
-          requestedHours: service.serviceHours ?? null,
-          executedDurationMs:
-            startedAt !== undefined && finishedAt !== undefined
-              ? Math.max(finishedAt - startedAt, 0)
-              : null,
-          departedWithClientAt: startedAt ?? null,
-          finishedAt: finishedAt ?? null,
-          score: rating?.score ?? null,
-          comment: rating?.comment ?? null,
+          ...review,
           clientName,
           passengerName: service.passengerName?.trim() || null,
         };

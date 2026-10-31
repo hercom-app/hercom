@@ -7,6 +7,12 @@ import { AdminPagination, usePagedItems } from "./AdminPagination";
 import { AdminEmpty, AdminLoading, AdminTableWrap } from "./AdminLayout";
 import { formatDateTime } from "../lib/formatDateTime";
 import {
+  formatExecutedDuration,
+  formatRequestedHours,
+  RatingCell,
+  RouteFileLink,
+} from "./TripReviewFacts";
+import {
   rowClass,
   tableClass,
   tableHeadClass,
@@ -20,40 +26,6 @@ type DriverServicesHistoryProps = {
 
 function formatMoney(amount: number): string {
   return `S/${amount.toFixed(2)}`;
-}
-
-function formatRequestedHours(hours: number | null): string {
-  if (hours === null) {
-    return "—";
-  }
-  const rounded = Math.round(hours * 10) / 10;
-  const label = Number.isInteger(rounded)
-    ? String(rounded)
-    : rounded.toFixed(1);
-  return `${label} h`;
-}
-
-function formatExecutedDuration(ms: number | null, started: boolean): string {
-  if (ms === null) {
-    return started ? "En curso" : "No iniciado";
-  }
-  const totalMinutes = Math.max(0, Math.round(ms / 60000));
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (hours === 0) {
-    return `${minutes} min`;
-  }
-  if (minutes === 0) {
-    return hours === 1 ? "1 h" : `${hours} h`;
-  }
-  return `${hours} h ${minutes} min`;
-}
-
-function formatScore(score: number | null): string {
-  if (score === null) {
-    return "Sin calificar";
-  }
-  return `${score} ★`;
 }
 
 export function DriverServicesHistory({ driverId }: DriverServicesHistoryProps) {
@@ -100,8 +72,8 @@ export function DriverServicesHistory({ driverId }: DriverServicesHistoryProps) 
         Servicios realizados
       </p>
       <p className="mt-1 text-sm text-slate-500">
-        Tarifa aceptada, horas pedidas (incluidas extensiones), duración real
-        desde que salió con el cliente, y la calificación con comentario.
+        Tarifa, tiempo pedido, tiempo ejecutado, calificación en ambos
+        sentidos y el archivo de la ruta GPS.
       </p>
 
       {driverId === null ? (
@@ -126,7 +98,7 @@ export function DriverServicesHistory({ driverId }: DriverServicesHistoryProps) 
               value={formatMoney(summary.charged)}
             />
             <SummaryStat
-              label="Calificación"
+              label="Cliente → chofer"
               value={
                 summary.average === null
                   ? "Sin calificaciones"
@@ -147,8 +119,8 @@ export function DriverServicesHistory({ driverId }: DriverServicesHistoryProps) 
                     <th className={thClass}>Cobró</th>
                     <th className={thClass}>Tiempo pedido</th>
                     <th className={thClass}>Tiempo ejecutado</th>
-                    <th className={thClass}>Calificación</th>
-                    <th className={thClass}>Comentario</th>
+                    <th className={thClass}>Cliente → chofer</th>
+                    <th className={thClass}>Chofer → cliente</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -170,13 +142,14 @@ export function DriverServicesHistory({ driverId }: DriverServicesHistoryProps) 
                             {who || "—"}
                           </span>
                         </td>
-                        <td className={`${tdClass} max-w-[16rem]`}>
+                        <td className="max-w-[16rem] whitespace-normal px-3 py-3 align-top text-zinc-700 sm:px-4">
                           <span
                             className="block truncate"
                             title={`${service.originAddress} → ${service.destinationAddress}`}
                           >
                             {service.originAddress} → {service.destinationAddress}
                           </span>
+                          <RouteFileLink review={service} />
                         </td>
                         <td className={tdClass}>
                           {getAdminServiceStatusLabel({
@@ -204,11 +177,17 @@ export function DriverServicesHistory({ driverId }: DriverServicesHistoryProps) 
                             service.departedWithClientAt !== null,
                           )}
                         </td>
-                        <td className={tdClass}>{formatScore(service.score)}</td>
-                        <td className="max-w-[18rem] whitespace-normal px-3 py-3 align-top text-zinc-700 sm:px-4">
-                          {service.comment !== null && service.comment !== ""
-                            ? service.comment
-                            : "—"}
+                        <td className="px-3 py-3 align-top text-zinc-700 sm:px-4">
+                          <RatingCell
+                            score={service.score}
+                            comment={service.comment}
+                          />
+                        </td>
+                        <td className="px-3 py-3 align-top text-zinc-700 sm:px-4">
+                          <RatingCell
+                            score={service.driverScore}
+                            comment={service.driverComment}
+                          />
                         </td>
                       </tr>
                     );

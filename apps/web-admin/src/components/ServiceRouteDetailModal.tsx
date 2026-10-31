@@ -1,6 +1,9 @@
 import { useEffect } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@proyecto/backend";
 import type { Doc } from "@proyecto/backend/dataModel";
 import { formatServiceRequestedAt } from "../lib/formatDateTime";
+import { TripReviewFacts } from "./TripReviewFacts";
 import {
   getAdminServiceStatusLabel,
   getRequestChannelLabel,
@@ -57,6 +60,9 @@ export function ServiceRouteDetailModal({
 
   const typeMeta = getServiceTypeMeta(service);
   const extras = service.extraDestinations ?? [];
+  const review = useQuery(api.services.getReviewForAdmin, {
+    serviceId: service._id,
+  });
 
   return (
     <div
@@ -71,7 +77,7 @@ export function ServiceRouteDetailModal({
         aria-label="Cerrar"
         onClick={onClose}
       />
-      <div className="relative z-10 max-h-[min(90dvh,640px)] w-full max-w-lg overflow-y-auto rounded-xl border border-zinc-200 bg-white p-5 shadow-xl sm:p-6">
+      <div className="relative z-10 max-h-[min(90dvh,760px)] w-full max-w-xl overflow-y-auto rounded-xl border border-zinc-200 bg-white p-5 shadow-xl sm:p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2
@@ -93,6 +99,18 @@ export function ServiceRouteDetailModal({
           <button type="button" onClick={onClose} className={btnSecondaryClass}>
             Cerrar
           </button>
+        </div>
+
+        <div className="mb-4">
+          {review === undefined ? (
+            <p className="text-sm text-slate-500">Cargando datos del viaje…</p>
+          ) : review === null ? (
+            <p className="text-sm text-slate-500">
+              No hay datos de revisión para este viaje.
+            </p>
+          ) : (
+            <TripReviewFacts review={review} />
+          )}
         </div>
 
         <div className="space-y-3">

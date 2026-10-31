@@ -480,79 +480,91 @@ async function deleteAuthForUser(
  *   npx convex run seed:clearTripsAndOffers
  *   npx convex run seed:clearTripsAndOffers --prod
  */
+async function wipeAllTrips(ctx: MutationCtx) {
+  const tripNotificationTypes = new Set<Doc<"notifications">["type"]>([
+    "offer_received",
+    "trip_confirmed_driver",
+    "trip_confirmed_client",
+    "driver_heading_pickup",
+    "driver_arrived_pickup",
+    "advance_confirmed",
+    "trip_route_updated",
+    "trip_extended",
+  ]);
+
+  const deleted = {
+    serviceOffers: await wipeTable(ctx, "serviceOffers"),
+    serviceTracking: await wipeTable(ctx, "serviceTracking"),
+    serviceRouteArchives: await wipeServiceRouteArchives(ctx),
+    serviceRatings: await wipeTable(ctx, "serviceRatings"),
+    checklists: await wipeVehicleChecklists(ctx),
+    payments: await wipeTable(ctx, "payments"),
+    services: await wipeTable(ctx, "services"),
+    payouts: await wipeTable(ctx, "payouts"),
+  };
+
+  const notifications = await ctx.db.query("notifications").collect();
+  let deletedNotifications = 0;
+  for (const notification of notifications) {
+    if (
+      notification.serviceId !== undefined ||
+      tripNotificationTypes.has(notification.type)
+    ) {
+      await ctx.db.delete(notification._id);
+      deletedNotifications += 1;
+    }
+  }
+
+  const walletTransactions = await ctx.db.query("walletTransactions").collect();
+  let deletedWalletTransactions = 0;
+  for (const transaction of walletTransactions) {
+    if (transaction.serviceId !== undefined) {
+      await ctx.db.delete(transaction._id);
+      deletedWalletTransactions += 1;
+    }
+  }
+
+  const drivers = await ctx.db.query("drivers").collect();
+  let resetDrivers = 0;
+  for (const driver of drivers) {
+    const needsReset = driver.status !== "available" || driver.totalTrips > 0;
+    if (!needsReset) {
+      continue;
+    }
+    await ctx.db.patch(driver._id, {
+      status: "available",
+      totalTrips: 0,
+    });
+    resetDrivers += 1;
+
+    const wallet = await ensureWallet(ctx, driver._id);
+    const remaining = await ctx.db
+      .query("walletTransactions")
+      .withIndex("by_driver", (q) => q.eq("driverId", driver._id))
+      .collect();
+    const tripCredits = remaining.reduce(
+      (sum, tx) =>
+        tx.type === "top_up" ? sum + tx.amount : sum - tx.amount,
+      0,
+    );
+    await ctx.db.patch(wallet._id, {
+      tripCredits: Math.max(0, Math.round(tripCredits)),
+      updatedAt: Date.now(),
+    });
+  }
+
+  return {
+    deleted,
+    deletedNotifications,
+    deletedWalletTransactions,
+    resetDrivers,
+  };
+}
+
 export const clearTripsAndOffers = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const tripNotificationTypes = new Set<Doc<"notifications">["type"]>([
-      "offer_received",
-      "trip_confirmed_driver",
-      "trip_confirmed_client",
-      "driver_heading_pickup",
-      "driver_arrived_pickup",
-      "advance_confirmed",
-      "trip_route_updated",
-    ]);
-
-    const deleted = {
-      serviceOffers: await wipeTable(ctx, "serviceOffers"),
-      serviceTracking: await wipeTable(ctx, "serviceTracking"),
-      serviceRouteArchives: await wipeServiceRouteArchives(ctx),
-      serviceRatings: await wipeTable(ctx, "serviceRatings"),
-      checklists: await wipeVehicleChecklists(ctx),
-      payments: await wipeTable(ctx, "payments"),
-      services: await wipeTable(ctx, "services"),
-      payouts: await wipeTable(ctx, "payouts"),
-    };
-
-    const notifications = await ctx.db.query("notifications").collect();
-    let deletedNotifications = 0;
-    for (const notification of notifications) {
-      if (
-        notification.serviceId !== undefined ||
-        tripNotificationTypes.has(notification.type)
-      ) {
-        await ctx.db.delete(notification._id);
-        deletedNotifications += 1;
-      }
-    }
-
-    const walletTransactions = await ctx.db.query("walletTransactions").collect();
-    let deletedWalletTransactions = 0;
-    for (const transaction of walletTransactions) {
-      if (transaction.serviceId !== undefined) {
-        await ctx.db.delete(transaction._id);
-        deletedWalletTransactions += 1;
-      }
-    }
-
-    const drivers = await ctx.db.query("drivers").collect();
-    let resetDrivers = 0;
-    for (const driver of drivers) {
-      const needsReset = driver.status !== "available" || driver.totalTrips > 0;
-      if (!needsReset) {
-        continue;
-      }
-      await ctx.db.patch(driver._id, {
-        status: "available",
-        totalTrips: 0,
-      });
-      resetDrivers += 1;
-
-      const wallet = await ensureWallet(ctx, driver._id);
-      const remaining = await ctx.db
-        .query("walletTransactions")
-        .withIndex("by_driver", (q) => q.eq("driverId", driver._id))
-        .collect();
-      const tripCredits = remaining.reduce(
-        (sum, tx) =>
-          tx.type === "top_up" ? sum + tx.amount : sum - tx.amount,
-        0,
-      );
-      await ctx.db.patch(wallet._id, {
-        tripCredits: Math.max(0, Math.round(tripCredits)),
-        updatedAt: Date.now(),
-      });
-    }
+    const wiped = await wipeAllTrips(ctx);
 
     let toppedUpDrivers = 0;
     for (const driver of await ctx.db.query("drivers").collect()) {
@@ -566,12 +578,22 @@ export const clearTripsAndOffers = internalMutation({
 
     return {
       message: "Viajes y ofertas eliminados.",
-      deleted,
-      deletedNotifications,
-      deletedWalletTransactions,
-      resetDrivers,
+      ...wiped,
       toppedUpDrivers,
     };
+  },
+});
+
+/**
+ * Borra todos los viajes y lo que cuelga de ellos. No recarga saldo de choferes.
+ *
+ *   npx convex run seed:purgeAllTrips --prod
+ */
+export const purgeAllTrips = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const wiped = await wipeAllTrips(ctx);
+    return { message: "Viajes eliminados.", ...wiped };
   },
 });
 

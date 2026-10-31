@@ -16,8 +16,6 @@ import {
 } from "../lib/officialDocuments";
 import { getDriverApprovalAgeBlock } from "@proyecto/backend/age";
 import { formatPersonNameForDisplay } from "@proyecto/backend/personName";
-import type { Id } from "@proyecto/backend/dataModel";
-import { DriverServicesHistory } from "./DriverServicesHistory";
 
 export type DriverApplicationForAdmin = FunctionReturnType<
   typeof api.driverApplications.listForAdmin
@@ -148,7 +146,6 @@ type DriverDossierPanelProps = {
   application: DriverApplicationForAdmin | null;
   userName: string;
   finance: DriverFinanceInfo;
-  driverId: Id<"drivers"> | null;
   showFinance?: boolean;
   canEditHrExtras?: boolean;
 };
@@ -169,7 +166,6 @@ export function DriverDossierPanel({
   application,
   userName,
   finance,
-  driverId,
   showFinance = true,
   canEditHrExtras = false,
 }: DriverDossierPanelProps) {
@@ -201,7 +197,6 @@ export function DriverDossierPanel({
           conductor) cargada.
         </div>
         {showFinance ? <DriverFinanceCard finance={finance} /> : null}
-        <DriverServicesHistory driverId={driverId} />
       </div>
     );
   }
@@ -321,7 +316,6 @@ export function DriverDossierPanel({
 
   return (
     <div className="space-y-4">
-    <DriverServicesHistory driverId={driverId} />
     <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <p className="font-display text-base font-bold text-slate-900">

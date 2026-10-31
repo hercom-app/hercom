@@ -14,6 +14,7 @@ import {
   type DriverApplicationForAdmin,
   type DriverFinanceInfo,
 } from "../components/DriverDossierPanel";
+import { DriverServicesHistory } from "../components/DriverServicesHistory";
 import { AdminPagination, usePagedItems } from "../components/AdminPagination";
 import {
   EMPTY_REGION_FILTER,
@@ -94,12 +95,13 @@ export function DriversView({
   const [region, setRegion] = useState<RegionFilter>(EMPTY_REGION_FILTER);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [selectedUserId, setSelectedUserId] = useState<Id<"users"> | null>(
-    null,
-  );
+  const [detail, setDetail] = useState<{
+    userId: Id<"users">;
+    section: "registro" | "historial";
+  } | null>(null);
 
   useEffect(() => {
-    setSelectedUserId(null);
+    setDetail(null);
   }, [listResetKey]);
 
   const drivers = useQuery(api.drivers.listAll, {});
@@ -259,22 +261,29 @@ export function DriversView({
   );
 
   const selectedRow =
-    selectedUserId === null
+    detail === null
       ? null
-      : (rows ?? []).find((row) => row.userId === selectedUserId) ?? null;
+      : (rows ?? []).find((row) => row.userId === detail.userId) ?? null;
 
-  if (selectedUserId !== null) {
+  if (detail !== null) {
+    const title =
+      detail.section === "historial"
+        ? "Historial de servicios"
+        : (selectedRow?.fullName ?? "Registro del chofer");
+    const description =
+      selectedRow === null
+        ? ""
+        : (detail.section === "historial"
+            ? [selectedRow.fullName, selectedRow.dni, selectedRow.zone]
+            : [selectedRow.dni, selectedRow.zone]
+          )
+            .filter((part) => part !== undefined && part !== "")
+            .join(" · ");
     return (
       <AdminPage>
         <AdminPageHeader
-          title={selectedRow?.fullName ?? "Registro del chofer"}
-          {...(selectedRow !== null
-            ? {
-                description: [selectedRow.dni, selectedRow.zone]
-                  .filter(Boolean)
-                  .join(" · "),
-              }
-            : {})}
+          title={title}
+          {...(description !== "" ? { description } : {})}
         />
         {rows === undefined ? (
           <AdminCard>
@@ -284,12 +293,13 @@ export function DriversView({
           <AdminCard>
             <AdminEmpty message="No se encontró este chofer." />
           </AdminCard>
+        ) : detail.section === "historial" ? (
+          <DriverServicesHistory driverId={selectedRow.driverId} />
         ) : (
           <DriverDossierPanel
             application={selectedRow.application}
             userName={selectedRow.fullName}
             finance={selectedRow.finance}
-            driverId={selectedRow.driverId}
             showFinance={showFinance}
             canEditHrExtras={canEditHrExtras}
           />
@@ -373,14 +383,33 @@ export function DriversView({
                     <td className={`${tdClass} text-slate-500`}>
                       {formatDate(row.registeredAt)}
                     </td>
-                    <td className={tdClass}>
-                      <button
-                        type="button"
-                        className={btnGhostClass}
-                        onClick={() => setSelectedUserId(row.userId)}
-                      >
-                        Ver registro
-                      </button>
+                    <td className={`${tdClass} whitespace-normal`}>
+                      <div className="flex flex-col items-start gap-1">
+                        <button
+                          type="button"
+                          className={btnGhostClass}
+                          onClick={() =>
+                            setDetail({
+                              userId: row.userId,
+                              section: "registro",
+                            })
+                          }
+                        >
+                          Vista de registro
+                        </button>
+                        <button
+                          type="button"
+                          className={btnGhostClass}
+                          onClick={() =>
+                            setDetail({
+                              userId: row.userId,
+                              section: "historial",
+                            })
+                          }
+                        >
+                          Vista de historial de servicios
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

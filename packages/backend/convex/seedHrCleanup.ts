@@ -161,10 +161,19 @@ export const deleteUserByEmail = internalMutation({
       throw new Error("No se puede eliminar una cuenta de staff protegida.");
     }
     const users = await ctx.db.query("users").collect();
-    const user =
+    let user =
       users.find(
         (row) => (row.email ?? "").trim().toLowerCase() === normalized,
       ) ?? null;
+    if (user === null) {
+      const accounts = await ctx.db.query("authAccounts").collect();
+      const account = accounts.find(
+        (row) => row.providerAccountId.trim().toLowerCase() === normalized,
+      );
+      if (account !== undefined) {
+        user = await ctx.db.get(account.userId);
+      }
+    }
     if (user === null) {
       return { deleted: false as const, message: "Usuario no encontrado." };
     }
@@ -189,6 +198,37 @@ export const deleteUserByEmail = internalMutation({
         await ctx.db.delete(wallet._id);
       }
       await ctx.db.delete(driver._id);
+    }
+
+    const notifications = await ctx.db
+      .query("notifications")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    for (const notification of notifications) {
+      await ctx.db.delete(notification._id);
+    }
+
+    const places = await ctx.db
+      .query("savedPlaces")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    for (const place of places) {
+      await ctx.db.delete(place._id);
+    }
+
+    const threads = await ctx.db
+      .query("supportThreads")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    for (const thread of threads) {
+      const messages = await ctx.db
+        .query("supportMessages")
+        .withIndex("by_thread", (q) => q.eq("threadId", thread._id))
+        .collect();
+      for (const message of messages) {
+        await ctx.db.delete(message._id);
+      }
+      await ctx.db.delete(thread._id);
     }
 
     const apps = await ctx.db

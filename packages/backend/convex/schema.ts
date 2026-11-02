@@ -95,6 +95,7 @@ export const notificationTypeValidator = v.union(
   v.literal("advance_confirmed"),
   v.literal("trip_route_updated"),
   v.literal("trip_extended"),
+  v.literal("service_message"),
   v.literal("support_reply"),
 );
 
@@ -665,6 +666,17 @@ export default defineSchema({
     body: v.string(),
     createdAt: v.number(),
   }).index("by_thread", ["threadId", "createdAt"]),
+
+  /**
+   * Chat del viaje entre el cliente y el chofer asignado.
+   */
+  serviceMessages: defineTable({
+    serviceId: v.id("services"),
+    authorId: v.id("users"),
+    authorRole: v.union(v.literal("client"), v.literal("driver")),
+    body: v.string(),
+    createdAt: v.number(),
+  }).index("by_service", ["serviceId", "createdAt"]),
 
   /**
    * Errores del panel interno. La consola del navegador + Convex Logs

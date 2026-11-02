@@ -83,6 +83,8 @@ type LiveTripMapProps = {
   destination: LiveMapPoint;
   driver: LiveMapPoint | null;
   trail: LiveMapPoint[];
+  /** Ruta pedida: origen, paradas y destino. Se dibuja aunque no haya GPS. */
+  planned?: LiveMapPoint[];
   center: LiveMapPoint;
   zoom: number;
   /** Punto actual al reproducir la ruta grabada. */
@@ -96,6 +98,7 @@ export function LiveTripMap({
   destination,
   driver,
   trail,
+  planned = [],
   center,
   zoom,
   replayPosition = null,
@@ -104,7 +107,7 @@ export function LiveTripMap({
   const maxFitZoom = recordedRoute ? 17 : 15;
 
   const fitPoints = useMemo(() => {
-    const points = [origin, destination, ...trail];
+    const points = [origin, destination, ...planned, ...trail];
     if (driver !== null) {
       points.push(driver);
     }
@@ -112,12 +115,18 @@ export function LiveTripMap({
       points.push(replayPosition);
     }
     return points;
-  }, [destination, driver, origin, replayPosition, trail]);
+  }, [destination, driver, origin, planned, replayPosition, trail]);
 
   const trailPositions = useMemo(
     () =>
       trail.map((point) => [point.lat, point.lng] as [number, number]),
     [trail],
+  );
+
+  const plannedPositions = useMemo(
+    () =>
+      planned.map((point) => [point.lat, point.lng] as [number, number]),
+    [planned],
   );
 
   const replayTrailPositions = useMemo(() => {
@@ -154,6 +163,19 @@ export function LiveTripMap({
         position={[destination.lat, destination.lng]}
         icon={destinationIcon}
       />
+      {plannedPositions.length > 1 && (
+        <Polyline
+          positions={plannedPositions}
+          pathOptions={{
+            color: DESTINATION_GRAY,
+            weight: 4,
+            opacity: 0.85,
+            dashArray: "8 8",
+            lineCap: "round",
+            lineJoin: "round",
+          }}
+        />
+      )}
       {trail.length > 1 && (
         <>
           <Polyline

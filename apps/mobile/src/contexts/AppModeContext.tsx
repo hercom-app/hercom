@@ -4,10 +4,10 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { ActivityIndicator, View } from "react-native";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Doc } from "@proyecto/backend/dataModel";
@@ -18,7 +18,7 @@ import {
   saveDriverRegistrationOpen,
   type AppMode,
 } from "../lib/appMode";
-import { TACTICAL_COLORS } from "../constants/theme";
+import { BrandSplash } from "../components/BrandSplash";
 
 type DriverApplicationStatus = Doc<"driverApplications">["status"] | null;
 
@@ -39,14 +39,33 @@ type AppModeContextValue = {
 const AppModeContext = createContext<AppModeContextValue | null>(null);
 
 export function AppModeProvider({ children }: { children: ReactNode }) {
-  const me = useQuery(api.users.getMe);
-  const driver = useQuery(api.drivers.getMyDriverProfile);
-  const application = useQuery(api.driverApplications.getMyApplication);
+  const meQuery = useQuery(api.users.getMe);
+  const driverQuery = useQuery(api.drivers.getMyDriverProfile);
+  const applicationQuery = useQuery(api.driverApplications.getMyApplication);
+  const cacheRef = useRef<{
+    me: Doc<"users"> | null;
+    driver: Doc<"drivers"> | null;
+    application: Doc<"driverApplications"> | null;
+  } | null>(null);
+  const liveReady =
+    meQuery !== undefined &&
+    driverQuery !== undefined &&
+    applicationQuery !== undefined;
+  if (liveReady) {
+    cacheRef.current = {
+      me: meQuery,
+      driver: driverQuery,
+      application: applicationQuery,
+    };
+  }
+  const me = liveReady ? meQuery : cacheRef.current?.me;
+  const driver = liveReady ? driverQuery : cacheRef.current?.driver;
+  const application = liveReady ? applicationQuery : cacheRef.current?.application;
   const [mode, setModeState] = useState<AppMode>("client");
   const [ready, setReady] = useState(false);
   const [showDriverRegistration, setShowDriverRegistration] = useState(false);
 
-  const hasDriverProfile = driver !== null;
+  const hasDriverProfile = driver != null;
   const canUseDriverMode = hasDriverProfile;
   const canUseClientMode =
     me != null && me.role !== "admin" && me.role !== "superadmin";
@@ -129,21 +148,8 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  if (
-    me === undefined ||
-    me === null ||
-    driver === undefined ||
-    application === undefined ||
-    !ready
-  ) {
-    return (
-      <View
-        className="flex-1 items-center justify-center"
-        style={{ backgroundColor: TACTICAL_COLORS.base }}
-      >
-        <ActivityIndicator color={TACTICAL_COLORS.accent} />
-      </View>
-    );
+  if (me == null || driver === undefined || application === undefined || !ready) {
+    return <BrandSplash />;
   }
 
   return (

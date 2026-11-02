@@ -21,6 +21,7 @@ import {
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
 import { AppErrorBoundary } from "./src/components/AppErrorBoundary";
+import { BrandSplash } from "./src/components/BrandSplash";
 import { AuthSessionGuard } from "./src/components/AuthSessionGuard";
 import { LiveShareLinkListener } from "./src/components/LiveShareLinkListener";
 import { NotificationBridge } from "./src/components/NotificationBridge";
@@ -129,10 +130,7 @@ function AuthChrome() {
     >
       <LiveShareLinkListener />
       <AuthLoading>
-        <View
-          className="flex-1"
-          style={{ backgroundColor: HERCOM_COLORS.primary }}
-        />
+        <BrandSplash />
       </AuthLoading>
       <Unauthenticated>
         <SignInScreen />

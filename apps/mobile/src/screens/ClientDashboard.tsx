@@ -25,6 +25,8 @@ import { AddressAutocomplete } from "../components/AddressAutocomplete";
 import { AdvancePayoutModal } from "../components/AdvancePayoutModal";
 import { DriverOfferModal, type DriverOfferInfo } from "../components/DriverOfferModal";
 import { EditTripLocationsModal } from "../components/EditTripLocationsModal";
+import { TripChatSheet } from "../components/TripChatSheet";
+import { BrandSplash } from "../components/BrandSplash";
 import { HamburgerButton } from "../components/HamburgerButton";
 import { HelpFab } from "../components/HelpFab";
 import { RateServiceStars } from "../components/RateServiceStars";
@@ -64,6 +66,12 @@ import {
   toServiceLocation,
   type AddressDraft,
 } from "../lib/addressDraft";
+import {
+  clearClientRequestDraft,
+  loadClientRequestDraft,
+  peekClientRequestDraft,
+  saveClientRequestDraft,
+} from "../lib/clientRequestDraft";
 import { toPeopleAddress } from "../lib/googleGeocoding";
 import type { SelectedPlace } from "../lib/googlePlaces";
 import {
@@ -177,6 +185,7 @@ function ClientServiceCard({
   const cancelService = useMutation(api.services.cancelService);
   const acceptOffer = useMutation(api.serviceOffers.acceptOffer);
   const updateTripLocations = useMutation(api.services.updateTripLocations);
+  const updateAssignedHours = useMutation(api.services.updateAssignedHours);
   const rateService = useMutation(api.serviceRatings.rateService);
   const offers = useQuery(
     api.serviceOffers.listForServiceAsClient,
@@ -194,6 +203,9 @@ function ClientServiceCard({
   const [selectedOffer, setSelectedOffer] = useState<DriverOfferInfo | null>(null);
   const [payoutOpen, setPayoutOpen] = useState(false);
   const [editRouteOpen, setEditRouteOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [hoursDraft, setHoursDraft] = useState(service.serviceHours ?? 2);
+  const [savingHours, setSavingHours] = useState(false);
   const [savingRoute, setSavingRoute] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
   const [ratingError, setRatingError] = useState<string | null>(null);
@@ -208,6 +220,12 @@ function ClientServiceCard({
       : 0);
   const advanceConfirmed = service.advanceConfirmedAt !== undefined;
   const inProgress = service.status === "in_progress";
+  const canEditRoute = inProgress || service.status === "assigned";
+  const canChat =
+    service.driverId !== undefined &&
+    service.status !== "pending" &&
+    service.status !== "cancelled" &&
+    service.status !== "unattended";
   const canShareTrip = canShareLiveTrip(service.status);
   const showTripEmergency =
     service.status === "heading_to_pickup" ||
@@ -325,8 +343,8 @@ function ClientServiceCard({
           />
         </View>
       )}
-      {inProgress && (
-        <View className="mt-3">
+      {canEditRoute && (
+        <View className="mt-3" style={{ gap: 8 }}>
           <UiButton
             label="Editar partida o destino"
             variant="secondary"
@@ -336,6 +354,55 @@ function ClientServiceCard({
               setEditRouteOpen(true);
             }}
           />
+          {canChat && (
+            <UiButton
+              label="Chat con el chofer"
+              variant="secondary"
+              size="md"
+              onPress={() => setChatOpen(true)}
+            />
+          )}
+        </View>
+      )}
+      {service.status === "assigned" && (
+        <View className="mt-3 flex-row items-center justify-between">
+          <TacticalLabel tone="text">Tiempo del servicio</TacticalLabel>
+          <View className="flex-row items-center" style={{ gap: 10 }}>
+            <TouchableOpacity
+              onPress={() => setHoursDraft((hours) => Math.max(1, hours - 1))}
+              accessibilityLabel="Menos horas"
+            >
+              <TacticalValue size={18}>−</TacticalValue>
+            </TouchableOpacity>
+            <TacticalValue size={16}>{`${hoursDraft} h`}</TacticalValue>
+            <TouchableOpacity
+              onPress={() => setHoursDraft((hours) => Math.min(24, hours + 1))}
+              accessibilityLabel="Más horas"
+            >
+              <TacticalValue size={18}>+</TacticalValue>
+            </TouchableOpacity>
+            <TouchableOpacity
+              disabled={savingHours}
+              onPress={() => {
+                setSavingHours(true);
+                void updateAssignedHours({
+                  serviceId: service._id,
+                  serviceHours: hoursDraft,
+                })
+                  .catch((error) => {
+                    Alert.alert(
+                      "No se pudo cambiar el tiempo",
+                      convexErrorMessage(error, "Inténtalo de nuevo."),
+                    );
+                  })
+                  .finally(() => setSavingHours(false));
+              }}
+            >
+              <TacticalLabel tone="accent">
+                {savingHours ? "Guardando" : "Avisar"}
+              </TacticalLabel>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
       {canClientExtendTrip(service.status) && (
@@ -524,6 +591,11 @@ function ClientServiceCard({
         onClose={() => setPayoutOpen(false)}
         payout={driverPayout ?? null}
       />
+      <TripChatSheet
+        visible={chatOpen}
+        serviceId={service._id}
+        onClose={() => setChatOpen(false)}
+      />
       <EditTripLocationsModal
         visible={editRouteOpen}
         origin={service.origin}
@@ -605,7 +677,10 @@ export function ClientDashboard() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSection, setMenuSection] = useState("ciudad");
-  const [flowStep, setFlowStep] = useState<"compose" | "confirm">("compose");
+  const [flowStep, setFlowStep] = useState<"compose" | "confirm">(
+    () => peekClientRequestDraft()?.flowStep ?? "compose",
+  );
+  const [editingFromConfirm, setEditingFromConfirm] = useState(false);
   /** null = landing; al abrir búsqueda no se enfoca un TextInput que luego pierda el foco por el layout. */
   const [addressSearchField, setAddressSearchField] = useState<
     null | "origin" | "destination" | number
@@ -614,22 +689,37 @@ export function ClientDashboard() {
   const sheetScrollRef = useRef<ScrollView>(null);
   const addressSearchFieldRef = useRef(addressSearchField);
   addressSearchFieldRef.current = addressSearchField;
-  const [origin, setOrigin] = useState("");
-  const [originLat, setOriginLat] = useState<number | null>(null);
-  const [originLng, setOriginLng] = useState<number | null>(null);
-  const [originPlaceId, setOriginPlaceId] = useState<string | null>(null);
-  const [destination, setDestination] = useState<AddressDraft>(
-    createEmptyAddressDraft(),
+  const [origin, setOrigin] = useState(() => peekClientRequestDraft()?.origin ?? "");
+  const [originLat, setOriginLat] = useState<number | null>(
+    () => peekClientRequestDraft()?.originLat ?? null,
   );
-  const [extraDestinations, setExtraDestinations] = useState<AddressDraft[]>([]);
-  const [serviceHours, setServiceHours] = useState<number>(DEFAULT_MIN_SERVICE_HOURS);
-  const [department, setDepartment] = useState("");
-  const [province, setProvince] = useState("");
-  const [district, setDistrict] = useState("");
-  const [notes, setNotes] = useState("");
-  const [forSelf, setForSelf] = useState(true);
-  const [passengerName, setPassengerName] = useState("");
-  const [passengerPhone, setPassengerPhone] = useState("");
+  const [originLng, setOriginLng] = useState<number | null>(
+    () => peekClientRequestDraft()?.originLng ?? null,
+  );
+  const [originPlaceId, setOriginPlaceId] = useState<string | null>(
+    () => peekClientRequestDraft()?.originPlaceId ?? null,
+  );
+  const [destination, setDestination] = useState<AddressDraft>(
+    () => peekClientRequestDraft()?.destination ?? createEmptyAddressDraft(),
+  );
+  const [extraDestinations, setExtraDestinations] = useState<AddressDraft[]>(
+    () => peekClientRequestDraft()?.extraDestinations ?? [],
+  );
+  const [serviceHours, setServiceHours] = useState<number>(
+    () => peekClientRequestDraft()?.serviceHours ?? DEFAULT_MIN_SERVICE_HOURS,
+  );
+  const [department, setDepartment] = useState(() => peekClientRequestDraft()?.department ?? "");
+  const [province, setProvince] = useState(() => peekClientRequestDraft()?.province ?? "");
+  const [district, setDistrict] = useState(() => peekClientRequestDraft()?.district ?? "");
+  const [notes, setNotes] = useState(() => peekClientRequestDraft()?.notes ?? "");
+  const [forSelf, setForSelf] = useState(() => peekClientRequestDraft()?.forSelf ?? true);
+  const [passengerName, setPassengerName] = useState(
+    () => peekClientRequestDraft()?.passengerName ?? "",
+  );
+  const [passengerPhone, setPassengerPhone] = useState(
+    () => peekClientRequestDraft()?.passengerPhone ?? "",
+  );
+  const draftHydrated = useRef(peekClientRequestDraft() !== null);
   const [selectedActiveServiceId, setSelectedActiveServiceId] =
     useState<Id<"services"> | null>(null);
   const [requestingAnother, setRequestingAnother] = useState(false);
@@ -643,7 +733,7 @@ export function ClientDashboard() {
     lng: number;
   } | null>(null);
   const [showsBlueDot, setShowsBlueDot] = useState(false);
-  const [pinField, setPinField] = useState<null | "origin" | "destination">(
+  const [pinField, setPinField] = useState<null | "origin" | "destination" | "home">(
     null,
   );
   const [locationPrompt, setLocationPrompt] = useState<
@@ -652,6 +742,79 @@ export function ClientDashboard() {
   const [routeAutofocus, setRouteAutofocus] = useState(false);
   const originValueRef = useRef("");
   originValueRef.current = origin;
+
+  useEffect(() => {
+    if (draftHydrated.current) {
+      return;
+    }
+    let cancelled = false;
+    void loadClientRequestDraft().then((draft) => {
+      if (cancelled) {
+        return;
+      }
+      draftHydrated.current = true;
+      if (draft === null) {
+        return;
+      }
+      setOrigin(draft.origin);
+      setOriginLat(draft.originLat);
+      setOriginLng(draft.originLng);
+      setOriginPlaceId(draft.originPlaceId);
+      setDestination(draft.destination);
+      setExtraDestinations(draft.extraDestinations);
+      setServiceHours(draft.serviceHours);
+      setDepartment(draft.department);
+      setProvince(draft.province);
+      setDistrict(draft.district);
+      setNotes(draft.notes);
+      setForSelf(draft.forSelf);
+      setPassengerName(draft.passengerName);
+      setPassengerPhone(draft.passengerPhone);
+      setFlowStep(draft.flowStep);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!draftHydrated.current) {
+      return;
+    }
+    void saveClientRequestDraft({
+      origin,
+      originLat,
+      originLng,
+      originPlaceId,
+      destination,
+      extraDestinations,
+      serviceHours,
+      department,
+      province,
+      district,
+      notes,
+      forSelf,
+      passengerName,
+      passengerPhone,
+      flowStep,
+    }).catch(() => undefined);
+  }, [
+    origin,
+    originLat,
+    originLng,
+    originPlaceId,
+    destination,
+    extraDestinations,
+    serviceHours,
+    department,
+    province,
+    district,
+    notes,
+    forSelf,
+    passengerName,
+    passengerPhone,
+    flowStep,
+  ]);
   const homeMapRef = useRef<MapView>(null);
 
   const unreadNotifications = (notifications ?? []).filter(
@@ -721,6 +884,9 @@ export function ClientDashboard() {
   );
   const activeClientServices = (services ?? []).filter((service) =>
     isActiveServiceStatus(service.status),
+  );
+  const pastClientServices = (services ?? []).filter(
+    (service) => !isActiveServiceStatus(service.status),
   );
   const selectedActiveService = activeClientServices.find(
     (service) => service._id === selectedActiveServiceId,
@@ -908,7 +1074,7 @@ export function ClientDashboard() {
       if (nextState !== "active") {
         return;
       }
-      if (originValueRef.current.trim() !== "" && originLat !== null) {
+      if (originValueRef.current.trim() !== "") {
         return;
       }
       void (async () => {
@@ -983,6 +1149,10 @@ export function ClientDashboard() {
     if (addressSearchField !== null) {
       Keyboard.dismiss();
       setAddressSearchField(null);
+      if (editingFromConfirm) {
+        setEditingFromConfirm(false);
+        setFlowStep("confirm");
+      }
       return true;
     }
     if (flowStep === "confirm") {
@@ -1008,6 +1178,7 @@ export function ClientDashboard() {
     menuOpen,
     pinField,
     addressSearchField,
+    editingFromConfirm,
     flowStep,
     menuSection,
     selectedActiveServiceId,
@@ -1059,6 +1230,17 @@ export function ClientDashboard() {
       });
       setOriginPlaceId(null);
       setUserCoords({ lat: result.lat, lng: result.lng });
+    } else if (pinField === "home") {
+      void setSavedHome({
+        address: result.address,
+        lat: result.lat,
+        lng: result.lng,
+      }).catch((error) => {
+        Alert.alert(
+          "No se pudo guardar tu casa",
+          convexErrorMessage(error, "Inténtalo de nuevo."),
+        );
+      });
     } else if (pinField === "destination") {
       setDestination({
         address: result.address,
@@ -1117,10 +1299,17 @@ export function ClientDashboard() {
   function closeAddressSearch() {
     Keyboard.dismiss();
     setKeyboardHeight(0);
+    const backToTrip = editingFromConfirm;
     setAddressSearchField(null);
+    setEditingFromConfirm(false);
+    if (backToTrip) {
+      setFlowStep("confirm");
+    }
   }
 
   function resetComposeForm() {
+    void clearClientRequestDraft();
+    draftHydrated.current = true;
     setOrigin("");
     setOriginLat(null);
     setOriginLng(null);
@@ -1320,15 +1509,26 @@ export function ClientDashboard() {
             </UiCard>
           ) : services === undefined ? (
             <ActivityIndicator color={TACTICAL_COLORS.accent} />
-          ) : activeClientServices.length === 0 ? (
+          ) : activeClientServices.length === 0 && pastClientServices.length === 0 ? (
             <UiEmpty
-              title="No tienes un viaje activo"
-              subtitle="Cuando pidas un servicio y esté en curso, lo verás aquí. Los viajes finalizados o cancelados no se listan en esta pantalla."
+              title="Aún no tienes servicios"
+              subtitle="Cuando pidas un viaje, el activo y los anteriores quedan en esta lista."
             />
           ) : (
-            activeClientServices.map((service) => (
-              <ClientServiceCard key={service._id} service={service} />
-            ))
+            <>
+              {activeClientServices.length > 0 && (
+                <TacticalLabel className="mb-2">En curso</TacticalLabel>
+              )}
+              {activeClientServices.map((service) => (
+                <ClientServiceCard key={service._id} service={service} />
+              ))}
+              {pastClientServices.length > 0 && (
+                <TacticalLabel className="mb-2 mt-2">Anteriores</TacticalLabel>
+              )}
+              {pastClientServices.map((service) => (
+                <ClientServiceCard key={service._id} service={service} />
+              ))}
+            </>
           )}
         </ScrollView>
         {drawer}
@@ -1337,15 +1537,7 @@ export function ClientDashboard() {
   }
 
   if (me === undefined) {
-    return (
-      <View
-        className="flex-1 items-center justify-center"
-        style={{ backgroundColor: TACTICAL_COLORS.base }}
-      >
-        <ActivityIndicator color={TACTICAL_COLORS.accent} />
-        {drawer}
-      </View>
-    );
+    return <BrandSplash />;
   }
 
   // ——— Home: lista de viajes activos, luego el que elija ———
@@ -1646,6 +1838,10 @@ export function ClientDashboard() {
                       if (place.district !== undefined) {
                         setDistrict(place.district);
                       }
+                      if (editingFromConfirm) {
+                        setEditingFromConfirm(false);
+                        goToConfirmStep();
+                      }
                     }}
                     onPlaceCleared={() => {
                       setOriginLat(null);
@@ -1716,6 +1912,7 @@ export function ClientDashboard() {
                         return;
                       }
                       if (originReady && destinationReady) {
+                        setEditingFromConfirm(false);
                         goToConfirmStep();
                       }
                     }}
@@ -1941,6 +2138,7 @@ export function ClientDashboard() {
                   error={error}
                   bottomInset={insets.bottom}
                   onSearchPress={() => openAddressSearch("destination")}
+                  onLocateHome={() => setPinField("home")}
                   onSetHome={(place) =>
                     persistSavedPlace(
                       () =>
@@ -2115,6 +2313,7 @@ export function ClientDashboard() {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => {
+                setEditingFromConfirm(true);
                 setFlowStep("compose");
                 setError(null);
                 setAddressSearchField("origin");
@@ -2152,6 +2351,7 @@ export function ClientDashboard() {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => {
+                setEditingFromConfirm(true);
                 setFlowStep("compose");
                 setError(null);
                 setAddressSearchField("destination");

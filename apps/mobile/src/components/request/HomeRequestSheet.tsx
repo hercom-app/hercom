@@ -281,6 +281,7 @@ type HomeRequestSheetProps = {
   onSearchPress: () => void;
   onSelectRecent: (place: RecentDestination) => void;
   onSetHome: (place: PlaceDraft) => Promise<void>;
+  onLocateHome: () => void;
   onSaveFavorite: (place: PlaceDraft) => Promise<void>;
   onRemovePlace: (placeId: Id<"savedPlaces">) => Promise<void>;
   addressRegion: AddressRegionFilter;
@@ -323,12 +324,14 @@ function HomePlaceEditor({
   gpsCenter,
   onClose,
   onSave,
+  onLocateOnMap,
 }: {
   visible: boolean;
   region: AddressRegionFilter;
   gpsCenter?: { lat: number; lng: number };
   onClose: () => void;
   onSave: (place: PlaceDraft) => Promise<void>;
+  onLocateOnMap: () => void;
 }) {
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
@@ -343,44 +346,48 @@ function HomePlaceEditor({
   }, [visible]);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(17, 22, 34, 0.72)" }}
+        style={{ flex: 1, backgroundColor: "#FFFFFF" }}
       >
-        <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Cerrar" />
         <View
           style={{
-            backgroundColor: "#FFFFFF",
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
+            flex: 1,
             paddingHorizontal: 16,
             paddingTop: 18,
-            paddingBottom: 28,
-            maxHeight: "82%",
+            paddingBottom: 24,
           }}
         >
-          <Text
+          <View
             style={{
-              fontFamily: POPPINS.bold,
-              fontSize: 18,
-              color: HERCOM_COLORS.text,
-              marginBottom: 6,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 16,
             }}
           >
-            Tu casa
-          </Text>
-          <Text
-            style={{
-              fontFamily: POPPINS.regular,
-              fontSize: 14,
-              lineHeight: 20,
-              color: HERCOM_COLORS.textMuted,
-              marginBottom: 14,
-            }}
-          >
-            Busca la dirección y elígela para guardarla como tu casa.
-          </Text>
+            <Text
+              style={{
+                fontFamily: POPPINS.bold,
+                fontSize: 20,
+                color: HERCOM_COLORS.text,
+              }}
+            >
+              Casa
+            </Text>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Cerrar" hitSlop={8}>
+              <Text
+                style={{
+                  fontFamily: POPPINS.semibold,
+                  fontSize: 15,
+                  color: HERCOM_COLORS.primary,
+                }}
+              >
+                Cerrar
+              </Text>
+            </Pressable>
+          </View>
           <AddressAutocomplete
             key={visible ? "home-editor-open" : "home-editor-closed"}
             value={draft}
@@ -408,11 +415,33 @@ function HomePlaceEditor({
             }}
             expandedList
             autoFocus
-            placeholder="Dirección de tu casa"
+            placeholder="Busca tu dirección"
             region={region}
             {...(gpsCenter !== undefined ? { gpsCenter } : {})}
             disabled={saving}
           />
+          <Pressable
+            onPress={onLocateOnMap}
+            accessibilityRole="button"
+            accessibilityLabel="Ubicar la casa en el mapa"
+            style={{
+              marginTop: 16,
+              borderRadius: 14,
+              backgroundColor: "#F3F4F6",
+              paddingVertical: 14,
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: POPPINS.semibold,
+                fontSize: 15,
+                color: HERCOM_COLORS.text,
+              }}
+            >
+              Ubicar en el mapa
+            </Text>
+          </Pressable>
           {localError !== null && (
             <Text
               style={{
@@ -439,6 +468,7 @@ export function HomeRequestSheet({
   onSearchPress,
   onSelectRecent,
   onSetHome,
+  onLocateHome,
   onSaveFavorite,
   onRemovePlace,
   addressRegion,
@@ -563,7 +593,7 @@ export function HomeRequestSheet({
                 onSelectRecent(home);
               }}
               accessibilityRole="button"
-              accessibilityLabel={home === null ? "Configura tu casa" : "Ir a tu casa"}
+              accessibilityLabel={home === null ? "Casa" : "Ir a tu casa"}
               style={({ pressed }) => ({
                 flex: 1,
                 flexDirection: "row",
@@ -584,23 +614,26 @@ export function HomeRequestSheet({
                 >
                   Casa
                 </Text>
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    marginTop: 2,
-                    fontFamily: POPPINS.regular,
-                    fontSize: 13,
-                    color: HERCOM_COLORS.textMuted,
-                  }}
-                >
-                  {home === null ? "Configura tu casa" : home.title}
-                </Text>
+                {home !== null && (
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      marginTop: 2,
+                      fontFamily: POPPINS.regular,
+                      fontSize: 13,
+                      color: HERCOM_COLORS.textMuted,
+                    }}
+                  >
+                    {home.title}
+                  </Text>
+                )}
               </View>
             </Pressable>
+            {home !== null && (
             <Pressable
               onPress={() => setHomeEditorOpen(true)}
               accessibilityRole="button"
-              accessibilityLabel={home === null ? "Configurar casa" : "Cambiar casa"}
+              accessibilityLabel="Cambiar casa"
               hitSlop={8}
             >
               <Text
@@ -610,9 +643,10 @@ export function HomeRequestSheet({
                   color: HERCOM_COLORS.primary,
                 }}
               >
-                {home === null ? "Configurar" : "Cambiar"}
+                Cambiar
               </Text>
             </Pressable>
+            )}
           </View>
           )}
 
@@ -782,6 +816,16 @@ export function HomeRequestSheet({
           Más formas de usar Hercom
         </Text>
         <ServiceDiscoveryGrid />
+        <Text
+          style={{
+            fontFamily: POPPINS.regular,
+            fontSize: 13,
+            lineHeight: 18,
+            color: HERCOM_COLORS.textMuted,
+          }}
+        >
+          Da click para enterarte más y contactarte con un ejecutivo
+        </Text>
       </View>
 
       {error !== null && (
@@ -806,6 +850,13 @@ export function HomeRequestSheet({
         if (!savingPlace) {
           setHomeEditorOpen(false);
         }
+      }}
+      onLocateOnMap={() => {
+        if (savingPlace) {
+          return;
+        }
+        setHomeEditorOpen(false);
+        onLocateHome();
       }}
       onSave={async (place) => {
         await onSetHome(place);

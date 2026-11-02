@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Keyboard, Modal, ScrollView, View } from "react-native";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
@@ -31,7 +31,7 @@ export function DriverDashboard() {
   const [tab, setTab] = useState<DriverTab>("servicio");
   const [moneyDayKey, setMoneyDayKey] = useState<string | null>(null);
   const [walletFlow, setWalletFlow] = useState<WalletFlow>("balance");
-  const [chatsSection, setChatsSection] = useState<ChatsSection>("soporte");
+  const [chatsSection, setChatsSection] = useState<ChatsSection>("viajes");
   const [profileSection, setProfileSection] = useState<"menu" | "datos">("menu");
   const [radiusOpen, setRadiusOpen] = useState(false);
   const [safetyOpen, setSafetyOpen] = useState(false);
@@ -46,6 +46,22 @@ export function DriverDashboard() {
   const [driverRatingError, setDriverRatingError] = useState<string | null>(null);
 
   const rateClientAsDriver = useMutation(api.serviceRatings.rateClientAsDriver);
+  const pendingRating = useQuery(
+    api.serviceRatings.pendingForMe,
+    hasDriver ? {} : "skip",
+  );
+  const ratedDriverServiceIds = useRef(new Set<string>());
+
+  useEffect(() => {
+    const serviceId = pendingRating?.driverServiceId;
+    if (serviceId == null || rateClientServiceId !== null) {
+      return;
+    }
+    if (ratedDriverServiceIds.current.has(serviceId)) {
+      return;
+    }
+    setRateClientServiceId(serviceId);
+  }, [pendingRating?.driverServiceId, rateClientServiceId]);
 
   const wallet = useQuery(api.driverWallets.getMine, hasDriver ? {} : "skip");
   const services = useQuery(api.services.listForDriver, hasDriver ? {} : "skip");
@@ -254,6 +270,7 @@ export function DriverDashboard() {
           onSectionChange={setChatsSection}
           notifications={notifications}
           unreadNotifications={unreadNotifications}
+          services={services}
         />
       );
       break;
@@ -336,6 +353,9 @@ export function DriverDashboard() {
                   ...(comment.trim() !== "" ? { comment: comment.trim() } : {}),
                 })
                   .then(() => {
+                    if (rateClientServiceId !== null) {
+                      ratedDriverServiceIds.current.add(rateClientServiceId);
+                    }
                     setRateClientServiceId(null);
                   })
                   .catch((error) => {

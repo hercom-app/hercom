@@ -1,8 +1,10 @@
-import { ActivityIndicator, View } from "react-native";
+import { useRef } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
+import type { Doc } from "@proyecto/backend/dataModel";
 import { useAppMode } from "../contexts/AppModeContext";
-import { TACTICAL_COLORS } from "../constants/theme";
+import { BrandSplash } from "../components/BrandSplash";
+import { ClientPendingRating } from "../components/ClientPendingRating";
 import { ClientDashboard } from "./ClientDashboard";
 import { DriverDashboard } from "./DriverDashboard";
 import { DriverRegisterScreen } from "./DriverRegisterScreen";
@@ -12,7 +14,12 @@ import { DriverRegisterScreen } from "./DriverRegisterScreen";
  * Un mismo usuario con perfil de chofer puede alternar sin cerrar sesión.
  */
 export function HomeScreen() {
-  const driver = useQuery(api.drivers.getMyDriverProfile);
+  const driverQuery = useQuery(api.drivers.getMyDriverProfile);
+  const driverCache = useRef<Doc<"drivers"> | null | undefined>(undefined);
+  if (driverQuery !== undefined) {
+    driverCache.current = driverQuery;
+  }
+  const driver = driverQuery !== undefined ? driverQuery : driverCache.current;
   const {
     mode,
     showDriverRegistration,
@@ -21,14 +28,7 @@ export function HomeScreen() {
   } = useAppMode();
 
   if (driver === undefined) {
-    return (
-      <View
-        className="flex-1 items-center justify-center"
-        style={{ backgroundColor: TACTICAL_COLORS.base }}
-      >
-        <ActivityIndicator color={TACTICAL_COLORS.accent} />
-      </View>
-    );
+    return <BrandSplash />;
   }
 
   if (showDriverRegistration) {
@@ -45,5 +45,10 @@ export function HomeScreen() {
     return <DriverDashboard />;
   }
 
-  return <ClientDashboard />;
+  return (
+    <>
+      <ClientDashboard />
+      <ClientPendingRating />
+    </>
+  );
 }

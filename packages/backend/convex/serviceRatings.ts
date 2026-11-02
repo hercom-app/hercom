@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { requireUser } from "./lib/auth";
 
 function roundRating(average: number): number {
@@ -159,5 +160,73 @@ export const getForService = query({
       .query("serviceRatings")
       .withIndex("by_service", (q) => q.eq("serviceId", service._id))
       .unique();
+  },
+});
+
+/**
+ * Viajes finalizados que esta persona aún no valoró.
+ * Al volver a entrar, la app muestra la valoración pendiente.
+ */
+export const pendingForMe = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+
+    let clientServiceId: Id<"services"> | null = null;
+    let clientLabel: string | null = null;
+    const asClient = await ctx.db
+      .query("services")
+      .withIndex("by_client", (q) => q.eq("clientId", user._id))
+      .order("desc")
+      .take(40);
+    for (const service of asClient) {
+      if (service.status !== "finished" || service.driverId === undefined) {
+        continue;
+      }
+      const rating = await ctx.db
+        .query("serviceRatings")
+        .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+        .unique();
+      if (rating === null || rating.score === undefined) {
+        clientServiceId = service._id;
+        clientLabel = `${service.origin.address} → ${service.destination.address}`;
+        break;
+      }
+    }
+
+    let driverServiceId: Id<"services"> | null = null;
+    let driverLabel: string | null = null;
+    const driver = await ctx.db
+      .query("drivers")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .unique();
+    if (driver !== null) {
+      const asDriver = await ctx.db
+        .query("services")
+        .withIndex("by_driver", (q) => q.eq("driverId", driver._id))
+        .order("desc")
+        .take(40);
+      for (const service of asDriver) {
+        if (service.status !== "finished") {
+          continue;
+        }
+        const rating = await ctx.db
+          .query("serviceRatings")
+          .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+          .unique();
+        if (rating === null || rating.driverScore === undefined) {
+          driverServiceId = service._id;
+          driverLabel = `${service.origin.address} → ${service.destination.address}`;
+          break;
+        }
+      }
+    }
+
+    return {
+      clientServiceId,
+      clientLabel,
+      driverServiceId,
+      driverLabel,
+    };
   },
 });

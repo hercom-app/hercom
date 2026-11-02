@@ -1,21 +1,25 @@
+import { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
-import type { Doc } from "@proyecto/backend/dataModel";
+import type { Doc, Id } from "@proyecto/backend/dataModel";
 import { SupportChatScreen } from "../../screens/SupportChatScreen";
+import { TripChatSheet } from "../TripChatSheet";
 import { UberScreenHeader } from "../uber/UberScreenHeader";
 import { TacticalEmpty } from "../tactical";
 import { SegmentedTabs } from "./SegmentedTabs";
 import { useAppTheme } from "../../contexts/ThemeContext";
 import { HERCOM_COLORS, POPPINS } from "../../constants/theme";
+import { toPeopleAddress } from "../../lib/googleGeocoding";
 
-export type ChatsSection = "soporte" | "notificaciones";
+export type ChatsSection = "viajes" | "soporte" | "notificaciones";
 
 type DriverChatsTabProps = {
   section: ChatsSection;
   onSectionChange: (section: ChatsSection) => void;
   notifications: Doc<"notifications">[] | undefined;
   unreadNotifications: number;
+  services: Doc<"services">[] | undefined;
 };
 
 function formatWhen(timestamp: number): string {
@@ -33,24 +37,71 @@ export function DriverChatsTab({
   onSectionChange,
   notifications,
   unreadNotifications,
+  services,
 }: DriverChatsTabProps) {
   const { colors } = useAppTheme();
   const supportUnread = useQuery(api.support.getMyUnreadCount) ?? 0;
   const markAllNotificationsAsRead = useMutation(api.notifications.markAllAsRead);
+  const [openServiceId, setOpenServiceId] = useState<Id<"services"> | null>(null);
   const list = notifications ?? [];
+  const tripChats = (services ?? []).filter((service) => service.driverId !== undefined);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.base }}>
       <UberScreenHeader title="Chats" />
       <SegmentedTabs
         options={[
+          { key: "viajes", label: "Viajes" },
           { key: "soporte", label: "Soporte", badge: supportUnread },
           { key: "notificaciones", label: "Avisos", badge: unreadNotifications },
         ]}
         value={section}
         onChange={onSectionChange}
       />
-      {section === "soporte" ? (
+      {openServiceId !== null && (
+        <TripChatSheet
+          visible
+          serviceId={openServiceId}
+          onClose={() => setOpenServiceId(null)}
+        />
+      )}
+      {section === "viajes" ? (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+        >
+          {services === undefined ? null : tripChats.length === 0 ? (
+            <TacticalEmpty title="Sin conversaciones de viajes" />
+          ) : (
+            tripChats.map((service) => (
+              <TouchableOpacity
+                key={service._id}
+                onPress={() => setOpenServiceId(service._id)}
+                style={{
+                  marginBottom: 10,
+                  padding: 16,
+                  borderRadius: 16,
+                  backgroundColor: colors.surfaceSunken,
+                }}
+              >
+                <Text style={{ fontFamily: POPPINS.semibold, fontSize: 15, color: colors.textStrong }}>
+                  {toPeopleAddress(service.origin.address)}
+                </Text>
+                <Text
+                  style={{
+                    marginTop: 4,
+                    fontFamily: POPPINS.regular,
+                    fontSize: 14,
+                    color: colors.text,
+                  }}
+                >
+                  {`→ ${toPeopleAddress(service.destination.address)}`}
+                </Text>
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
+      ) : section === "soporte" ? (
         <SupportChatScreen embedded />
       ) : (
         <ScrollView

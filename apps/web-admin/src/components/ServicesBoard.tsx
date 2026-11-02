@@ -99,7 +99,7 @@ export function ServicesBoard({
                 >
                   Cód. inicio
                 </th>
-                {onSelect !== undefined && <th className={thClass}>Mapa</th>}
+                {onSelect !== undefined && <th className={thClass}>Detalle</th>}
               </tr>
             </thead>
             <tbody>
@@ -152,14 +152,22 @@ export function ServicesBoard({
                       <TruncatedAddressCell
                         address={service.origin.address}
                         ariaLabel="Ver origen y ruta completa"
-                        onPress={() => setRouteDetailService(service)}
+                        onPress={() =>
+                          onSelect !== undefined
+                            ? onSelect(service._id)
+                            : setRouteDetailService(service)
+                        }
                       />
                     </td>
                     <td className={tdClass}>
                       <TruncatedAddressCell
                         address={service.destination.address}
                         ariaLabel="Ver destino y ruta completa"
-                        onPress={() => setRouteDetailService(service)}
+                        onPress={() =>
+                          onSelect !== undefined
+                            ? onSelect(service._id)
+                            : setRouteDetailService(service)
+                        }
                       />
                     </td>
                     <td className={`${tdClass} text-xs`}>
@@ -196,7 +204,7 @@ export function ServicesBoard({
                           onClick={() => onSelect(service._id)}
                           className="text-xs font-semibold text-hercom hover:underline"
                         >
-                          Ver mapa
+                          Detalles del servicio
                         </button>
                       </td>
                     )}

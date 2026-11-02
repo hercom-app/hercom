@@ -20,7 +20,7 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
   const live = useQuery(api.serviceTracking.getForAdmin, { serviceId });
   const archivedRoute = useQuery(
     api.serviceRouteArchives.getForAdmin,
-    live?.status === "finished" ? { serviceId } : "skip",
+    live !== undefined && live !== null ? { serviceId } : "skip",
   );
   const review = useQuery(api.services.getReviewForAdmin, { serviceId });
 
@@ -67,10 +67,11 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
     if (live === undefined || live === null) {
       return null;
     }
-    const trail = isFinished ? recordedTrail : live.trail.map((point) => ({
+    const liveTrail = live.trail.map((point) => ({
       lat: point.lat,
       lng: point.lng,
     }));
+    const trail = recordedTrail.length >= liveTrail.length ? recordedTrail : liveTrail;
     const driver =
       !isFinished && live.lat !== null && live.lng !== null
         ? { lat: live.lat, lng: live.lng }
@@ -80,7 +81,15 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
       lat: live.destination.lat,
       lng: live.destination.lng,
     };
-    const points = [origin, destination, ...trail];
+    const planned = [
+      origin,
+      ...(live.extraDestinations ?? []).map((stop) => ({
+        lat: stop.lat,
+        lng: stop.lng,
+      })),
+      destination,
+    ];
+    const points = [...planned, ...trail];
     if (driver !== null) {
       points.push(driver);
     }
@@ -93,6 +102,7 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
       destination,
       driver,
       trail,
+      planned,
       replayPosition: isPlaying || replayIndex > 0 ? replayPosition : null,
       bounds: computeMapBounds(points),
     };
@@ -117,7 +127,7 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
     setIsPlaying((prev) => !prev);
   }, [recordedTrail.length, replayIndex]);
 
-  const panelTitle = isFinished ? "Ruta del viaje (archivada)" : "Ubicación en tiempo real";
+  const panelTitle = "Detalles del servicio seleccionado";
 
   return (
     <AdminCard>
@@ -143,7 +153,7 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
           )}
         </div>
         <button type="button" onClick={onClose} className={`${btnGhostClass} shrink-0`}>
-          Cerrar
+          Volver
         </button>
       </div>
 
@@ -162,12 +172,17 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
               destination={mapData.destination}
               driver={mapData.driver}
               trail={mapData.trail}
+              planned={mapData.planned}
               center={mapData.bounds.center}
               zoom={mapData.bounds.zoom}
               replayPosition={mapData.replayPosition}
               recordedRoute={isFinished && mapData.trail.length > 1}
             />
           </div>
+          <p className="mt-2 text-xs text-slate-500">
+            La línea punteada es la ruta pedida (origen, paradas y destino). La
+            línea azul es el recorrido GPS del chofer.
+          </p>
 
           {isFinished && recordedTrail.length > 1 && (
             <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3">

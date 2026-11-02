@@ -23,6 +23,7 @@ import {
 } from "./lib/commissionTiers";
 import { requireDriver, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
 import { hasYapeOrPlin } from "./lib/driverPayout";
+import { resolveOfferLimits } from "./lib/offerLimits";
 import {
   canBrowseAllDriverRecords,
   driverMatchesDistrictScopes,
@@ -1081,7 +1082,8 @@ export const listForClient = query({
 });
 
 /**
- * Cliente edita origen y/o destino solo mientras el viaje está en curso.
+ * Cliente edita origen y/o destino con el viaje aceptado o ya en curso.
+ * El chofer recibe un aviso para revisar la ruta y, si aún no salió, la tarifa.
  */
 export const updateTripLocations = mutation({
   args: {
@@ -1098,9 +1100,9 @@ export const updateTripLocations = mutation({
     if (service.clientId !== user._id) {
       throw new Error("No autorizado para editar este viaje.");
     }
-    if (service.status !== "in_progress") {
+    if (service.status !== "assigned" && service.status !== "in_progress") {
       throw new Error(
-        "Solo puedes editar partida o destino mientras el viaje está en curso.",
+        "Puedes editar partida o destino cuando el viaje está aceptado o en curso.",
       );
     }
     if (args.origin === undefined && args.destination === undefined) {
@@ -1129,15 +1131,133 @@ export const updateTripLocations = mutation({
         if (destination !== undefined) {
           parts.push(`destino: ${destination.address}`);
         }
+        const fareNote =
+          service.status === "assigned" && service.advanceConfirmedAt === undefined
+            ? " Puedes ajustar la tarifa antes de salir."
+            : "";
         await createNotification(ctx, {
           userId: driver.userId,
           type: "trip_route_updated",
           title: "El cliente actualizó la ruta",
-          message: `Nueva ruta — ${parts.join(" · ")}.`,
+          message: `Nueva ruta — ${parts.join(" · ")}.${fareNote}`,
           serviceId: service._id,
         });
       }
     }
+
+    return service._id;
+  },
+});
+
+/**
+ * Cliente cambia las horas pedidas mientras el viaje sigue aceptado y el chofer no salió.
+ */
+export const updateAssignedHours = mutation({
+  args: {
+    serviceId: v.id("services"),
+    serviceHours: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null) {
+      throw new Error("Servicio no encontrado.");
+    }
+    if (service.clientId !== user._id) {
+      throw new Error("No autorizado para editar este viaje.");
+    }
+    if (service.status !== "assigned") {
+      throw new Error("Solo puedes cambiar el tiempo antes de que el chofer salga.");
+    }
+    if (
+      !Number.isInteger(args.serviceHours) ||
+      args.serviceHours < 1 ||
+      args.serviceHours > 24
+    ) {
+      throw new Error("El tiempo debe ser entre 1 y 24 horas.");
+    }
+
+    await ctx.db.patch(service._id, { serviceHours: args.serviceHours });
+
+    if (service.driverId !== undefined) {
+      const driver = await ctx.db.get(service.driverId);
+      if (driver !== null) {
+        await createNotification(ctx, {
+          userId: driver.userId,
+          type: "trip_route_updated",
+          title: "El cliente cambió el tiempo",
+          message: `El viaje quedó en ${args.serviceHours} h. Puedes ajustar la tarifa antes de salir.`,
+          serviceId: service._id,
+        });
+      }
+    }
+
+    return service._id;
+  },
+});
+
+/**
+ * Chofer ajusta la tarifa acordada antes de confirmar el anticipo y de salir.
+ */
+export const reviseAssignedFare = mutation({
+  args: {
+    serviceId: v.id("services"),
+    offeredPrice: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { driver } = await requireDriver(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null || service.driverId !== driver._id) {
+      throw new Error("No autorizado para cambiar esta tarifa.");
+    }
+    if (service.status !== "assigned") {
+      throw new Error("Solo puedes cambiar la tarifa antes de salir a recoger.");
+    }
+    if (service.advanceConfirmedAt !== undefined) {
+      throw new Error("El anticipo ya fue confirmado. La tarifa queda fija.");
+    }
+
+    const limits = await resolveOfferLimits(ctx, {
+      ...(service.catalogBasePrice !== undefined
+        ? { catalogBasePrice: service.catalogBasePrice }
+        : {}),
+      basePrice: service.basePrice,
+      origin: service.origin,
+    });
+    const offeredPrice = Math.round(args.offeredPrice * 100) / 100;
+    if (offeredPrice < limits.minOfferPrice || offeredPrice > limits.maxOfferPrice) {
+      throw new Error(
+        `La tarifa debe estar entre S/${limits.minOfferPrice.toFixed(2)} y S/${limits.maxOfferPrice.toFixed(2)}.`,
+      );
+    }
+
+    const market = await getMarketByCountry(ctx, service.origin.countryCode);
+    const priced = resolveServiceHoursAndHourlyRate(offeredPrice, market);
+    const serviceHours = service.serviceHours ?? priced.serviceHours;
+    const hourlyRateSnapshot = service.hourlyRateSnapshot ?? priced.hourlyRateSnapshot;
+    const commission = computePlatformCommissionForService(
+      offeredPrice,
+      service.discountRate,
+      { serviceHours, hourlyRate: hourlyRateSnapshot, market },
+    );
+    const clientTotal = computeClientTotalForOffer(offeredPrice, service.discountRate);
+    const advanceAmount = computeClientAdvance(offeredPrice);
+
+    await ctx.db.patch(service._id, {
+      offeredPrice,
+      totalPrice: clientTotal,
+      driverCommission: commission,
+      advanceAmount,
+      hourlyRateSnapshot,
+    });
+
+    await createNotification(ctx, {
+      userId: service.clientId,
+      type: "trip_route_updated",
+      title: "El chofer actualizó la tarifa",
+      message: `Nueva tarifa S/${offeredPrice.toFixed(2)}. Anticipo S/${advanceAmount.toFixed(2)}.`,
+      serviceId: service._id,
+    });
 
     return service._id;
   },

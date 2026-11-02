@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ActivityIndicator, Alert, View } from "react-native";
+import { Alert, View } from "react-native";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import {
@@ -12,13 +12,12 @@ import {
 import { convexErrorMessage } from "../lib/convexErrorMessage";
 import {
   TacticalButton,
-  TacticalLabel,
   TacticalPanel,
   TacticalScreen,
   TacticalStatus,
   TacticalText,
 } from "./tactical";
-import { TACTICAL_COLORS } from "../constants/theme";
+import { BrandSplash } from "./BrandSplash";
 
 function errorDetail(error: unknown): string {
   if (error instanceof Error) {
@@ -40,7 +39,7 @@ export function PendingRegistrationSubmit({
   const recordLog = useMutation(api.adminLogs.record);
   const driver = useQuery(api.drivers.getMyDriverProfile);
   const application = useQuery(api.driverApplications.getMyApplication);
-  const [processing, setProcessing] = useState(true);
+  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,6 +71,9 @@ export function PendingRegistrationSubmit({
         return;
       }
 
+      if (!cancelled) {
+        setProcessing(true);
+      }
       try {
         await submitDriverApplicationFromPending(
           pending,
@@ -116,17 +118,7 @@ export function PendingRegistrationSubmit({
   ]);
 
   if (processing) {
-    return (
-      <TacticalScreen className="items-center justify-center px-6">
-        <ActivityIndicator color={TACTICAL_COLORS.accent} size="large" />
-        <TacticalLabel tone="text" className="mt-5 text-center">
-          Enviando solicitud de chofer
-        </TacticalLabel>
-        <TacticalText size={11} className="mt-2 text-center">
-          Hercom validará tu registro antes de habilitar el modo conductor.
-        </TacticalText>
-      </TacticalScreen>
-    );
+    return <BrandSplash />;
   }
 
   if (error !== null) {

@@ -10,6 +10,8 @@ import {
   View,
 } from "react-native";
 import { HELP_CONTACTS } from "../constants/helpContacts";
+import { DrawerIcon } from "./DrawerIcons";
+import { HERCOM_COLORS } from "../constants/theme";
 import {
   fetchNearbyHealthCenters,
   formatDistanceKm,
@@ -58,7 +60,7 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
     <>
       <TouchableOpacity
         onPress={() => setMenuOpen(true)}
-        accessibilityLabel="Ayuda y emergencia"
+        accessibilityLabel="Centro de seguridad"
         activeOpacity={0.85}
         className="h-14 w-14 items-center justify-center"
         style={{
@@ -71,15 +73,7 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
           elevation: 4,
         }}
       >
-        <Text
-          style={{
-            fontFamily: MONO.bold,
-            fontSize: 22,
-            color: TACTICAL_COLORS.accent,
-          }}
-        >
-          ?
-        </Text>
+        <DrawerIcon name="shield" color={HERCOM_COLORS.text} size={26} />
       </TouchableOpacity>
 
       <Modal
@@ -108,7 +102,7 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
                 style={{ backgroundColor: TACTICAL_BORDER_SOFT }}
               />
             </View>
-            <TacticalTitle size={22}>¿Necesitas ayuda?</TacticalTitle>
+            <TacticalTitle size={22}>Centro de seguridad</TacticalTitle>
             <TacticalText size={15} className="mb-5 mt-2">
               Contacta a emergencias o encuentra atención médica cerca. Para
               soporte de la app, usa Ayuda en el menú.

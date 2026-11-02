@@ -23,13 +23,17 @@ import {
 
 type DriverServicesHistoryProps = {
   driverId: Id<"drivers"> | null;
+  onOpenService?: (serviceId: Id<"services">) => void;
 };
 
 function formatMoney(amount: number): string {
   return `S/${amount.toFixed(2)}`;
 }
 
-export function DriverServicesHistory({ driverId }: DriverServicesHistoryProps) {
+export function DriverServicesHistory({
+  driverId,
+  onOpenService,
+}: DriverServicesHistoryProps) {
   const services = useQuery(
     api.services.listHistoryForDriverAdmin,
     driverId === null ? "skip" : { driverId },
@@ -152,6 +156,15 @@ export function DriverServicesHistory({ driverId }: DriverServicesHistoryProps) 
                             {service.originAddress} → {service.destinationAddress}
                           </span>
                           <RouteFileLink review={service} />
+                          {onOpenService !== undefined && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenService(service._id)}
+                              className="mt-2 text-left text-xs font-semibold text-hercom hover:underline"
+                            >
+                              Detalles del servicio
+                            </button>
+                          )}
                         </td>
                         <td className={tdClass}>
                           {getAdminServiceStatusLabel({

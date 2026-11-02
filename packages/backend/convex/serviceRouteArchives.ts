@@ -98,7 +98,7 @@ export const getForAdmin = query({
       .query("serviceRouteArchives")
       .withIndex("by_service", (q) => q.eq("serviceId", args.serviceId))
       .unique();
-    if (archive === null || archive.status !== "finalized") {
+    if (archive === null) {
       return null;
     }
     const geoJsonUrl =

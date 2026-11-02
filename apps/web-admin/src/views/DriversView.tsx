@@ -15,6 +15,7 @@ import {
   type DriverFinanceInfo,
 } from "../components/DriverDossierPanel";
 import { DriverServicesHistory } from "../components/DriverServicesHistory";
+import { ServiceLivePanel } from "../components/ServiceLivePanel";
 import { AdminPagination, usePagedItems } from "../components/AdminPagination";
 import {
   EMPTY_REGION_FILTER,
@@ -99,9 +100,11 @@ export function DriversView({
     userId: Id<"users">;
     section: "registro" | "historial";
   } | null>(null);
+  const [openServiceId, setOpenServiceId] = useState<Id<"services"> | null>(null);
 
   useEffect(() => {
     setDetail(null);
+    setOpenServiceId(null);
   }, [listResetKey]);
 
   const drivers = useQuery(api.drivers.listAll, {});
@@ -265,6 +268,17 @@ export function DriversView({
       ? null
       : (rows ?? []).find((row) => row.userId === detail.userId) ?? null;
 
+  if (detail !== null && detail.section === "historial" && openServiceId !== null) {
+    return (
+      <AdminPage>
+        <ServiceLivePanel
+          serviceId={openServiceId}
+          onClose={() => setOpenServiceId(null)}
+        />
+      </AdminPage>
+    );
+  }
+
   if (detail !== null) {
     const title =
       detail.section === "historial"
@@ -294,7 +308,10 @@ export function DriversView({
             <AdminEmpty message="No se encontró este chofer." />
           </AdminCard>
         ) : detail.section === "historial" ? (
-          <DriverServicesHistory driverId={selectedRow.driverId} />
+          <DriverServicesHistory
+            driverId={selectedRow.driverId}
+            onOpenService={setOpenServiceId}
+          />
         ) : (
           <DriverDossierPanel
             application={selectedRow.application}

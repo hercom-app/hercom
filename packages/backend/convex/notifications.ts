@@ -161,6 +161,7 @@ export async function createNotification(
       | "advance_confirmed"
       | "trip_route_updated"
       | "trip_extended"
+      | "service_message"
       | "support_reply";
     title: string;
     message: string;

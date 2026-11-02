@@ -50,17 +50,22 @@ export const ServiceCard = memo(function ServiceCard({
   onOpenLiveMap,
   onTripFinished,
 }: Props) {
-  const { colors } = useAppTheme();
+  const { colors, border } = useAppTheme();
   const [securityCodeInput, setSecurityCodeInput] = useState("");
   const [tripStarting, setTripStarting] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [advanceConfirming, setAdvanceConfirming] = useState(false);
+  const [fareDraft, setFareDraft] = useState(
+    String(service.offeredPrice ?? service.totalPrice),
+  );
+  const [savingFare, setSavingFare] = useState(false);
   const [busyAction, setBusyAction] = useState(false);
   const [slideResetCounter, setSlideResetCounter] = useState(0);
 
   const updateStatus = useMutation(api.services.updateStatus);
   const confirmAdvanceReceived = useMutation(api.services.confirmAdvanceReceived);
+  const reviseAssignedFare = useMutation(api.services.reviseAssignedFare);
   const startTripWithCode = useMutation(api.services.startTripWithCode);
   const arriveAtCurrentStop = useMutation(api.services.arriveAtCurrentStop);
   const pickupChecklist = useQuery(api.serviceChecklists.getForMyService, {
@@ -275,6 +280,51 @@ export const ServiceCard = memo(function ServiceCard({
               {advanceConfirmed && <StatusPill label="Recibido" tone="success" />}
             </View>
           </SoftGroup>
+          {!advanceConfirmed && (
+            <SoftGroup style={{ paddingVertical: 14, gap: 10 }}>
+              <Text style={{ fontFamily: POPPINS.medium, fontSize: 16, color: colors.textStrong }}>
+                Cambiar tarifa
+              </Text>
+              <TextInput
+                value={fareDraft}
+                onChangeText={setFareDraft}
+                keyboardType="decimal-pad"
+                placeholder="Tarifa en soles"
+                placeholderTextColor={colors.steel}
+                style={{
+                  borderWidth: 1,
+                  borderColor: border,
+                  borderRadius: 12,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  fontFamily: POPPINS.semibold,
+                  fontSize: 16,
+                  color: colors.textStrong,
+                }}
+              />
+              <PillButton
+                label="Avisar nueva tarifa"
+                tone="secondary"
+                onPress={() => {
+                  const offeredPrice = Number(fareDraft.replace(",", "."));
+                  if (!Number.isFinite(offeredPrice) || offeredPrice <= 0) {
+                    setActionError("Escribe una tarifa válida.");
+                    return;
+                  }
+                  setSavingFare(true);
+                  setActionError(null);
+                  void reviseAssignedFare({ serviceId: service._id, offeredPrice })
+                    .catch((error) => {
+                      setActionError(
+                        error instanceof Error ? error.message : "No se pudo cambiar la tarifa.",
+                      );
+                    })
+                    .finally(() => setSavingFare(false));
+                }}
+                loading={savingFare}
+              />
+            </SoftGroup>
+          )}
           {!advanceConfirmed && (
             <PillButton
               label={`Recibí ${soles(advanceAmount)}`}

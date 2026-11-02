@@ -64,6 +64,17 @@ export function ServicesView({
     paged: pagedLive,
   } = usePagedItems(liveTrips);
 
+  if (selectedServiceId !== null) {
+    return (
+      <AdminPage>
+        <ServiceLivePanel
+          serviceId={selectedServiceId}
+          onClose={() => setSelectedServiceId(null)}
+        />
+      </AdminPage>
+    );
+  }
+
   return (
     <AdminPage>
       <AdminPageHeader
@@ -103,7 +114,7 @@ export function ServicesView({
                     onClick={() => setSelectedServiceId(trip.serviceId)}
                     className="min-h-11 shrink-0 text-left text-sm font-semibold text-hercom hover:underline sm:text-right"
                   >
-                    Ver mapa
+                    Detalles del servicio
                   </button>
                 </div>
               </li>
@@ -118,13 +129,6 @@ export function ServicesView({
           </>
         )}
       </AdminCard>
-
-      {selectedServiceId !== null && (
-        <ServiceLivePanel
-          serviceId={selectedServiceId}
-          onClose={() => setSelectedServiceId(null)}
-        />
-      )}
 
       <AdminRegionFilters
         value={region}

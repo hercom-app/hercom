@@ -29,6 +29,8 @@ Móvil: `apps/mobile/src/` · Admin: `apps/web-admin/src/`
 
 ## 3. Flujo de servicio
 
+**Flujo oficial (10 pasos):** [`flujo-servicio-oficial-10-pasos.md`](./flujo-servicio-oficial-10-pasos.md)
+
 | Momento | Cliente | Chofer | Web interna |
 | --- | --- | --- | --- |
 | **Pedir viaje** | Pedir servicio<br>`ClientDashboard.tsx`<br>Flujo: [`flujo-solicitud-servicio-cliente.md`](./flujo-solicitud-servicio-cliente.md) | — | Tablero · Pendiente<br>`ServicesView.tsx`<br>`ServicesBoard.tsx` |

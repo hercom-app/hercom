@@ -3,6 +3,8 @@
 Revisión del panel `apps/web-admin` y cómo se conecta con la app.
 Los **3 flujos UI** (inscripción, recarga, servicio) están en [`3-flujos-ui.md`](./3-flujos-ui.md).
 
+**Servicio app (10 pasos oficiales):** [`flujo-servicio-oficial-10-pasos.md`](./flujo-servicio-oficial-10-pasos.md)
+
 Login: `SignInForm.tsx`. Sin rol `admin` / `superadmin` no entra.
 
 | Rol | Qué ve |

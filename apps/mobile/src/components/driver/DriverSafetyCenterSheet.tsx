@@ -50,23 +50,11 @@ export function DriverSafetyCenterSheet({
           />
           <DriverSheetRow
             icon="phone"
-            title={`Llamar al ${HELP_CONTACTS.ambulancePhone}`}
-            subtitle="Emergencia médica (SAMU)"
-            onPress={() => void Linking.openURL(`tel:${HELP_CONTACTS.ambulancePhone}`)}
-          />
-          <DriverSheetRow
-            icon="phone"
             title={`Llamar al ${HELP_CONTACTS.firefightersPhone}`}
             subtitle="Bomberos"
             onPress={() =>
               void Linking.openURL(`tel:${HELP_CONTACTS.firefightersPhone}`)
             }
-          />
-          <DriverSheetRow
-            icon="medical"
-            title="Hospital o clínica cercana"
-            subtitle="Te guiamos con Waze"
-            onPress={() => setHealthOpen(true)}
           />
           <DriverSheetRow
             icon="share"
@@ -104,6 +92,18 @@ export function DriverSafetyCenterSheet({
               close();
               onOpenSupport();
             }}
+          />
+          <DriverSheetRow
+            icon="phone"
+            title="Solicitar atención médica"
+            subtitle={`Llamar al ${HELP_CONTACTS.ambulancePhone}`}
+            onPress={() => void Linking.openURL(`tel:${HELP_CONTACTS.ambulancePhone}`)}
+          />
+          <DriverSheetRow
+            icon="medical"
+            title="Ir por atención médica"
+            subtitle="Te llevamos al centro de salud más cercano"
+            onPress={() => setHealthOpen(true)}
           />
           <View style={{ height: 8 }} />
         </ScrollView>

@@ -87,13 +87,13 @@ function SafetyAwarenessBlock() {
         <View
           style={{
             position: "absolute",
-            top: 0,
+            bottom: 0,
             left: 0,
             right: 0,
             paddingHorizontal: 16,
-            paddingTop: 14,
+            paddingTop: 18,
             paddingBottom: 16,
-            backgroundColor: "rgba(8, 8, 10, 0.62)",
+            backgroundColor: "rgba(8, 8, 10, 0.72)",
           }}
         >
           <Text
@@ -469,7 +469,6 @@ export function HomeRequestSheet({
   onSelectRecent,
   onSetHome,
   onLocateHome,
-  onSaveFavorite,
   onRemovePlace,
   addressRegion,
   gpsCenter,
@@ -500,36 +499,6 @@ export function HomeRequestSheet({
     } finally {
       setSavingPlace(false);
     }
-  }
-
-  function promptSaveRecent(place: RecentDestination) {
-    Alert.alert(place.title, "¿Dónde lo guardamos?", [
-      {
-        text: "Como tu casa",
-        onPress: () => {
-          void runSave(() =>
-            onSetHome({
-              address: place.address,
-              lat: place.lat,
-              lng: place.lng,
-            }),
-          );
-        },
-      },
-      {
-        text: "Como favorito",
-        onPress: () => {
-          void runSave(() =>
-            onSaveFavorite({
-              address: place.address,
-              lat: place.lat,
-              lng: place.lng,
-            }),
-          );
-        },
-      },
-      { text: "Cancelar", style: "cancel" },
-    ]);
   }
 
   return (
@@ -603,12 +572,13 @@ export function HomeRequestSheet({
               })}
             >
               <PlaceIcon kind="home" />
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, justifyContent: "center" }}>
                 <Text
                   numberOfLines={1}
                   style={{
                     fontFamily: POPPINS.semibold,
                     fontSize: 16,
+                    lineHeight: 22,
                     color: HERCOM_COLORS.text,
                   }}
                 >
@@ -621,6 +591,7 @@ export function HomeRequestSheet({
                       marginTop: 2,
                       fontFamily: POPPINS.regular,
                       fontSize: 13,
+                      lineHeight: 18,
                       color: HERCOM_COLORS.textMuted,
                     }}
                   >
@@ -630,22 +601,34 @@ export function HomeRequestSheet({
               </View>
             </Pressable>
             {home !== null && (
-            <Pressable
-              onPress={() => setHomeEditorOpen(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Cambiar casa"
-              hitSlop={8}
-            >
-              <Text
-                style={{
-                  fontFamily: POPPINS.semibold,
-                  fontSize: 13,
-                  color: HERCOM_COLORS.primary,
-                }}
+              <Pressable
+                onPress={() => setHomeEditorOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Cambiar casa"
+                hitSlop={8}
+                style={({ pressed }) => ({
+                  alignSelf: "flex-start",
+                  marginTop: 2,
+                  height: 32,
+                  paddingHorizontal: 12,
+                  borderRadius: 16,
+                  backgroundColor: "#E8F2FF",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: pressed ? 0.7 : 1,
+                })}
               >
-                Cambiar
-              </Text>
-            </Pressable>
+                <Text
+                  style={{
+                    fontFamily: POPPINS.semibold,
+                    fontSize: 13,
+                    lineHeight: 16,
+                    color: HERCOM_COLORS.primary,
+                  }}
+                >
+                  Cambiar
+                </Text>
+              </Pressable>
             )}
           </View>
           )}
@@ -763,46 +746,12 @@ export function HomeRequestSheet({
                   >
                     {place.title}
                   </Text>
-                  {place.subtitle !== undefined && (
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        marginTop: 2,
-                        fontFamily: POPPINS.regular,
-                        fontSize: 13,
-                        color: HERCOM_COLORS.textMuted,
-                      }}
-                    >
-                      {place.subtitle}
-                    </Text>
-                  )}
                 </View>
-              </Pressable>
-              <Pressable
-                onPress={() => promptSaveRecent(place)}
-                accessibilityRole="button"
-                accessibilityLabel={`Guardar ${place.title}`}
-                hitSlop={8}
-                disabled={savingPlace}
-              >
-                <Text
-                  style={{
-                    fontFamily: POPPINS.semibold,
-                    fontSize: 13,
-                    color: HERCOM_COLORS.primary,
-                  }}
-                >
-                  Guardar
-                </Text>
               </Pressable>
             </View>
           ))}
         </View>
       )}
-
-      <View style={{ marginTop: 16 }}>
-        <SafetyAwarenessBlock />
-      </View>
 
       <View style={{ marginTop: 22, gap: 10 }}>
         <Text
@@ -815,7 +764,6 @@ export function HomeRequestSheet({
         >
           Más formas de usar Hercom
         </Text>
-        <ServiceDiscoveryGrid />
         <Text
           style={{
             fontFamily: POPPINS.regular,
@@ -824,8 +772,13 @@ export function HomeRequestSheet({
             color: HERCOM_COLORS.textMuted,
           }}
         >
-          Da click para enterarte más y contactarte con un ejecutivo
+          Haz click para ver más y contactar un ejecutivo
         </Text>
+        <ServiceDiscoveryGrid />
+      </View>
+
+      <View style={{ marginTop: 22 }}>
+        <SafetyAwarenessBlock />
       </View>
 
       {error !== null && (

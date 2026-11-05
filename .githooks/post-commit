@@ -1,0 +1,16 @@
+#!/bin/sh
+# Aviso local: commit hecho, pero todavía no está en GitHub.
+branch=$(git symbolic-ref --short HEAD 2>/dev/null) || exit 0
+upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null) || {
+  echo ""
+  echo "AVISO: la rama '$branch' no tiene remoto. Sube con: git push -u origin $branch"
+  echo ""
+  exit 0
+}
+count=$(git rev-list --count '@{upstream}..HEAD' 2>/dev/null) || exit 0
+if [ "$count" -gt 0 ]; then
+  echo ""
+  echo "AVISO: tienes $count commit(s) en '$branch' SIN PUSH."
+  echo "Aun no estan en GitHub. Corre: git push origin $branch"
+  echo ""
+fi

@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { HELP_CONTACTS } from "../constants/helpContacts";
 import { DrawerIcon } from "./DrawerIcons";
-import { HERCOM_COLORS } from "../constants/theme";
+import { HERCOM_COLORS, POPPINS } from "../constants/theme";
 import {
   fetchNearbyHealthCenters,
   formatDistanceKm,
@@ -155,7 +155,7 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
                 borderColor: TACTICAL_BORDER_SOFT,
               }}
             >
-              <TacticalLabel tone="text">Emergencia médica (SAMU)</TacticalLabel>
+              <TacticalLabel tone="text">Solicitar atención médica</TacticalLabel>
               <TacticalText size={15} className="mt-1">
                 {`Marca el ${HELP_CONTACTS.ambulancePhone}`}
               </TacticalText>
@@ -169,19 +169,31 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
                 backgroundColor: TACTICAL_COLORS.dataBandBg,
               }}
             >
-              <TacticalLabel tone="accent">
-                Hospital o clínica cercana
-              </TacticalLabel>
+              <TacticalLabel tone="accent">Ir por atención médica</TacticalLabel>
               <TacticalText size={15} className="mt-1">
-                Te guiamos con Waze
+                Te llevamos al centro de salud más cercano
               </TacticalText>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setMenuOpen(false)}
-              className="mt-5 py-3"
+              accessibilityLabel="Cerrar"
+              className="mt-5 items-center justify-center"
+              style={{
+                minHeight: 48,
+                borderRadius: 14,
+                backgroundColor: HERCOM_COLORS.text,
+              }}
             >
-              <TacticalLabel className="text-center">Cerrar</TacticalLabel>
+              <Text
+                style={{
+                  fontFamily: POPPINS.semibold,
+                  fontSize: 16,
+                  color: "#FFFFFF",
+                }}
+              >
+                Cerrar
+              </Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>

@@ -36,12 +36,19 @@ export function DriverSheet({ visible, title, onClose, children }: DriverSheetPr
               width: 52,
               height: 52,
               borderRadius: 26,
-              backgroundColor: colors.surface,
+              backgroundColor: "#FFFFFF",
               alignItems: "center",
               justifyContent: "center",
+              borderWidth: 1,
+              borderColor: "rgba(15, 23, 42, 0.12)",
+              shadowColor: "#0F172A",
+              shadowOpacity: 0.28,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 6,
             }}
           >
-            <DrawerIcon name="close" color={colors.textStrong} size={20} />
+            <DrawerIcon name="close" color="#111827" size={22} />
           </TouchableOpacity>
         </View>
         <Pressable

@@ -249,6 +249,10 @@ export default defineSchema({
     additionalLanguage2: v.optional(v.string()),
     additionalLanguage3: v.optional(v.string()),
     additionalLanguage4: v.optional(v.string()),
+    /** Foto que ve el cliente en las ofertas. */
+    publicPhotoStorageId: v.optional(v.id("_storage")),
+    /** Texto breve que ve el cliente junto a la oferta. */
+    aboutMe: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_status", ["status"]),
@@ -362,6 +366,8 @@ export default defineSchema({
     serviceEndsAt: v.optional(v.number()),
     /** Cada aviso de extensión (+1 h), en orden, con fecha y hora. */
     extendedAt: v.optional(v.array(v.number())),
+    /** El cliente cambió el punto de recojo después de confirmar el viaje. */
+    originChangedAt: v.optional(v.number()),
   })
     .index("by_client", ["clientId"])
     .index("by_driver", ["driverId"])

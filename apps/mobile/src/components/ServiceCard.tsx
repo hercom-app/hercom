@@ -6,6 +6,7 @@ import type { Doc, Id } from "@proyecto/backend/dataModel";
 import { PassengerBanner } from "./PassengerBanner";
 import { SlideToConfirm } from "./SlideToConfirm";
 import { TripSecurityPin } from "./uber/TripSecurityPin";
+import { TripChatSheet } from "./TripChatSheet";
 import { DrawerIcon } from "./DrawerIcons";
 import {
   ErrorText,
@@ -50,22 +51,18 @@ export const ServiceCard = memo(function ServiceCard({
   onOpenLiveMap,
   onTripFinished,
 }: Props) {
-  const { colors, border } = useAppTheme();
+  const { colors } = useAppTheme();
   const [securityCodeInput, setSecurityCodeInput] = useState("");
   const [tripStarting, setTripStarting] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [advanceConfirming, setAdvanceConfirming] = useState(false);
-  const [fareDraft, setFareDraft] = useState(
-    String(service.offeredPrice ?? service.totalPrice),
-  );
-  const [savingFare, setSavingFare] = useState(false);
   const [busyAction, setBusyAction] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [slideResetCounter, setSlideResetCounter] = useState(0);
 
   const updateStatus = useMutation(api.services.updateStatus);
   const confirmAdvanceReceived = useMutation(api.services.confirmAdvanceReceived);
-  const reviseAssignedFare = useMutation(api.services.reviseAssignedFare);
   const startTripWithCode = useMutation(api.services.startTripWithCode);
   const arriveAtCurrentStop = useMutation(api.services.arriveAtCurrentStop);
   const pickupChecklist = useQuery(api.serviceChecklists.getForMyService, {
@@ -102,6 +99,13 @@ export const ServiceCard = memo(function ServiceCard({
     service.status === "heading_to_pickup" ||
     service.status === "arrived_pickup";
   const canShareTrip = canShareLiveTrip(service.status);
+  const canChatWithClient =
+    service.status === "assigned" ||
+    service.status === "heading_to_pickup" ||
+    service.status === "arrived_pickup" ||
+    service.status === "in_progress" ||
+    service.status === "en_route" ||
+    service.status === "arrived_destination";
   const navigationTarget =
     service.status === "heading_to_pickup" || service.status === "assigned"
       ? service.origin
@@ -213,17 +217,27 @@ export const ServiceCard = memo(function ServiceCard({
 
       <RouteStops
         origin={toPeopleAddress(service.origin.address)}
+        originChanged={service.originChangedAt !== undefined}
         stops={serviceStops.map((stop) => toPeopleAddress(stop.address))}
         activeIndex={isRunning ? currentStopIndex + 1 : beforePickup ? 0 : -1}
       />
 
-      {(navigationTarget !== null || (canShareTrip && onOpenLiveMap !== undefined)) && (
+      {(navigationTarget !== null ||
+        (canShareTrip && onOpenLiveMap !== undefined) ||
+        canChatWithClient) && (
         <View style={{ flexDirection: "row", justifyContent: "center", gap: 8, marginBottom: 16 }}>
           {navigationTarget !== null && (
             <RoundAction
               icon="navigate"
               label="Waze"
               onPress={() => void openWazeNavigation(navigationTarget)}
+            />
+          )}
+          {canChatWithClient && (
+            <RoundAction
+              icon="chat"
+              label="Chat"
+              onPress={() => setChatOpen(true)}
             />
           )}
           {canShareTrip && onOpenLiveMap !== undefined && (
@@ -280,51 +294,6 @@ export const ServiceCard = memo(function ServiceCard({
               {advanceConfirmed && <StatusPill label="Recibido" tone="success" />}
             </View>
           </SoftGroup>
-          {!advanceConfirmed && (
-            <SoftGroup style={{ paddingVertical: 14, gap: 10 }}>
-              <Text style={{ fontFamily: POPPINS.medium, fontSize: 16, color: colors.textStrong }}>
-                Cambiar tarifa
-              </Text>
-              <TextInput
-                value={fareDraft}
-                onChangeText={setFareDraft}
-                keyboardType="decimal-pad"
-                placeholder="Tarifa en soles"
-                placeholderTextColor={colors.steel}
-                style={{
-                  borderWidth: 1,
-                  borderColor: border,
-                  borderRadius: 12,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  fontFamily: POPPINS.semibold,
-                  fontSize: 16,
-                  color: colors.textStrong,
-                }}
-              />
-              <PillButton
-                label="Avisar nueva tarifa"
-                tone="secondary"
-                onPress={() => {
-                  const offeredPrice = Number(fareDraft.replace(",", "."));
-                  if (!Number.isFinite(offeredPrice) || offeredPrice <= 0) {
-                    setActionError("Escribe una tarifa válida.");
-                    return;
-                  }
-                  setSavingFare(true);
-                  setActionError(null);
-                  void reviseAssignedFare({ serviceId: service._id, offeredPrice })
-                    .catch((error) => {
-                      setActionError(
-                        error instanceof Error ? error.message : "No se pudo cambiar la tarifa.",
-                      );
-                    })
-                    .finally(() => setSavingFare(false));
-                }}
-                loading={savingFare}
-              />
-            </SoftGroup>
-          )}
           {!advanceConfirmed && (
             <PillButton
               label={`Recibí ${soles(advanceAmount)}`}
@@ -478,6 +447,11 @@ export const ServiceCard = memo(function ServiceCard({
       )}
 
       <ErrorText message={actionError} />
+      <TripChatSheet
+        visible={chatOpen}
+        serviceId={service._id}
+        onClose={() => setChatOpen(false)}
+      />
     </View>
   );
 });
@@ -485,10 +459,12 @@ export const ServiceCard = memo(function ServiceCard({
 /** Recorrido origen → paradas con puntos (estilo apps de movilidad). */
 function RouteStops({
   origin,
+  originChanged = false,
   stops,
   activeIndex,
 }: {
   origin: string;
+  originChanged?: boolean;
   stops: string[];
   /** 0 = origen, 1..n = paradas, -1 = ninguno. */
   activeIndex: number;
@@ -516,9 +492,32 @@ function RouteStops({
               {!isLast && <View style={{ flex: 1, width: 2, marginVertical: 3, backgroundColor: border }} />}
             </View>
             <View style={{ flex: 1, paddingBottom: isLast ? 0 : 12 }}>
-              <Text style={{ fontFamily: POPPINS.regular, fontSize: 13, color: colors.steel }}>
-                {isOrigin ? "Recojo" : points.length > 2 ? `Parada ${index}` : "Destino"}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={{ fontFamily: POPPINS.regular, fontSize: 13, color: colors.steel }}>
+                  {isOrigin ? "Recojo" : points.length > 2 ? `Parada ${index}` : "Destino"}
+                </Text>
+                {isOrigin && originChanged && (
+                  <View
+                    style={{
+                      borderRadius: 6,
+                      backgroundColor: "#FEF3C7",
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: POPPINS.bold,
+                        fontSize: 11,
+                        letterSpacing: 0.4,
+                        color: "#92400E",
+                      }}
+                    >
+                      CAMBIADO
+                    </Text>
+                  </View>
+                )}
+              </View>
               <Text
                 numberOfLines={2}
                 style={{

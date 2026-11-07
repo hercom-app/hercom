@@ -4,6 +4,7 @@ import {
   Alert,
   AppState,
   Dimensions,
+  Image,
   Keyboard,
   Platform,
   ScrollView,
@@ -22,7 +23,10 @@ import { api } from "@proyecto/backend";
 import type { Doc, Id } from "@proyecto/backend/dataModel";
 import { getAdminServiceStatusLabel } from "@proyecto/backend/serviceClosure";
 import { AddressAutocomplete } from "../components/AddressAutocomplete";
-import { AdvancePayoutModal } from "../components/AdvancePayoutModal";
+import {
+  AdvancePayoutModal,
+  type DriverProfileDetails,
+} from "../components/AdvancePayoutModal";
 import { DriverOfferModal, type DriverOfferInfo } from "../components/DriverOfferModal";
 import { EditTripLocationsModal } from "../components/EditTripLocationsModal";
 import { TripChatSheet } from "../components/TripChatSheet";
@@ -52,6 +56,8 @@ import {
   TacticalValue,
 } from "../components/tactical";
 import { LiveTripMapModal } from "../components/LiveTripMapModal";
+import { RoundAction } from "../components/driver/driverUi";
+import { DrawerIcon } from "../components/DrawerIcons";
 import {
   HomeRequestSheet,
   type HomeSavedPlace,
@@ -174,11 +180,73 @@ function clientServiceStatusLabel(
   return STATUS_LABELS[service.status];
 }
 
+function ClientRoutePoint({
+  color,
+  label,
+  address,
+  changed = false,
+}: {
+  color: string;
+  label: string;
+  address: string;
+  changed?: boolean;
+}) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+      <View
+        style={{
+          width: 10,
+          height: 10,
+          borderRadius: 5,
+          marginTop: 5,
+          backgroundColor: color,
+        }}
+      />
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Text style={{ fontFamily: POPPINS.medium, fontSize: 13, color: HERCOM_COLORS.textMuted }}>
+            {label}
+          </Text>
+          {changed && (
+            <View
+              style={{
+                borderRadius: 6,
+                backgroundColor: "#FEF3C7",
+                paddingHorizontal: 6,
+                paddingVertical: 2,
+              }}
+            >
+              <Text style={{ fontFamily: POPPINS.bold, fontSize: 11, color: "#92400E" }}>
+                CAMBIADO
+              </Text>
+            </View>
+          )}
+        </View>
+        <Text
+          style={{
+            fontFamily: POPPINS.semibold,
+            fontSize: 16,
+            lineHeight: 22,
+            color: HERCOM_COLORS.text,
+          }}
+        >
+          {address}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 function ClientServiceCard({
   service,
   embedInTripSheet = false,
 }: {
-  service: Doc<"services"> & { driverName?: string; clientRating?: number };
+  service: Doc<"services"> & {
+    driverName?: string;
+    driverPhotoUrl?: string | null;
+    driverAboutMe?: string;
+    clientRating?: number;
+  };
   /** Oculta bloques ya mostrados en ClientActiveTripSheet. */
   embedInTripSheet?: boolean;
 }) {
@@ -193,18 +261,20 @@ function ClientServiceCard({
   );
   const driverPayout = useQuery(
     api.drivers.getPayoutForClientService,
-    service.status === "assigned" && service.driverId !== undefined
-      ? { serviceId: service._id }
-      : "skip",
+    service.driverId !== undefined ? { serviceId: service._id } : "skip",
   );
   const [cancelling, setCancelling] = useState(false);
   const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
   const [offerError, setOfferError] = useState<string | null>(null);
   const [selectedOffer, setSelectedOffer] = useState<DriverOfferInfo | null>(null);
   const [payoutOpen, setPayoutOpen] = useState(false);
+  const [offerProfile, setOfferProfile] = useState<DriverProfileDetails | null>(null);
   const [editRouteOpen, setEditRouteOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [hoursDraft, setHoursDraft] = useState(service.serviceHours ?? 2);
+  const [hoursDraft, setHoursDraft] = useState(Math.max(2, service.serviceHours ?? 2));
+  useEffect(() => {
+    setHoursDraft(Math.max(2, service.serviceHours ?? 2));
+  }, [service.serviceHours]);
   const [savingHours, setSavingHours] = useState(false);
   const [savingRoute, setSavingRoute] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
@@ -224,13 +294,10 @@ function ClientServiceCard({
   const canChat =
     service.driverId !== undefined &&
     service.status !== "pending" &&
+    service.status !== "finished" &&
     service.status !== "cancelled" &&
     service.status !== "unattended";
   const canShareTrip = canShareLiveTrip(service.status);
-  const showTripEmergency =
-    service.status === "heading_to_pickup" ||
-    service.status === "arrived_pickup" ||
-    canShareTrip;
 
   const canCancel =
     (service.status === "pending" && service.driverId === undefined) ||
@@ -273,12 +340,31 @@ function ClientServiceCard({
     <>
       {!embedInTripSheet && (
         <>
-          <View className="mb-3 flex-row items-center justify-between gap-2">
-            <View className="flex-row flex-wrap items-center gap-2">
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: 8,
+              marginBottom: 12,
+            }}
+          >
+            <View
+              style={{
+                flex: 1,
+                minWidth: 0,
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 8,
+              }}
+            >
               <UiChip label={clientServiceStatusLabel(service)} />
               {(service.serviceType ?? "app") === "app" && <UiChip label="App" />}
             </View>
-            <TacticalValue size={16} tone="accent">
+            <TacticalValue
+              size={16}
+              tone="accent"
+              style={{ flexShrink: 0, maxWidth: "46%", textAlign: "right" }}
+            >
               {service.offeredPrice !== undefined
                 ? `S/${agreedPrice.toFixed(2)}`
                 : "Sin acordar"}
@@ -289,11 +375,44 @@ function ClientServiceCard({
               ? `Tarifa acordada: S/${service.offeredPrice.toFixed(2)}`
               : "Esperando acuerdo de tarifa"}
           </TacticalText>
-          <TacticalText size={12} tone="text" className="mb-1">
-            {service.driverName !== undefined
-              ? `Chofer: ${service.driverName}`
-              : "Sin chofer asignado"}
-          </TacticalText>
+          <View className="mb-1 flex-row items-center" style={{ gap: 8 }}>
+            {service.driverName !== undefined && (
+              <TouchableOpacity
+                onPress={() => setPayoutOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel={`Foto de ${service.driverName}`}
+              >
+                {service.driverPhotoUrl !== undefined &&
+                service.driverPhotoUrl !== null &&
+                service.driverPhotoUrl !== "" ? (
+                  <Image
+                    source={{ uri: service.driverPhotoUrl }}
+                    style={{ width: 36, height: 36, borderRadius: 18 }}
+                  />
+                ) : (
+                  <View
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      backgroundColor: HERCOM_COLORS.surfaceMuted,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ fontFamily: POPPINS.bold, fontSize: 14, color: HERCOM_COLORS.primary }}>
+                      {service.driverName.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+            <TacticalText size={12} tone="text">
+              {service.driverName !== undefined
+                ? `Chofer: ${service.driverName}`
+                : "Sin chofer asignado"}
+            </TacticalText>
+          </View>
         </>
       )}
       {service.promotionName !== undefined && (
@@ -301,19 +420,28 @@ function ClientServiceCard({
           {`Promo: ${service.promotionName}`}
         </TacticalLabel>
       )}
-      <TacticalText size={15} tone="text">
-        {toPeopleAddress(service.origin.address)} →{" "}
-        {formatServiceStopsLabel(
-          {
-            ...service.destination,
-            address: toPeopleAddress(service.destination.address),
-          },
-          service.extraDestinations?.map((stop) => ({
-            ...stop,
-            address: toPeopleAddress(stop.address),
-          })),
-        )}
-      </TacticalText>
+      <View style={{ gap: 8, marginTop: embedInTripSheet ? 4 : 8 }}>
+        <ClientRoutePoint
+          color="#16A34A"
+          label="Recojo"
+          address={toPeopleAddress(service.origin.address)}
+          changed={service.originChangedAt !== undefined}
+        />
+        <ClientRoutePoint
+          color={HERCOM_COLORS.primary}
+          label="Destino"
+          address={formatServiceStopsLabel(
+            {
+              ...service.destination,
+              address: toPeopleAddress(service.destination.address),
+            },
+            service.extraDestinations?.map((stop) => ({
+              ...stop,
+              address: toPeopleAddress(stop.address),
+            })),
+          )}
+        />
+      </View>
       {service.passengerName !== undefined && service.passengerName.trim() !== "" && (
         <TacticalText size={13} className="mt-2">
           {service.forSelf === false
@@ -323,43 +451,46 @@ function ClientServiceCard({
             : `Viaja ${service.passengerName}`}
         </TacticalText>
       )}
-      {showTripEmergency && !embedInTripSheet && (
-        <View className="mt-3 flex-row items-center justify-between">
-          <TacticalLabel tone="text">Emergencia en viaje</TacticalLabel>
-          <HelpFab
-            fallbackCenter={{
-              lat: service.origin.lat,
-              lng: service.origin.lng,
-            }}
-          />
-        </View>
-      )}
-      {canShareTrip && (
-        <View className="mt-3">
-          <UiButton
-            label="Compartir viaje"
-            size="md"
-            onPress={() => setLiveMapOpen(true)}
-          />
-        </View>
-      )}
-      {canEditRoute && (
-        <View className="mt-3" style={{ gap: 8 }}>
-          <UiButton
-            label="Editar partida o destino"
-            variant="secondary"
-            size="md"
-            onPress={() => {
-              setRouteError(null);
-              setEditRouteOpen(true);
-            }}
-          />
+      {(canShareTrip || canEditRoute || canChat || (service.status === "assigned" && service.offeredPrice !== undefined)) && (
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: 8,
+            marginTop: 16,
+            marginBottom: 4,
+          }}
+        >
+          {canEditRoute && (
+            <RoundAction
+              icon="edit"
+              label="Editar viaje"
+              onPress={() => {
+                setRouteError(null);
+                setEditRouteOpen(true);
+              }}
+            />
+          )}
           {canChat && (
-            <UiButton
-              label="Chat con el chofer"
-              variant="secondary"
-              size="md"
+            <RoundAction
+              icon="chat"
+              label="Chat"
               onPress={() => setChatOpen(true)}
+            />
+          )}
+          {canShareTrip && (
+            <RoundAction
+              icon="share"
+              label="Compartir"
+              onPress={() => setLiveMapOpen(true)}
+            />
+          )}
+          {service.status === "assigned" && service.offeredPrice !== undefined && (
+            <RoundAction
+              icon="bill"
+              label="Transferir"
+              onPress={() => setPayoutOpen(true)}
             />
           )}
         </View>
@@ -369,7 +500,7 @@ function ClientServiceCard({
           <TacticalLabel tone="text">Tiempo del servicio</TacticalLabel>
           <View className="flex-row items-center" style={{ gap: 10 }}>
             <TouchableOpacity
-              onPress={() => setHoursDraft((hours) => Math.max(1, hours - 1))}
+              onPress={() => setHoursDraft((hours) => Math.max(2, hours - 1))}
               accessibilityLabel="Menos horas"
             >
               <TacticalValue size={18}>−</TacticalValue>
@@ -399,7 +530,7 @@ function ClientServiceCard({
               }}
             >
               <TacticalLabel tone="accent">
-                {savingHours ? "Guardando" : "Avisar"}
+                {savingHours ? "Guardando" : "Modificar"}
               </TacticalLabel>
             </TouchableOpacity>
           </View>
@@ -412,31 +543,99 @@ function ClientServiceCard({
       )}
       {service.status === "assigned" && service.offeredPrice !== undefined && (
         <View
-          className="mt-3 p-4"
           style={{
-            backgroundColor: TACTICAL_COLORS.dataBandBg,
-            borderRadius: TACTICAL_RADIUS.panel,
+            marginTop: 16,
+            borderRadius: 20,
+            backgroundColor: "#FFFFFF",
+            borderWidth: 2,
+            borderColor: advanceConfirmed ? HERCOM_COLORS.success : HERCOM_COLORS.primary,
+            overflow: "hidden",
+            elevation: 8,
+            shadowColor: advanceConfirmed ? "#15803D" : HERCOM_COLORS.primary,
+            shadowOpacity: 0.22,
+            shadowRadius: 14,
+            shadowOffset: { width: 0, height: 8 },
           }}
         >
-          <TacticalValue size={18} tone="accent">
-            {`Anticipo: S/${advanceAmount.toFixed(2)}`}
-          </TacticalValue>
-          <TacticalText size={15} className="mt-1">
-            Transfiere el 25% de la tarifa al chofer antes de que salga.
-          </TacticalText>
-          <View className="mt-3">
-            <UiButton
-              label="Ver datos para transferir"
-              variant="secondary"
-              size="md"
-              onPress={() => setPayoutOpen(true)}
-            />
-          </View>
-          {advanceConfirmed && (
-            <View className="mt-3">
-              <TacticalStatus label="Anticipo confirmado por el chofer" tone="success" />
+          <View
+            style={{
+              height: 8,
+              backgroundColor: advanceConfirmed ? HERCOM_COLORS.success : HERCOM_COLORS.primary,
+            }}
+          />
+          <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 16,
+                  backgroundColor: advanceConfirmed ? HERCOM_COLORS.successSoft : HERCOM_COLORS.primarySoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <DrawerIcon
+                  name="bill"
+                  color={advanceConfirmed ? HERCOM_COLORS.success : HERCOM_COLORS.primary}
+                  size={26}
+                />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={{ fontFamily: POPPINS.semibold, fontSize: 15, color: HERCOM_COLORS.textMuted }}>
+                  {advanceConfirmed ? "Anticipo confirmado" : "Adelanta al chofer"}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.65}
+                  style={{
+                    fontFamily: POPPINS.bold,
+                    fontSize: 32,
+                    lineHeight: 38,
+                    color: HERCOM_COLORS.text,
+                    fontVariant: ["tabular-nums"],
+                  }}
+                >
+                  {`S/${advanceAmount.toFixed(2)}`}
+                </Text>
+              </View>
             </View>
-          )}
+            <Text
+              style={{
+                marginTop: 10,
+                fontFamily: POPPINS.regular,
+                fontSize: 16,
+                lineHeight: 22,
+                color: HERCOM_COLORS.textSecondary,
+              }}
+            >
+              {advanceConfirmed
+                ? "El chofer ya recibió el aviso de tu anticipo. Puedes volver a ver Yape, Plin o el banco."
+                : "Transfiere el 25% antes de que salga. Ahí están su foto, su presentación y los datos de cobro."}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setPayoutOpen(true)}
+              activeOpacity={0.88}
+              accessibilityRole="button"
+              accessibilityLabel="Adelantar al chofer"
+              style={{
+                marginTop: 14,
+                height: 54,
+                borderRadius: 14,
+                backgroundColor: advanceConfirmed ? HERCOM_COLORS.success : HERCOM_COLORS.primary,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <DrawerIcon name="bill" color="#FFFFFF" size={20} />
+              <Text style={{ fontFamily: POPPINS.bold, fontSize: 18, color: "#FFFFFF" }}>
+                {advanceConfirmed ? "Ver datos de cobro" : "Adelantar al chofer"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
       {!embedInTripSheet &&
@@ -481,6 +680,14 @@ function ClientServiceCard({
                       driverName: offer.driverName,
                       driverRating: offer.driverRating,
                       driverTrips: offer.driverTrips,
+                      driverAboutMe: offer.driverAboutMe,
+                      driverPhotoUrl: offer.driverPhotoUrl,
+                      driverDni: offer.driverDni,
+                      driverYape: offer.driverYape,
+                      driverPlin: offer.driverPlin,
+                      driverBankAccount1: offer.driverBankAccount1,
+                      driverBankAccount2: offer.driverBankAccount2,
+                      driverBankAccount3: offer.driverBankAccount3,
                     });
                   }}
                   className="mb-2 p-3"
@@ -491,13 +698,72 @@ function ClientServiceCard({
                     borderColor: TACTICAL_BORDER,
                   }}
                 >
-                  <TacticalLabel tone="text">
-                    {`${offer.driverName} · ${offer.driverRating.toFixed(1)}★${
-                      offer.driverTrips > 0
-                        ? ` · ${offer.driverTrips} viajes`
-                        : ""
-                    }`}
-                  </TacticalLabel>
+                  <View className="flex-row items-center" style={{ gap: 10 }}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        setOfferProfile({
+                          fullName: offer.driverName,
+                          aboutMe: offer.driverAboutMe,
+                          photoUrl: offer.driverPhotoUrl,
+                          dni: offer.driverDni,
+                          yape: offer.driverYape,
+                          plin: offer.driverPlin,
+                          bankAccount1: offer.driverBankAccount1,
+                          bankAccount2: offer.driverBankAccount2,
+                          bankAccount3: offer.driverBankAccount3,
+                        })
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`Foto de ${offer.driverName}`}
+                    >
+                      {offer.driverPhotoUrl !== null && offer.driverPhotoUrl !== "" ? (
+                        <Image
+                          source={{ uri: offer.driverPhotoUrl }}
+                          style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 24,
+                            backgroundColor: HERCOM_COLORS.surfaceMuted,
+                          }}
+                        />
+                      ) : (
+                        <View
+                          style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 24,
+                            backgroundColor: HERCOM_COLORS.surfaceMuted,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontFamily: POPPINS.bold,
+                              fontSize: 18,
+                              color: HERCOM_COLORS.primary,
+                            }}
+                          >
+                            {offer.driverName.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                    <View className="flex-1">
+                      <TacticalLabel tone="text">
+                        {`${offer.driverName} · ${offer.driverRating.toFixed(1)}★${
+                          offer.driverTrips > 0
+                            ? ` · ${offer.driverTrips} viajes`
+                            : ""
+                        }`}
+                      </TacticalLabel>
+                      {offer.driverAboutMe.trim() !== "" && (
+                        <TacticalText size={12} className="mt-1">
+                          {offer.driverAboutMe}
+                        </TacticalText>
+                      )}
+                    </View>
+                  </View>
                   <TacticalValue size={18} tone="accent" className="mt-1">
                     {`S/${offer.offeredPrice.toFixed(2)}`}
                   </TacticalValue>
@@ -587,9 +853,12 @@ function ClientServiceCard({
         onAccept={() => void handleAcceptOffer()}
       />
       <AdvancePayoutModal
-        visible={payoutOpen}
-        onClose={() => setPayoutOpen(false)}
-        payout={driverPayout ?? null}
+        visible={payoutOpen || offerProfile !== null}
+        onClose={() => {
+          setPayoutOpen(false);
+          setOfferProfile(null);
+        }}
+        payout={offerProfile ?? driverPayout ?? null}
       />
       <TripChatSheet
         visible={chatOpen}
@@ -1431,7 +1700,12 @@ export function ClientDashboard() {
   if (menuSection === "seguridad") {
     return (
       <View className="flex-1">
-        <ClientSecurityScreen onOpenMenu={() => setMenuOpen(true)} />
+        <ClientSecurityScreen
+          onOpenMenu={() => setMenuOpen(true)}
+          {...(userCoords !== null
+            ? { fallbackCenter: { lat: userCoords.lat, lng: userCoords.lng } }
+            : {})}
+        />
         {drawer}
       </View>
     );
@@ -1591,30 +1865,28 @@ export function ClientDashboard() {
               <Text style={{ fontFamily: POPPINS.medium, fontSize: 13, color: TACTICAL_COLORS.accent }}>
                 {clientServiceStatusLabel(service)}
               </Text>
-              <Text
-                numberOfLines={2}
-                style={{
-                  marginTop: 4,
-                  fontFamily: POPPINS.semibold,
-                  fontSize: 16,
-                  lineHeight: 22,
-                  color: TACTICAL_COLORS.text,
-                }}
-              >
-                {toPeopleAddress(service.origin.address)}
-              </Text>
-              <Text
-                numberOfLines={2}
-                style={{
-                  marginTop: 2,
-                  fontFamily: POPPINS.regular,
-                  fontSize: 14,
-                  lineHeight: 20,
-                  color: TACTICAL_COLORS.steel,
-                }}
-              >
-                {`→ ${toPeopleAddress(service.destination.address)}`}
-              </Text>
+              <View style={{ gap: 8, marginTop: 8 }}>
+                <ClientRoutePoint
+                  color="#16A34A"
+                  label="Recojo"
+                  address={toPeopleAddress(service.origin.address)}
+                  changed={service.originChangedAt !== undefined}
+                />
+                <ClientRoutePoint
+                  color={HERCOM_COLORS.primary}
+                  label="Destino"
+                  address={formatServiceStopsLabel(
+                    {
+                      ...service.destination,
+                      address: toPeopleAddress(service.destination.address),
+                    },
+                    service.extraDestinations?.map((stop) => ({
+                      ...stop,
+                      address: toPeopleAddress(stop.address),
+                    })),
+                  )}
+                />
+              </View>
               {service.passengerName !== undefined && service.passengerName.trim() !== "" && (
                 <Text
                   style={{
@@ -2108,6 +2380,8 @@ export function ClientDashboard() {
                   onPress={() => setMenuOpen(true)}
                   variant="light"
                 />
+                {/*
+                  Waze: en el home no mostramos el origen; se define al buscar destino o en confirmar.
                 {origin.trim() !== "" ? (
                   <LocationChip
                     label="De dónde"
@@ -2117,6 +2391,8 @@ export function ClientDashboard() {
                 ) : (
                   <View className="flex-1" />
                 )}
+                */}
+                <View className="flex-1" />
                 <HelpFab
                   fallbackCenter={
                     userCoords !== null

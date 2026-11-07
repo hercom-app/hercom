@@ -1,0 +1,24 @@
+---
+description: No esperar builds ni deploys remotos; devolver el enlace y parar
+alwaysApply: true
+---
+
+# No esperar builds remotos
+
+EAS Build, EAS Submit, colas de CI y deploys que duran minutos no se monitorean en el chat.
+
+Cuando el usuario pida una build o un deploy largo:
+
+1. Lánzalo con `--no-wait` (o el equivalente que solo encola).
+2. Responde con el enlace, el id y el comando para que él lo revise.
+3. Termina el turno. No hagas bucles de `build:view`, `AwaitShell` ni lecturas repetidas del log.
+
+Una sola consulta de estado solo si el usuario pregunta en un mensaje nuevo si ya terminó. Después paras de nuevo.
+
+```powershell
+# Encolar y salir
+npx eas-cli@16.28.0 build --platform android --profile production-apk --non-interactive --no-wait
+
+# Lo revisa la persona, no el agente en bucle
+npx eas-cli@16.28.0 build:view <BUILD_ID>
+```

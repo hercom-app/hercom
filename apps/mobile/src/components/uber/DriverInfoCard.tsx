@@ -1,4 +1,4 @@
-import { Image, Text, View } from "react-native";
+import { Image, Text, TouchableOpacity, View, type StyleProp, type ViewStyle } from "react-native";
 import { HERCOM_COLORS, POPPINS, TYPE, UBER_RADIUS } from "../../constants/theme";
 
 type DriverInfoCardProps = {
@@ -7,8 +7,10 @@ type DriverInfoCardProps = {
   rating?: number;
   vehicleLabel?: string;
   plate?: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   verified?: boolean;
+  onPressAvatar?: () => void;
+  style?: StyleProp<ViewStyle>;
 };
 
 /** Tarjeta chofer + vehículo — placa grande, badge verificado. */
@@ -20,9 +22,14 @@ export function DriverInfoCard({
   plate,
   avatarUrl,
   verified = true,
+  onPressAvatar,
+  style,
 }: DriverInfoCardProps) {
   return (
-    <View className="mx-4 mb-3 px-4 py-4" style={{ borderTopWidth: 1, borderTopColor: HERCOM_COLORS.border }}>
+    <View
+      className="mx-4 mb-3 px-4 py-4"
+      style={[{ borderTopWidth: 1, borderTopColor: HERCOM_COLORS.border }, style]}
+    >
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
           {plate !== undefined && plate !== "" && (
@@ -102,22 +109,30 @@ export function DriverInfoCard({
             </View>
           )}
         </View>
-        {avatarUrl !== undefined && avatarUrl !== "" ? (
-          <Image
-            source={{ uri: avatarUrl }}
-            className="h-14 w-14 rounded-full"
-            style={{ backgroundColor: HERCOM_COLORS.surfaceMuted }}
-          />
-        ) : (
-          <View
-            className="h-14 w-14 items-center justify-center rounded-full"
-            style={{ backgroundColor: HERCOM_COLORS.surfaceMuted }}
-          >
-            <Text style={{ fontFamily: POPPINS.bold, fontSize: 20, color: HERCOM_COLORS.primary }}>
-              {driverName.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <TouchableOpacity
+          onPress={onPressAvatar}
+          disabled={onPressAvatar === undefined}
+          accessibilityRole="button"
+          accessibilityLabel={`Foto de ${driverName}`}
+          activeOpacity={0.85}
+        >
+          {avatarUrl !== undefined && avatarUrl !== null && avatarUrl !== "" ? (
+            <Image
+              source={{ uri: avatarUrl }}
+              className="h-14 w-14 rounded-full"
+              style={{ backgroundColor: HERCOM_COLORS.surfaceMuted }}
+            />
+          ) : (
+            <View
+              className="h-14 w-14 items-center justify-center rounded-full"
+              style={{ backgroundColor: HERCOM_COLORS.surfaceMuted }}
+            >
+              <Text style={{ fontFamily: POPPINS.bold, fontSize: 20, color: HERCOM_COLORS.primary }}>
+                {driverName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
     </View>
   );

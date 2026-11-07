@@ -38,6 +38,7 @@ import {
 } from "./driverWallets";
 import { createNotification } from "./notifications";
 import { getCurrentStop, getServiceStops } from "./lib/serviceStops";
+import { driverPhotoUrl } from "./lib/driverPublicPhoto";
 import { ensureServiceTracking } from "./serviceTracking";
 import { finalizeServiceRouteArchive } from "./lib/serviceRouteArchive";
 import {
@@ -1053,6 +1054,8 @@ export const listForClient = query({
     return await Promise.all(
       services.map(async (service) => {
         let driverName: string | undefined;
+        let driverPhotoUrlValue: string | null = null;
+        let driverAboutMe = "";
         if (service.driverId !== undefined) {
           const driver = await ctx.db.get(service.driverId);
           if (driver !== null) {
@@ -1061,6 +1064,8 @@ export const listForClient = query({
               driver.fullName?.trim() ||
               driverUser?.name?.trim() ||
               "Chofer";
+            driverPhotoUrlValue = await driverPhotoUrl(ctx, driver, driverUser);
+            driverAboutMe = driver.aboutMe?.trim() ?? "";
           }
         }
         const rating =
@@ -1074,6 +1079,8 @@ export const listForClient = query({
         return {
           ...service,
           driverName,
+          driverPhotoUrl: driverPhotoUrlValue,
+          driverAboutMe,
           clientRating: rating?.score,
         };
       }),
@@ -1116,9 +1123,16 @@ export const updateTripLocations = mutation({
         ? normalizeLocation(args.destination)
         : undefined;
 
+    const originChanged =
+      origin !== undefined &&
+      (origin.address.trim() !== service.origin.address.trim() ||
+        Math.abs(origin.lat - service.origin.lat) > 0.00001 ||
+        Math.abs(origin.lng - service.origin.lng) > 0.00001);
+
     await ctx.db.patch(service._id, {
       ...(origin !== undefined ? { origin } : {}),
       ...(destination !== undefined ? { destination } : {}),
+      ...(originChanged ? { originChangedAt: Date.now() } : {}),
     });
 
     if (service.driverId !== undefined) {
@@ -1131,15 +1145,11 @@ export const updateTripLocations = mutation({
         if (destination !== undefined) {
           parts.push(`destino: ${destination.address}`);
         }
-        const fareNote =
-          service.status === "assigned" && service.advanceConfirmedAt === undefined
-            ? " Puedes ajustar la tarifa antes de salir."
-            : "";
         await createNotification(ctx, {
           userId: driver.userId,
           type: "trip_route_updated",
           title: "El cliente actualizó la ruta",
-          message: `Nueva ruta — ${parts.join(" · ")}.${fareNote}`,
+          message: `Nueva ruta — ${parts.join(" · ")}.`,
           serviceId: service._id,
         });
       }
@@ -1171,10 +1181,10 @@ export const updateAssignedHours = mutation({
     }
     if (
       !Number.isInteger(args.serviceHours) ||
-      args.serviceHours < 1 ||
+      args.serviceHours < 2 ||
       args.serviceHours > 24
     ) {
-      throw new Error("El tiempo debe ser entre 1 y 24 horas.");
+      throw new Error("El tiempo mínimo es 2 horas y el máximo 24.");
     }
 
     await ctx.db.patch(service._id, { serviceHours: args.serviceHours });
@@ -1186,7 +1196,7 @@ export const updateAssignedHours = mutation({
           userId: driver.userId,
           type: "trip_route_updated",
           title: "El cliente cambió el tiempo",
-          message: `El viaje quedó en ${args.serviceHours} h. Puedes ajustar la tarifa antes de salir.`,
+          message: `El viaje quedó en ${args.serviceHours} h.`,
           serviceId: service._id,
         });
       }

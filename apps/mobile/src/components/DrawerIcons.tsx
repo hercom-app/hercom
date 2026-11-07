@@ -22,7 +22,9 @@ export type DrawerIconName =
   | "share"
   | "key"
   | "medical"
-  | "chevron";
+  | "chevron"
+  | "edit"
+  | "bill";
 
 type DrawerIconProps = {
   name: DrawerIconName;
@@ -140,6 +142,21 @@ export function DrawerIcon({
           <Path d="M10 7V5.8A1.8 1.8 0 0111.8 4H18a2 2 0 012 2v12a2 2 0 01-2 2h-6.2A1.8 1.8 0 0110 18.2V17" />
           <Path d="M4 12h11" />
           <Path d="M12 8.5L15.5 12 12 15.5" />
+        </Svg>
+      );
+    case "bill":
+      return (
+        <Svg {...common}>
+          <Rect x="3" y="6.5" width="18" height="11" rx="2" />
+          <Circle cx="12" cy="12" r="2.2" />
+          <Path d="M6.5 9.2h.01M17.5 14.8h.01" />
+        </Svg>
+      );
+    case "edit":
+      return (
+        <Svg {...common}>
+          <Path d="M4 20h4.2L19.4 8.8a1.6 1.6 0 000-2.3l-1.9-1.9a1.6 1.6 0 00-2.3 0L4 15.8V20z" />
+          <Path d="M13.5 6.5l4 4" />
         </Svg>
       );
     case "close":

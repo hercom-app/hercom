@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import {
-  Alert,
   Animated,
   Dimensions,
   Image,
@@ -18,8 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppMode } from "../contexts/AppModeContext";
 import { DrawerIcon, type DrawerIconName } from "./DrawerIcons";
 import { ThemeToggle } from "./ThemeToggle";
-import { UiBadge, UiButton, UiChip } from "./ui";
-import { TacticalLabel } from "./tactical";
+import { UiBadge, UiChip } from "./ui";
 import { useAppTheme } from "../contexts/ThemeContext";
 import {
   POPPINS,
@@ -118,13 +116,7 @@ export function SideDrawer({
   const insets = useSafeAreaInsets();
   const { scheme, colors, border, borderSoft } = useAppTheme();
   const { signOut } = useAuthActions();
-  const {
-    mode,
-    setMode,
-    canUseDriverMode,
-    driverApplicationStatus,
-    openDriverRegistration,
-  } = useAppMode();
+  const { mode } = useAppMode();
   const slide = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const supportUnread = useQuery(api.support.getMyUnreadCount) ?? 0;
 
@@ -143,43 +135,10 @@ export function SideDrawer({
   // El chofer navega con DriverTabBar; este menú es solo del cliente.
   const primary = CLIENT_PRIMARY;
   const account = CLIENT_ACCOUNT;
-  const modeButtonLabel =
-    mode === "client" ? "Modo conductor" : "Modo cliente";
 
   function handleSelect(key: string) {
     onSelectItem?.(key);
     onClose();
-  }
-
-  async function handleModeSwitch() {
-    onClose();
-    if (mode === "client") {
-      if (canUseDriverMode) {
-        await setMode("driver");
-        return;
-      }
-      if (driverApplicationStatus === "pending") {
-        Alert.alert(
-          "Solicitud en revisión",
-          "Tu registro de chofer está siendo validado por Hercom. Te avisaremos cuando esté habilitado.",
-        );
-        return;
-      }
-      if (driverApplicationStatus === "rejected") {
-        Alert.alert(
-          "Solicitud no aprobada",
-          "Tu solicitud anterior no fue aprobada. Puedes enviar una nueva con datos actualizados.",
-          [
-            { text: "Cancelar", style: "cancel" },
-            { text: "Reintentar", onPress: () => openDriverRegistration() },
-          ],
-        );
-        return;
-      }
-      openDriverRegistration();
-      return;
-    }
-    await setMode("client");
   }
 
   return (
@@ -296,20 +255,6 @@ export function SideDrawer({
                 />
               ))}
 
-              <View className="mx-6 my-3 flex-row items-center">
-                <View
-                  className="flex-1"
-                  style={{ height: 1, backgroundColor: borderSoft }}
-                />
-                <TacticalLabel className="mx-2" size={TYPE.caption}>
-                  Cuenta
-                </TacticalLabel>
-                <View
-                  className="flex-1"
-                  style={{ height: 1, backgroundColor: borderSoft }}
-                />
-              </View>
-
               {account.map((item) => (
                 <MenuRow
                   key={item.key}
@@ -360,16 +305,7 @@ export function SideDrawer({
                 backgroundColor: colors.baseElevated,
               }}
             >
-              <View className="mb-3">
-                <ThemeToggle />
-              </View>
-              <TacticalLabel className="mb-2" size={9}>
-                Cambiar de modo
-              </TacticalLabel>
-              <UiButton
-                label={modeButtonLabel}
-                onPress={() => void handleModeSwitch()}
-              />
+              <ThemeToggle />
             </View>
           </View>
         </Animated.View>

@@ -44,7 +44,13 @@ export function DriverChatsTab({
   const markAllNotificationsAsRead = useMutation(api.notifications.markAllAsRead);
   const [openServiceId, setOpenServiceId] = useState<Id<"services"> | null>(null);
   const list = notifications ?? [];
-  const tripChats = (services ?? []).filter((service) => service.driverId !== undefined);
+  const tripChats = (services ?? []).filter(
+    (service) =>
+      service.driverId !== undefined &&
+      service.status !== "finished" &&
+      service.status !== "cancelled" &&
+      service.status !== "unattended",
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.base }}>

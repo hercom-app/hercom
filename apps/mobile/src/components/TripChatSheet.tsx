@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
+  Keyboard,
   Modal,
   Platform,
   ScrollView,
@@ -10,11 +10,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
 import { convexErrorMessage } from "../lib/convexErrorMessage";
 import { HERCOM_COLORS, POPPINS } from "../constants/theme";
+import { TacticalLabel } from "./tactical";
 
 type TripChatSheetProps = {
   visible: boolean;
@@ -24,6 +26,7 @@ type TripChatSheetProps = {
 
 /** Conversación del viaje entre cliente y chofer. */
 export function TripChatSheet({ visible, serviceId, onClose }: TripChatSheetProps) {
+  const insets = useSafeAreaInsets();
   const messages = useQuery(
     api.serviceMessages.listForService,
     visible ? { serviceId } : "skip",
@@ -32,6 +35,34 @@ export function TripChatSheet({ visible, serviceId, onClose }: TripChatSheetProp
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!visible) {
+      setKeyboardHeight(0);
+      return;
+    }
+    const timer = setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [visible, messages, keyboardHeight]);
 
   async function handleSend() {
     const text = body.trim();
@@ -50,19 +81,24 @@ export function TripChatSheet({ visible, serviceId, onClose }: TripChatSheetProp
     }
   }
 
+  const topInset = Math.max(insets.top, Platform.OS === "android" ? 36 : 12);
+  const bottomInset =
+    keyboardHeight > 0 ? keyboardHeight + 8 : Math.max(insets.bottom, 12);
+
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: "#FFFFFF" }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+    <Modal
+      visible={visible}
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View style={{ flex: 1, backgroundColor: "#FFFFFF", paddingTop: topInset }}>
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
             paddingHorizontal: 16,
-            paddingTop: 18,
             paddingBottom: 12,
             borderBottomWidth: 1,
             borderBottomColor: HERCOM_COLORS.border,
@@ -71,16 +107,24 @@ export function TripChatSheet({ visible, serviceId, onClose }: TripChatSheetProp
           <Text style={{ fontFamily: POPPINS.bold, fontSize: 18, color: HERCOM_COLORS.text }}>
             Chat del viaje
           </Text>
-          <TouchableOpacity onPress={onClose} accessibilityLabel="Cerrar chat">
-            <Text style={{ fontFamily: POPPINS.semibold, fontSize: 15, color: HERCOM_COLORS.primary }}>
+          <TouchableOpacity
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar chat"
+            hitSlop={12}
+            className="px-2 py-1"
+          >
+            <TacticalLabel tone="accent" size={10}>
               Cerrar
-            </Text>
+            </TacticalLabel>
           </TouchableOpacity>
         </View>
         <ScrollView
+          ref={scrollRef}
           style={{ flex: 1 }}
-          contentContainerStyle={{ padding: 16, gap: 8 }}
+          contentContainerStyle={{ padding: 16, gap: 8, flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
         >
           {messages === undefined ? (
             <ActivityIndicator color={HERCOM_COLORS.primary} />
@@ -116,6 +160,7 @@ export function TripChatSheet({ visible, serviceId, onClose }: TripChatSheetProp
           <Text
             style={{
               paddingHorizontal: 16,
+              paddingTop: 6,
               fontFamily: POPPINS.medium,
               fontSize: 13,
               color: HERCOM_COLORS.danger,
@@ -127,10 +172,14 @@ export function TripChatSheet({ visible, serviceId, onClose }: TripChatSheetProp
         <View
           style={{
             flexDirection: "row",
+            alignItems: "flex-end",
             gap: 8,
             paddingHorizontal: 16,
             paddingTop: 8,
-            paddingBottom: 20,
+            paddingBottom: bottomInset,
+            borderTopWidth: 1,
+            borderTopColor: HERCOM_COLORS.border,
+            backgroundColor: "#FFFFFF",
           }}
         >
           <TextInput
@@ -138,8 +187,10 @@ export function TripChatSheet({ visible, serviceId, onClose }: TripChatSheetProp
             onChangeText={setBody}
             placeholder="Escribe un mensaje"
             placeholderTextColor={HERCOM_COLORS.textMuted}
+            multiline
             style={{
               flex: 1,
+              maxHeight: 110,
               borderWidth: 1,
               borderColor: HERCOM_COLORS.border,
               borderRadius: 12,
@@ -153,9 +204,12 @@ export function TripChatSheet({ visible, serviceId, onClose }: TripChatSheetProp
           <TouchableOpacity
             onPress={() => void handleSend()}
             disabled={sending}
+            accessibilityRole="button"
+            accessibilityLabel="Enviar mensaje"
             style={{
+              height: 44,
               justifyContent: "center",
-              paddingHorizontal: 14,
+              paddingHorizontal: 16,
               borderRadius: 12,
               backgroundColor: HERCOM_COLORS.primary,
               opacity: sending ? 0.6 : 1,
@@ -166,7 +220,7 @@ export function TripChatSheet({ visible, serviceId, onClose }: TripChatSheetProp
             </Text>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }

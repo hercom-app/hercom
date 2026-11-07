@@ -3,6 +3,7 @@ import { Image, ScrollView, TouchableOpacity, View } from "react-native";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import { AccountScreenShell } from "../components/AccountScreenShell";
+import { DriverModeButton } from "../components/DriverModeButton";
 import { LegalDocumentModal } from "../components/LegalDocumentModal";
 import {
   TacticalLabel,
@@ -133,6 +134,10 @@ export function ClientSettingsScreen({ onOpenMenu }: ClientSettingsScreenProps) 
             </TacticalLabel>
           </TouchableOpacity>
         </TacticalPanel>
+
+        <View className="mt-4">
+          <DriverModeButton />
+        </View>
       </ScrollView>
 
       <LegalDocumentModal

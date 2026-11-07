@@ -56,6 +56,13 @@ export const send = mutation({
     if (service.status === "pending" || service.driverId === undefined) {
       throw new Error("El chat se habilita cuando el viaje tiene chofer.");
     }
+    if (
+      service.status === "finished" ||
+      service.status === "cancelled" ||
+      service.status === "unattended"
+    ) {
+      throw new Error("El chat de este viaje ya no está activo.");
+    }
 
     await ctx.db.insert("serviceMessages", {
       serviceId: service._id,

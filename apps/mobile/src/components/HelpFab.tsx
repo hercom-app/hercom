@@ -41,20 +41,102 @@ type HelpFabProps = {
 
 const EMPTY_LISTS: NearbyHealthLists = { hospitals: [], clinics: [] };
 
+const ACTION_CARD = {
+  borderRadius: TACTICAL_RADIUS.panel,
+  backgroundColor: TACTICAL_COLORS.surface,
+  borderWidth: 1,
+  borderColor: TACTICAL_BORDER_SOFT,
+} as const;
+
+/** Las mismas acciones del escudo y de Seguridad en el menú. */
+export function SecurityCenterActions({
+  fallbackCenter,
+  onAfterAction,
+  onOpenHealth,
+}: {
+  fallbackCenter?: { lat: number; lng: number };
+  /** Cierra el sheet del escudo antes de marcar. */
+  onAfterAction?: () => void;
+  /** El escudo cierra su sheet y abre la lista de centros desde afuera. */
+  onOpenHealth?: () => void;
+}) {
+  const [healthOpen, setHealthOpen] = useState(false);
+
+  async function dialEmergency(phone: string) {
+    onAfterAction?.();
+    await Linking.openURL(`tel:${phone}`);
+  }
+
+  return (
+    <>
+      <TouchableOpacity
+        onPress={() => void dialEmergency(HELP_CONTACTS.policePhone)}
+        className="mb-3 px-4 py-4"
+        style={ACTION_CARD}
+      >
+        <TacticalLabel tone="text">Llamar a la policía</TacticalLabel>
+        <TacticalText size={15} className="mt-1">
+          {`Marca el ${HELP_CONTACTS.policePhone}`}
+        </TacticalText>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => void dialEmergency(HELP_CONTACTS.firefightersPhone)}
+        className="mb-3 px-4 py-4"
+        style={ACTION_CARD}
+      >
+        <TacticalLabel tone="text">Llamar a bomberos</TacticalLabel>
+        <TacticalText size={15} className="mt-1">
+          {`Marca el ${HELP_CONTACTS.firefightersPhone}`}
+        </TacticalText>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => void dialEmergency(HELP_CONTACTS.ambulancePhone)}
+        className="mb-3 px-4 py-4"
+        style={ACTION_CARD}
+      >
+        <TacticalLabel tone="text">Solicitar atención médica</TacticalLabel>
+        <TacticalText size={15} className="mt-1">
+          {`Marca el ${HELP_CONTACTS.ambulancePhone}`}
+        </TacticalText>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => {
+          if (onOpenHealth !== undefined) {
+            onOpenHealth();
+            return;
+          }
+          setHealthOpen(true);
+        }}
+        className="px-4 py-4"
+        style={{
+          borderRadius: TACTICAL_RADIUS.panel,
+          backgroundColor: TACTICAL_COLORS.dataBandBg,
+        }}
+      >
+        <TacticalLabel tone="accent">Ir por atención médica</TacticalLabel>
+        <TacticalText size={15} className="mt-1">
+          Te llevamos al centro de salud más cercano
+        </TacticalText>
+      </TouchableOpacity>
+
+      {onOpenHealth === undefined && (
+        <NearbyHealthModal
+          visible={healthOpen}
+          onClose={() => setHealthOpen(false)}
+          fallbackCenter={fallbackCenter}
+        />
+      )}
+    </>
+  );
+}
+
 /** Botón flotante derecho de ayuda + menú de emergencia. */
 export function HelpFab({ fallbackCenter }: HelpFabProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [healthOpen, setHealthOpen] = useState(false);
-
-  async function dialEmergency(phone: string) {
-    setMenuOpen(false);
-    await Linking.openURL(`tel:${phone}`);
-  }
-
-  function handleNearestHealth() {
-    setMenuOpen(false);
-    setHealthOpen(true);
-  }
 
   return (
     <>
@@ -108,72 +190,13 @@ export function HelpFab({ fallbackCenter }: HelpFabProps) {
               soporte de la app, usa Ayuda en el menú.
             </TacticalText>
 
-            <TouchableOpacity
-              onPress={() => void dialEmergency(HELP_CONTACTS.policePhone)}
-              className="mb-3 px-4 py-4"
-              style={{
-                borderRadius: TACTICAL_RADIUS.panel,
-                backgroundColor: TACTICAL_COLORS.surface,
-                shadowColor: "#0F172A",
-                shadowOpacity: 0.06,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 2 },
-                elevation: 2,
+            <SecurityCenterActions
+              onAfterAction={() => setMenuOpen(false)}
+              onOpenHealth={() => {
+                setMenuOpen(false);
+                setHealthOpen(true);
               }}
-            >
-              <TacticalLabel tone="text">Llamar a la policía</TacticalLabel>
-              <TacticalText size={15} className="mt-1">
-                {`Marca el ${HELP_CONTACTS.policePhone}`}
-              </TacticalText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() =>
-                void dialEmergency(HELP_CONTACTS.firefightersPhone)
-              }
-              className="mb-3 px-4 py-4"
-              style={{
-                borderRadius: TACTICAL_RADIUS.panel,
-                backgroundColor: TACTICAL_COLORS.surface,
-                borderWidth: 1,
-                borderColor: TACTICAL_BORDER_SOFT,
-              }}
-            >
-              <TacticalLabel tone="text">Llamar a bomberos</TacticalLabel>
-              <TacticalText size={15} className="mt-1">
-                {`Marca el ${HELP_CONTACTS.firefightersPhone}`}
-              </TacticalText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => void dialEmergency(HELP_CONTACTS.ambulancePhone)}
-              className="mb-3 px-4 py-4"
-              style={{
-                borderRadius: TACTICAL_RADIUS.panel,
-                backgroundColor: TACTICAL_COLORS.surface,
-                borderWidth: 1,
-                borderColor: TACTICAL_BORDER_SOFT,
-              }}
-            >
-              <TacticalLabel tone="text">Solicitar atención médica</TacticalLabel>
-              <TacticalText size={15} className="mt-1">
-                {`Marca el ${HELP_CONTACTS.ambulancePhone}`}
-              </TacticalText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleNearestHealth}
-              className="px-4 py-4"
-              style={{
-                borderRadius: TACTICAL_RADIUS.panel,
-                backgroundColor: TACTICAL_COLORS.dataBandBg,
-              }}
-            >
-              <TacticalLabel tone="accent">Ir por atención médica</TacticalLabel>
-              <TacticalText size={15} className="mt-1">
-                Te llevamos al centro de salud más cercano
-              </TacticalText>
-            </TouchableOpacity>
+            />
 
             <TouchableOpacity
               onPress={() => setMenuOpen(false)}

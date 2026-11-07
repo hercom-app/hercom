@@ -11,11 +11,11 @@ import * as ImagePicker from "expo-image-picker";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import { AccountScreenShell } from "../components/AccountScreenShell";
+import { DriverModeButton } from "../components/DriverModeButton";
 import {
   TacticalButton,
   TacticalLabel,
   TacticalPanel,
-  TacticalStatus,
 } from "../components/tactical";
 import { convexErrorMessage } from "../lib/convexErrorMessage";
 import { uploadToConvex } from "../lib/driverRegistration";
@@ -156,25 +156,6 @@ export function ClientIdentityForm({
         contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="mb-4 flex-row gap-2">
-          <TacticalStatus
-            label="01 · Datos"
-            tone={
-              dni.length === 8 &&
-              firstName.trim() !== "" &&
-              firstLastName.trim() !== "" &&
-              secondLastName.trim() !== "" &&
-              !dniTaken
-                ? "success"
-                : "idle"
-            }
-          />
-          <TacticalStatus
-            label="02 · Selfie"
-            tone={hasSelfie ? "success" : "idle"}
-          />
-        </View>
-
         <TacticalPanel corners>
           <TacticalLabel tone="accent">DNI</TacticalLabel>
           <TextInput
@@ -346,6 +327,9 @@ export function ClientIdentityForm({
             loading={submitting}
             disabled={submitting}
           />
+          <View className="mt-3">
+            <DriverModeButton />
+          </View>
         </TacticalPanel>
       </ScrollView>
     </AccountScreenShell>

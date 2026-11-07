@@ -16,6 +16,7 @@ import {
 } from "./lib/driverOfferDiscovery";
 import { isValidGeoPoint } from "./lib/geoDistance";
 import { normalizePersonNamePart } from "./lib/personName";
+import { driverPhotoUrl } from "./lib/driverPublicPhoto";
 
 /**
  * Lista los choferes disponibles. Usado por el panel admin para asignar.
@@ -198,6 +199,55 @@ export const ensureDemoDriverProfile = mutation({
 });
 
 /**
+ * Foto y texto que el cliente ve al recibir la oferta.
+ */
+export const getMyPublicCard = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (user === null) {
+      return null;
+    }
+    const driver = await ctx.db
+      .query("drivers")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .unique();
+    if (driver === null) {
+      return null;
+    }
+    const photoUrl =
+      driver.publicPhotoStorageId !== undefined
+        ? await ctx.storage.getUrl(driver.publicPhotoStorageId)
+        : null;
+    return {
+      aboutMe: driver.aboutMe ?? "",
+      photoUrl,
+    };
+  },
+});
+
+export const updateMyPublicCard = mutation({
+  args: {
+    aboutMe: v.string(),
+    publicPhotoStorageId: v.optional(v.id("_storage")),
+  },
+  handler: async (ctx, args) => {
+    const { driver } = await requireDriver(ctx);
+    const aboutMe = args.aboutMe.trim();
+    if (aboutMe.length > 280) {
+      throw new Error("El texto puede tener hasta 280 caracteres.");
+    }
+    await ctx.db.patch(driver._id, {
+      aboutMe: aboutMe === "" ? undefined : aboutMe,
+      ...(args.publicPhotoStorageId !== undefined
+        ? { publicPhotoStorageId: args.publicPhotoStorageId }
+        : {}),
+    });
+    return driver._id;
+  },
+});
+
+/**
  * Actualiza datos de cobro del chofer (anticipo del cliente).
  */
 export const updateMyPayoutProfile = mutation({
@@ -267,6 +317,8 @@ export const getPayoutForClientService = query({
     const driverUser = await ctx.db.get(driver.userId);
     return {
       fullName: driver.fullName?.trim() || driverUser?.name?.trim() || "Chofer",
+      aboutMe: driver.aboutMe?.trim() || "",
+      photoUrl: await driverPhotoUrl(ctx, driver, driverUser),
       dni: driver.dni?.trim() || "",
       yape: driver.yape?.trim() || "",
       plin: driver.plin?.trim() || "",

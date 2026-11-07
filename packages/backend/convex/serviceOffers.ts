@@ -22,6 +22,7 @@ import {
 } from "./lib/driverPayout";
 import { hasTripCreditForService } from "./driverWallets";
 import { createNotification } from "./notifications";
+import { driverPhotoUrl } from "./lib/driverPublicPhoto";
 
 function normalizeMoney(amount: number): number {
   return Math.round(amount * 100) / 100;
@@ -231,6 +232,15 @@ export const listForServiceAsClient = query({
           driverPlate: vehicle?.plate !== "N/A" ? (vehicle?.plate ?? "") : "",
           driverVehicle: vehicleLabel,
           driverColor: vehicle?.color?.trim() ?? "",
+          driverAboutMe: driver?.aboutMe?.trim() ?? "",
+          driverPhotoUrl:
+            driver !== null ? await driverPhotoUrl(ctx, driver, driverUser) : null,
+          driverDni: driver?.dni?.trim() ?? "",
+          driverYape: driver?.yape?.trim() ?? "",
+          driverPlin: driver?.plin?.trim() ?? "",
+          driverBankAccount1: driver?.bankAccount1?.trim() ?? "",
+          driverBankAccount2: driver?.bankAccount2?.trim() ?? "",
+          driverBankAccount3: driver?.bankAccount3?.trim() ?? "",
         };
       }),
     );

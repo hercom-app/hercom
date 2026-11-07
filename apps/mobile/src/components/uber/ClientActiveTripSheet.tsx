@@ -1,11 +1,13 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ScrollView, Text, View } from "react-native";
+import { useQuery } from "convex/react";
+import { api } from "@proyecto/backend";
 import type { Doc } from "@proyecto/backend/dataModel";
+import { AdvancePayoutModal } from "../AdvancePayoutModal";
 import { UberBottomSheet } from "./UberBottomSheet";
 import { TripEtaHeader } from "./TripEtaHeader";
 import { TripSecurityPin } from "./TripSecurityPin";
 import { DriverInfoCard } from "./DriverInfoCard";
-import { CommunicationRow } from "./CommunicationRow";
 import { HERCOM_COLORS, POPPINS, TYPE } from "../../constants/theme";
 
 const ETA_BY_STATUS: Partial<Record<Doc<"services">["status"], string>> = {
@@ -19,7 +21,10 @@ const ETA_BY_STATUS: Partial<Record<Doc<"services">["status"], string>> = {
 };
 
 type ClientActiveTripSheetProps = {
-  service: Doc<"services"> & { driverName?: string };
+  service: Doc<"services"> & {
+    driverName?: string;
+    driverPhotoUrl?: string | null;
+  };
   sheetHeight: number;
   children: ReactNode;
 };
@@ -30,6 +35,11 @@ export function ClientActiveTripSheet({
   sheetHeight,
   children,
 }: ClientActiveTripSheetProps) {
+  const [profileOpen, setProfileOpen] = useState(false);
+  const driverProfile = useQuery(
+    api.drivers.getPayoutForClientService,
+    service.driverId !== undefined ? { serviceId: service._id } : "skip",
+  );
   const etaLabel = ETA_BY_STATUS[service.status] ?? "Tu viaje";
   const showPin =
     service.securityCode !== undefined &&
@@ -43,19 +53,28 @@ export function ClientActiveTripSheet({
   return (
     <UberBottomSheet height={sheetHeight}>
       <TripEtaHeader label="" highlight={etaLabel} />
-      {showPin && <TripSecurityPin pin={service.securityCode!} />}
-      {showDriver && (
-        <>
-          <DriverInfoCard driverName={service.driverName!} verified />
-          <CommunicationRow />
-        </>
-      )}
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
       >
+        {showPin && <TripSecurityPin pin={service.securityCode!} inset={false} />}
+        {showDriver && (
+          <DriverInfoCard
+            driverName={service.driverName!}
+            avatarUrl={driverProfile?.photoUrl ?? service.driverPhotoUrl}
+            onPressAvatar={() => setProfileOpen(true)}
+            verified
+            style={{ marginHorizontal: 0 }}
+          />
+        )}
         {children}
       </ScrollView>
+      <AdvancePayoutModal
+        visible={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        payout={driverProfile ?? null}
+      />
     </UberBottomSheet>
   );
 }

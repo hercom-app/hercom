@@ -83,7 +83,7 @@ type LiveTripMapProps = {
   destination: LiveMapPoint;
   driver: LiveMapPoint | null;
   trail: LiveMapPoint[];
-  /** Ruta pedida: origen, paradas y destino. Se dibuja aunque no haya GPS. */
+  /** Ruta pedida: origen, paradas y destino. Solo en tiempo real. */
   planned?: LiveMapPoint[];
   center: LiveMapPoint;
   zoom: number;
@@ -91,6 +91,8 @@ type LiveTripMapProps = {
   replayPosition?: LiveMapPoint | null;
   /** En grabado se prioriza callejero y zoom más cercano. */
   recordedRoute?: boolean;
+  /** Ruta guardada: no une origen y destino. Un solo punto si no hubo desplazamiento. */
+  savedRoute?: boolean;
 };
 
 export function LiveTripMap({
@@ -103,10 +105,20 @@ export function LiveTripMap({
   zoom,
   replayPosition = null,
   recordedRoute = false,
+  savedRoute = false,
 }: LiveTripMapProps) {
   const maxFitZoom = recordedRoute ? 17 : 15;
 
+  const stationaryPoint = savedRoute && trail.length > 0 && trail.length < 2 ? trail[0]! : null;
+
   const fitPoints = useMemo(() => {
+    if (savedRoute) {
+      const points = [...trail];
+      if (replayPosition !== null) {
+        points.push(replayPosition);
+      }
+      return points.length > 0 ? points : [origin];
+    }
     const points = [origin, destination, ...planned, ...trail];
     if (driver !== null) {
       points.push(driver);
@@ -115,7 +127,7 @@ export function LiveTripMap({
       points.push(replayPosition);
     }
     return points;
-  }, [destination, driver, origin, planned, replayPosition, trail]);
+  }, [destination, driver, origin, planned, replayPosition, savedRoute, trail]);
 
   const trailPositions = useMemo(
     () =>
@@ -158,12 +170,16 @@ export function LiveTripMap({
         zoom={zoom}
         maxZoom={maxFitZoom}
       />
-      <Marker position={[origin.lat, origin.lng]} icon={pickupIcon} />
-      <Marker
-        position={[destination.lat, destination.lng]}
-        icon={destinationIcon}
-      />
-      {plannedPositions.length > 1 && (
+      {!savedRoute && (
+        <Marker position={[origin.lat, origin.lng]} icon={pickupIcon} />
+      )}
+      {!savedRoute && (
+        <Marker
+          position={[destination.lat, destination.lng]}
+          icon={destinationIcon}
+        />
+      )}
+      {!savedRoute && plannedPositions.length > 1 && (
         <Polyline
           positions={plannedPositions}
           pathOptions={{
@@ -174,6 +190,12 @@ export function LiveTripMap({
             lineCap: "round",
             lineJoin: "round",
           }}
+        />
+      )}
+      {stationaryPoint !== null && replayPosition === null && (
+        <Marker
+          position={[stationaryPoint.lat, stationaryPoint.lng]}
+          icon={replayIcon}
         />
       )}
       {trail.length > 1 && (

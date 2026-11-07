@@ -2,23 +2,16 @@ import { Image, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { HERCOM_COLORS } from "../constants/theme";
 
-/** Pantalla de marca mientras la app recupera la sesión. */
+/** Misma pieza que expo-splash-screen para que no haya salto de color al cargar. */
 export function BrandSplash() {
   return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: HERCOM_COLORS.primary,
-      }}
-    >
+    <View style={{ flex: 1, backgroundColor: HERCOM_COLORS.primary }}>
       <StatusBar style="light" />
       <Image
-        source={require("../../assets/images/icon.png")}
+        source={require("../../assets/images/splash-solid.png")}
         accessibilityLabel="Hercom"
-        resizeMode="contain"
-        style={{ width: 168, height: 168 }}
+        resizeMode="cover"
+        style={{ flex: 1, width: "100%", height: "100%" }}
       />
     </View>
   );

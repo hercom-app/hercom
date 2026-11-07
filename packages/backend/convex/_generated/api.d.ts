@@ -30,6 +30,7 @@ import type * as lib_dniLookupTypes from "../lib/dniLookupTypes.js";
 import type * as lib_driverLocation from "../lib/driverLocation.js";
 import type * as lib_driverOfferDiscovery from "../lib/driverOfferDiscovery.js";
 import type * as lib_driverPayout from "../lib/driverPayout.js";
+import type * as lib_driverPublicPhoto from "../lib/driverPublicPhoto.js";
 import type * as lib_driverTopUpPackages from "../lib/driverTopUpPackages.js";
 import type * as lib_factilizaResponse from "../lib/factilizaResponse.js";
 import type * as lib_fetchFactilizaDni from "../lib/fetchFactilizaDni.js";
@@ -106,6 +107,7 @@ declare const fullApi: ApiFromModules<{
   "lib/driverLocation": typeof lib_driverLocation;
   "lib/driverOfferDiscovery": typeof lib_driverOfferDiscovery;
   "lib/driverPayout": typeof lib_driverPayout;
+  "lib/driverPublicPhoto": typeof lib_driverPublicPhoto;
   "lib/driverTopUpPackages": typeof lib_driverTopUpPackages;
   "lib/factilizaResponse": typeof lib_factilizaResponse;
   "lib/fetchFactilizaDni": typeof lib_fetchFactilizaDni;

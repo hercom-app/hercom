@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Linking,
@@ -21,20 +20,25 @@ import {
 } from "../../constants/homeAssets";
 import type { AddressRegionFilter } from "../../lib/googlePlaces";
 import type { RecentDestination } from "../../lib/recentDestinations";
-import { HomeGlyph, PinGlyph, SearchGlyph } from "./RouteIcons";
+import {
+  ChevronRightGlyph,
+  ClockGlyph,
+  HomeGlyph,
+  SearchGlyph,
+} from "./RouteIcons";
 
 const SERVICE_DISCOVERY = [
+  {
+    key: "corporativo",
+    title: "Chofer Corporativo",
+    url: "https://hercom-landing.vercel.app/servicios/chofer-corporativo",
+    image: SERVICE_DISCOVERY_IMAGES.corporativo,
+  },
   {
     key: "premium",
     title: "Chofer Premium",
     url: "https://hercom-landing.vercel.app/servicios/chofer-premium",
     image: SERVICE_DISCOVERY_IMAGES.premium,
-  },
-  {
-    key: "corporativo",
-    title: "Chofer Corporativo",
-    url: "https://hercom-landing.vercel.app/servicios/chofer-corporativo",
-    image: null,
   },
   {
     key: "seguro",
@@ -120,13 +124,11 @@ function SafetyAwarenessBlock() {
                   flex: 1,
                   minWidth: 0,
                   minHeight: 108,
-                  borderRadius: 12,
-                  backgroundColor: "#14171C",
-                  borderWidth: 1,
-                  borderColor: "#2C313A",
+                  borderRadius: 16,
+                  backgroundColor: "#F3F4F6",
                   paddingHorizontal: 12,
                   paddingVertical: 14,
-                  justifyContent: "space-between",
+                  justifyContent: "flex-start",
                 }}
               >
                 <View
@@ -134,7 +136,8 @@ function SafetyAwarenessBlock() {
                     width: 28,
                     height: 3,
                     borderRadius: 2,
-                    backgroundColor: "#B91C1C",
+                    backgroundColor: HERCOM_COLORS.primary,
+                    marginBottom: 10,
                   }}
                 />
                 <Text
@@ -142,7 +145,7 @@ function SafetyAwarenessBlock() {
                     fontFamily: POPPINS.semibold,
                     fontSize: 14,
                     lineHeight: 18,
-                    color: "#F4F4F5",
+                    color: HERCOM_COLORS.text,
                   }}
                 >
                   {tip.label}
@@ -162,7 +165,7 @@ function SafetyAwarenessBlock() {
         style={({ pressed }) => ({
           height: 48,
           borderRadius: 14,
-          backgroundColor: HERCOM_COLORS.text,
+          backgroundColor: HERCOM_COLORS.primary,
           alignItems: "center",
           justifyContent: "center",
           opacity: pressed ? 0.88 : 1,
@@ -297,23 +300,107 @@ function saveErrorMessage(error: unknown): string {
   return "No se pudo guardar el lugar.";
 }
 
-function PlaceIcon({ kind }: { kind: "home" | "recent" | "favorite" }) {
+const PLACE_CHIP_HEIGHT = 60;
+
+/** El borde va en un `View`: en Android un `Pressable` no pinta `borderWidth`. */
+const PLACE_CHIP_BOX = {
+  height: PLACE_CHIP_HEIGHT,
+  flexDirection: "row" as const,
+  alignItems: "center" as const,
+  gap: 10,
+  paddingHorizontal: 18,
+  borderRadius: 14,
+  borderWidth: 1,
+  borderColor: "#D0D6DE",
+  backgroundColor: "#FFFFFF",
+};
+
+const PLACE_CHIP_TEXT = {
+  fontFamily: POPPINS.semibold,
+  fontSize: 15,
+  color: HERCOM_COLORS.text,
+} as const;
+
+function RecientesSectionHeader() {
   return (
     <View
       style={{
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: kind === "home" ? "#E8F2FF" : "#F3F4F6",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        marginTop: 6,
+        marginBottom: 2,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: POPPINS.medium,
+          fontSize: 13,
+          color: HERCOM_COLORS.textMuted,
+        }}
+      >
+        Recientes
+      </Text>
+      <View style={{ flex: 1, height: 1, backgroundColor: HERCOM_COLORS.border }} />
+    </View>
+  );
+}
+
+function RecentRowIcon() {
+  return (
+    <View
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: "#F3F4F6",
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      {kind === "home" ? (
-        <HomeGlyph size={18} color={HERCOM_COLORS.primary} />
-      ) : (
-        <PinGlyph size={18} color={HERCOM_COLORS.text} />
-      )}
+      <ClockGlyph size={20} color={HERCOM_COLORS.text} />
+    </View>
+  );
+}
+
+function HomePlaceChip({
+  onPress,
+  onLongPress,
+}: {
+  onPress: () => void;
+  onLongPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      accessibilityRole="button"
+      accessibilityLabel="Casa"
+      accessibilityHint="Mantén presionado para editar"
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
+      <View style={PLACE_CHIP_BOX}>
+        <HomeGlyph size={22} color={HERCOM_COLORS.primary} />
+        <Text numberOfLines={1} style={PLACE_CHIP_TEXT}>
+          Casa
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+/** Sin acción hasta que exista la vista de direcciones guardadas. */
+function MorePlacesChip() {
+  return (
+    <View
+      accessibilityRole="text"
+      accessibilityLabel="Más direcciones, próximamente"
+      style={PLACE_CHIP_BOX}
+    >
+      <Text numberOfLines={1} style={PLACE_CHIP_TEXT}>
+        Más
+      </Text>
+      <ChevronRightGlyph size={18} color={HERCOM_COLORS.textMuted} />
     </View>
   );
 }
@@ -476,8 +563,6 @@ export function HomeRequestSheet({
   bottomInset,
 }: HomeRequestSheetProps) {
   const [homeEditorOpen, setHomeEditorOpen] = useState(false);
-  const [savingPlace, setSavingPlace] = useState(false);
-
   const savedAddresses = new Set(
     [home?.address, ...favorites.map((place) => place.address)]
       .filter((address): address is string => address !== undefined)
@@ -486,20 +571,6 @@ export function HomeRequestSheet({
   const visibleRecents = recents.filter(
     (place) => !savedAddresses.has(place.address.trim().toLowerCase()),
   );
-
-  async function runSave(action: () => Promise<void>) {
-    if (savingPlace) {
-      return;
-    }
-    setSavingPlace(true);
-    try {
-      await action();
-    } catch (saveError) {
-      Alert.alert("No se pudo actualizar", saveErrorMessage(saveError));
-    } finally {
-      setSavingPlace(false);
-    }
-  }
 
   return (
     <>
@@ -542,213 +613,73 @@ export function HomeRequestSheet({
         </Text>
       </Pressable>
 
-      {(placesReady || visibleRecents.length > 0) && (
-        <View style={{ marginTop: 8 }}>
-          {placesReady && (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 12,
-              paddingVertical: 12,
+      {placesReady && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            paddingVertical: 14,
+          }}
+        >
+          <HomePlaceChip
+            onPress={() => {
+              if (home === null) {
+                setHomeEditorOpen(true);
+                return;
+              }
+              onSelectRecent(home);
             }}
-          >
+            onLongPress={() => setHomeEditorOpen(true)}
+          />
+          <MorePlacesChip />
+        </View>
+      )}
+
+      {visibleRecents.length > 0 && (
+        <View style={{ marginTop: 4 }}>
+          <RecientesSectionHeader />
+          {visibleRecents.map((place) => (
             <Pressable
-              onPress={() => {
-                if (home === null) {
-                  setHomeEditorOpen(true);
-                  return;
-                }
-                onSelectRecent(home);
-              }}
+              key={place.address}
+              onPress={() => onSelectRecent(place)}
               accessibilityRole="button"
-              accessibilityLabel={home === null ? "Casa" : "Ir a tu casa"}
+              accessibilityLabel={place.title}
               style={({ pressed }) => ({
-                flex: 1,
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 12,
+                paddingVertical: 12,
                 opacity: pressed ? 0.7 : 1,
               })}
             >
-              <PlaceIcon kind="home" />
-              <View style={{ flex: 1, justifyContent: "center" }}>
+              <RecentRowIcon />
+              <View style={{ flex: 1 }}>
                 <Text
                   numberOfLines={1}
                   style={{
                     fontFamily: POPPINS.semibold,
                     fontSize: 16,
-                    lineHeight: 22,
                     color: HERCOM_COLORS.text,
                   }}
                 >
-                  Casa
+                  {place.title}
                 </Text>
-                {home !== null && (
+                {place.subtitle !== undefined && (
                   <Text
                     numberOfLines={1}
                     style={{
                       marginTop: 2,
                       fontFamily: POPPINS.regular,
                       fontSize: 13,
-                      lineHeight: 18,
                       color: HERCOM_COLORS.textMuted,
                     }}
                   >
-                    {home.title}
+                    {place.subtitle}
                   </Text>
                 )}
               </View>
             </Pressable>
-            {home !== null && (
-              <Pressable
-                onPress={() => setHomeEditorOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Cambiar casa"
-                hitSlop={8}
-                style={({ pressed }) => ({
-                  alignSelf: "flex-start",
-                  marginTop: 2,
-                  height: 32,
-                  paddingHorizontal: 12,
-                  borderRadius: 16,
-                  backgroundColor: "#E8F2FF",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Text
-                  style={{
-                    fontFamily: POPPINS.semibold,
-                    fontSize: 13,
-                    lineHeight: 16,
-                    color: HERCOM_COLORS.primary,
-                  }}
-                >
-                  Cambiar
-                </Text>
-              </Pressable>
-            )}
-          </View>
-          )}
-
-          {favorites.map((place) => (
-            <View
-              key={place.id}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 12,
-                paddingVertical: 12,
-              }}
-            >
-              <Pressable
-                onPress={() => onSelectRecent(place)}
-                accessibilityRole="button"
-                accessibilityLabel={place.title}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 12,
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <PlaceIcon kind="favorite" />
-                <View style={{ flex: 1 }}>
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      fontFamily: POPPINS.semibold,
-                      fontSize: 16,
-                      color: HERCOM_COLORS.text,
-                    }}
-                  >
-                    {place.title}
-                  </Text>
-                  {place.subtitle !== undefined && (
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        marginTop: 2,
-                        fontFamily: POPPINS.regular,
-                        fontSize: 13,
-                        color: HERCOM_COLORS.textMuted,
-                      }}
-                    >
-                      {place.subtitle}
-                    </Text>
-                  )}
-                </View>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  Alert.alert("Quitar favorito", place.title, [
-                    { text: "Cancelar", style: "cancel" },
-                    {
-                      text: "Quitar",
-                      style: "destructive",
-                      onPress: () => {
-                        void runSave(() => onRemovePlace(place.id));
-                      },
-                    },
-                  ]);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`Quitar ${place.title}`}
-                hitSlop={8}
-              >
-                <Text
-                  style={{
-                    fontFamily: POPPINS.semibold,
-                    fontSize: 13,
-                    color: HERCOM_COLORS.textMuted,
-                  }}
-                >
-                  Quitar
-                </Text>
-              </Pressable>
-            </View>
-          ))}
-
-          {visibleRecents.map((place) => (
-            <View
-              key={place.address}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 12,
-                paddingVertical: 12,
-              }}
-            >
-              <Pressable
-                onPress={() => onSelectRecent(place)}
-                accessibilityRole="button"
-                accessibilityLabel={place.title}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 12,
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <PlaceIcon kind="recent" />
-                <View style={{ flex: 1 }}>
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      fontFamily: POPPINS.semibold,
-                      fontSize: 16,
-                      color: HERCOM_COLORS.text,
-                    }}
-                  >
-                    {place.title}
-                  </Text>
-                </View>
-              </Pressable>
-            </View>
           ))}
         </View>
       )}
@@ -799,15 +730,8 @@ export function HomeRequestSheet({
       visible={homeEditorOpen}
       region={addressRegion}
       {...(gpsCenter !== undefined ? { gpsCenter } : {})}
-      onClose={() => {
-        if (!savingPlace) {
-          setHomeEditorOpen(false);
-        }
-      }}
+      onClose={() => setHomeEditorOpen(false)}
       onLocateOnMap={() => {
-        if (savingPlace) {
-          return;
-        }
         setHomeEditorOpen(false);
         onLocateHome();
       }}

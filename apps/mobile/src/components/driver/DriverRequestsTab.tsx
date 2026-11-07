@@ -542,12 +542,16 @@ function OfferSheet({
                 : card.clientFirstName
             } · ${hoursLabel(card.serviceHours)}`}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontFamily: POPPINS.regular, fontSize: 14, color: colors.steel }}
-          >
-            {`${toPeopleAddress(service.origin.address)} → ${toPeopleAddress(card.destinationAddress)}`}
-          </Text>
+          <View style={{ gap: 6, marginTop: 4 }}>
+            <RoutePoint
+              color="#16A34A"
+              address={toPeopleAddress(service.origin.address)}
+            />
+            <RoutePoint
+              color={HERCOM_COLORS.primary}
+              address={toPeopleAddress(card.destinationAddress)}
+            />
+          </View>
         </View>
       </View>
 
@@ -586,6 +590,33 @@ function OfferSheet({
         disabled={submitting}
       />
     </DriverSheet>
+  );
+}
+
+function RoutePoint({ color, address }: { color: string; address: string }) {
+  const { colors } = useAppTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: color,
+        }}
+      />
+      <Text
+        numberOfLines={2}
+        style={{
+          flex: 1,
+          fontFamily: POPPINS.regular,
+          fontSize: 14,
+          color: colors.textStrong,
+        }}
+      >
+        {address}
+      </Text>
+    </View>
   );
 }
 

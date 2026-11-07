@@ -85,6 +85,22 @@ export function HomeGlyph({ size = 20, color = "#0F172A" }: GlyphProps) {
   );
 }
 
+/** Reloj para destinos recientes (estilo Waze). */
+export function ClockGlyph({ size = 20, color = "#0F172A" }: GlyphProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="8.25" stroke={color} strokeWidth={1.7} />
+      <Path
+        d="M12 7.5v4.6l3 1.8"
+        stroke={color}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 export function PinGlyph({ size = 20, color = "#0F172A" }: GlyphProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -95,6 +111,20 @@ export function PinGlyph({ size = 20, color = "#0F172A" }: GlyphProps) {
         strokeLinejoin="round"
       />
       <Circle cx="12" cy="11.2" r="2" stroke={color} strokeWidth={1.7} />
+    </Svg>
+  );
+}
+
+export function ChevronRightGlyph({ size = 18, color = "#0F172A" }: GlyphProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M9 6l6 6-6 6"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }

@@ -1,8 +1,9 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Doc } from "@proyecto/backend/dataModel";
 import { useAppMode } from "../contexts/AppModeContext";
+import { setAppErrorScreen } from "../lib/appErrorReporter";
 import { BrandSplash } from "../components/BrandSplash";
 import { ClientPendingRating } from "../components/ClientPendingRating";
 import { ClientDashboard } from "./ClientDashboard";
@@ -26,6 +27,18 @@ export function HomeScreen() {
     closeDriverRegistration,
     hasDriverProfile,
   } = useAppMode();
+
+  useEffect(() => {
+    if (showDriverRegistration) {
+      setAppErrorScreen("driver_register");
+      return;
+    }
+    if (mode === "driver" && hasDriverProfile) {
+      setAppErrorScreen("driver");
+      return;
+    }
+    setAppErrorScreen("client");
+  }, [hasDriverProfile, mode, showDriverRegistration]);
 
   if (driver === undefined) {
     return <BrandSplash />;

@@ -21,6 +21,7 @@ import {
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
 import { AppErrorBoundary } from "./src/components/AppErrorBoundary";
+import { AppErrorBridge } from "./src/components/AppErrorBridge";
 import { BrandSplash } from "./src/components/BrandSplash";
 import { AuthSessionGuard } from "./src/components/AuthSessionGuard";
 import { LiveShareLinkListener } from "./src/components/LiveShareLinkListener";
@@ -110,6 +111,7 @@ function ThemedApp() {
   return (
     <ConvexAuthProvider client={convex} storage={secureStorage}>
       <SafeAreaProvider>
+        <AppErrorBridge />
         <AuthChrome />
       </SafeAreaProvider>
     </ConvexAuthProvider>

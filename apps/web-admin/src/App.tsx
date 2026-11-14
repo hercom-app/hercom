@@ -19,6 +19,7 @@ import { ServicesView } from "./views/ServicesView";
 import { PromotionsView } from "./views/PromotionsView";
 import { MarketsView } from "./views/MarketsView";
 import { SupportView } from "./views/SupportView";
+import { AppErrorsView } from "./views/AppErrorsView";
 
 const SCOPED_SECTIONS: AdminSection[] = ["drivers", "services", "clients", "support"];
 
@@ -197,6 +198,7 @@ function Dashboard() {
             />
           )}
           {section === "support" && <SupportView />}
+          {isFullAdmin && section === "errors" && <AppErrorsView />}
         </main>
       </div>
     </div>

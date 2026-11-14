@@ -112,6 +112,19 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
+    id: "errors",
+    label: "Errores de app",
+    description: "Crashes por usuario",
+    icon: (
+      <NavIcon>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+          <path d="M12 9v4M12 17h.01" strokeLinecap="round" />
+          <path d="M10.3 4.7L2.8 17.5A2 2 0 004.5 20.5h15a2 2 0 001.7-3L13.7 4.7a2 2 0 00-3.4 0z" />
+        </svg>
+      </NavIcon>
+    ),
+  },
+  {
     id: "support",
     label: "Soporte",
     description: "Chats de la app",

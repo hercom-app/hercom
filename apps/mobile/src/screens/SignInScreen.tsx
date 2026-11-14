@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Image, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { LegalDocumentModal } from "../components/LegalDocumentModal";
@@ -81,8 +80,6 @@ export function SignInScreen() {
 
   return (
     <View className="flex-1" style={{ backgroundColor: HERCOM_COLORS.primary }}>
-      <StatusBar style="light" />
-
       <View
         className="flex-1 items-center justify-center"
         style={{ paddingTop: insets.top }}

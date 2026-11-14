@@ -22,6 +22,11 @@
         ]
       }
     },
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#0B70FE",
+      "translucent": true
+    },
     "android": {
       "package": "com.proyecto.choferes",
       "softwareKeyboardLayoutMode": "pan",

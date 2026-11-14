@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { View } from "react-native";
+import { reportAppError } from "../lib/appErrorReporter";
 import {
   TacticalButton,
   TacticalPanel,
@@ -36,6 +37,13 @@ export class AppErrorBoundary extends Component<
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("AppErrorBoundary", error, errorInfo.componentStack);
+    void reportAppError({
+      kind: "boundary",
+      message: error.message || "Error de pantalla",
+      stack: [error.stack, errorInfo.componentStack]
+        .filter((part) => part !== undefined && part !== null && part !== "")
+        .join("\n"),
+    });
   }
 
   private handleRetry = () => {

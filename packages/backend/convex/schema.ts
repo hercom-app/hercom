@@ -685,6 +685,38 @@ export default defineSchema({
   }).index("by_service", ["serviceId", "createdAt"]),
 
   /**
+   * Crashes y errores de la app móvil. Identifican al usuario y al
+   * dispositivo para diagnosticar cierres (p. ej. franja de estado).
+   */
+  appErrorReports: defineTable({
+    userId: v.optional(v.id("users")),
+    userName: v.optional(v.string()),
+    userEmail: v.optional(v.string()),
+    userPhone: v.optional(v.string()),
+    userDni: v.optional(v.string()),
+    userRole: v.optional(v.string()),
+    deviceId: v.string(),
+    kind: v.union(
+      v.literal("js_error"),
+      v.literal("boundary"),
+      v.literal("native_suspect"),
+    ),
+    message: v.string(),
+    stack: v.optional(v.string()),
+    screen: v.optional(v.string()),
+    platform: v.optional(v.string()),
+    deviceBrand: v.optional(v.string()),
+    deviceModel: v.optional(v.string()),
+    osVersion: v.optional(v.string()),
+    appVersion: v.optional(v.string()),
+    extra: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_createdAt", ["createdAt"])
+    .index("by_user", ["userId", "createdAt"])
+    .index("by_device", ["deviceId", "createdAt"]),
+
+  /**
    * Errores del panel interno. La consola del navegador + Convex Logs
    * también los muestran; esta tabla los deja persistidos.
    */

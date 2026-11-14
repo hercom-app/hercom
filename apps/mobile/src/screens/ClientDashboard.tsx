@@ -2351,7 +2351,6 @@ export function ClientDashboard() {
             map={
               <MapView
                 ref={homeMapRef}
-                key={userCoords === null ? "lima" : "gps"}
                 style={{ flex: 1 }}
                 provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
                 initialRegion={homeMapRegion}
@@ -2489,7 +2488,6 @@ export function ClientDashboard() {
       <MapScreenLayout
         map={
           <MapView
-            key={`map-${originLat}-${originLng}-${destination.lat}-${destination.lng}`}
             style={{ flex: 1 }}
             provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
             initialRegion={confirmMapRegion}

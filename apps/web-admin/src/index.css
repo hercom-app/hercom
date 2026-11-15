@@ -33,6 +33,79 @@
   }
 }
 
+@keyframes login-panel-left {
+  from {
+    opacity: 0;
+    transform: translateX(-48px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes login-panel-right {
+  from {
+    opacity: 0;
+    transform: translateX(48px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes login-logo {
+  0% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+  62% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes login-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-panel-left,
+  .login-panel-right,
+  .login-logo,
+  .login-form {
+    animation: none !important;
+  }
+}
+
+.login-panel-left {
+  animation: login-panel-left 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.login-panel-right {
+  animation: login-panel-right 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+.login-logo {
+  animation: login-logo 0.85s cubic-bezier(0.34, 1.4, 0.64, 1) 0.35s both;
+}
+
+.login-form {
+  animation: login-fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.55s both;
+}
+
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;

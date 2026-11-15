@@ -97,7 +97,7 @@ export function SignInForm() {
   return (
     <div className="grid min-h-dvh bg-white lg:grid-cols-2">
       <aside
-        className="relative hidden overflow-hidden px-14 py-16 text-white lg:flex lg:flex-col lg:justify-center"
+        className="login-panel-left relative hidden overflow-hidden px-14 py-16 text-white lg:flex lg:flex-col lg:justify-center"
         style={{
           backgroundImage: "linear-gradient(165deg, #0B70FE 0%, #0959CC 100%)",
         }}
@@ -111,21 +111,20 @@ export function SignInForm() {
             Hercom
           </p>
           <p className="mt-4 max-w-xs text-base leading-relaxed text-white/85">
-            Chofer de reemplazo
+            Panel de Operaciones
           </p>
         </div>
       </aside>
 
-      <main className="flex items-center justify-center bg-white px-6 py-12 sm:px-10">
+      <main className="login-panel-right flex items-center justify-center bg-white px-6 py-12 sm:px-10">
         <div className="w-full max-w-[380px]">
-          <div className="mb-10 lg:hidden">
-            <img
-              src="/hercom-logo.png"
-              alt="Hercom"
-              className="mx-auto h-16 w-auto"
-            />
-          </div>
+          <img
+            src="/hercom-logo.png"
+            alt="Hercom"
+            className="login-logo mx-auto mb-8 h-24 w-auto sm:h-28"
+          />
 
+          <div className="login-form">
           <h2 className="text-3xl font-semibold tracking-tight text-slate-900">
             Hola de nuevo
           </h2>
@@ -176,6 +175,7 @@ export function SignInForm() {
               {submitting ? "Entrando…" : "Entrar"}
             </button>
           </form>
+          </div>
         </div>
       </main>
     </div>

@@ -81,6 +81,17 @@ export const Navbar = () => {
 
       <NavbarMenu>
         <div className="mx-4 mt-2 flex flex-col gap-2">
+          <NavbarMenuItem>
+            <div className="flex flex-col gap-2 pb-2">
+              <span className="text-small font-semibold text-default-600">
+                Síguenos
+              </span>
+              <SocialLinks
+                iconClassName="text-foreground"
+                iconSize={24}
+              />
+            </div>
+          </NavbarMenuItem>
           {siteConfig.navMenuItems.map((item, index) => (
             <NavbarMenuItem key={`${item}-${index}`}>
               <Link

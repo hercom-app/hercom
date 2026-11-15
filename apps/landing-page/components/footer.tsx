@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Link } from "@nextui-org/link";
 import { button as buttonStyles } from "@nextui-org/theme";
 
+import { HERCOM_SOCIAL_ITEMS } from "@proyecto/brand";
 import { LogosGooglePlay, LogosApple } from "./icons";
 import { SocialLinks } from "./social-links";
 
@@ -60,7 +61,19 @@ export const Footer = () => {
         )}
         <div className="col-span-1 flex flex-col items-center gap-2 lg:col-span-2 lg:col-start-1 lg:row-start-3 lg:items-start">
           <p className="text-white font-semibold">Siguenos en:</p>
-          <SocialLinks />
+          <SocialLinks iconSize={24} />
+          <div className="flex flex-col gap-0.5 lg:items-start">
+            {HERCOM_SOCIAL_ITEMS.map((item) => (
+              <Link
+                key={item.key}
+                isExternal
+                className="text-white text-sm underline-offset-2 hover:underline"
+                href={item.url}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
         </div>
         <div className="col-span-1 flex flex-col items-center gap-2 lg:row-span-3 lg:col-start-3 lg:items-start">
           <p className="text-white font-semibold">Ciudades:</p>

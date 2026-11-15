@@ -32,8 +32,11 @@ export function SocialLinks({
           <Link
             key={item.key}
             isExternal
+            showAnchorIcon={false}
             aria-label={item.label}
+            className="opacity-100 hover:opacity-80"
             href={item.url}
+            title={item.label}
           >
             <Icon className={iconClassName} size={iconSize} />
           </Link>

@@ -3,6 +3,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { AdminSection } from "./AdminNav";
+import { btnSecondaryClass } from "../lib/adminUi";
 
 type NavItem = {
   id: AdminSection;
@@ -267,7 +268,7 @@ export function AdminSidebar({
         <button
           type="button"
           onClick={() => void signOut()}
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+          className={`${btnSecondaryClass} w-full border-slate-400 font-semibold text-slate-800 hover:border-slate-600 hover:bg-slate-100`}
         >
           Cerrar sesión
         </button>

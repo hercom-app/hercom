@@ -93,8 +93,7 @@ export function AppErrorsView() {
             </p>
             <p className="mt-1 text-sm text-slate-500">
               Cada fila identifica al usuario (nombre, correo, celular, DNI) y
-              al celular. Un «cierre inesperado» es un crash nativo o kill
-              mientras la app estaba abierta.
+              al celular.
             </p>
           </div>
           <input

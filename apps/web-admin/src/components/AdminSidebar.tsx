@@ -113,7 +113,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: "support",
-    label: "Soporte",
+    label: "Chat con usuarios",
     description: "Chats de la app",
     icon: (
       <NavIcon>
@@ -126,7 +126,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: "errors",
     label: "Errores de app",
-    description: "Crashes por usuario",
+    description: "Reportes de la app",
     icon: (
       <NavIcon>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">

@@ -34,7 +34,8 @@ import {
   AdminTableWrap,
 } from "../components/AdminLayout";
 import {
-  btnGhostClass,
+  btnPrimaryClass,
+  btnSecondaryClass,
   rowClass,
   tableClass,
   tableHeadClass,
@@ -373,7 +374,7 @@ export function DriversView({
                   <th className={thClass}>Estado</th>
                   <th className={thClass}>Documentos</th>
                   <th className={thClass}>Registro</th>
-                  <th className={thClass}></th>
+                  <th className={thClass}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -401,10 +402,10 @@ export function DriversView({
                       {formatDate(row.registeredAt)}
                     </td>
                     <td className={`${tdClass} whitespace-normal`}>
-                      <div className="flex flex-col items-start gap-1">
+                      <div className="flex min-w-[12.5rem] flex-col items-stretch gap-2">
                         <button
                           type="button"
-                          className={btnGhostClass}
+                          className={`${btnPrimaryClass} min-h-9 px-3 py-1.5 text-xs`}
                           onClick={() =>
                             setDetail({
                               userId: row.userId,
@@ -416,7 +417,7 @@ export function DriversView({
                         </button>
                         <button
                           type="button"
-                          className={btnGhostClass}
+                          className={`${btnSecondaryClass} min-h-9 px-3 py-1.5 text-xs`}
                           onClick={() =>
                             setDetail({
                               userId: row.userId,

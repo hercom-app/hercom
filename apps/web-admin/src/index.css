@@ -18,6 +18,20 @@
     min-height: 100dvh;
   }
 
+  /*
+    overflow-x: hidden on html/body computes overflow-y to auto (CSS spec).
+    On Windows that flashes classic scrollbars during login font/layout.
+  */
+  html.login-lock,
+  html.login-lock body,
+  html.login-lock #root {
+    height: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   body {
     margin: 0;
     background-color: #f4f4f5;
@@ -36,7 +50,7 @@
 @keyframes login-panel-left {
   from {
     opacity: 0;
-    transform: translateX(-48px);
+    transform: translateX(-16px);
   }
   to {
     opacity: 1;
@@ -47,7 +61,7 @@
 @keyframes login-panel-right {
   from {
     opacity: 0;
-    transform: translateX(48px);
+    transform: translateX(16px);
   }
   to {
     opacity: 1;
@@ -56,15 +70,11 @@
 }
 
 @keyframes login-logo {
-  0% {
+  from {
     opacity: 0;
-    transform: scale(0.35);
+    transform: scale(0.94);
   }
-  62% {
-    opacity: 1;
-    transform: scale(1.08);
-  }
-  100% {
+  to {
     opacity: 1;
     transform: scale(1);
   }
@@ -73,7 +83,7 @@
 @keyframes login-fade-up {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -99,7 +109,7 @@
 }
 
 .login-logo {
-  animation: login-logo 0.85s cubic-bezier(0.34, 1.4, 0.64, 1) 0.35s both;
+  animation: login-logo 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both;
 }
 
 .login-form {

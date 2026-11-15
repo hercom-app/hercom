@@ -119,7 +119,7 @@ export function SupportView() {
                         setError(null);
                       }}
                       className={`flex w-full flex-col gap-0.5 border-b border-zinc-100 px-4 py-3 text-left transition ${
-                        active ? "bg-zinc-900 text-white" : "hover:bg-zinc-50"
+                        active ? "bg-hercom-dark text-white" : "hover:bg-zinc-50"
                       }`}
                     >
                       <span className="flex items-center justify-between gap-2">
@@ -131,7 +131,7 @@ export function SupportView() {
                             className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
                               active
                                 ? "bg-white/20 text-white"
-                                : "bg-zinc-900 text-white"
+                                : "bg-hercom-dark text-white"
                             }`}
                           >
                             {thread.unreadForAdmin}
@@ -210,7 +210,7 @@ export function SupportView() {
                         key={message._id}
                         className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 ${
                           staff
-                            ? "ml-auto bg-zinc-900 text-white"
+                            ? "ml-auto bg-hercom-dark text-white"
                             : "bg-zinc-100 text-zinc-800"
                         }`}
                       >

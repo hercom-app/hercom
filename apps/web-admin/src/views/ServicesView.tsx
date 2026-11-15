@@ -112,7 +112,7 @@ export function ServicesView({
                   <button
                     type="button"
                     onClick={() => setSelectedServiceId(trip.serviceId)}
-                    className="min-h-11 shrink-0 text-left text-sm font-semibold text-hercom hover:underline sm:text-right"
+                    className="min-h-11 shrink-0 text-left text-sm font-semibold text-hercom-dark hover:underline sm:text-right"
                   >
                     Detalles del servicio
                   </button>

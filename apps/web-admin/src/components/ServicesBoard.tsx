@@ -202,7 +202,7 @@ export function ServicesBoard({
                         <button
                           type="button"
                           onClick={() => onSelect(service._id)}
-                          className="text-xs font-semibold text-hercom hover:underline"
+                          className="text-xs font-semibold text-hercom-dark hover:underline"
                         >
                           Detalles del servicio
                         </button>

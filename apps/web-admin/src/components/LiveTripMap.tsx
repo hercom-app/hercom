@@ -10,7 +10,7 @@ import {
 import type { LiveMapPoint } from "../lib/liveTrip";
 import "leaflet/dist/leaflet.css";
 
-const HERCOM_BLUE = "#007AFF";
+const HERCOM_BLUE = "#0B70FE";
 const ROUTE_OUTLINE = "#ffffff";
 const DESTINATION_GRAY = "#334155";
 const DRIVER_GREEN = "#16A34A";

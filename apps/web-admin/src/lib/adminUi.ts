@@ -1,10 +1,10 @@
 /** Clases compartidas del panel admin — superficies modernas (Geist + sidebar). */
 
 export const inputClass =
-  "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-base text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 md:py-2 md:text-sm";
+  "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-base text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-500 focus:border-hercom-dark focus:ring-2 focus:ring-hercom-dark/20 md:py-2 md:text-sm";
 
 export const selectClass =
-  "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-base text-zinc-900 shadow-sm outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400 md:py-2 md:text-sm";
+  "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-base text-zinc-900 shadow-sm outline-none transition focus:border-hercom-dark focus:ring-2 focus:ring-hercom-dark/20 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400 md:py-2 md:text-sm";
 
 export const labelClass =
   "mb-1.5 block text-xs font-medium text-zinc-500";
@@ -33,10 +33,10 @@ export const tdClass =
 export const rowClass = "border-b border-zinc-100 transition hover:bg-zinc-50/80";
 
 export const btnPrimaryClass =
-  "inline-flex min-h-11 items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900/20 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-11 items-center justify-center rounded-lg bg-hercom-dark px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-hercom-deeper focus:outline-none focus:ring-2 focus:ring-hercom-dark/30 disabled:cursor-not-allowed disabled:opacity-60";
 
 export const btnSecondaryClass =
-  "inline-flex min-h-11 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-200";
+  "inline-flex min-h-11 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-hercom-dark/20";
 
 export const btnGhostClass =
   "inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100";

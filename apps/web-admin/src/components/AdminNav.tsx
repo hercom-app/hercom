@@ -40,8 +40,8 @@ export function AdminNav({ active, onChange }: AdminNavProps) {
               onClick={() => onChange(item.id)}
               className={`shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition sm:px-4 ${
                 isActive
-                  ? "bg-hercom-muted text-hercom"
-                  : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
+                  ? "bg-hercom-muted text-hercom-dark"
+                  : "text-slate-700 hover:bg-white/70 hover:text-slate-900"
               }`}
             >
               <span className="sm:hidden">{item.shortLabel}</span>

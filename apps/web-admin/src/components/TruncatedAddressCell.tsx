@@ -24,7 +24,7 @@ export function TruncatedAddressCell({
       onClick={onPress}
       aria-label={ariaLabel}
       title={text}
-      className="block max-w-[11rem] truncate text-left text-xs font-medium text-zinc-900 hover:text-hercom hover:underline sm:max-w-[14rem]"
+      className="block max-w-[11rem] truncate text-left text-xs font-medium text-zinc-900 hover:text-hercom-dark hover:underline sm:max-w-[14rem]"
     >
       {text}
     </button>

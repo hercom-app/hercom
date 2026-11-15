@@ -33,11 +33,13 @@ export default {
         hercom: {
           DEFAULT: "#0B70FE",
           dark: "#0959CC",
+          deeper: "#073E96",
           muted: "#E8F2FF",
         },
         brand: {
           DEFAULT: "#0B70FE",
           dark: "#0959CC",
+          deeper: "#073E96",
         },
         admin: {
           ink: "#18181b",

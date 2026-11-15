@@ -208,7 +208,7 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
                 setViewMode("live");
               }}
               className={`${btnSecondaryClass} min-h-10 px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
-                viewMode === "live" ? "border-zinc-900 text-zinc-900" : ""
+                viewMode === "live" ? "border-hercom-dark text-hercom-dark" : ""
               }`}
               title={
                 isFinished
@@ -226,7 +226,7 @@ export function ServiceLivePanel({ serviceId, onClose }: ServiceLivePanelProps) 
                 setViewMode("route");
               }}
               className={`${btnSecondaryClass} min-h-10 px-4 text-sm font-semibold ${
-                viewMode === "route" ? "border-zinc-900 text-zinc-900" : ""
+                viewMode === "route" ? "border-hercom-dark text-hercom-dark" : ""
               }`}
             >
               Ver ruta

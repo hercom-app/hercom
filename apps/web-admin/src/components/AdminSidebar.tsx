@@ -189,7 +189,7 @@ export function AdminSidebar({
   const sidebar = (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center gap-3 border-b border-slate-200/80 px-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-hercom text-sm font-bold text-white shadow-sm">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-hercom-dark text-sm font-bold text-white shadow-sm">
           H
         </div>
         <div className="min-w-0">
@@ -199,7 +199,7 @@ export function AdminSidebar({
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
           MENU
         </p>
         {navItems.map((item) => {
@@ -214,8 +214,8 @@ export function AdminSidebar({
               }}
               className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${
                 isActive
-                  ? "bg-hercom-muted text-hercom"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  ? "bg-hercom-muted text-hercom-dark"
+                  : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
               }`}
             >
               {item.icon}
@@ -228,8 +228,8 @@ export function AdminSidebar({
                     <span
                       className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
                         isActive
-                          ? "bg-hercom text-white"
-                          : "bg-hercom-muted text-hercom"
+                          ? "bg-hercom-dark text-white"
+                          : "bg-hercom-muted text-hercom-dark"
                       }`}
                     >
                       {supportUnread}
@@ -244,7 +244,7 @@ export function AdminSidebar({
 
       <div className="border-t border-slate-200/80 p-4">
         <div className="mb-3 flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-hercom/10 text-sm font-semibold text-hercom">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-hercom-muted text-sm font-semibold text-hercom-dark">
             {(userName.trim()[0] ?? "A").toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">

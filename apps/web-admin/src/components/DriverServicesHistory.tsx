@@ -160,7 +160,7 @@ export function DriverServicesHistory({
                             <button
                               type="button"
                               onClick={() => onOpenService(service._id)}
-                              className="mt-2 text-left text-xs font-semibold text-hercom hover:underline"
+                              className="mt-2 text-left text-xs font-semibold text-hercom-dark hover:underline"
                             >
                               Detalles del servicio
                             </button>

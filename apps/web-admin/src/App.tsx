@@ -209,7 +209,7 @@ export default function App() {
   return (
     <>
       <AuthLoading>
-        <div className="flex min-h-dvh items-center justify-center bg-admin-canvas">
+        <div className="flex min-h-dvh items-center justify-center bg-white">
           <p className="text-sm text-slate-500">Cargando…</p>
         </div>
       </AuthLoading>

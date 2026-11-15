@@ -31,13 +31,13 @@ export default {
       },
       colors: {
         hercom: {
-          DEFAULT: "#007AFF",
-          dark: "#0062CC",
+          DEFAULT: "#0B70FE",
+          dark: "#0959CC",
           muted: "#E8F2FF",
         },
         brand: {
-          DEFAULT: "#007AFF",
-          dark: "#0062CC",
+          DEFAULT: "#0B70FE",
+          dark: "#0959CC",
         },
         admin: {
           ink: "#18181b",

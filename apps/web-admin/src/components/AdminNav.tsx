@@ -40,7 +40,7 @@ export function AdminNav({ active, onChange }: AdminNavProps) {
               onClick={() => onChange(item.id)}
               className={`shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition sm:px-4 ${
                 isActive
-                  ? "bg-white text-hercom shadow-sm ring-1 ring-slate-200/80"
+                  ? "bg-hercom-muted text-hercom"
                   : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
               }`}
             >

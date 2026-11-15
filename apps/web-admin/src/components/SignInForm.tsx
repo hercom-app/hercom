@@ -1,7 +1,77 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { btnPrimaryClass, cardClass } from "../lib/adminUi";
-import { FloatingField, FloatingPasswordField } from "./FloatingField";
+import { EyeIcon, EyeOffIcon } from "./icons/EyeIcons";
+
+function MailIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      aria-hidden
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 7l9 7 9-7" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      aria-hidden
+    >
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 018 0v3" />
+    </svg>
+  );
+}
+
+function PillField({
+  id,
+  name,
+  type,
+  label,
+  autoComplete,
+  icon,
+  trailing,
+}: {
+  id: string;
+  name: string;
+  type: string;
+  label: string;
+  autoComplete?: string;
+  icon: ReactNode;
+  trailing?: ReactNode;
+}) {
+  return (
+    <label className="relative block">
+      <span className="sr-only">{label}</span>
+      <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+        {icon}
+      </span>
+      <input
+        id={id}
+        name={name}
+        type={type}
+        required
+        autoComplete={autoComplete}
+        placeholder={label}
+        className={`h-12 w-full rounded-full border border-slate-200 bg-slate-50 pl-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-hercom focus:bg-white focus:ring-2 focus:ring-hercom/20 ${
+          trailing !== undefined ? "pr-12" : "pr-4"
+        }`}
+      />
+      {trailing}
+    </label>
+  );
+}
 
 export function SignInForm() {
   const { signIn } = useAuthActions();
@@ -25,62 +95,87 @@ export function SignInForm() {
   }
 
   return (
-    <div className="grid min-h-dvh lg:grid-cols-2">
-      <aside className="relative hidden overflow-hidden bg-zinc-950 px-10 py-12 text-white lg:flex lg:flex-col lg:justify-center">
-        <h1 className="max-w-sm text-3xl font-semibold tracking-tight">
-          Panel de operaciones
-        </h1>
-        <div className="pointer-events-none absolute -right-20 top-20 h-72 w-72 rounded-full bg-hercom/20 blur-3xl" />
+    <div className="grid min-h-dvh bg-white lg:grid-cols-2">
+      <aside
+        className="relative hidden overflow-hidden px-14 py-16 text-white lg:flex lg:flex-col lg:justify-center"
+        style={{
+          backgroundImage: "linear-gradient(165deg, #0B70FE 0%, #0959CC 100%)",
+        }}
+      >
+        <div className="pointer-events-none absolute -bottom-28 -left-28 h-[460px] w-[460px] rounded-full border border-white/30" />
+        <div className="pointer-events-none absolute -bottom-10 -left-10 h-[300px] w-[300px] rounded-full border border-white/30" />
+        <div className="pointer-events-none absolute bottom-16 left-16 h-[150px] w-[150px] rounded-full border border-white/35" />
+
+        <div className="relative z-10 max-w-md">
+          <p className="text-4xl font-semibold tracking-tight sm:text-5xl">
+            Hercom
+          </p>
+          <p className="mt-4 max-w-xs text-base leading-relaxed text-white/85">
+            Chofer de reemplazo
+          </p>
+        </div>
       </aside>
 
-      <main className="flex items-center justify-center bg-admin-canvas px-4 py-10 sm:px-8">
-        <div className="w-full max-w-[400px]">
-          <div className="mb-8 lg:hidden">
+      <main className="flex items-center justify-center bg-white px-6 py-12 sm:px-10">
+        <div className="w-full max-w-[380px]">
+          <div className="mb-10 lg:hidden">
             <img
               src="/hercom-logo.png"
               alt="Hercom"
-              className="mx-auto h-24 w-auto"
+              className="mx-auto h-16 w-auto"
             />
           </div>
 
-          <div className={`${cardClass} shadow-panel`}>
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-              Bienvenido
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900">
-              Iniciar sesión
-            </h2>
+          <h2 className="text-3xl font-semibold tracking-tight text-slate-900">
+            Hola de nuevo
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">Bienvenido</p>
 
-            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-              <FloatingField
-                id="admin-email"
-                name="email"
-                type="email"
-                label="Usuario"
-                autoComplete="username"
-                required
-              />
+          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+            <PillField
+              id="admin-email"
+              name="email"
+              type="email"
+              label="Correo"
+              autoComplete="username"
+              icon={<MailIcon />}
+            />
 
-              <FloatingPasswordField
-                showPassword={showPassword}
-                onToggle={() => setShowPassword((previous) => !previous)}
-              />
+            <PillField
+              id="admin-password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              label="Contraseña"
+              autoComplete="current-password"
+              icon={<LockIcon />}
+              trailing={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((previous) => !previous)}
+                  className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-white hover:text-slate-700"
+                  aria-label={
+                    showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                  }
+                >
+                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                </button>
+              }
+            />
 
-              {error !== null && (
-                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {error}
-                </p>
-              )}
+            {error !== null && (
+              <p className="rounded-2xl bg-red-50 px-3 py-2 text-sm text-red-700">
+                {error}
+              </p>
+            )}
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className={`${btnPrimaryClass} w-full py-2.5`}
-              >
-                {submitting ? "Entrando…" : "Entrar al panel"}
-              </button>
-            </form>
-          </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex h-12 w-full items-center justify-center rounded-full bg-hercom text-sm font-semibold text-white shadow-sm transition hover:bg-hercom-dark focus:outline-none focus:ring-2 focus:ring-hercom/30 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? "Entrando…" : "Entrar"}
+            </button>
+          </form>
         </div>
       </main>
     </div>

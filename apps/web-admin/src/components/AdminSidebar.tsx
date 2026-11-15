@@ -186,16 +186,37 @@ export function AdminSidebar({
       ? NAV_ITEMS
       : NAV_ITEMS.filter((item) => SCOPED_ADMIN_SECTIONS.includes(item.id));
 
+  const displayName = userName.trim() !== "" ? userName.trim() : "Administrador";
+  const profileLabel = isHrOnly
+    ? "Recursos humanos"
+    : isFullAdmin
+      ? "Superadmin"
+      : "Admin";
+  const profileIsRedundant =
+    displayName.localeCompare(profileLabel, "es", { sensitivity: "accent" }) === 0;
+  const hasEmail = userEmail !== undefined && userEmail !== "";
+
   const sidebar = (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center gap-3 border-b border-slate-200/80 px-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-hercom-dark text-sm font-bold text-white shadow-sm">
-          H
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-slate-900">Hercom</p>
-          <p className="truncate text-xs text-slate-500">Operations</p>
-        </div>
+      <div className="border-b border-slate-200/80 px-5 py-4">
+        <img
+          src="/hercom-mark.png"
+          alt="Hercom"
+          className="h-14 w-auto"
+        />
+        <p className="mt-3 text-sm font-semibold leading-snug text-slate-900">
+          {displayName}
+        </p>
+        {profileIsRedundant ? null : (
+          <p className="mt-1 text-xs font-medium leading-snug text-hercom-dark">
+            {profileLabel}
+          </p>
+        )}
+        {hasEmail ? (
+          <p className="mt-1 break-all text-xs leading-snug text-slate-600">
+            {userEmail}
+          </p>
+        ) : null}
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
@@ -243,24 +264,6 @@ export function AdminSidebar({
       </nav>
 
       <div className="border-t border-slate-200/80 p-4">
-        <div className="mb-3 flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-hercom-muted text-sm font-semibold text-hercom-dark">
-            {(userName.trim()[0] ?? "A").toUpperCase()}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-slate-900">
-              {userName.trim() !== "" ? userName : "Administrador"}
-            </p>
-            <p className="truncate text-xs text-slate-500">
-              {isHrOnly
-                ? "Recursos humanos"
-                : isFullAdmin
-                  ? "Superadmin"
-                  : "Admin"}
-              {userEmail !== undefined && userEmail !== "" ? ` · ${userEmail}` : ""}
-            </p>
-          </div>
-        </div>
         <button
           type="button"
           onClick={() => void signOut()}

@@ -70,20 +70,7 @@ export const Footer = () => {
         <div className="col-span-1 flex flex-col items-center gap-2 lg:row-span-3 lg:col-start-3 lg:items-start">
           <p className="text-white font-semibold">Ciudades:</p>
           <p className="flex flex-wrap text-white gap-2 justify-center lg:flex-nowrap lg:flex-col lg:gap-0">
-            {[
-              "Arequipa",
-              "Callao",
-              "Chiclayo",
-              "Chincha",
-              "Cusco",
-              "Huacho",
-              "Huancayo",
-              "Ica",
-              "Lima",
-              "Pisco",
-              "Piura",
-              "Trujillo",
-            ].map((s, i) => (
+            {["Lima", "Callao"].map((s, i) => (
               <span key={`mobile-city-${i}`} className="lg:text-sm">
                 {s}
               </span>
@@ -102,11 +89,7 @@ export const Footer = () => {
                 {s.label}
               </Link>
             ))}
-            <Link
-              isExternal
-              className="text-white"
-              href="https://superb-ram-273.convex.cloud/api/storage/87b89bc9-3df1-45b1-bc4f-14d0a940abd0"
-            >
+            <Link className="text-white" href="/politica-de-privacidad">
               Política de privacidad
             </Link>
           </div>
@@ -118,25 +101,5 @@ export const Footer = () => {
         </div>
       </div>
     </footer>
-    // <footer className="w-full flex items-center justify-center py-3 bg-primary flex-col gap-5">
-    //   <div className="flex flex-col items-center lg:flex-row lg:gap-3">
-    //     {siteConfig.navItems.map((item, idx) => (
-    //       <Link key={idx} className="text-white" href={item.href}>
-    //         {item.label}
-    //       </Link>
-    //     ))}
-    //     <Link
-    //       isExternal
-    //       className="text-white"
-    //       href="https://superb-ram-273.convex.cloud/api/storage/87b89bc9-3df1-45b1-bc4f-14d0a940abd0"
-    //     >
-    //       Política de privacidad
-    //     </Link>
-    //   </div>
-    //   <div className="flex items-center gap-1 text-current">
-    //     <span className="text-white">Con el respaldo de</span>
-    //     <p className="text-white font-bold">Ricardos & Más S.A.C.</p>
-    //   </div>
-    // </footer>
   );
 };

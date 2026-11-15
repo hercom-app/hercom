@@ -15,8 +15,7 @@ import { Link } from "@nextui-org/link";
 import clsx from "clsx";
 import { useState } from "react";
 
-import { FacebookIcon } from "./icons";
-
+import { SocialLinks } from "@/components/social-links";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { siteConfig } from "@/config/site";
 
@@ -66,33 +65,16 @@ export const Navbar = () => {
         justify="end"
       >
         <NavbarItem className="hidden sm:flex gap-2">
-          {/* <Link isExternal aria-label="Twitter" href={siteConfig.links.twitter}>
-            <XIcon className="text-default-500" />
-          </Link>
-          <Link isExternal aria-label="Discord" href={siteConfig.links.discord}>
-            <InstagramIcon className="text-default-500" />
-          </Link> */}
-          <Link
-            isExternal
-            aria-label="Facebook"
-            href={siteConfig.links.facbook}
-          >
-            <FacebookIcon className="text-foreground" size={20} />
-          </Link>
+          <SocialLinks
+            iconClassName="text-foreground"
+            iconSize={20}
+          />
           <ThemeSwitch />
         </NavbarItem>
       </NavbarContent>
 
       <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
-        {/* <Link isExternal aria-label="Twitter" href={siteConfig.links.twitter}>
-          <XIcon className="text-default-500" />
-        </Link>
-        <Link isExternal aria-label="Discord" href={siteConfig.links.discord}>
-          <InstagramIcon className="text-default-500" />
-        </Link> */}
-        <Link isExternal aria-label="Discord" href={siteConfig.links.facbook}>
-          <FacebookIcon className="text-foreground" size={20} />
-        </Link>
+        <SocialLinks iconClassName="text-foreground" iconSize={20} />
         <ThemeSwitch />
         <NavbarMenuToggle />
       </NavbarContent>

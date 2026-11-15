@@ -16,6 +16,7 @@ import { api } from "@proyecto/backend";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppMode } from "../contexts/AppModeContext";
 import { DrawerIcon, type DrawerIconName } from "./DrawerIcons";
+import { ClientSocialLinks } from "./ClientSocialLinks";
 import { ThemeToggle } from "./ThemeToggle";
 import { UiBadge, UiChip } from "./ui";
 import { useAppTheme } from "../contexts/ThemeContext";
@@ -305,6 +306,7 @@ export function SideDrawer({
                 backgroundColor: colors.baseElevated,
               }}
             >
+              {mode !== "driver" ? <ClientSocialLinks /> : null}
               <ThemeToggle />
             </View>
           </View>

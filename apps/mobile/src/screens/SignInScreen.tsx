@@ -3,7 +3,7 @@ import { Animated, Easing, Image, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { LegalDocumentModal } from "../components/LegalDocumentModal";
-import { PRIVACY_POLICY, TERMS_OF_USE } from "../constants/legalCopy";
+import { PRIVACY_POLICY, TERMS_OF_USE } from "@proyecto/legal";
 import { HERCOM_COLORS, POPPINS } from "../constants/theme";
 
 const LOGO_WIDTH = 228;

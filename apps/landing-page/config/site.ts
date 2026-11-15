@@ -1,3 +1,5 @@
+import { HERCOM_SOCIAL } from "@proyecto/brand";
+
 export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
@@ -56,11 +58,8 @@ export const siteConfig = {
     },
   ],
   links: {
-    github: "https://github.com/nextui-org/nextui",
-    twitter: "https://twitter.com/getnextui",
-    docs: "https://nextui.org",
-    discord: "https://discord.gg/9b6yyZKmH4",
-    sponsor: "https://patreon.com/jrgarciadev",
-    facbook: "https://www.facebook.com/profile.php?id=61571135840620",
+    ...HERCOM_SOCIAL,
+    /** @deprecated usar `facebook` */
+    facbook: HERCOM_SOCIAL.facebook,
   },
 };

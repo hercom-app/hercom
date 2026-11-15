@@ -79,7 +79,7 @@ import { LegalDocumentModal } from "../components/LegalDocumentModal";
 import {
   DRIVER_PERSONAL_DATA_CONSENT,
   PRIVACY_POLICY,
-} from "../constants/legalCopy";
+} from "@proyecto/legal";
 
 type LicenseFormat = "physical" | "digital";
 type VehicleBodyType = "auto" | "camioneta";

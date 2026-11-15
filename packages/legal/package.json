@@ -1,0 +1,19 @@
+{
+  "name": "@proyecto/legal",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./legalCopy.ts",
+      "default": "./legalCopy.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "verify": "node --experimental-strip-types scripts/verify-exports.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

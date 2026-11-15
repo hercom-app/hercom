@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 import { title } from "@/components/primitives";
-import { PRIVACY_POLICY } from "@/lib/legalCopy";
+import { PRIVACY_POLICY } from "@proyecto/legal";
 
 export const metadata: Metadata = {
   title: PRIVACY_POLICY.title,

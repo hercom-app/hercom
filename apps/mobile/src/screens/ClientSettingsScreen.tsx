@@ -11,7 +11,7 @@ import {
   TacticalText,
   TacticalValue,
 } from "../components/tactical";
-import { PRIVACY_POLICY, TERMS_OF_USE } from "../constants/legalCopy";
+import { PRIVACY_POLICY, TERMS_OF_USE } from "@proyecto/legal";
 import {
   TACTICAL_BORDER,
   TACTICAL_BORDER_SOFT,

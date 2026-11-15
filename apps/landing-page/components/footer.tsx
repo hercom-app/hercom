@@ -5,7 +5,8 @@ import Image from "next/image";
 import { Link } from "@nextui-org/link";
 import { button as buttonStyles } from "@nextui-org/theme";
 
-import { LogosGooglePlay, LogosApple, FacebookIcon } from "./icons";
+import { LogosGooglePlay, LogosApple } from "./icons";
+import { SocialLinks } from "./social-links";
 
 import Logo from "@/assets/logo_inverted.png";
 import { siteConfig } from "@/config/site";
@@ -59,13 +60,7 @@ export const Footer = () => {
         )}
         <div className="col-span-1 flex flex-col items-center gap-2 lg:col-span-2 lg:col-start-1 lg:row-start-3 lg:items-start">
           <p className="text-white font-semibold">Siguenos en:</p>
-          <Link
-            isExternal
-            aria-label="Facebook"
-            href={siteConfig.links.facbook}
-          >
-            <FacebookIcon className="text-white" size={20} />
-          </Link>
+          <SocialLinks />
         </div>
         <div className="col-span-1 flex flex-col items-center gap-2 lg:row-span-3 lg:col-start-3 lg:items-start">
           <p className="text-white font-semibold">Ciudades:</p>

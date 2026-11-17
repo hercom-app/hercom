@@ -8,6 +8,7 @@ import {
 } from "convex/react";
 import { api } from "@proyecto/backend";
 import { SignInForm } from "./components/SignInForm";
+import { AdminSessionManager } from "./components/AdminSessionManager";
 import { AdminCard } from "./components/AdminLayout";
 import { AdminSidebar, SECTION_META } from "./components/AdminSidebar";
 import type { AdminSection } from "./components/AdminNav";
@@ -217,7 +218,9 @@ export default function App() {
         <SignInForm />
       </Unauthenticated>
       <Authenticated>
-        <Dashboard />
+        <AdminSessionManager>
+          <Dashboard />
+        </AdminSessionManager>
       </Authenticated>
     </>
   );

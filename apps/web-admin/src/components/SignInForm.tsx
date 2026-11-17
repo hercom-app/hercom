@@ -1,5 +1,12 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
+import {
+  ADMIN_TIMEOUT_REASON_KEY,
+  adminSessionTimeoutMessage,
+  markAdminSessionActivity,
+  touchAdminSessionStart,
+  type AdminSessionTimeoutReason,
+} from "../lib/adminSessionPolicy";
 import { EyeIcon, EyeOffIcon } from "./icons/EyeIcons";
 
 function MailIcon() {
@@ -76,6 +83,7 @@ function PillField({
 export function SignInForm() {
   const { signIn } = useAuthActions();
   const [error, setError] = useState<string | null>(null);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -87,6 +95,16 @@ export function SignInForm() {
     };
   }, []);
 
+  useEffect(() => {
+    const reason = sessionStorage.getItem(
+      ADMIN_TIMEOUT_REASON_KEY,
+    ) as AdminSessionTimeoutReason | null;
+    if (reason === "idle" || reason === "absolute") {
+      sessionStorage.removeItem(ADMIN_TIMEOUT_REASON_KEY);
+      setSessionNotice(adminSessionTimeoutMessage(reason));
+    }
+  }, []);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -95,6 +113,8 @@ export function SignInForm() {
     formData.set("flow", "signIn");
     try {
       await signIn("password", formData);
+      touchAdminSessionStart();
+      markAdminSessionActivity();
     } catch {
       setError("Usuario o contraseña incorrectos.");
     } finally {
@@ -168,6 +188,12 @@ export function SignInForm() {
                 </button>
               }
             />
+
+            {sessionNotice !== null && (
+              <p className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                {sessionNotice}
+              </p>
+            )}
 
             {error !== null && (
               <p className="rounded-2xl bg-red-50 px-3 py-2 text-sm text-red-700">

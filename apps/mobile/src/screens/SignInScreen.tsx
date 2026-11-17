@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Image, Text, View } from "react-native";
+import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { LegalDocumentModal } from "../components/LegalDocumentModal";
+import {
+  SIGN_IN_LAYOUT_FLEX,
+  SignInScreenBackground,
+} from "../components/SignInScreenBackground";
 import { PRIVACY_POLICY, TERMS_OF_USE } from "@proyecto/legal";
 import { HERCOM_COLORS, POPPINS } from "../constants/theme";
 
@@ -10,8 +14,8 @@ const LOGO_WIDTH = 228;
 const LOGO_HEIGHT = Math.round(LOGO_WIDTH * (620 / 561));
 
 /**
- * Portada: fondo primario a pantalla completa, el logo entra con un rebote
- * (como Yango) y después sube la tarjeta de inicio de sesión.
+ * Portada al estilo splash comercial: mapa/autopistas arriba, gris abajo,
+ * logo animado y tarjeta de acceso.
  */
 export function SignInScreen() {
   const insets = useSafeAreaInsets();
@@ -79,108 +83,120 @@ export function SignInScreen() {
   }, [logoLift, logoOpacity, logoScale, sheetOpacity, sheetY]);
 
   return (
-    <View className="flex-1" style={{ backgroundColor: HERCOM_COLORS.primary }}>
-      <View
-        className="flex-1 items-center justify-center"
-        style={{ paddingTop: insets.top }}
-      >
-        <Animated.View
-          style={{
-            opacity: logoOpacity,
-            transform: [{ translateY: logoLift }, { scale: logoScale }],
-          }}
-        >
-          <Image
-            source={require("../../assets/images/hercom-logo.png")}
-            style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT }}
-            resizeMode="contain"
-            accessibilityLabel="Hercom, chofer para remplazo"
-          />
-        </Animated.View>
-      </View>
+    <View className="flex-1">
+      <SignInScreenBackground />
 
-      <Animated.View
-        pointerEvents={sheetInteractive ? "auto" : "none"}
-        style={{
-          opacity: sheetOpacity,
-          transform: [{ translateY: sheetY }],
-          paddingHorizontal: 18,
-          paddingBottom: Math.max(insets.bottom, 12) + 8,
-        }}
-      >
+      <View className="flex-1" style={styles.content}>
         <View
+          className="items-center justify-center"
           style={{
-            backgroundColor: "#FFFFFF",
-            borderRadius: 28,
-            paddingHorizontal: 18,
-            paddingTop: 22,
-            paddingBottom: 18,
+            flex: SIGN_IN_LAYOUT_FLEX.hero,
+            paddingTop: insets.top,
           }}
         >
-          <Text
-            className="mb-4 text-center"
+          <Animated.View
             style={{
-              fontFamily: POPPINS.semibold,
-              fontSize: 18,
-              color: HERCOM_COLORS.text,
+              opacity: logoOpacity,
+              transform: [{ translateY: logoLift }, { scale: logoScale }],
             }}
           >
-            Inicia sesión
-          </Text>
-          <GoogleSignInButton
-            variant="welcome"
-            label="Continuar con Google"
-            onError={(message) => setError(message)}
-          />
+            <Image
+              source={require("../../assets/images/hercom-logo.png")}
+              style={{ width: LOGO_WIDTH, height: LOGO_HEIGHT }}
+              resizeMode="contain"
+              accessibilityLabel="Hercom, chofer para remplazo"
+            />
+          </Animated.View>
         </View>
 
-        {error !== null && (
-          <Text
-            className="mt-3 text-center"
-            style={{
-              fontFamily: POPPINS.medium,
-              fontSize: 14,
-              color: "#FFFFFF",
-            }}
-          >
-            {error}
-          </Text>
-        )}
-
-        <Text
-          className="mt-4 text-center"
+        <Animated.View
+          pointerEvents={sheetInteractive ? "auto" : "none"}
           style={{
-            fontFamily: POPPINS.regular,
-            fontSize: 13,
-            color: "rgba(15, 23, 42, 0.78)",
-            lineHeight: 18,
+            flex: SIGN_IN_LAYOUT_FLEX.lower,
+            opacity: sheetOpacity,
+            transform: [{ translateY: sheetY }],
+            marginTop: -36,
+            paddingHorizontal: 18,
+            paddingBottom: Math.max(insets.bottom, 12) + 8,
           }}
         >
-          Al unirte a nuestra aplicación, aceptas nuestros{" "}
+          <View style={styles.loginCard}>
+            <Text
+              className="mb-1 text-center"
+              style={{
+                fontFamily: POPPINS.semibold,
+                fontSize: 20,
+                color: HERCOM_COLORS.text,
+              }}
+            >
+              Bienvenidos a HERCOM
+            </Text>
+            <Text
+              className="mb-5 text-center"
+              style={{
+                fontFamily: POPPINS.regular,
+                fontSize: 14,
+                color: HERCOM_COLORS.textMuted,
+                lineHeight: 20,
+              }}
+            >
+              Continúa con tu cuenta de Google para ingresar a la app.
+            </Text>
+            <GoogleSignInButton
+              variant="welcome"
+              label="Continuar con Google"
+              onError={(message) => setError(message)}
+            />
+          </View>
+
+          {error !== null && (
+            <Text
+              className="mt-3 text-center"
+              style={{
+                fontFamily: POPPINS.medium,
+                fontSize: 14,
+                color: HERCOM_COLORS.danger,
+              }}
+            >
+              {error}
+            </Text>
+          )}
+
           <Text
+            className="mt-4 text-center"
             style={{
-              fontFamily: POPPINS.medium,
-              color: HERCOM_COLORS.text,
-              textDecorationLine: "underline",
+              fontFamily: POPPINS.regular,
+              fontSize: 13,
+              color: HERCOM_COLORS.textSecondary,
+              lineHeight: 18,
             }}
-            onPress={() => setLegalDoc("terms")}
           >
-            Términos de Uso
+            Al unirte a nuestra aplicación, aceptas nuestros{" "}
+            <Text
+              style={{
+                fontFamily: POPPINS.medium,
+                color: HERCOM_COLORS.text,
+                textDecorationLine: "underline",
+              }}
+              onPress={() => setLegalDoc("terms")}
+            >
+              Términos de Uso
+            </Text>
+            {" y "}
+            <Text
+              style={{
+                fontFamily: POPPINS.medium,
+                color: HERCOM_COLORS.text,
+                textDecorationLine: "underline",
+              }}
+              onPress={() => setLegalDoc("privacy")}
+            >
+              Política de Privacidad
+            </Text>
+            .
           </Text>
-          {" y "}
-          <Text
-            style={{
-              fontFamily: POPPINS.medium,
-              color: HERCOM_COLORS.text,
-              textDecorationLine: "underline",
-            }}
-            onPress={() => setLegalDoc("privacy")}
-          >
-            Política de Privacidad
-          </Text>
-          .
-        </Text>
-      </Animated.View>
+        </Animated.View>
+      </View>
 
       <LegalDocumentModal
         visible={legalDoc === "terms"}
@@ -197,3 +213,21 @@ export function SignInScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  content: {
+    zIndex: 1,
+  },
+  loginCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingTop: 22,
+    paddingBottom: 18,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 6,
+  },
+});

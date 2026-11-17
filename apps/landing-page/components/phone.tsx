@@ -29,8 +29,8 @@ export const Phone = ({ image }: Props) => {
         <Image
           priority
           alt="Phone image"
-          className="w-full h-full object-cover"
-          src={Splash}
+          className="w-full h-full object-cover object-top"
+          src={image ?? Splash}
         />
       </div>
     </div>

@@ -1,9 +1,20 @@
-/** ¿Tiene al menos un viaje prepagado para ofertar? */
-export function hasTripCreditForOffer(tripCredits: number): boolean {
-  return Math.round(tripCredits) >= 1;
+import {
+  MIN_DRIVER_WALLET_BALANCE,
+  PLATFORM_COMMISSION_RATE,
+} from "@proyecto/backend/constants";
+
+/** Comisión estimada con la tasa por defecto. El servidor aplica la del distrito. */
+export function estimatedCommission(offeredPrice: number): number {
+  return Math.round(offeredPrice * PLATFORM_COMMISSION_RATE * 100) / 100;
 }
 
-export function formatTripCredits(tripCredits: number): string {
-  const n = Math.max(0, Math.round(tripCredits));
-  return n === 1 ? "1 viaje" : `${n} viajes`;
+/** El saldo después de la comisión no puede bajar de S/-15. */
+export function canAffordOffer(
+  balance: number,
+  offeredPrice: number,
+  commission?: number,
+): boolean {
+  const debit = commission ?? estimatedCommission(offeredPrice);
+  const next = Math.round((balance - debit) * 100) / 100;
+  return next >= MIN_DRIVER_WALLET_BALANCE;
 }

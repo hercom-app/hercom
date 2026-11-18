@@ -10,7 +10,8 @@ import {
   TacticalEmpty,
   TacticalValue,
 } from "./tactical";
-import { HERCOM_COLORS, MONO, TACTICAL_COLORS } from "../constants/theme";
+import { HERCOM_COLORS, MONO, POPPINS, TACTICAL_COLORS } from "../constants/theme";
+import { MoneyPair, quoteOffer } from "./FirstTripsFare";
 
 export type DriverOfferInfo = {
   _id: Id<"serviceOffers">;
@@ -31,6 +32,8 @@ export type DriverOfferInfo = {
 type DriverOfferModalProps = {
   visible: boolean;
   offer: DriverOfferInfo | null;
+  discountRate?: number;
+  discountLabel?: string;
   accepting: boolean;
   error: string | null;
   onClose: () => void;
@@ -40,12 +43,15 @@ type DriverOfferModalProps = {
 export function DriverOfferModal({
   visible,
   offer,
+  discountRate,
+  discountLabel = "Primeros viajes",
   accepting,
   error,
   onClose,
   onAccept,
 }: DriverOfferModalProps) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const fare = offer === null ? null : quoteOffer(offer.offeredPrice, discountRate);
   return (
     <>
     <AppModal
@@ -110,10 +116,35 @@ export function DriverOfferModal({
               {offer.driverAboutMe}
             </Text>
           )}
-          <TripPriceFooter
-            label="Tarifa ofertada"
-            price={`S/${offer.offeredPrice.toFixed(2)}`}
-          />
+          {fare !== null && fare.discounted ? (
+            <View style={{ marginTop: 12 }}>
+              <Text
+                style={{
+                  fontFamily: POPPINS.semibold,
+                  fontSize: 13,
+                  color: TACTICAL_COLORS.accent,
+                }}
+              >
+                {discountLabel}
+              </Text>
+              <View style={{ marginTop: 8 }}>
+                <MoneyPair
+                  leftLabel="Oferta del chofer"
+                  leftAmount={fare.offer}
+                  rightLabel="Pagas"
+                  rightAmount={fare.clientPays}
+                  strikeLeft
+                  leftSize={18}
+                  rightSize={28}
+                />
+              </View>
+            </View>
+          ) : (
+            <TripPriceFooter
+              label="Tarifa ofertada"
+              price={`S/${offer.offeredPrice.toFixed(2)}`}
+            />
+          )}
           {error !== null && (
             <Text
               className="mt-3 text-xs"

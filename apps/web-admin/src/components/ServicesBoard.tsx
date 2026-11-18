@@ -86,11 +86,15 @@ export function ServicesBoard({
                 <th className={thClass} title="services.destination.address">
                   Destino (A)
                 </th>
-                <th className={thClass} title="services.promotionName">
-                  Promo
+                <th className={thClass} title="services.discountKind / promotionName">
+                  Descuento
                 </th>
-                <th className={thClass}>Total</th>
-                <th className={thClass}>Membresía (comisión)</th>
+                <th className={thClass} title="Oferta del chofer y lo que paga el cliente">
+                  Tarifa
+                </th>
+                <th className={thClass} title="services.driverCommission">
+                  Comisión
+                </th>
                 <th className={thClass}>Anticipo</th>
                 <th className={thClass}>Estado</th>
                 <th
@@ -104,6 +108,18 @@ export function ServicesBoard({
             </thead>
             <tbody>
               {paged.map((service) => {
+                const offer =
+                  service.offeredPrice ?? service.catalogBasePrice ?? service.basePrice;
+                const discounted =
+                  (service.discountRate ?? 0) > 0 &&
+                  offer !== undefined &&
+                  service.totalPrice + 0.009 < offer;
+                const discountLabel =
+                  service.discountKind === "first_trips"
+                    ? "Primeros viajes"
+                    : service.discountKind === "campaign"
+                      ? (service.promotionName ?? "Campaña")
+                      : (service.promotionName ?? "—");
                 const advanceAmount =
                   service.advanceAmount ??
                   (service.offeredPrice !== undefined
@@ -171,10 +187,23 @@ export function ServicesBoard({
                       />
                     </td>
                     <td className={`${tdClass} text-xs`}>
-                      {service.promotionName ?? "—"}
+                      {discountLabel}
                     </td>
-                    <td className={`${tdClass} font-semibold text-slate-900`}>
-                      S/{service.totalPrice.toFixed(2)}
+                    <td className={`${tdClass} text-slate-900`}>
+                      {discounted && offer !== undefined ? (
+                        <>
+                          <span className="block text-xs text-slate-400 line-through">
+                            Oferta S/{offer.toFixed(2)}
+                          </span>
+                          <span className="font-semibold">
+                            Paga S/{service.totalPrice.toFixed(2)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="font-semibold">
+                          S/{service.totalPrice.toFixed(2)}
+                        </span>
+                      )}
                     </td>
                     <td className={tdClass}>
                       S/{service.driverCommission.toFixed(2)}

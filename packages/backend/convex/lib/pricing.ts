@@ -1,13 +1,10 @@
-import {
-  MAX_PROMOTION_DISCOUNT_RATE,
-  PLATFORM_COMMISSION_RATE,
-} from "./constants";
-import {
-  computeTieredPlatformCommission,
-  inferServiceHoursFromListPrice,
-  type MarketCommissionConfig,
-} from "./commissionTiers";
+import { PLATFORM_COMMISSION_RATE } from "./constants";
+import { inferServiceHoursFromListPrice } from "./commissionTiers";
+import { quoteDriverFare } from "./driverFare";
 import type { MarketPricing } from "./markets";
+
+export { driverFacingTripMoney, quoteDriverFare } from "./driverFare";
+export type { DriverFareQuote } from "./driverFare";
 
 export type PromotionalPricing = {
   listPrice: number;
@@ -22,94 +19,58 @@ function normalizeMoney(amount: number): number {
 }
 
 /**
- * Precio con promoción festiva: el descuento lo absorbe Hercom; el chofer mantiene
- * su neto sobre la tarifa de lista (75% del precio de lista).
+ * El descuento lo absorbe Hercom. El chofer sigue ganando lista × (1 − comisión)
+ * y ve la oferta tachada, lo que le paga el cliente y la comisión menor.
  *
- * Ejemplo lista S/80, descuento 10%:
- * - Cliente paga S/72
- * - Chofer neto S/60 (75% de 80)
- * - Hercom S/12
+ * Lista S/80, comisión 25%, descuento 15% (S/12):
+ * - Cliente le paga al chofer S/68
+ * - Comisión S/8 (no S/20)
+ * - Chofer se queda S/60
  */
 export function computePromotionalPricing(
   listPrice: number,
   discountRate: number,
+  commissionRate: number = PLATFORM_COMMISSION_RATE,
 ): PromotionalPricing {
-  const rate = Math.min(Math.max(discountRate, 0), MAX_PROMOTION_DISCOUNT_RATE);
-  const list = normalizeMoney(listPrice);
-  const clientPrice = normalizeMoney(list * (1 - rate));
-  const driverNet = normalizeMoney(list * (1 - PLATFORM_COMMISSION_RATE));
-  const platformCommission = normalizeMoney(Math.max(clientPrice - driverNet, 0));
+  const quote = quoteDriverFare(listPrice, discountRate, commissionRate);
   return {
-    listPrice: list,
-    discountRate: rate,
-    clientPrice,
-    driverNet,
-    platformCommission,
+    listPrice: quote.offer,
+    discountRate: quote.discountRate,
+    clientPrice: quote.clientPays,
+    driverNet: quote.net,
+    platformCommission: quote.commission,
   };
 }
 
 export function computeClientTotalForOffer(
   offeredPrice: number,
   discountRate: number | undefined,
+  commissionRate: number = PLATFORM_COMMISSION_RATE,
 ): number {
   if (discountRate === undefined || discountRate <= 0) {
     return normalizeMoney(offeredPrice);
   }
-  return computePromotionalPricing(offeredPrice, discountRate).clientPrice;
-}
-
-export function marketToCommissionConfig(
-  market: MarketPricing,
-): MarketCommissionConfig {
-  const config: MarketCommissionConfig = {
-    commissionRate: market.commissionRate,
-  };
-  if (market.commissionRateFromHour3 !== undefined) {
-    config.commissionRateFromHour3 = market.commissionRateFromHour3;
-  }
-  if (market.commissionRateFromHour8 !== undefined) {
-    config.commissionRateFromHour8 = market.commissionRateFromHour8;
-  }
-  if (market.commissionFromHour3 !== undefined) {
-    config.commissionFromHour3 = market.commissionFromHour3;
-  }
-  if (market.commissionFromHour8 !== undefined) {
-    config.commissionFromHour8 = market.commissionFromHour8;
-  }
-  return config;
+  return computePromotionalPricing(offeredPrice, discountRate, commissionRate)
+    .clientPrice;
 }
 
 export function computePlatformCommissionForService(
   offeredPrice: number,
   discountRate: number | undefined,
   options?: {
+    /** Porcentaje plano sobre lo que gana el chofer. Defecto: 25%. */
+    commissionRate?: number;
     serviceHours?: number;
     hourlyRate?: number;
     market?: MarketPricing;
   },
 ): number {
   const list = normalizeMoney(offeredPrice);
-  let baseCommission: number;
-  if (
-    options?.serviceHours !== undefined &&
-    options.hourlyRate !== undefined &&
-    options.market !== undefined &&
-    options.serviceHours > 0 &&
-    options.hourlyRate > 0
-  ) {
-    baseCommission = computeTieredPlatformCommission(
-      options.hourlyRate,
-      options.serviceHours,
-      marketToCommissionConfig(options.market),
-    );
-  } else {
-    baseCommission = normalizeMoney(list * PLATFORM_COMMISSION_RATE);
-  }
-
+  const rate = options?.commissionRate ?? PLATFORM_COMMISSION_RATE;
   if (discountRate === undefined || discountRate <= 0) {
-    return baseCommission;
+    return normalizeMoney(list * rate);
   }
-  const promo = computePromotionalPricing(list, discountRate);
+  const promo = computePromotionalPricing(list, discountRate, rate);
   return normalizeMoney(Math.max(promo.platformCommission, 0));
 }
 

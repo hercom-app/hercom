@@ -55,7 +55,7 @@ export function PromotionsPanel() {
 
   const exampleRows = useMemo(
     () =>
-      [0, 0.1, 0.2, 0.25].map((rate) => {
+      [0, 0.15, 0.25].map((rate) => {
         const client = 80 * (1 - rate);
         const driver = 60;
         const hercom = Math.max(client - driver, 0);
@@ -106,9 +106,9 @@ export function PromotionsPanel() {
     <section className="rounded-3xl bg-white p-6 shadow-lg">
       <h2 className="mb-1 text-lg font-bold text-slate-900">Promociones</h2>
       <p className="mb-4 text-sm text-slate-500">
-        Descuentos festivos por región. El chofer mantiene su neto (75% de la
-        tarifa de lista); Hercom absorbe el descuento hasta un tope del{" "}
-        <strong>25%</strong>.
+        Campaña de fechas por región (Navidad, Fiestas Patrias). No se acumula
+        con el descuento de los primeros 3 viajes: si al cliente le queda cupo,
+        usa solo ese; si ya lo gastó, usa solo este porcentaje. Tope <strong>25%</strong>.
       </p>
 
       <div className="mb-6 overflow-x-auto rounded-2xl border border-slate-200">
@@ -135,7 +135,7 @@ export function PromotionsPanel() {
           </tbody>
         </table>
         <p className="border-t border-slate-100 px-3 py-2 text-[11px] text-slate-500">
-          Ejemplo con tarifa de lista S/80 (2h × S/40/h). A 25% Hercom gana S/0.
+          Lista S/80. Sin descuento el cliente paga S/80 y Hercom cobra S/20. Con 15% el cliente le paga al chofer S/68 y Hercom cobra S/8. El chofer se queda S/60 en los dos casos.
         </p>
       </div>
 

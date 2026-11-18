@@ -20,6 +20,7 @@ export function DistrictPricingRulesPanel({ countryCode }: Props) {
   const [district, setDistrict] = useState("");
   const [maxOffer, setMaxOffer] = useState("");
   const [maxMarkupPercent, setMaxMarkupPercent] = useState("50");
+  const [commissionPercent, setCommissionPercent] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +33,7 @@ export function DistrictPricingRulesPanel({ countryCode }: Props) {
       const districtTrim = district.trim();
       const maxOfferTrim = maxOffer.trim();
       const maxMarkupTrim = maxMarkupPercent.trim();
+      const commissionTrim = commissionPercent.trim();
       await upsert({
         countryCode,
         department: department.trim(),
@@ -41,6 +43,9 @@ export function DistrictPricingRulesPanel({ countryCode }: Props) {
         ...(maxOfferTrim !== "" ? { maxDriverOfferPrice: Number(maxOfferTrim) } : {}),
         ...(maxMarkupTrim !== ""
           ? { maxDriverMarkupOverBase: Number(maxMarkupTrim) / 100 }
+          : {}),
+        ...(commissionTrim !== ""
+          ? { commissionRate: Number(commissionTrim) / 100 }
           : {}),
       });
       setMessage("Regla guardada.");
@@ -59,11 +64,11 @@ export function DistrictPricingRulesPanel({ countryCode }: Props) {
   return (
     <AdminCard>
       <h2 className="mb-2 text-lg font-semibold text-slate-900">
-        Topes de oferta por distrito
+        Topes y comisión por distrito
       </h2>
       <p className="mb-4 text-sm text-slate-600">
-        Limita cuánto puede ofertar un chofer sobre la tarifa base (anti-estafa).
-        Si no hay regla, se usa el recargo máximo del mercado (+50% por defecto).
+        Limita cuánto puede ofertar un chofer y, si quieres, la comisión de Hercom
+        sobre lo que gana. Sin comisión en la regla se usa el 25% por defecto.
       </p>
 
       <form onSubmit={handleSubmit} className="mb-6 grid gap-3 md:grid-cols-2">
@@ -102,6 +107,19 @@ export function DistrictPricingRulesPanel({ countryCode }: Props) {
             onChange={(e) => setMaxOffer(e.target.value)}
             className={inputClass}
             placeholder="Ej. 120"
+          />
+        </label>
+        <label className="block">
+          <span className={labelClass}>Comisión Hercom (%)</span>
+          <input
+            type="number"
+            min="1"
+            max="100"
+            step="0.1"
+            value={commissionPercent}
+            onChange={(e) => setCommissionPercent(e.target.value)}
+            className={inputClass}
+            placeholder="25 por defecto"
           />
         </label>
         <label className="block">
@@ -144,6 +162,9 @@ export function DistrictPricingRulesPanel({ countryCode }: Props) {
                   ` · máx S/${rule.maxDriverOfferPrice.toFixed(2)}`}
                 {rule.maxDriverMarkupOverBase !== undefined &&
                   ` · +${Math.round(rule.maxDriverMarkupOverBase * 100)}%`}
+                {rule.commissionRate !== undefined
+                  ? ` · comisión ${Math.round(rule.commissionRate * 1000) / 10}%`
+                  : " · comisión 25%"}
               </span>
               <button
                 type="button"

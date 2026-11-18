@@ -9,7 +9,7 @@ import {
   isWithinDriverServiceRadius,
 } from "./lib/geoDistance";
 import { getMarketByCountry } from "./lib/markets";
-import { resolveOfferLimits } from "./lib/offerLimits";
+import { resolveCommissionRate, resolveOfferLimits } from "./lib/offerLimits";
 import {
   computeClientTotalForOffer,
   computePlatformCommissionForService,
@@ -20,7 +20,11 @@ import {
   hasYapeOrPlin,
   MISSING_PAYOUT_OFFER_MESSAGE,
 } from "./lib/driverPayout";
-import { hasTripCreditForService } from "./driverWallets";
+import {
+  balanceCoversCommission,
+  getWalletBalance,
+  insufficientBalanceMessage,
+} from "./driverWallets";
 import { createNotification } from "./notifications";
 import { driverPhotoUrl } from "./lib/driverPublicPhoto";
 
@@ -115,12 +119,17 @@ export const submitMyOffer = mutation({
       };
     }
 
-    const hasTrips = await hasTripCreditForService(ctx, driver._id);
-    if (!hasTrips) {
+    const commissionRate = await resolveCommissionRate(ctx, service.origin);
+    const commission = computePlatformCommissionForService(
+      offeredPrice,
+      service.discountRate,
+      { commissionRate },
+    );
+    const balance = await getWalletBalance(ctx, driver._id);
+    if (!balanceCoversCommission(balance, commission)) {
       return {
         ok: false as const,
-        message:
-          "No tienes viajes prepagados. Recarga un paquete antes de ofertar.",
+        message: insufficientBalanceMessage(balance, commission, commissionRate),
       };
     }
 
@@ -291,6 +300,7 @@ export const acceptOffer = mutation({
     }
 
     const market = await getMarketByCountry(ctx, service.origin.countryCode);
+    const commissionRate = await resolveCommissionRate(ctx, service.origin);
     const { serviceHours, hourlyRateSnapshot } = resolveServiceHoursAndHourlyRate(
       offer.offeredPrice,
       market,
@@ -298,17 +308,18 @@ export const acceptOffer = mutation({
     const commission = computePlatformCommissionForService(
       offer.offeredPrice,
       service.discountRate,
-      { serviceHours, hourlyRate: hourlyRateSnapshot, market },
+      { commissionRate },
     );
     const clientTotal = computeClientTotalForOffer(
       offer.offeredPrice,
       service.discountRate,
+      commissionRate,
     );
     const advanceAmount = computeClientAdvance(offer.offeredPrice);
-    const hasTrips = await hasTripCreditForService(ctx, driver._id);
-    if (!hasTrips) {
+    const balance = await getWalletBalance(ctx, driver._id);
+    if (!balanceCoversCommission(balance, commission)) {
       throw new Error(
-        "El chofer seleccionado ya no tiene viajes prepagados. Elige otra oferta.",
+        insufficientBalanceMessage(balance, commission, commissionRate),
       );
     }
 

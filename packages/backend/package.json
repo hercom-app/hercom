@@ -32,6 +32,14 @@
       "types": "./convex/lib/personName.ts",
       "default": "./convex/lib/personName.ts"
     },
+    "./constants": {
+      "types": "./convex/lib/constants.ts",
+      "default": "./convex/lib/constants.ts"
+    },
+    "./driverFare": {
+      "types": "./convex/lib/driverFare.ts",
+      "default": "./convex/lib/driverFare.ts"
+    },
     "./driverTopUpPackages": {
       "types": "./convex/lib/driverTopUpPackages.ts",
       "default": "./convex/lib/driverTopUpPackages.ts"

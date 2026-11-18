@@ -56,6 +56,8 @@ export const payoutStatusValidator = v.union(
 
 export const walletTransactionTypeValidator = v.union(
   v.literal("top_up"),
+  v.literal("commission_debit"),
+  /** Legacy: consumo de un viaje prepagado. */
   v.literal("trip_debit"),
 );
 
@@ -173,6 +175,21 @@ export default defineSchema({
     /** Consultas RENIEC desde app chofer (máx. 2, luego bloqueo 8 h). */
     reniecDriverLookupCount: v.optional(v.number()),
     reniecDriverLookupBlockedUntil: v.optional(v.number()),
+    /**
+     * Cupo de descuento de primeros viajes de este cliente.
+     * 3 si nunca se escribió. Se guarda aquí para no tener el tope solo en código.
+     */
+    firstTripsDiscountLimit: v.optional(v.number()),
+    /**
+     * Cuántos servicios de este cliente ocupan cupo ahora.
+     * Suma al crear un viaje y resta al cancelarlo o marcarlo no atendido.
+     */
+    firstTripsDiscountUsed: v.optional(v.number()),
+    /**
+     * Porcentaje del descuento de primeros viajes (0.15 = 15%).
+     * No se suma a una campaña de fechas. Si faltaba, se escribe 0.15.
+     */
+    firstTripsDiscountRate: v.optional(v.number()),
   })
     .index("email", ["email"])
     .index("phone", ["phone"])
@@ -319,11 +336,24 @@ export default defineSchema({
     extraDestinations: v.optional(v.array(locationValidator)),
     // Índice de parada activa durante el viaje (0 = destino principal).
     currentStopIndex: v.optional(v.number()),
-    // Tarifa base solicitada por el cliente (mín. S/80 = S/40/h × 2h).
+    // Lo que paga el cliente sobre la tarifa de lista, ya con descuento si entró.
     basePrice: v.number(),
-    // Tarifa de lista antes de descuento festivo (si aplica promoción).
+    // Tarifa de lista, sin descuento. La oferta del chofer no puede bajar de esto.
     catalogBasePrice: v.optional(v.number()),
+    /**
+     * Descuento de este servicio (0.15 = 15%).
+     * Se copia de `promotions.discountRate` al crear la solicitud.
+     * Ausente = este viaje no tiene descuento.
+     * No cuenta los primeros viajes: ese cupo se calcula contando filas de `services`.
+     */
     discountRate: v.optional(v.number()),
+    /**
+     * Un solo descuento por viaje. No se acumulan.
+     * first_trips = cupo del cliente. campaign = promoción de fechas.
+     */
+    discountKind: v.optional(
+      v.union(v.literal("first_trips"), v.literal("campaign")),
+    ),
     promotionId: v.optional(v.id("promotions")),
     promotionName: v.optional(v.string()),
     // Tarifa ofertada por el chofer y aceptada por el cliente.
@@ -423,30 +453,37 @@ export default defineSchema({
     .index("by_driver_status", ["driverId", "status"]),
 
   /**
-   * Viajes prepagados del chofer (recargas por paquete).
+   * Saldo en soles del chofer para la comisión de Hercom.
+   * Puede quedar negativo hasta el piso (S/-15).
    */
   driverWallets: defineTable({
     driverId: v.id("drivers"),
-    tripCredits: v.number(),
+    /** Saldo en soles. Negativo = comisión adeudada a Hercom. */
+    balance: v.optional(v.number()),
+    /** Legacy: viajes prepagados. Ya no habilita ni cobra servicios. */
+    tripCredits: v.optional(v.number()),
     updatedAt: v.number(),
   }).index("by_driver", ["driverId"]),
 
   /**
-   * Historial de movimientos de viajes del chofer (incluye recargas).
-   * - `top_up`: recarga de paquete; `tripsPurchased` y `amount` = viajes acreditados;
-   *   `packageId` + `pricePenPaid` identifican el paquete (30→1, 50→2, 100→5).
-   * - `trip_debit`: consumo al cerrar un viaje; `amount` = 1.
+   * Movimientos del saldo del chofer.
+   * - `top_up`: recarga de soles; `amount` y `pricePenPaid` = monto acreditado.
+   * - `commission_debit`: comisión del viaje; `amount` = soles descontados.
+   * - `trip_debit`: legacy del modelo por viajes.
    */
   walletTransactions: defineTable({
     driverId: v.id("drivers"),
     type: walletTransactionTypeValidator,
-    /** Viajes del movimiento (+ recarga o − consumo). */
+    /** Soles del movimiento (siempre positivo). En `trip_debit` legacy era la cantidad de viajes. */
     amount: v.number(),
-    /** Solo recargas: viajes adquiridos con el paquete (igual que `amount` en top_up). */
+    /** Legacy: viajes del paquete. */
     tripsPurchased: v.optional(v.number()),
     packageId: v.optional(driverTopUpPackageIdValidator),
     pricePenPaid: v.optional(v.number()),
-    tripsAfter: v.number(),
+    /** Legacy: viajes restantes después del movimiento. */
+    tripsAfter: v.optional(v.number()),
+    /** Saldo en soles después del movimiento. */
+    balanceAfter: v.optional(v.number()),
     serviceId: v.optional(v.id("services")),
     createdByUserId: v.optional(v.id("users")),
     note: v.optional(v.string()),
@@ -544,10 +581,11 @@ export default defineSchema({
     usdExchangeRate: v.number(),
     hourlyRate: v.number(),
     minServiceHours: v.number(),
+    /** Comisión por defecto del país. El cobro vigente usa 25% salvo regla de distrito. */
     commissionRate: v.number(),
-    /** Comisión desde la 3.ª hora (default 15%). */
+    /** Legacy: comisión desde la 3.ª hora. El cobro actual es un porcentaje plano. */
     commissionRateFromHour3: v.optional(v.number()),
-    /** Comisión desde la 8.ª hora (default 10%). */
+    /** Legacy: comisión desde la 8.ª hora. El cobro actual es un porcentaje plano. */
     commissionRateFromHour8: v.optional(v.number()),
     commissionFromHour3: v.optional(v.number()),
     commissionFromHour8: v.optional(v.number()),
@@ -562,7 +600,7 @@ export default defineSchema({
     .index("by_country", ["countryCode"]),
 
   /**
-   * Topes de oferta del chofer por distrito (anti-estafa).
+   * Topes de oferta y comisión Hercom por departamento, provincia o distrito.
    */
   districtPricingRules: defineTable({
     countryCode: v.string(),
@@ -571,13 +609,19 @@ export default defineSchema({
     district: v.optional(v.string()),
     maxDriverOfferPrice: v.optional(v.number()),
     maxDriverMarkupOverBase: v.optional(v.number()),
+    /**
+     * Comisión Hercom sobre lo que gana el chofer (0.25 = 25%).
+     * Si falta, se usa el 25% por defecto.
+     */
+    commissionRate: v.optional(v.number()),
     active: v.boolean(),
     updatedAt: v.number(),
     updatedBy: v.id("users"),
   }).index("by_country_department", ["countryCode", "department"]),
 
   /**
-   * Promociones festivas por región (país + niveles 1/2/3).
+   * Campaña de fechas por región (Navidad, Fiestas Patrias).
+   * Su porcentaje no se suma al de los primeros viajes: el viaje usa uno u otro.
    */
   promotions: defineTable({
     name: v.string(),

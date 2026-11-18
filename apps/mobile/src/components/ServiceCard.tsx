@@ -20,6 +20,8 @@ import { hasReliableCoordinates, openWazeNavigation } from "../lib/wazeNavigatio
 import { canShareLiveTrip } from "../lib/serviceStatus";
 import { useAppTheme } from "../contexts/ThemeContext";
 import { HERCOM_COLORS, POPPINS, TABULAR } from "../constants/theme";
+import { driverFacingTripMoney } from "@proyecto/backend/driverFare";
+import { discountTitle, DriverFirstTripsNotice, MoneyPair } from "./FirstTripsFare";
 
 const CLIENT_ADVANCE_RATE = 0.25;
 
@@ -82,6 +84,7 @@ export const ServiceCard = memo(function ServiceCard({
       (pickupChecklist.damageNotes ?? "").trim().length > 0);
 
   const price = service.offeredPrice ?? service.totalPrice;
+  const fare = driverFacingTripMoney(service);
   const advanceAmount =
     service.advanceAmount ??
     (service.offeredPrice !== undefined
@@ -204,10 +207,28 @@ export const ServiceCard = memo(function ServiceCard({
             </Text>
           )}
         </View>
-        <Text style={{ fontFamily: POPPINS.bold, fontSize: 24, color: colors.textStrong, ...TABULAR }}>
-          {soles(price)}
-        </Text>
+        {fare.discounted ? (
+          <MoneyPair
+            leftLabel="Tu oferta"
+            leftAmount={fare.offer}
+            rightLabel="Comisión"
+            rightAmount={fare.commission}
+            leftSize={16}
+            rightSize={22}
+            align="flex-end"
+          />
+        ) : (
+          <Text style={{ fontFamily: POPPINS.bold, fontSize: 24, color: colors.textStrong, ...TABULAR }}>
+            {soles(price)}
+          </Text>
+        )}
       </View>
+      <DriverFirstTripsNotice
+        quote={fare}
+        advance={advanceAmount}
+        label={discountTitle(service)}
+        showPair={false}
+      />
 
       <PassengerBanner
         forSelf={service.forSelf}

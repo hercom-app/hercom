@@ -92,8 +92,12 @@ export function ServiceRouteDetailModal({
               {getAdminServiceStatusLabel(service)}
             </p>
             <p className="mt-0.5 text-xs text-zinc-500">
-              {typeMeta.label} · Canal: {getRequestChannelLabel(service)} · S/
-              {service.totalPrice.toFixed(2)}
+              {typeMeta.label} · Canal: {getRequestChannelLabel(service)} ·{" "}
+              {service.offeredPrice !== undefined &&
+              (service.discountRate ?? 0) > 0 &&
+              service.totalPrice + 0.009 < service.offeredPrice
+                ? `Oferta S/${service.offeredPrice.toFixed(2)} · paga S/${service.totalPrice.toFixed(2)} · comisión S/${service.driverCommission.toFixed(2)}`
+                : `S/${service.totalPrice.toFixed(2)} · comisión S/${service.driverCommission.toFixed(2)}`}
             </p>
           </div>
           <button type="button" onClick={onClose} className={btnSecondaryClass}>

@@ -43,6 +43,7 @@ export const upsert = mutation({
     district: v.optional(v.string()),
     maxDriverOfferPrice: v.optional(v.number()),
     maxDriverMarkupOverBase: v.optional(v.number()),
+    commissionRate: v.optional(v.number()),
     active: v.boolean(),
   },
   handler: async (ctx, args) => {
@@ -64,6 +65,12 @@ export const upsert = mutation({
     ) {
       throw new Error("El recargo máximo debe estar entre 0% y 200%.");
     }
+    if (
+      args.commissionRate !== undefined &&
+      (args.commissionRate <= 0 || args.commissionRate > 1)
+    ) {
+      throw new Error("La comisión debe estar entre 0% y 100%.");
+    }
 
     const payload: {
       countryCode: string;
@@ -72,6 +79,7 @@ export const upsert = mutation({
       district?: string;
       maxDriverOfferPrice?: number;
       maxDriverMarkupOverBase?: number;
+      commissionRate?: number;
       active: boolean;
       updatedAt: number;
       updatedBy: typeof admin._id;
@@ -93,6 +101,9 @@ export const upsert = mutation({
     }
     if (args.maxDriverMarkupOverBase !== undefined) {
       payload.maxDriverMarkupOverBase = args.maxDriverMarkupOverBase;
+    }
+    if (args.commissionRate !== undefined) {
+      payload.commissionRate = args.commissionRate;
     }
 
     if (args.ruleId !== undefined) {

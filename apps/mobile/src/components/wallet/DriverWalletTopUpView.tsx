@@ -72,7 +72,7 @@ export function DriverWalletTopUpView({
 
   return (
     <View style={{ flex: 1, backgroundColor: wallet.bg }}>
-      <YangoWalletHeader title="Recargar viajes" onBack={onBack} />
+      <YangoWalletHeader title="Recargar saldo" onBack={onBack} />
 
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
@@ -86,8 +86,8 @@ export function DriverWalletTopUpView({
             color: wallet.textDim,
           }}
         >
-          Elige un paquete. Los viajes se suman a tu cuenta al confirmar el pago
-          con Izipay.
+          Elige un monto. Se suma a tu saldo al confirmar el pago con Izipay.
+          Cada viaje descuenta la comisión de Hercom.
         </Text>
 
         <View style={{ marginTop: 16, gap: 10 }}>
@@ -129,7 +129,7 @@ export function DriverWalletTopUpView({
                         color: wallet.textDim,
                       }}
                     >
-                      Viajes a acreditar
+                      Saldo a acreditar
                     </Text>
                   </View>
                   <View style={{ alignItems: "flex-end" }}>
@@ -138,17 +138,6 @@ export function DriverWalletTopUpView({
                         fontFamily: WALLET_FONT.bold,
                         fontSize: WALLET_TYPE.amountInput,
                         color: wallet.text,
-                        ...TABULAR,
-                      }}
-                    >
-                      {pkg.trips === 1 ? "1 viaje" : `${pkg.trips} viajes`}
-                    </Text>
-                    <Text
-                      style={{
-                        marginTop: 4,
-                        fontFamily: WALLET_FONT.medium,
-                        fontSize: WALLET_TYPE.caption,
-                        color: wallet.textDim,
                         ...TABULAR,
                       }}
                     >

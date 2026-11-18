@@ -4,6 +4,10 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireDriver, requireFullAdmin } from "./lib/auth";
 import {
+  MIN_DRIVER_WALLET_BALANCE,
+  PLATFORM_COMMISSION_RATE,
+} from "./lib/constants";
+import {
   driverTopUpPackageIdValidator,
   getDriverTopUpPackage,
   type DriverTopUpPackageId,
@@ -16,13 +20,22 @@ const topUpPeriodValidator = v.union(
   v.literal("all"),
 );
 
-type WalletTxType = Doc<"walletTransactions">["type"];
+function formatPercent(rate: number): string {
+  const percent = rate * 100;
+  return Number.isInteger(percent) ? `${percent}` : percent.toFixed(1);
+}
 
-function normalizeTrips(trips: number): number {
-  if (!Number.isFinite(trips)) {
-    return 0;
-  }
-  return Math.max(0, Math.round(trips));
+export function balanceCoversCommission(balance: number, commission: number): boolean {
+  return normalizePen(balance - commission) >= MIN_DRIVER_WALLET_BALANCE;
+}
+
+export function insufficientBalanceMessage(
+  balance: number,
+  commission: number,
+  commissionRate: number = PLATFORM_COMMISSION_RATE,
+): string {
+  const next = normalizePen(balance - commission);
+  return `Saldo insuficiente. La comisión de este viaje es S/${commission.toFixed(2)} (${formatPercent(commissionRate)}%) y el saldo quedaría en S/${next.toFixed(2)}. El mínimo permitido es S/${MIN_DRIVER_WALLET_BALANCE}.`;
 }
 
 function normalizePen(amount: number): number {
@@ -30,7 +43,7 @@ function normalizePen(amount: number): number {
 }
 
 /**
- * Viajes disponibles del chofer autenticado (crea cuenta en 0 si no existe).
+ * Saldo en soles del chofer autenticado (crea la cuenta en 0 si no existe).
  */
 export const getMine = query({
   args: {},
@@ -42,7 +55,7 @@ export const getMine = query({
       .unique();
     return {
       driverId: driver._id,
-      tripCredits: wallet?.tripCredits ?? 0,
+      balance: normalizePen(wallet?.balance ?? 0),
       updatedAt: wallet?.updatedAt ?? 0,
     };
   },
@@ -65,7 +78,7 @@ export const listMyTransactions = query({
 });
 
 /**
- * Vista administrativa de viajes prepagados por chofer.
+ * Vista administrativa del saldo de comisión por chofer.
  */
 export const listForAdmin = query({
   args: {},
@@ -86,7 +99,7 @@ export const listForAdmin = query({
           plate: driver.vehicle.plate,
           userName: user?.name ?? "Sin nombre",
           userEmail: user?.email ?? "Sin correo",
-          tripCredits: wallet?.tripCredits ?? 0,
+          balance: normalizePen(wallet?.balance ?? 0),
           updatedAt: wallet?.updatedAt ?? 0,
         };
       }),
@@ -243,7 +256,7 @@ export const resetAllTripAccountsForAdmin = mutation({
 });
 
 /**
- * Recarga de paquete: acredita viajes; Izipay cobra el precio del paquete en la app.
+ * Recarga de saldo: acredita el precio del paquete en soles.
  */
 export const topUpMine = mutation({
   args: {
@@ -254,15 +267,13 @@ export const topUpMine = mutation({
     const { user, driver } = await requireDriver(ctx);
     const pkg = getDriverTopUpPackage(args.packageId);
     const customNote = args.note?.trim();
-    const defaultNote = `Recarga ${pkg.label} (S/${pkg.pricePen}).`;
+    const defaultNote = `Recarga de saldo S/${pkg.pricePen}.`;
     const note = customNote !== undefined && customNote !== "" ? customNote : defaultNote;
-    return await creditTrips(ctx, {
+    return await creditBalance(ctx, {
       driverId: driver._id,
-      trips: pkg.trips,
-      type: "top_up",
+      amount: pkg.pricePen,
       createdByUserId: user._id,
       packageId: args.packageId,
-      pricePenPaid: pkg.pricePen,
       note,
     });
   },
@@ -281,78 +292,69 @@ export async function ensureWallet(
   }
   const walletId = await ctx.db.insert("driverWallets", {
     driverId,
-    tripCredits: 0,
+    balance: 0,
     updatedAt: Date.now(),
   });
   return (await ctx.db.get(walletId)) as Doc<"driverWallets">;
 }
 
-export async function getTripCredits(
-  ctx: QueryCtx,
+export async function getWalletBalance(
+  ctx: QueryCtx | MutationCtx,
   driverId: Id<"drivers">,
 ): Promise<number> {
   const wallet = await ctx.db
     .query("driverWallets")
     .withIndex("by_driver", (q) => q.eq("driverId", driverId))
     .unique();
-  return wallet?.tripCredits ?? 0;
-}
-
-/** Al menos 1 viaje prepagado para tomar u ofertar un servicio. */
-export async function hasTripCreditForService(
-  ctx: QueryCtx,
-  driverId: Id<"drivers">,
-): Promise<boolean> {
-  return (await getTripCredits(ctx, driverId)) >= 1;
+  return normalizePen(wallet?.balance ?? 0);
 }
 
 /**
- * Descuenta 1 viaje al cerrar un servicio (idempotente por serviceId).
+ * Descuenta la comisión del viaje al cerrarlo (idempotente por serviceId).
+ * No bloquea el cierre si el saldo queda bajo el piso: ese control es al ofertar.
  */
-export async function debitTripForService(
+export async function debitCommissionForService(
   ctx: MutationCtx,
   args: {
     driverId: Id<"drivers">;
     serviceId: Id<"services">;
+    commission: number;
   },
 ): Promise<Doc<"driverWallets">> {
-  const existingDebit = await ctx.db
+  const existing = await ctx.db
     .query("walletTransactions")
     .withIndex("by_service", (q) => q.eq("serviceId", args.serviceId))
     .collect();
-  if (existingDebit.some((tx) => tx.type === "trip_debit")) {
-    const wallet = await ensureWallet(ctx, args.driverId);
-    return wallet;
+  if (existing.some((tx) => tx.type === "commission_debit")) {
+    return await ensureWallet(ctx, args.driverId);
   }
 
+  const amount = normalizePen(args.commission);
   const wallet = await ensureWallet(ctx, args.driverId);
-  if (wallet.tripCredits < 1) {
-    throw new Error(
-      "El chofer no tiene viajes prepagados suficientes para cerrar este servicio.",
-    );
+  if (amount <= 0) {
+    return wallet;
   }
-  const nextCredits = normalizeTrips(wallet.tripCredits - 1);
-  await ctx.db.patch(wallet._id, { tripCredits: nextCredits, updatedAt: Date.now() });
+  const nextBalance = normalizePen((wallet.balance ?? 0) - amount);
+  await ctx.db.patch(wallet._id, { balance: nextBalance, updatedAt: Date.now() });
   await ctx.db.insert("walletTransactions", {
     driverId: args.driverId,
-    type: "trip_debit",
-    amount: 1,
-    tripsAfter: nextCredits,
+    type: "commission_debit",
+    amount,
+    balanceAfter: nextBalance,
     serviceId: args.serviceId,
+    note: `Comisión Hercom S/${amount.toFixed(2)}`,
     createdAt: Date.now(),
   });
   return (await ctx.db.get(wallet._id)) as Doc<"driverWallets">;
 }
 
-async function creditTrips(
+async function creditBalance(
   ctx: MutationCtx,
   args: {
     driverId: Id<"drivers">;
-    trips: number;
-    type: WalletTxType;
+    amount: number;
     createdByUserId?: Id<"users">;
     packageId?: DriverTopUpPackageId;
-    pricePenPaid?: number;
     note?: string;
   },
 ): Promise<Doc<"driverWallets">> {
@@ -360,27 +362,20 @@ async function creditTrips(
   if (driver === null) {
     throw new Error("Chofer no encontrado.");
   }
-  const trips = normalizeTrips(args.trips);
-  if (trips <= 0) {
-    throw new Error("La recarga debe incluir al menos 1 viaje.");
+  const amount = normalizePen(args.amount);
+  if (amount <= 0) {
+    throw new Error("La recarga debe ser mayor a 0.");
   }
   const wallet = await ensureWallet(ctx, args.driverId);
-  const nextCredits = normalizeTrips(wallet.tripCredits + trips);
-  await ctx.db.patch(wallet._id, { tripCredits: nextCredits, updatedAt: Date.now() });
+  const nextBalance = normalizePen((wallet.balance ?? 0) + amount);
+  await ctx.db.patch(wallet._id, { balance: nextBalance, updatedAt: Date.now() });
   await ctx.db.insert("walletTransactions", {
     driverId: args.driverId,
-    type: args.type,
-    amount: trips,
-    ...(args.type === "top_up"
-      ? {
-          tripsPurchased: trips,
-          ...(args.packageId !== undefined ? { packageId: args.packageId } : {}),
-        }
-      : {}),
-    tripsAfter: nextCredits,
-    ...(args.pricePenPaid !== undefined
-      ? { pricePenPaid: normalizePen(args.pricePenPaid) }
-      : {}),
+    type: "top_up",
+    amount,
+    pricePenPaid: amount,
+    balanceAfter: nextBalance,
+    ...(args.packageId !== undefined ? { packageId: args.packageId } : {}),
     ...(args.createdByUserId !== undefined ? { createdByUserId: args.createdByUserId } : {}),
     ...(args.note !== undefined ? { note: args.note } : {}),
     createdAt: Date.now(),

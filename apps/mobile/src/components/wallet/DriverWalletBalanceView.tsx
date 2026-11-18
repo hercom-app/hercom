@@ -6,8 +6,8 @@ import {
 } from "react-native";
 import type { Doc } from "@proyecto/backend/dataModel";
 import {
-  formatTripCreditsShort,
-  formatTripDelta,
+  formatWalletBalance,
+  formatWalletDelta,
 } from "../../lib/driverWalletDisplay";
 import { TABULAR } from "../../constants/theme";
 import { YangoWalletHeader } from "./YangoWalletHeader";
@@ -16,7 +16,7 @@ import { WALLET_FONT, WALLET_TYPE, useWalletTheme } from "./walletUiTheme";
 type WalletTx = Doc<"walletTransactions">;
 
 type DriverWalletBalanceViewProps = {
-  tripCredits: number;
+  balance: number;
   transactions: WalletTx[] | undefined;
   /** Sin `onBack` no se dibuja cabecera (vista embebida en una pestaña). */
   onBack?: () => void;
@@ -34,23 +34,29 @@ function formatTxDate(timestamp: number): string {
 }
 
 function txLabel(type: WalletTx["type"]): string {
-  return type === "top_up" ? "Recarga" : "Viaje completado";
+  if (type === "top_up") {
+    return "Recarga";
+  }
+  if (type === "commission_debit") {
+    return "Comisión Hercom";
+  }
+  return "Viaje (anterior)";
 }
 
 export function DriverWalletBalanceView({
-  tripCredits,
+  balance,
   transactions,
   onBack,
   onRecargar,
 }: DriverWalletBalanceViewProps) {
   const wallet = useWalletTheme();
-  const creditsLabel = formatTripCreditsShort(tripCredits);
+  const balanceLabel = formatWalletBalance(balance);
   const list = transactions ?? [];
 
   return (
     <View style={{ flex: 1, backgroundColor: wallet.bg }}>
       {onBack !== undefined && (
-        <YangoWalletHeader title="Viajes disponibles" onBack={onBack} />
+        <YangoWalletHeader title="Saldo" onBack={onBack} />
       )}
 
       <View style={{ flex: 1, paddingHorizontal: 20 }}>
@@ -70,13 +76,13 @@ export function DriverWalletBalanceView({
               ...TABULAR,
             }}
           >
-            {creditsLabel}
+            {balanceLabel}
           </Text>
 
           <TouchableOpacity
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel={`Viajes disponibles ${creditsLabel}`}
+            accessibilityLabel={`Saldo ${balanceLabel}`}
             style={{
               marginTop: 16,
               flexDirection: "row",
@@ -95,7 +101,7 @@ export function DriverWalletBalanceView({
                 color: wallet.textMuted,
               }}
             >
-              {`Viajes disponibles: ${creditsLabel}`}
+              {`Saldo: ${balanceLabel}`}
             </Text>
             <Text style={{ color: wallet.textMuted, fontSize: 18 }}>›</Text>
           </TouchableOpacity>
@@ -112,7 +118,7 @@ export function DriverWalletBalanceView({
               onPress={onRecargar}
               activeOpacity={0.88}
               accessibilityRole="button"
-              accessibilityLabel="Recargar viajes"
+              accessibilityLabel="Recargar saldo"
               style={{ alignItems: "center", width: 88 }}
             >
               <View
@@ -256,13 +262,11 @@ export function DriverWalletBalanceView({
                       fontFamily: WALLET_FONT.bold,
                       fontSize: WALLET_TYPE.body,
                       color:
-                        tx.type === "trip_debit"
-                          ? wallet.textMuted
-                          : wallet.creditText,
+                        tx.type === "top_up" ? wallet.creditText : wallet.textMuted,
                       ...TABULAR,
                     }}
                   >
-                    {formatTripDelta(tx.amount, tx.type)}
+                    {formatWalletDelta(tx.amount, tx.type)}
                   </Text>
                 </View>
               ))}

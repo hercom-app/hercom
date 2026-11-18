@@ -12,7 +12,7 @@ export const DEFAULT_COMMISSION_RATE_HOUR_3 = 0.15;
 export const DEFAULT_COMMISSION_RATE_HOUR_8 = 0.1;
 
 export type MarketCommissionConfig = {
-  /** Comisión horas 1–2 (típ. 0.25). */
+  /** Legacy por tramos de hora. El cobro vigente es un porcentaje plano (25% por defecto). */
   commissionRate: number;
   commissionRateFromHour3?: number;
   commissionRateFromHour8?: number;

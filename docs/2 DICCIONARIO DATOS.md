@@ -109,7 +109,10 @@ Campos:
 - `emailVerificationTime` (optional number): timestamp de verificacion email.
 - `phoneVerificationTime` (optional number): timestamp de verificacion telefono.
 - `isAnonymous` (optional boolean): marca de cuenta anonima.
-- `role` (`"client" | "driver" | "admin"`): rol de negocio.
+- `role` (`"client" | "driver" | "admin" | "superadmin" | "hr"`): rol de negocio.
+- `firstTripsDiscountLimit` (optional number): tope de viajes con descuento de este cliente. Si falta, se escribe 3. Vive en el usuario, no como constante suelta.
+- `firstTripsDiscountUsed` (optional number): servicios de este cliente que ocupan cupo ahora. Sube al crear un viaje y baja al cancelarlo o dejarlo no atendido.
+- `firstTripsDiscountRate` (optional number): porcentaje de los primeros viajes. `0.15` = 15%. Si falta, se escribe 0.15. No se suma a una campaña.
 
 Indices:
 - `email` sobre `email`
@@ -192,10 +195,11 @@ Campos:
   - `address` (string)
   - `lat` (number)
   - `lng` (number)
-- `basePrice` (number, tarifa efectiva que paga el cliente; minimo S/80 sin promo)
-- `catalogBasePrice` (optional number, tarifa de lista antes de descuento festivo)
-- `discountRate` (optional number, 0-0.25)
-- `promotionId` (optional id `promotions`)
+- `basePrice` (number, lo que paga el cliente sobre la lista; con descuento es menor que la lista)
+- `catalogBasePrice` (optional number, tarifa de lista, sin descuento)
+- `discountRate` (optional number, 0-0.25). El único porcentaje de este viaje. `0.15` = 15%, `0.10` = 10%. Si falta, no hay descuento. No es la suma de dos descuentos.
+- `discountKind` (optional `"first_trips" | "campaign"`). Cuál descuento quedó. `first_trips` usa `users.firstTripsDiscountRate`. `campaign` usa `promotions.discountRate`.
+- `promotionId` (optional id `promotions`, campaña que originó el descuento)
 - `promotionName` (optional string)
 - `offeredPrice` (optional number, tarifa ofertada y aceptada)
 - `securityCode` (optional string, codigo compartido cliente/chofer para iniciar viaje)
@@ -219,12 +223,51 @@ Campos:
 - `extendedAt` (optional array of number, cada extensión de +1 h)
 
 Indices:
-- `by_client` sobre `clientId`
+- `by_client` sobre `clientId` (este índice es el que usa el cupo de primeros viajes)
 - `by_driver` sobre `driverId`
 - `by_status` sobre `status`
 - `by_driver_status` sobre `driverId, status`
 
-## `promotions` (descuentos festivos por region)
+### Descuentos: no se acumulan
+
+Un viaje tiene un solo `services.discountRate`. Nunca se suman el de primeros viajes y el de una campaña.
+
+| Qué | Dónde |
+| --- | --- |
+| Porcentaje de los primeros viajes | `users.firstTripsDiscountRate` (0.15 = 15% si no se había escrito) |
+| Tope de ese cliente | `users.firstTripsDiscountLimit` (3 si no se había escrito) |
+| Cupos ya usados | `users.firstTripsDiscountUsed` |
+| Porcentaje de la campaña de fechas | `promotions.discountRate` (ejemplo Navidad o Fiestas Patrias: 0.10) |
+| Cuál de los dos quedó en el viaje | `services.discountKind`: `first_trips` o `campaign` |
+| Porcentaje aplicado a este viaje | `services.discountRate` (uno solo) |
+| Lista sin descuento | `services.catalogBasePrice` |
+| Lo que el cliente paga | `services.basePrice` y, al aceptar la oferta, `services.totalPrice` |
+| Comisión real del chofer | `services.driverCommission` |
+
+Regla al crear el servicio:
+
+1. Si `used < limit`, el viaje usa solo `firstTripsDiscountRate`. Aunque esas fechas tengan campaña, el 10% no se suma.
+2. Si el cupo ya se gastó y hay una promoción activa para la región y la fecha, el viaje usa solo `promotions.discountRate`.
+3. Si no queda cupo y no hay campaña, no hay descuento.
+4. Después de insertar, `firstTripsDiscountUsed` sube 1. Al cancelar o dejar el viaje no atendido, baja 1.
+
+Ejemplo en diciembre, campaña navideña 10%, lista S/80, comisión 25%, primeros viajes 15%:
+
+- Viajes 1, 2 y 3 del cliente: paga S/68, comisión S/8, se queda S/60. `discountKind = first_trips`.
+- Del viaje 4 en adelante, dentro de las fechas: paga S/72, comisión S/12, se queda S/60. `discountKind = campaign`.
+- Fuera de las fechas, ya sin cupo: paga S/80, comisión S/20, se queda S/60.
+
+Ejemplo con lista S/80, comisión 25% y promoción 15%:
+
+- `catalogBasePrice` = 80
+- `discountRate` = 0.15
+- `basePrice` / `totalPrice` = 68 (lo que el cliente le paga al chofer)
+- `driverCommission` = 8 (no 20)
+- El chofer se queda 60
+
+Al ofertar, el chofer puede subir la lista. `discountRate` no cambia. `totalPrice` y `driverCommission` se recalculan sobre `offeredPrice` con ese mismo porcentaje (`serviceOffers.ts` al aceptar, `services.ts` al asignar o revisar la tarifa).
+
+## `promotions` (campaña de fechas por región; no se acumula con los primeros viajes)
 
 Campos:
 - `name` (string)
@@ -259,16 +302,18 @@ Indices:
 - `by_service_status` sobre `serviceId, status`
 - `by_service_driver` sobre `serviceId, driverId`
 
-## `driverWallets` (saldo prepago del chofer para demo)
+## `driverWallets` (saldo en soles del chofer para la comisión)
 
 Campos:
 - `driverId` (id `drivers`)
-- `balance` (number)
+- `balance` (number, soles; puede ser negativo)
+- `tripCredits` (optional number, legacy de viajes prepagados; no se usa para cobrar)
 - `updatedAt` (number)
 
 Observacion:
-- El chofer recarga su propio saldo desde la app (flujo actual sin pasarela).
-- Límite mínimo de saldo permitido: S/-10.
+- El chofer recarga soles desde la app (S/30, S/50 o S/100).
+- Al cerrar un viaje se descuenta la comisión (25% por defecto, o la del distrito).
+- Límite mínimo de saldo permitido: S/-15.
 
 Indices:
 - `by_driver` sobre `driverId`
@@ -277,9 +322,11 @@ Indices:
 
 Campos:
 - `driverId` (id `drivers`)
-- `type` (`"top_up" | "commission_debit"`)
-- `amount` (number, siempre positivo)
-- `balanceAfter` (number)
+- `type` (`"top_up" | "commission_debit" | "trip_debit"`)
+- `amount` (number, siempre positivo; en soles, salvo `trip_debit` legacy)
+- `balanceAfter` (optional number, saldo en soles después del movimiento)
+- `pricePenPaid` (optional number, soles de la recarga)
+- `tripsAfter` (optional number, legacy)
 - `serviceId` (optional id `services`)
 - `createdByUserId` (optional id `users`)
 - `note` (optional string)

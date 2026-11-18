@@ -4,9 +4,14 @@ import { normalizeCountryCode } from "./data/countryCatalog";
 import { MAX_PROMOTION_DISCOUNT_RATE } from "./lib/constants";
 import { getMarketByCountry } from "./lib/markets";
 import { normalizeMoney } from "./lib/money";
+import { quoteDriverFare } from "./lib/driverFare";
 import { computePromotionalPricing } from "./lib/pricing";
 import { applyPromotionToListPrice, findActivePromotion } from "./lib/promotions";
 import { requireFullAdmin, requireUser } from "./lib/auth";
+import {
+  hasFirstTripsDiscountRoom,
+  readFirstTripsDiscount,
+} from "./lib/firstTrips";
 import {
   listLevel1ForCountry,
   listLevel2ForCountry,
@@ -115,7 +120,19 @@ export const previewForRegion = query({
     listPrice: v.number(),
   },
   handler: async (ctx, args) => {
-    await requireUser(ctx);
+    const user = await requireUser(ctx);
+    const firstTrips = await readFirstTripsDiscount(ctx, user._id);
+    if (hasFirstTripsDiscountRoom(firstTrips) && firstTrips.rate > 0) {
+      const quote = quoteDriverFare(args.listPrice, firstTrips.rate);
+      return {
+        promotionName: "Primeros viajes",
+        discountKind: "first_trips" as const,
+        catalogBasePrice: quote.offer,
+        basePrice: quote.clientPays,
+        discountRate: quote.discountRate,
+        driverCommissionEstimate: quote.commission,
+      };
+    }
     const applied = await applyPromotionToListPrice(ctx, args.listPrice, {
       countryCode: normalizeCountryCode(args.countryCode),
       department: args.department,

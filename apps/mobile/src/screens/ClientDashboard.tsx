@@ -28,6 +28,7 @@ import {
   type DriverProfileDetails,
 } from "../components/AdvancePayoutModal";
 import { DriverOfferModal, type DriverOfferInfo } from "../components/DriverOfferModal";
+import { discountTitle, MoneyPair, quoteOffer, solesLabel } from "../components/FirstTripsFare";
 import { EditTripLocationsModal } from "../components/EditTripLocationsModal";
 import { TripChatSheet } from "../components/TripChatSheet";
 import { BrandSplash } from "../components/BrandSplash";
@@ -283,6 +284,10 @@ function ClientServiceCard({
   const [liveMapOpen, setLiveMapOpen] = useState(false);
 
   const agreedPrice = service.offeredPrice ?? service.totalPrice;
+  const agreedFare =
+    service.offeredPrice !== undefined
+      ? quoteOffer(service.offeredPrice, service.discountRate)
+      : null;
   const advanceAmount =
     service.advanceAmount ??
     (service.offeredPrice !== undefined
@@ -360,20 +365,37 @@ function ClientServiceCard({
               <UiChip label={clientServiceStatusLabel(service)} />
               {(service.serviceType ?? "app") === "app" && <UiChip label="App" />}
             </View>
-            <TacticalValue
-              size={16}
-              tone="accent"
-              style={{ flexShrink: 0, maxWidth: "46%", textAlign: "right" }}
-            >
-              {service.offeredPrice !== undefined
-                ? `S/${agreedPrice.toFixed(2)}`
-                : "Sin acordar"}
-            </TacticalValue>
+            {agreedFare?.discounted === true ? (
+              <View style={{ alignItems: "flex-end", flexShrink: 0, maxWidth: "58%" }}>
+                <MoneyPair
+                  leftLabel="Oferta"
+                  leftAmount={agreedFare.offer}
+                  rightLabel="Pagas"
+                  rightAmount={agreedFare.clientPays}
+                  strikeLeft
+                  align="flex-end"
+                  leftSize={14}
+                  rightSize={18}
+                />
+              </View>
+            ) : (
+              <TacticalValue
+                size={16}
+                tone="accent"
+                style={{ flexShrink: 0, maxWidth: "46%", textAlign: "right" }}
+              >
+                {service.offeredPrice !== undefined
+                  ? `S/${agreedPrice.toFixed(2)}`
+                  : "Sin acordar"}
+              </TacticalValue>
+            )}
           </View>
           <TacticalText size={12} className="mb-1">
-            {service.offeredPrice !== undefined
-              ? `Tarifa acordada: S/${service.offeredPrice.toFixed(2)}`
-              : "Esperando acuerdo de tarifa"}
+            {agreedFare?.discounted === true
+              ? `${discountTitle(service)} · pagas ${solesLabel(agreedFare.clientPays)} (oferta ${solesLabel(agreedFare.offer)})`
+              : service.offeredPrice !== undefined
+                ? `Tarifa acordada: S/${service.offeredPrice.toFixed(2)}`
+                : "Esperando acuerdo de tarifa"}
           </TacticalText>
           <View className="mb-1 flex-row items-center" style={{ gap: 8 }}>
             {service.driverName !== undefined && (
@@ -764,9 +786,34 @@ function ClientServiceCard({
                       )}
                     </View>
                   </View>
-                  <TacticalValue size={18} tone="accent" className="mt-1">
-                    {`S/${offer.offeredPrice.toFixed(2)}`}
-                  </TacticalValue>
+                  {quoteOffer(offer.offeredPrice, service.discountRate).discounted ? (
+                    <View className="mt-1">
+                      <Text
+                        style={{
+                          fontFamily: POPPINS.bold,
+                          fontSize: 12,
+                          color: HERCOM_COLORS.primary,
+                        }}
+                      >
+                        {discountTitle(service)}
+                      </Text>
+                      <MoneyPair
+                        leftLabel="Oferta"
+                        leftAmount={offer.offeredPrice}
+                        rightLabel="Pagas"
+                        rightAmount={
+                          quoteOffer(offer.offeredPrice, service.discountRate).clientPays
+                        }
+                        strikeLeft
+                        leftSize={16}
+                        rightSize={18}
+                      />
+                    </View>
+                  ) : (
+                    <TacticalValue size={18} tone="accent" className="mt-1">
+                      {`S/${offer.offeredPrice.toFixed(2)}`}
+                    </TacticalValue>
+                  )}
                   <TacticalLabel tone="accent" className="mt-1">
                     Ver chofer
                   </TacticalLabel>
@@ -847,6 +894,8 @@ function ClientServiceCard({
       <DriverOfferModal
         visible={selectedOffer !== null}
         offer={selectedOffer}
+        discountRate={service.discountRate}
+        discountLabel={discountTitle(service) || "Primeros viajes"}
         accepting={acceptingOfferId === selectedOffer?._id}
         error={offerError}
         onClose={() => setSelectedOffer(null)}
@@ -2823,19 +2872,33 @@ export function ClientDashboard() {
               >
                 Tarifa estimada
               </Text>
-              <Text
-                style={{
-                  marginTop: 2,
-                  fontFamily: POPPINS.bold,
-                  fontSize: 28,
-                  lineHeight: 34,
-                  color: HERCOM_COLORS.text,
-                  fontVariant: ["tabular-nums"],
-                }}
-              >
-                {currencySymbol}
-                {listPrice.toFixed(0)}
-              </Text>
+              {promoPreview !== undefined && promoPreview !== null ? (
+                <View style={{ marginTop: 4 }}>
+                  <MoneyPair
+                    leftLabel="Precio"
+                    leftAmount={listPrice}
+                    rightLabel="Pagas"
+                    rightAmount={promoPreview.basePrice}
+                    strikeLeft
+                    leftSize={18}
+                    rightSize={28}
+                  />
+                </View>
+              ) : (
+                <Text
+                  style={{
+                    marginTop: 2,
+                    fontFamily: POPPINS.bold,
+                    fontSize: 28,
+                    lineHeight: 34,
+                    color: HERCOM_COLORS.text,
+                    fontVariant: ["tabular-nums"],
+                  }}
+                >
+                  {currencySymbol}
+                  {listPrice.toFixed(0)}
+                </Text>
+              )}
             </View>
             <Text
               style={{
@@ -2880,8 +2943,8 @@ export function ClientDashboard() {
                 }}
               >
                 Pagas {currencySymbol}
-                {promoPreview.basePrice.toFixed(2)} (lista {currencySymbol}
-                {promoPreview.catalogBasePrice.toFixed(2)}).
+                {promoPreview.basePrice.toFixed(2)}. El precio es {currencySymbol}
+                {promoPreview.catalogBasePrice.toFixed(2)}.
               </Text>
             </View>
           )}
@@ -2895,7 +2958,11 @@ export function ClientDashboard() {
           />
 
           <UiButton
-            label={`Solicitar servicio · ${currencySymbol}${listPrice.toFixed(0)}`}
+            label={`Solicitar servicio · ${currencySymbol}${(
+              promoPreview !== undefined && promoPreview !== null
+                ? promoPreview.basePrice
+                : listPrice
+            ).toFixed(0)}`}
             onPress={() => void handleSubmit()}
             disabled={submitting}
             loading={submitting}

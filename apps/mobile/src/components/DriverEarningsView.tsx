@@ -58,7 +58,7 @@ export function DriverEarningsView() {
           {soles(earnings.today.net)}
         </TacticalValue>
         <TacticalText size={13} className="mt-2">
-          Ganado {soles(earnings.today.fare)} · Descuento app{" "}
+          El cliente te pagó {soles(earnings.today.fare)} · Comisión{" "}
           {soles(earnings.today.commission)}
         </TacticalText>
         <TacticalText size={12} className="mt-1">
@@ -79,7 +79,9 @@ export function DriverEarningsView() {
               Ganaste {soles(trip.net)}
             </TacticalValue>
             <TacticalText size={12} className="mt-1">
-              Viaje {soles(trip.fare)} · Descuento {soles(trip.commission)}
+              {trip.discounted
+                ? `${trip.discountLabel} · ofertaste ${soles(trip.offer)} · comisión ${soles(trip.commission)} · el cliente te pagó ${soles(trip.clientPays)}`
+                : `El cliente te pagó ${soles(trip.clientPays)} · comisión ${soles(trip.commission)}`}
             </TacticalText>
           </UiCard>
         ))
@@ -93,7 +95,7 @@ export function DriverEarningsView() {
           {soles(earnings.week.net)}
         </TacticalValue>
         <TacticalText size={13} className="mt-1">
-          {earnings.week.trips} viajes · Descuento{" "}
+          {earnings.week.trips} viajes · Comisión{" "}
           {soles(earnings.week.commission)}
         </TacticalText>
       </UiCard>

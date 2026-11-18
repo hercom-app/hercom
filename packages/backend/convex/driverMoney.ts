@@ -1,7 +1,7 @@
 import { query } from "./_generated/server";
-import type { Doc } from "./_generated/dataModel";
 import { requireDriver } from "./lib/auth";
 import { normalizeMoney } from "./lib/money";
+import { driverFacingTripMoney } from "./lib/driverFare";
 import { getServiceStops } from "./lib/serviceStops";
 
 const BAR_DAYS = 7;
@@ -23,44 +23,9 @@ function sumMoney(amounts: number[]): number {
 }
 
 /**
- * Costo en soles de cada viaje prepagado consumido, por servicio.
- * Las recargas se consumen en orden de compra: 2 viajes por S/50 = S/25 cada uno.
- */
-function tripCreditCostByService(
-  transactions: Doc<"walletTransactions">[],
-): Map<string, number> {
-  const lots: { unitPen: number; remaining: number }[] = [];
-  const costByService = new Map<string, number>();
-  for (const tx of transactions) {
-    if (tx.type === "top_up") {
-      const trips = tx.tripsPurchased ?? tx.amount;
-      if (trips > 0) {
-        lots.push({ unitPen: (tx.pricePenPaid ?? 0) / trips, remaining: trips });
-      }
-      continue;
-    }
-    let pending = tx.amount;
-    let cost = 0;
-    while (pending > 0 && lots.length > 0) {
-      const lot = lots[0]!;
-      const take = Math.min(lot.remaining, pending);
-      cost += take * lot.unitPen;
-      lot.remaining -= take;
-      pending -= take;
-      if (lot.remaining <= 0) {
-        lots.shift();
-      }
-    }
-    if (tx.serviceId !== undefined) {
-      costByService.set(tx.serviceId, normalizeMoney(cost));
-    }
-  }
-  return costByService;
-}
-
-/**
- * Pestaña Dinero del chofer: neto por día (bruto − comisión Hercom),
- * barras de la semana y movimientos (viajes en bruto y recargas).
+ * Pestaña Ingresos del chofer.
+ * El neto es lo que le queda: lo que el cliente le pagó menos la comisión real.
+ * En primeros viajes el cliente paga menos y la comisión también es menor.
  */
 export const getMine = query({
   args: {},
@@ -73,7 +38,6 @@ export const getMine = query({
       .withIndex("by_driver_created", (q) => q.eq("driverId", driver._id))
       .order("asc")
       .collect();
-    const costByService = tripCreditCostByService(transactions);
 
     const historyStart = now - HISTORY_DAYS * DAY_MS;
     const services = await ctx.db
@@ -89,8 +53,7 @@ export const getMine = query({
       )
       .map((service) => {
         const finishedAt = service.finishedAt as number;
-        const gross = normalizeMoney(service.offeredPrice ?? service.totalPrice);
-        const commission = costByService.get(service._id) ?? 0;
+        const facing = driverFacingTripMoney(service);
         const stops = getServiceStops(service);
         return {
           serviceId: service._id,
@@ -98,9 +61,19 @@ export const getMine = query({
           dayKey: limaDateKey(finishedAt),
           origin: service.origin.address,
           destination: (stops[stops.length - 1] ?? service.destination).address,
-          gross,
-          commission,
-          net: normalizeMoney(gross - commission),
+          gross: facing.clientPays,
+          offer: facing.offer,
+          clientPays: facing.clientPays,
+          commission: facing.commission,
+          fullCommission: facing.fullCommission,
+          net: facing.net,
+          discounted: facing.discounted,
+          discountLabel:
+            service.discountKind === "campaign"
+              ? (service.promotionName ?? "Campaña")
+              : facing.discounted
+                ? "Primeros viajes"
+                : "",
         };
       })
       .sort((a, b) => b.finishedAt - a.finishedAt);
@@ -111,8 +84,7 @@ export const getMine = query({
         id: tx._id,
         createdAt: tx.createdAt,
         dayKey: limaDateKey(tx.createdAt),
-        trips: tx.tripsPurchased ?? tx.amount,
-        pricePen: normalizeMoney(tx.pricePenPaid ?? 0),
+        pricePen: normalizeMoney(tx.pricePenPaid ?? tx.amount),
       }))
       .sort((a, b) => b.createdAt - a.createdAt);
 
@@ -137,9 +109,14 @@ export const getMine = query({
         kind: "trip" as const,
         at: trip.finishedAt,
         dayKey: trip.dayKey,
-        title: "Viaje",
-        subtitle: `Desde ${trip.origin}`,
-        amount: trip.gross,
+        title: trip.discounted ? trip.discountLabel || "Descuento" : "Viaje",
+        subtitle: trip.discounted
+          ? `El cliente te pagó S/${trip.clientPays.toFixed(2)} · comisión S/${trip.commission.toFixed(2)} (sin descuento S/${trip.fullCommission.toFixed(2)})`
+          : `Desde ${trip.origin}`,
+        amount: trip.net,
+        offer: trip.discounted ? trip.offer : undefined,
+        commission: trip.discounted ? trip.commission : undefined,
+        clientPays: trip.discounted ? trip.clientPays : undefined,
       })),
       ...topUps.map((topUp) => ({
         id: topUp.id as string,
@@ -147,8 +124,11 @@ export const getMine = query({
         at: topUp.createdAt,
         dayKey: topUp.dayKey,
         title: "Recarga",
-        subtitle: `${topUp.trips} ${topUp.trips === 1 ? "viaje prepagado" : "viajes prepagados"}`,
+        subtitle: "Recarga de saldo",
         amount: topUp.pricePen,
+        offer: undefined,
+        commission: undefined,
+        clientPays: undefined,
       })),
     ]
       .sort((a, b) => b.at - a.at)
@@ -165,7 +145,7 @@ export const getMine = query({
       trips,
       topUps,
       movements,
-      tripCredits: wallet?.tripCredits ?? 0,
+      balance: normalizeMoney(wallet?.balance ?? 0),
     };
   },
 });

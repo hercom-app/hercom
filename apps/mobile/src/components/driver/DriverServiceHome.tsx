@@ -14,7 +14,7 @@ import { DrawerIcon } from "../DrawerIcons";
 import { ServiceCard } from "../ServiceCard";
 import { MapScreenLayout } from "../uber/MapScreenLayout";
 import { UberBottomSheet } from "../uber/UberBottomSheet";
-import { formatTripCreditsShort } from "../../lib/driverWalletDisplay";
+import { formatWalletBalance } from "../../lib/driverWalletDisplay";
 import { HERCOM_COLORS, POPPINS, TABULAR } from "../../constants/theme";
 
 type DriverStatus = "available" | "busy" | "offline";
@@ -23,7 +23,7 @@ const LIMA = { lat: -12.0464, lng: -77.0428 };
 
 type DriverServiceHomeProps = {
   status: DriverStatus;
-  tripCredits: number;
+  walletBalance: number;
   radiusKm: number;
   nearbyCount: number | null;
   coords: { lat: number; lng: number } | null;
@@ -117,7 +117,7 @@ function StatCell({
 /** Pestaña Servicio: mapa, radio, centro de seguridad y conexión. */
 export function DriverServiceHome({
   status,
-  tripCredits,
+  walletBalance,
   radiusKm,
   nearbyCount,
   coords,
@@ -203,8 +203,8 @@ export function DriverServiceHome({
             }}
           >
             <StatCell
-              label="Viajes prepagados"
-              value={formatTripCreditsShort(tripCredits)}
+              label="Saldo"
+              value={formatWalletBalance(walletBalance)}
               onPress={onGoToEarnings}
             />
             <View style={{ width: 1, height: 40, backgroundColor: HERCOM_COLORS.border }} />

@@ -334,23 +334,12 @@ async function ensureDemoWalletBalance(
   driverId: Id<"drivers">,
 ): Promise<void> {
   const wallet = await ensureWallet(ctx, driverId);
-  if (wallet.tripCredits >= 5) {
+  if (wallet.balance !== undefined) {
     return;
   }
   await ctx.db.patch(wallet._id, {
-    tripCredits: 5,
+    balance: 0,
     updatedAt: Date.now(),
-  });
-  await ctx.db.insert("walletTransactions", {
-    driverId,
-    type: "top_up",
-    amount: 5,
-    tripsPurchased: 5,
-    packageId: "trips_5",
-    tripsAfter: 5,
-    pricePenPaid: 100,
-    note: "Recarga seed demo (5 viajes)",
-    createdAt: Date.now(),
   });
 }
 
@@ -364,6 +353,7 @@ async function wipeTable(
     | "walletTransactions"
     | "notifications"
     | "services"
+    | "serviceMessages"
     | "payouts"
     | "driverWallets"
     | "driverApplications"
@@ -499,6 +489,7 @@ async function wipeAllTrips(ctx: MutationCtx) {
     serviceRatings: await wipeTable(ctx, "serviceRatings"),
     checklists: await wipeVehicleChecklists(ctx),
     payments: await wipeTable(ctx, "payments"),
+    serviceMessages: await wipeTable(ctx, "serviceMessages"),
     services: await wipeTable(ctx, "services"),
     payouts: await wipeTable(ctx, "payouts"),
   };
@@ -524,6 +515,16 @@ async function wipeAllTrips(ctx: MutationCtx) {
     }
   }
 
+  const users = await ctx.db.query("users").collect();
+  let resetDiscountSlots = 0;
+  for (const user of users) {
+    if (user.firstTripsDiscountUsed === undefined || user.firstTripsDiscountUsed === 0) {
+      continue;
+    }
+    await ctx.db.patch(user._id, { firstTripsDiscountUsed: 0 });
+    resetDiscountSlots += 1;
+  }
+
   const drivers = await ctx.db.query("drivers").collect();
   let resetDrivers = 0;
   for (const driver of drivers) {
@@ -542,13 +543,17 @@ async function wipeAllTrips(ctx: MutationCtx) {
       .query("walletTransactions")
       .withIndex("by_driver", (q) => q.eq("driverId", driver._id))
       .collect();
-    const tripCredits = remaining.reduce(
-      (sum, tx) =>
-        tx.type === "top_up" ? sum + tx.amount : sum - tx.amount,
-      0,
-    );
+    const balance = remaining.reduce((sum, tx) => {
+      if (tx.type === "top_up") {
+        return sum + (tx.pricePenPaid ?? 0);
+      }
+      if (tx.type === "commission_debit") {
+        return sum - tx.amount;
+      }
+      return sum;
+    }, 0);
     await ctx.db.patch(wallet._id, {
-      tripCredits: Math.max(0, Math.round(tripCredits)),
+      balance: Math.round(balance * 100) / 100,
       updatedAt: Date.now(),
     });
   }
@@ -558,6 +563,7 @@ async function wipeAllTrips(ctx: MutationCtx) {
     deletedNotifications,
     deletedWalletTransactions,
     resetDrivers,
+    resetDiscountSlots,
   };
 }
 
@@ -568,9 +574,9 @@ export const clearTripsAndOffers = internalMutation({
 
     let toppedUpDrivers = 0;
     for (const driver of await ctx.db.query("drivers").collect()) {
-      const before = (await ensureWallet(ctx, driver._id)).tripCredits;
+      const before = (await ensureWallet(ctx, driver._id)).balance ?? 0;
       await ensureDemoWalletBalance(ctx, driver._id);
-      const after = (await ensureWallet(ctx, driver._id)).tripCredits;
+      const after = (await ensureWallet(ctx, driver._id)).balance ?? 0;
       if (after > before) {
         toppedUpDrivers += 1;
       }
@@ -598,26 +604,48 @@ export const purgeAllTrips = internalMutation({
 });
 
 /**
- * Mínimo 5 viajes prepagados por chofer (auditorías / demos).
+ * Deja el saldo de todos los choferes en 0 y borra el historial de movimientos.
+ *
+ *   npx convex run seed:clearAllDriverBalances --prod
+ */
+export const clearAllDriverBalances = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const deletedTransactions = await wipeTable(ctx, "walletTransactions");
+    const wallets = await ctx.db.query("driverWallets").collect();
+    const now = Date.now();
+    for (const wallet of wallets) {
+      await ctx.db.patch(wallet._id, {
+        balance: 0,
+        tripCredits: 0,
+        updatedAt: now,
+      });
+    }
+    return {
+      message: "Saldo de choferes en cero.",
+      wallets: wallets.length,
+      deletedTransactions,
+    };
+  },
+});
+
+/**
+ * Asegura la billetera de comisión de cada chofer (saldo 0 si no existía).
  *
  *   npx convex run seed:ensureAllDriverTripCredits --prod
  */
 export const ensureAllDriverTripCredits = internalMutation({
   args: {},
   handler: async (ctx) => {
-    let toppedUp = 0;
+    let ensured = 0;
     for (const driver of await ctx.db.query("drivers").collect()) {
-      const before = (await ensureWallet(ctx, driver._id)).tripCredits;
       await ensureDemoWalletBalance(ctx, driver._id);
-      const after = (await ensureWallet(ctx, driver._id)).tripCredits;
-      if (after > before) {
-        toppedUp += 1;
-      }
-      if (driver.status !== "available") {
-        await ctx.db.patch(driver._id, { status: "available" });
-      }
+      ensured += 1;
     }
-    return { message: "Choferes con saldo mínimo de viajes.", toppedUp };
+    return {
+      message: "Billeteras listas. La comisión se descuenta del saldo.",
+      ensured,
+    };
   },
 });
 

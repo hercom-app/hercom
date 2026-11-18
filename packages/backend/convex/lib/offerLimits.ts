@@ -1,5 +1,6 @@
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { PLATFORM_COMMISSION_RATE } from "./constants";
 import { getMarketByCountry } from "./markets";
 import { normalizeMoney } from "./money";
 import { getMinimumOfferPrice } from "./pricing";
@@ -63,6 +64,26 @@ async function findDistrictPricingRule(
     .sort((a, b) => b.score - a.score);
 
   return scored[0]?.rule ?? null;
+}
+
+/**
+ * Comisión Hercom del viaje: la regla de distrito más específica, o 25% si no hay.
+ */
+export async function resolveCommissionRate(
+  ctx: QueryCtx | MutationCtx,
+  origin: {
+    countryCode?: string;
+    department?: string;
+    province?: string;
+    district?: string;
+  },
+): Promise<number> {
+  const rule = await findDistrictPricingRule(ctx, origin);
+  const rate = rule?.commissionRate;
+  if (rate !== undefined && rate > 0 && rate <= 1) {
+    return rate;
+  }
+  return PLATFORM_COMMISSION_RATE;
 }
 
 export async function resolveOfferLimits(

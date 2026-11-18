@@ -150,7 +150,7 @@ export function PromotionsView() {
     <AdminPage>
       <AdminPageHeader
         title="Promociones"
-        description="Campañas festivas por región. Tope de descuento 25%."
+        description="Campaña de fechas. No se acumula con los primeros 3 viajes. Tope 25%."
       />
 
       <AdminRegionFilters value={listRegion} onChange={setListRegion}>

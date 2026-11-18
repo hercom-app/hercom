@@ -95,19 +95,19 @@ Hechos de negocio (fact types):
 | RN-006 | Relacion cliente-servicio | Todo `Servicio` DEBE estar asociado a un `Cliente` (`clientId`). | Estructural | Validacion | Fija | Producto | Activa |
 | RN-007 | Relacion chofer-servicio opcional | Un `Servicio` PUEDE no tener chofer al crearse (`driverId` opcional), y luego quedar asignado. | Estructural | Flujo de trabajo | Fija | Operaciones | Activa |
 | RN-008 | Un pago por servicio | Un `Servicio` NO DEBE generar mas de un `Pago` (creacion idempotente por `serviceId`). | Estructural | Validacion | Fija | Finanzas + Backend | Activa |
-| RN-009 | Comision de plataforma | La comision de plataforma DEBE derivarse de `offeredPrice * 0.25`, redondeada a 2 decimales. | Estructural | Calculo / Derivacion | Dinamica | Direccion + Finanzas | Activa |
+| RN-009 | Comision de plataforma | La comision de Hercom DEBE ser el 25% de lo que gana el chofer (`offeredPrice * 0.25`), redondeada a 2 decimales. Una regla de distrito PUEDE fijar otro porcentaje. | Estructural | Calculo / Derivacion | Dinamica | Direccion + Finanzas | Activa |
 | RN-010 | Acceso autenticado | Para ejecutar operaciones de negocio, el usuario DEBE estar autenticado. | Operativa | Autorizacion | Fija | Seguridad | Activa |
 | RN-011 | Tarifa minima de contratacion | SI un cliente crea un servicio, ENTONCES `basePrice` DEBE ser >= S/80 (S/40/hora x 2 horas minimas de contratacion). | Operativa | Validacion | Fija | Operaciones | Activa |
 | RN-012 | Estado inicial del servicio | SI un servicio se crea correctamente, ENTONCES su estado DEBE ser `pending` y registrar `requestedAt`. | Operativa | Flujo de trabajo | Fija | Operaciones | Activa |
 | RN-013 | Oferta de chofer | Un chofer disponible PUEDE ofertar tarifa para un servicio en `pending`, siempre que la oferta sea >= tarifa base (minimo S/80 = 2h x S/40/h). | Operativa | Flujo de trabajo | Fija | Operaciones | Activa |
 | RN-014 | Seleccion de oferta por cliente | Solo el cliente dueño del servicio PUEDE aceptar una oferta de su servicio pendiente. | Operativa | Autorizacion | Fija | Operaciones | Activa |
-| RN-015 | Restriccion para aceptar oferta | SI el cliente acepta una oferta, ENTONCES el servicio DEBE estar en `pending`, el chofer en `available` y con saldo suficiente según límite S/-10. | Operativa | Validacion | Fija | Operaciones | Activa |
+| RN-015 | Restriccion para aceptar oferta | SI el cliente acepta una oferta, ENTONCES el servicio DEBE estar en `pending`, el chofer en `available` y con saldo suficiente para que, descontada la comisión, no baje de S/-15. | Operativa | Validacion | Fija | Operaciones | Activa |
 | RN-016 | Efecto de aceptacion de oferta | SI una oferta es aceptada, ENTONCES el servicio pasa a `assigned`, se genera `securityCode`, el chofer pasa a `busy`, la oferta queda `accepted` y el resto de ofertas `rejected`. | Operativa | Flujo de trabajo | Fija | Operaciones | Activa |
 | RN-017 | Transiciones del chofer | Un chofer solo PUEDE cambiar estados: `assigned -> heading_to_pickup/cancelled`, `heading_to_pickup -> arrived_pickup/cancelled`, `arrived_pickup -> in_progress/cancelled` (validando codigo), `in_progress -> arrived_destination/cancelled`, `arrived_destination -> finished`. | Operativa | Flujo de trabajo | Fija | Operaciones | Activa |
 | RN-018 | Propiedad del servicio para chofer | Un chofer NO DEBE actualizar un servicio que no este asignado a su `driverId`. | Operativa | Autorizacion | Fija | Seguridad + Operaciones | Activa |
 | RN-019 | Finalizacion de servicio | SI un chofer finaliza servicio, ENTONCES el servicio pasa a `finished`, registra `finishedAt`, el chofer vuelve a `available` e incrementa `totalTrips`. | Operativa | Flujo de trabajo | Fija | Operaciones | Activa |
 | RN-020 | Descuento de comision desde saldo | SI un servicio pasa a `finished`, ENTONCES el sistema DEBE descontar la comision de plataforma del saldo del chofer. | Operativa | Calculo / Derivacion | Fija | Finanzas | Activa |
-| RN-021 | Limite de saldo negativo | El saldo del chofer puede llegar como máximo a S/-10. Por debajo de ese límite NO se permite ofertar/asignar servicio. | Operativa | Validacion | Fija | Finanzas + Operaciones | Activa |
+| RN-021 | Limite de saldo negativo | El saldo del chofer puede llegar como máximo a S/-15. Si la comisión del viaje lo dejaría por debajo, NO se permite ofertar ni asignar. | Operativa | Validacion | Fija | Finanzas + Operaciones | Activa |
 | RN-022 | Movimiento de saldo por comision | Todo descuento por comision DEBE registrar un movimiento en `walletTransactions` con tipo `commission_debit`. | Operativa | Flujo de trabajo | Fija | Finanzas + Backend | Activa |
 | RN-023 | Recarga de saldo por chofer | El chofer autenticado PUEDE recargar su propio saldo y debe registrarse movimiento `top_up`. | Operativa | Flujo de trabajo | Dinamica | Operaciones + Finanzas | Activa |
 | RN-024 | Botones rápidos de recarga | La app de chofer DEBE ofrecer montos rápidos de recarga: S/10, S/20 y S/50. | Operativa | Flujo de trabajo | Dinamica | Producto | Activa |
@@ -148,9 +148,9 @@ Hechos de negocio (fact types):
 | RN-059 | Tipo de viaje premium telefono | SI operaciones registra una solicitud telefonica, ENTONCES un admin DEBE crearla con `serviceType=premium` y `requestChannel=phone`. | Operativa | Flujo de trabajo | Fija | Operaciones | Activa |
 | RN-060 | Visibilidad de tipo en tablero | El tablero admin DEBE distinguir visualmente viajes app vs premium e indicar el canal de solicitud. | Operativa | Flujo de trabajo | Dinamica | Operaciones | Activa |
 | RN-061 | Promociones por region y fechas | Hercom DEBE poder activar promociones festivas segmentadas por departamento, provincia (opcional) y distrito (opcional), con rango de fechas. | Operativa | Flujo de trabajo | Dinamica | Operaciones + Marketing | Activa |
-| RN-062 | Descuento absorbido por Hercom | SI aplica promocion, ENTONCES el descuento reduce lo que paga el cliente pero el chofer DEBE mantener su neto del 75% sobre la tarifa de lista ofertada. | Operativa | Calculo / Derivacion | Fija | Finanzas + Operaciones | Activa |
-| RN-063 | Tope de descuento promocional | El descuento maximo DEBE ser 25% sobre la tarifa de lista; a ese tope la ganancia de Hercom es S/0 (ejemplo lista S/80). | Operativa | Validacion | Fija | Finanzas | Activa |
-| RN-064 | Aplicacion automatica al crear servicio | SI existe promocion activa para la region del recojo y la fecha, ENTONCES el servicio DEBE registrar `catalogBasePrice`, `discountRate`, `promotionId` y `basePrice` con descuento. | Operativa | Flujo de trabajo | Fija | Backend + Operaciones | Activa |
+| RN-062 | Descuento absorbido por Hercom | SI aplica promocion, ENTONCES el cliente le paga al chofer la tarifa con descuento, Hercom cobra la diferencia contra el neto y el chofer DEBE mantener su neto del 75% sobre la oferta. El chofer ve la oferta tachada, lo que le paga el cliente y la comision menor. | Operativa | Calculo / Derivacion | Fija | Finanzas + Operaciones | Activa |
+| RN-063 | Tope de descuento promocional | El descuento maximo DEBE ser 25% sobre la tarifa de lista; a ese tope la ganancia de Hercom es S/0 (ejemplo lista S/80, chofer neto S/60). | Operativa | Validacion | Fija | Finanzas | Activa |
+| RN-064 | Un solo descuento por viaje | Los descuentos NO se acumulan. SI al cliente le quedan primeros viajes, el servicio usa solo `users.firstTripsDiscountRate`. SI el cupo ya se gasto Y hay campaña activa de región y fecha, el servicio usa solo `promotions.discountRate`. NUNCA los dos a la vez. | Operativa | Flujo de trabajo | Fija | Backend + Operaciones | Activa |
 | RN-065 | GPS y region en app movil | Al solicitar servicio desde la app movil, el cliente PUEDE usar GPS + geocodificacion inversa (Google Maps) para autocompletar direccion de origen, coordenadas y departamento/provincia/distrito; puede corregir la region manualmente. | Operativa | Flujo de trabajo | Dinamica | App movil + Operaciones | Activa |
 
 ---
@@ -171,15 +171,25 @@ Hechos de negocio (fact types):
 - Tarifa horaria de referencia: S/40/hora.
 - Contratacion minima del servicio: 2 horas.
 - Tarifa base minima (`basePrice`): S/80 (= S/40 x 2).
-- `advanceAmount = round(offeredPrice * 0.25, 2 decimales)` (anticipo cliente → chofer)
-- `driverCommission = round(offeredPrice * 0.25, 2 decimales)` (comision de app)
-- `totalPrice = offeredPrice` (tarifa acordada del servicio)
+- `advanceAmount = round(offeredPrice * 0.25, 2 decimales)` (anticipo cliente → chofer, sobre la oferta, no sobre el precio con descuento)
+- Sin descuento: `driverCommission = round(offeredPrice * commissionRate, 2 decimales)` y `totalPrice = offeredPrice`
+- `commissionRate` por defecto 0.25, o el de la regla de distrito
 - Saldo pendiente al cierre: `totalPrice - advanceAmount`
-- Promocion festiva (si aplica):
-  - `clientPrice = listPrice * (1 - discountRate)`
-  - `driverNet = listPrice * 0.75` (sin cambio para el chofer)
-  - `platformCommission = max(clientPrice - driverNet, 0)`
+- Con descuento de primeros viajes (`services.discountRate` presente):
+  - `clientPrice = offeredPrice * (1 - discountRate)` y eso se guarda en `totalPrice`
+  - `driverNet = offeredPrice * (1 - commissionRate)` (con 25%, el chofer se queda el 75% de la oferta)
+  - `driverCommission = max(clientPrice - driverNet, 0)`
   - `discountRate` maximo: 25%
+  - Ejemplo oferta S/80, descuento 15%, comisión 25%: el cliente paga S/68, Hercom cobra S/8, el chofer se queda S/60
+
+### 5.3 Un solo descuento: primeros viajes o campaña
+
+No se acumulan. `services.discountKind` dice cuál entró y `services.discountRate` guarda ese único porcentaje.
+
+- Primeros viajes: `users.firstTripsDiscountRate` (15% si no se había escrito), mientras `firstTripsDiscountUsed` sea menor que `firstTripsDiscountLimit`.
+- Campaña de fechas (Navidad, Fiestas Patrias): `promotions.discountRate`, solo cuando el cupo de primeros viajes ya se gastó y la campaña está activa en esa región y esas fechas.
+
+Ejemplo lista S/80, comisión 25%, primeros viajes 15%, campaña 10%: los 3 primeros paga S/68 y Hercom cobra S/8. Del cuarto en adelante, dentro de la campaña, paga S/72 y Hercom cobra S/12. El chofer se queda S/60 en los dos casos.
 
 ---
 
@@ -332,8 +342,8 @@ Caracteristica: Recarga de saldo
 
 ```gherkin
 Caracteristica: Limite de saldo negativo
-  Escenario: Chofer no puede pasar de S/-10
-    Dado que el chofer tiene saldo en S/-10
+  Escenario: Chofer no puede pasar de S/-15
+    Dado que el chofer tiene saldo en S/-15
     Cuando intenta ofertar un nuevo servicio
     Entonces el sistema rechaza la operacion y solicita recargar
 ```
@@ -422,7 +432,8 @@ Recomendacion de mantenimiento:
   - ruta: `origin.address`, `origin.lat`, `origin.lng`, `destination.address`, `destination.lat`, `destination.lng`
   - negocio precio: `basePrice` (min. S/80), `offeredPrice`, `advanceAmount`, `advanceConfirmedAt`, `totalPrice`, `driverCommission`
   - clasificacion: `serviceType`, `requestChannel`
-  - promocion: `catalogBasePrice`, `discountRate`, `promotionId`, `promotionName`
+  - promocion: `catalogBasePrice` (lista), `discountRate` (columna del descuento en el viaje), `promotionId`, `promotionName`
+  - cupo del cliente: `users.firstTripsDiscountLimit`, `users.firstTripsDiscountUsed`
   - seguridad/estado: `securityCode`, `status`
   - tiempos: `requestedAt`, `assignedAt`, `headingToPickupAt`, `arrivedPickupAt`, `departedWithClientAt`, `arrivedDestinationAt`, `finishedAt`, `cancelledAt`
 - `serviceOffers`: `serviceId`, `driverId`, `offeredPrice`, `status`, `createdAt`, `respondedAt`
@@ -446,8 +457,10 @@ Recomendacion de mantenimiento:
   - `packages/backend/convex/notifications.ts`
     - `createNotification()` (helper), `listMine()`, `markAsRead()`, `markAllAsRead()`
   - `packages/backend/convex/schema.ts`: contratos de tablas/validadores
-  - `packages/backend/convex/promotions.ts`: CRUD promociones + catalogo Peru
-  - `packages/backend/convex/lib/pricing.ts`: reparto cliente/chofer/Hercom con descuento
+  - `packages/backend/convex/promotions.ts`: CRUD promociones; `previewForRegion` oculta el descuento si el cliente ya gastó los 3 cupos
+  - `packages/backend/convex/lib/firstTrips.ts`: cuenta los servicios del cliente y decide si todavía entra el descuento
+  - `packages/backend/convex/lib/driverFare.ts`: reparte oferta, pago del cliente, comisión real y neto
+  - `packages/backend/convex/lib/pricing.ts`: aplica ese reparto al crear, aceptar y revisar la tarifa
 - Mobile:
   - `apps/mobile/src/components/ServiceCard.tsx`: confirmacion de anticipo y acciones operativas del chofer por estado
   - `apps/mobile/src/screens/DriverDashboard.tsx`: viajes activos y panel operativo chofer

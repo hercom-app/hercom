@@ -196,7 +196,7 @@ export function DriverDashboard() {
     );
   }
 
-  const tripCredits = wallet?.tripCredits ?? 0;
+  const walletBalance = wallet?.balance ?? 0;
   const unreadNotifications = (notifications ?? []).filter(
     (notification) => notification.readAt === undefined,
   ).length;
@@ -214,7 +214,7 @@ export function DriverDashboard() {
       content = (
         <DriverServiceHome
           status={driver.status}
-          tripCredits={tripCredits}
+          walletBalance={walletBalance}
           radiusKm={radiusKm}
           nearbyCount={openOffersPayload === undefined ? null : openServices.length}
           coords={offerCoords}
@@ -243,7 +243,7 @@ export function DriverDashboard() {
           locationError={offerLocationError}
           onRefreshLocation={() => void refreshOfferLocation()}
           myOfferByService={myOfferByService}
-          tripCredits={tripCredits}
+          walletBalance={walletBalance}
           onGoToTopUp={goToTopUp}
           onGoToPayout={goToPayout}
           hasPayoutMethod={

@@ -87,6 +87,7 @@ export type AppliedPromotion = {
   festivityLabel?: string;
   catalogBasePrice: number;
   basePrice: number;
+  discountKind: "campaign";
   discountRate: number;
   driverCommissionEstimate: number;
 };
@@ -112,6 +113,7 @@ export async function applyPromotionToListPrice(
       : {}),
     catalogBasePrice: pricing.listPrice,
     basePrice: pricing.clientPrice,
+    discountKind: "campaign" as const,
     discountRate: pricing.discountRate,
     driverCommissionEstimate: pricing.platformCommission,
   };

@@ -19,11 +19,13 @@ import { DriverSheet } from "./DriverSheet";
 import { useAppTheme } from "../../contexts/ThemeContext";
 import { getDriverGpsForOffer } from "../../hooks/useDriverOfferLocation";
 import { toPeopleAddress } from "../../lib/googleGeocoding";
-import { hasTripCreditForOffer } from "../../lib/offerWallet";
+import { canAffordOffer } from "../../lib/offerWallet";
+import { DriverFirstTripsNotice, MoneyPair, quoteOffer, solesLabel } from "../FirstTripsFare";
 import {
   convexErrorMessage,
   isInsufficientBalanceError,
 } from "../../lib/convexErrorMessage";
+import { computeClientAdvance } from "@proyecto/backend/constants";
 import { HERCOM_COLORS, POPPINS, TABULAR, UBER_RADIUS } from "../../constants/theme";
 
 export type OpenOfferService = FunctionReturnType<
@@ -46,7 +48,7 @@ type DriverRequestsTabProps = {
   locationError: string | null;
   onRefreshLocation: () => void;
   myOfferByService: Record<string, number>;
-  tripCredits: number;
+  walletBalance: number;
   onGoToTopUp: () => void;
   onGoToPayout: () => void;
   hasPayoutMethod: boolean;
@@ -67,6 +69,10 @@ function offerBounds(service: OpenOfferService) {
   return { floor, max };
 }
 
+function fareAt(service: OpenOfferService, price: number) {
+  return quoteOffer(price, service.offerCard.discountRate, service.offerCard.commissionRate);
+}
+
 /** Pestaña Lista: solicitudes abiertas dentro del radio (estilo lista minimalista). */
 export function DriverRequestsTab({
   isAvailable,
@@ -76,7 +82,7 @@ export function DriverRequestsTab({
   locationError,
   onRefreshLocation,
   myOfferByService,
-  tripCredits,
+  walletBalance,
   onGoToTopUp,
   onGoToPayout,
   hasPayoutMethod,
@@ -90,12 +96,18 @@ export function DriverRequestsTab({
   const [offerPrice, setOfferPrice] = useState(MIN_OFFER_PRICE);
   const [submitting, setSubmitting] = useState(false);
 
-  const canAfford = hasTripCreditForOffer(tripCredits);
+  const canAfford =
+    openServices.length === 0
+      ? canAffordOffer(walletBalance, MIN_OFFER_PRICE)
+      : openServices.some((service) => {
+          const { floor } = offerBounds(service);
+          return canAffordOffer(walletBalance, floor, fareAt(service, floor).commission);
+        });
   const listHeight =
     height - insets.top - insets.bottom - TITLE_BLOCK_HEIGHT - TAB_BAR_HEIGHT - 16;
   const cardHeight = Math.min(
-    170,
-    Math.max(124, Math.floor((listHeight - CARD_GAP * (VISIBLE_CARDS - 1)) / VISIBLE_CARDS)),
+    196,
+    Math.max(148, Math.floor((listHeight - CARD_GAP * (VISIBLE_CARDS - 1)) / VISIBLE_CARDS)),
   );
 
   function openOffer(service: OpenOfferService) {
@@ -110,8 +122,14 @@ export function DriverRequestsTab({
       );
       return;
     }
-    if (!canAfford) {
-      Alert.alert("Sin viajes prepagados", "Recarga para poder ofertar.", [
+    const opening = fareAt(service, offerBounds(service).floor);
+    if (!canAffordOffer(walletBalance, offerBounds(service).floor, opening.commission)) {
+      Alert.alert(
+        "Saldo insuficiente",
+        opening.discounted
+          ? `En este viaje de primeros viajes la comisión es ${solesLabel(opening.commission)} y tu saldo no alcanza. Recarga para ofertar.`
+          : "Tu saldo no alcanza para la comisión de un viaje. Recarga para seguir ofertando.",
+        [
         { text: "Recargar", onPress: onGoToTopUp },
         { text: "Ahora no" },
       ]);
@@ -126,6 +144,18 @@ export function DriverRequestsTab({
       return;
     }
     const service = selected;
+    const submittingFare = fareAt(service, offerPrice);
+    if (!canAffordOffer(walletBalance, offerPrice, submittingFare.commission)) {
+      Alert.alert(
+        "Saldo insuficiente",
+        `Con esta tarifa la comisión es ${solesLabel(submittingFare.commission)} y dejaría tu saldo por debajo de S/-15. Baja la oferta o recarga.`,
+        [
+          { text: "Recargar", onPress: onGoToTopUp },
+          { text: "OK" },
+        ],
+      );
+      return;
+    }
     setSubmitting(true);
     void (async () => {
       try {
@@ -247,7 +277,7 @@ export function DriverRequestsTab({
               color: HERCOM_COLORS.text,
             }}
           >
-            No tienes viajes prepagados. Recarga para ofertar.
+            Saldo insuficiente para la comisión. Recarga para ofertar.
           </Text>
           <DrawerIcon name="chevron" color={HERCOM_COLORS.text} />
         </TouchableOpacity>
@@ -316,6 +346,8 @@ function RequestCard({
   const { colors, border } = useAppTheme();
   const card = service.offerCard;
   const offered = myOffer !== undefined;
+  const shownPrice = myOffer ?? card.listPrice;
+  const shownFare = fareAt(service, shownPrice);
 
   return (
     <TouchableOpacity
@@ -323,7 +355,11 @@ function RequestCard({
       disabled={offered}
       activeOpacity={0.75}
       accessibilityRole="button"
-      accessibilityLabel={`${soles(card.listPrice)}, ${hoursLabel(card.serviceHours)}, ${card.clientFirstName}. Recojo a ${card.pickup.km} kilómetros.`}
+      accessibilityLabel={`${
+        card.discountRate > 0
+          ? `${card.discountLabel}, oferta ${soles(shownPrice)}, comisión ${soles(shownFare.commission)}, el cliente paga ${soles(shownFare.clientPays)}`
+          : soles(card.listPrice)
+      }, ${hoursLabel(card.serviceHours)}, ${card.clientFirstName}. Recojo a ${card.pickup.km} kilómetros.`}
       style={{
         height,
         borderRadius: UBER_RADIUS.card,
@@ -337,21 +373,42 @@ function RequestCard({
     >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <View style={{ flex: 1 }}>
-          <Text
-            numberOfLines={1}
-            style={{ fontFamily: POPPINS.bold, fontSize: 26, color: colors.textStrong, ...TABULAR }}
-          >
-            {soles(card.listPrice)}
-            <Text style={{ fontFamily: POPPINS.medium, fontSize: 17, color: colors.steel }}>
-              {`  ·  ${hoursLabel(card.serviceHours)}`}
+          {card.discountRate > 0 ? (
+            <View>
+              <MoneyPair
+                leftLabel="Oferta"
+                leftAmount={shownPrice}
+                rightLabel="Comisión"
+                rightAmount={shownFare.commission}
+                leftSize={16}
+                rightSize={22}
+              />
+              <Text
+                numberOfLines={2}
+                style={{ fontFamily: POPPINS.semibold, fontSize: 13, color: colors.accent, marginTop: 2 }}
+              >
+                {`${card.discountLabel} · ${hoursLabel(card.serviceHours)} · el cliente te paga ${soles(shownFare.clientPays)}`}
+              </Text>
+            </View>
+          ) : (
+            <Text
+              numberOfLines={1}
+              style={{ fontFamily: POPPINS.bold, fontSize: 26, color: colors.textStrong, ...TABULAR }}
+            >
+              {soles(card.listPrice)}
+              <Text style={{ fontFamily: POPPINS.medium, fontSize: 17, color: colors.steel }}>
+                {`  ·  ${hoursLabel(card.serviceHours)}`}
+              </Text>
             </Text>
-          </Text>
+          )}
           {offered && (
             <Text
               numberOfLines={1}
               style={{ fontFamily: POPPINS.semibold, fontSize: 13, color: colors.accent }}
             >
-              {`Ofertaste ${soles(myOffer)} · esperando al cliente`}
+              {card.discountRate > 0
+                ? `Ofertaste ${soles(shownPrice)} · comisión ${soles(shownFare.commission)}`
+                : `Ofertaste ${soles(shownPrice)} · esperando al cliente`}
             </Text>
           )}
         </View>
@@ -527,6 +584,7 @@ function OfferSheet({
   }
   const card = service.offerCard;
   const { floor, max } = offerBounds(service);
+  const quote = fareAt(service, price);
   const step = (delta: number) =>
     onChangePrice(Math.min(max, Math.max(floor, Math.round((price + delta) * 100) / 100)));
 
@@ -564,11 +622,18 @@ function OfferSheet({
         }}
       >
         <StepButton label="−" onPress={() => step(-OFFER_STEP)} disabled={price <= floor} />
-        <Text
-          style={{ fontFamily: POPPINS.bold, fontSize: 40, color: colors.textStrong, ...TABULAR }}
-        >
-          {soles(price)}
-        </Text>
+        <View style={{ alignItems: "center" }}>
+          {quote.discounted ? (
+            <Text style={{ fontFamily: POPPINS.medium, fontSize: 12, color: colors.steel }}>
+              Tu oferta
+            </Text>
+          ) : null}
+          <Text
+            style={{ fontFamily: POPPINS.bold, fontSize: 40, color: colors.textStrong, ...TABULAR }}
+          >
+            {soles(price)}
+          </Text>
+        </View>
         <StepButton label="+" onPress={() => step(OFFER_STEP)} disabled={price >= max} />
       </View>
       <Text
@@ -577,14 +642,25 @@ function OfferSheet({
           fontFamily: POPPINS.regular,
           fontSize: 14,
           color: colors.steel,
-          marginBottom: 16,
+          marginBottom: quote.discounted ? 8 : 16,
         }}
       >
-        {`Entre ${soles(floor)} y ${soles(max)}`}
+        {quote.discounted
+          ? `Entre ${soles(floor)} y ${soles(max)}. Comisión ${soles(quote.commission)}.`
+          : `Entre ${soles(floor)} y ${soles(max)}`}
       </Text>
+      <DriverFirstTripsNotice
+        quote={quote}
+        advance={computeClientAdvance(price)}
+        label={card.discountLabel || "Primeros viajes"}
+      />
 
       <TacticalButton
-        label={`Ofertar ${soles(price)}`}
+        label={
+          quote.discounted
+            ? `Ofertar ${soles(price)} · comisión ${soles(quote.commission)}`
+            : `Ofertar ${soles(price)}`
+        }
         onPress={onSubmit}
         loading={submitting}
         disabled={submitting}

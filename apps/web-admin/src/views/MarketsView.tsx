@@ -96,7 +96,7 @@ export function MarketsView() {
         usdExchangeRate: Number(form.usdExchangeRate),
         hourlyRate: pricing?.hourlyRate ?? FIXED_HOURLY_RATE,
         minServiceHours: pricing?.minServiceHours ?? FIXED_MIN_SERVICE_HOURS,
-        commissionRate: pricing?.commissionRate ?? FIXED_COMMISSION_RATE,
+        commissionRate: FIXED_COMMISSION_RATE,
         commissionRateFromHour3: pricing?.commissionRateFromHour3 ?? 0.15,
         commissionRateFromHour8: pricing?.commissionRateFromHour8 ?? 0.1,
         commissionFromHour3: pricing?.commissionFromHour3 ?? 3,
@@ -157,11 +157,11 @@ export function MarketsView() {
             <div className="mb-4 rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-950">
               <p className="font-semibold">Modelo comercial fijo</p>
               <p className="mt-1">
-                Cliente: tarifa mínima S/80 (2 h × S/40/h). Chofer: recarga viajes
-                prepagados — S/30 (1 viaje), S/50 (2 viajes), S/100 (5 viajes).
-                Cada viaje cerrado consume 1 crédito; la comisión Hercom es el costo
-                del crédito usado. Las horas extra las paga el cliente directo al
-                chofer; en la app solo se avisa la extensión.
+                Cliente: tarifa mínima S/80 (2 h × S/40/h). Chofer: Hercom cobra el
+                25% de lo que gana en cada viaje y se lo descuenta del saldo. El
+                saldo puede bajar hasta S/-15; por debajo no puede tomar otro viaje.
+                Un distrito puede fijar otro porcentaje. Las horas extra las paga
+                el cliente directo al chofer; en la app solo se avisa la extensión.
               </p>
             </div>
 

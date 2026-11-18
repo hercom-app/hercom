@@ -12,6 +12,18 @@ import {
 import { getMarketByCountry } from "./lib/markets";
 import type { MarketPricing } from "./lib/markets";
 import { applyPromotionToListPrice } from "./lib/promotions";
+import { driverFacingTripMoney } from "./lib/driverFare";
+import { quoteDriverFare } from "./lib/driverFare";
+import {
+  consumeFirstTripsSlot,
+  DEFAULT_FIRST_TRIPS_DISCOUNT_LIMIT,
+  DEFAULT_FIRST_TRIPS_DISCOUNT_RATE,
+  hasFirstTripsDiscountRoom,
+  loadFirstTripsDiscountForWrite,
+  occupiesFirstTripsSlot,
+  releaseFirstTripsSlot,
+  type FirstTripsDiscountState,
+} from "./lib/firstTrips";
 import {
   computeClientTotalForOffer,
   computePlatformCommissionForService,
@@ -23,7 +35,7 @@ import {
 } from "./lib/commissionTiers";
 import { requireDriver, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
 import { hasYapeOrPlin } from "./lib/driverPayout";
-import { resolveOfferLimits } from "./lib/offerLimits";
+import { resolveCommissionRate, resolveOfferLimits } from "./lib/offerLimits";
 import {
   canBrowseAllDriverRecords,
   driverMatchesDistrictScopes,
@@ -33,8 +45,10 @@ import {
   originMatchesDistrictScopes,
 } from "./lib/adminAccess";
 import {
-  debitTripForService,
-  hasTripCreditForService,
+  balanceCoversCommission,
+  debitCommissionForService,
+  getWalletBalance,
+  insufficientBalanceMessage,
 } from "./driverWallets";
 import { createNotification } from "./notifications";
 import { getCurrentStop, getServiceStops } from "./lib/serviceStops";
@@ -132,9 +146,10 @@ export const createService = mutation({
       user.role,
       args.requestChannel,
     );
-    const pricing = await buildServicePricingFields(ctx, basePrice, origin);
+    const slot = await loadFirstTripsDiscountForWrite(ctx, user._id);
+    const pricing = await buildServicePricingFields(ctx, basePrice, origin, slot);
 
-    return await ctx.db.insert("services", {
+    const serviceId = await ctx.db.insert("services", {
       clientId: user._id,
       origin,
       destination,
@@ -147,6 +162,8 @@ export const createService = mutation({
       ...passengerFields(user, args),
       requestedAt: Date.now(),
     });
+    await consumeFirstTripsSlot(ctx, user._id, slot);
+    return serviceId;
   },
 });
 
@@ -185,9 +202,10 @@ export const createPremiumServiceAsAdmin = mutation({
     }
     const extraDestinations = normalizeExtraDestinations(args.extraDestinations);
     const basePrice = normalizeMoney(args.basePrice);
-    const pricing = await buildServicePricingFields(ctx, basePrice, origin);
+    const slot = await loadFirstTripsDiscountForWrite(ctx, args.clientId);
+    const pricing = await buildServicePricingFields(ctx, basePrice, origin, slot);
 
-    return await ctx.db.insert("services", {
+    const serviceId = await ctx.db.insert("services", {
       clientId: args.clientId,
       origin,
       destination,
@@ -200,6 +218,8 @@ export const createPremiumServiceAsAdmin = mutation({
       ...passengerFields(client, args),
       requestedAt: Date.now(),
     });
+    await consumeFirstTripsSlot(ctx, args.clientId, slot);
+    return serviceId;
   },
 });
 
@@ -235,16 +255,10 @@ export const assignDriver = mutation({
         "El chofer no tiene Yape ni Plin. No se le asigna un viaje hasta que cargue un medio para el anticipo.",
       );
     }
-    const hasTrips = await hasTripCreditForService(ctx, driver._id);
-    if (!hasTrips) {
-      throw new Error(
-        "El chofer no tiene viajes prepagados. Debe recargar antes de asignarse servicios.",
-      );
-    }
-
     const securityCode = generateSecurityCode();
     const offeredPrice = service.catalogBasePrice ?? service.basePrice;
     const market = await getMarketByCountry(ctx, service.origin.countryCode);
+    const commissionRate = await resolveCommissionRate(ctx, service.origin);
     const { serviceHours, hourlyRateSnapshot } = resolveServiceHoursAndHourlyRate(
       offeredPrice,
       market,
@@ -254,12 +268,19 @@ export const assignDriver = mutation({
     const clientTotal = computeClientTotalForOffer(
       offeredPrice,
       service.discountRate,
+      commissionRate,
     );
     const commission = computePlatformCommissionForService(
       offeredPrice,
       service.discountRate,
-      { serviceHours, hourlyRate: hourlyRateSnapshot, market },
+      { commissionRate },
     );
+    const balance = await getWalletBalance(ctx, driver._id);
+    if (!balanceCoversCommission(balance, commission)) {
+      throw new Error(
+        insufficientBalanceMessage(balance, commission, commissionRate),
+      );
+    }
     const advanceAmount = computeClientAdvance(offeredPrice);
     await ctx.db.patch(service._id, {
       driverId: driver._id,
@@ -382,9 +403,21 @@ async function buildOfferCard(
       : null);
   const stops = getServiceStops(service);
   const finalStop = stops[stops.length - 1] ?? service.destination;
+  const discountRate = service.discountRate ?? 0;
+  const commissionRate = await resolveCommissionRate(ctx, service.origin);
   return {
     listPrice,
     serviceHours,
+    discountRate,
+    commissionRate,
+    discountKind: service.discountKind,
+    discountLabel:
+      service.discountKind === "campaign"
+        ? (service.promotionName ?? "Campaña")
+        : discountRate > 0
+          ? "Primeros viajes"
+          : "",
+    firstTrips: service.discountKind !== "campaign" && discountRate > 0,
     clientFirstName: firstNameForDisplay(client),
     clientPhotoUrl,
     clientTrips: clientServices.filter((item) => item.status === "finished").length,
@@ -411,6 +444,9 @@ export const expireStalePending = internalMutation({
     for (const service of pending) {
       if (service.requestedAt < cutoff) {
         await ctx.db.patch(service._id, unattendedServicePatch(now));
+        if (occupiesFirstTripsSlot(service.status)) {
+          await releaseFirstTripsSlot(ctx, service.clientId);
+        }
         expired += 1;
       }
     }
@@ -762,15 +798,19 @@ export const updateStatus = mutation({
         service._id,
         closedServicePatch("cancelled_by_staff"),
       );
+      if (occupiesFirstTripsSlot(service.status)) {
+        await releaseFirstTripsSlot(ctx, service.clientId);
+      }
       await ctx.db.patch(driver._id, { status: "available" });
       return service._id;
     }
 
     // args.status === "finished"
     const finishedAt = Date.now();
-    await debitTripForService(ctx, {
+    await debitCommissionForService(ctx, {
       driverId: driver._id,
       serviceId: service._id,
+      commission: service.driverCommission ?? 0,
     });
     await ctx.db.patch(service._id, {
       status: "finished",
@@ -1004,6 +1044,9 @@ export const cancelService = mutation({
         isOwner ? "cancelled_by_client" : "cancelled_by_staff",
       ),
     );
+    if (occupiesFirstTripsSlot(service.status)) {
+      await releaseFirstTripsSlot(ctx, service.clientId);
+    }
     if (service.driverId !== undefined) {
       await ctx.db.patch(service.driverId, { status: "available" });
     }
@@ -1242,15 +1285,25 @@ export const reviseAssignedFare = mutation({
     }
 
     const market = await getMarketByCountry(ctx, service.origin.countryCode);
+    const commissionRate = await resolveCommissionRate(ctx, service.origin);
     const priced = resolveServiceHoursAndHourlyRate(offeredPrice, market);
-    const serviceHours = service.serviceHours ?? priced.serviceHours;
     const hourlyRateSnapshot = service.hourlyRateSnapshot ?? priced.hourlyRateSnapshot;
     const commission = computePlatformCommissionForService(
       offeredPrice,
       service.discountRate,
-      { serviceHours, hourlyRate: hourlyRateSnapshot, market },
+      { commissionRate },
     );
-    const clientTotal = computeClientTotalForOffer(offeredPrice, service.discountRate);
+    const balance = await getWalletBalance(ctx, driver._id);
+    if (!balanceCoversCommission(balance, commission)) {
+      throw new Error(
+        insufficientBalanceMessage(balance, commission, commissionRate),
+      );
+    }
+    const clientTotal = computeClientTotalForOffer(
+      offeredPrice,
+      service.discountRate,
+      commissionRate,
+    );
     const advanceAmount = computeClientAdvance(offeredPrice);
 
     await ctx.db.patch(service._id, {
@@ -1291,16 +1344,25 @@ export const listEarningsForDriver = query({
           service.status === "finished" && service.finishedAt !== undefined,
       )
       .map((service) => {
-        const fare = normalizeMoney(service.offeredPrice ?? service.totalPrice);
-        const commission = normalizeMoney(service.driverCommission);
+        const facing = driverFacingTripMoney(service);
         return {
           serviceId: service._id,
           finishedAt: service.finishedAt as number,
           origin: service.origin.address,
           destination: service.destination.address,
-          fare,
-          commission,
-          net: normalizeMoney(fare - commission),
+          fare: facing.clientPays,
+          offer: facing.offer,
+          clientPays: facing.clientPays,
+          commission: facing.commission,
+          fullCommission: facing.fullCommission,
+          net: facing.net,
+          discounted: facing.discounted,
+          discountLabel:
+            service.discountKind === "campaign"
+              ? (service.promotionName ?? "Campaña")
+              : facing.discounted
+                ? "Primeros viajes"
+                : "",
         };
       })
       .sort((a, b) => b.finishedAt - a.finishedAt);
@@ -1748,6 +1810,48 @@ export const backfillUnattendedStatus = internalMutation({
   },
 });
 
+/**
+ * Escribe en cada usuario el tope y los cupos ya usados.
+ * Uso: `npx convex run services:backfillFirstTripsDiscount --prod`
+ */
+export const backfillFirstTripsDiscount = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    const services = await ctx.db.query("services").collect();
+    const usedByClient = new Map<string, number>();
+    for (const service of services) {
+      if (!occupiesFirstTripsSlot(service.status)) {
+        continue;
+      }
+      usedByClient.set(
+        service.clientId,
+        (usedByClient.get(service.clientId) ?? 0) + 1,
+      );
+    }
+    let updated = 0;
+    for (const user of users) {
+      const used = usedByClient.get(user._id) ?? 0;
+      const limit = user.firstTripsDiscountLimit ?? DEFAULT_FIRST_TRIPS_DISCOUNT_LIMIT;
+      const rate = user.firstTripsDiscountRate ?? DEFAULT_FIRST_TRIPS_DISCOUNT_RATE;
+      if (
+        user.firstTripsDiscountLimit === limit &&
+        user.firstTripsDiscountUsed === used &&
+        user.firstTripsDiscountRate === rate
+      ) {
+        continue;
+      }
+      await ctx.db.patch(user._id, {
+        firstTripsDiscountLimit: limit,
+        firstTripsDiscountUsed: used,
+        firstTripsDiscountRate: rate,
+      });
+      updated += 1;
+    }
+    return { users: users.length, updated };
+  },
+});
+
 function resolveServiceClassification(
   userRole: Doc<"users">["role"],
   requestChannel?: "mobile_app" | "web_comercial" | "phone",
@@ -1775,27 +1879,41 @@ async function buildServicePricingFields(
     province?: string;
     district?: string;
   },
+  firstTrips: FirstTripsDiscountState,
 ) {
   const market = await getMarketByCountry(ctx, origin.countryCode);
   const catalogBasePrice = normalizeMoney(
     Math.max(listBasePrice, market.minServicePrice),
   );
-  const applied = await applyPromotionToListPrice(ctx, catalogBasePrice, {
+  const region = {
     countryCode: resolveCountryCode(origin),
     department: origin.department ?? "",
     province: origin.province,
     district: origin.district,
-  });
-
+  };
   const { serviceHours, hourlyRateSnapshot } = resolveServiceHoursAndHourlyRate(
     catalogBasePrice,
     market,
   );
-  const commissionOptions = {
-    serviceHours,
-    hourlyRate: hourlyRateSnapshot,
-    market,
-  };
+  const commissionRate = await resolveCommissionRate(ctx, origin);
+  const commissionOptions = { commissionRate };
+
+  // Un solo descuento. Si quedan primeros viajes, ese porcentaje gana y la campaña no se suma.
+  if (hasFirstTripsDiscountRoom(firstTrips) && firstTrips.rate > 0) {
+    const quote = quoteDriverFare(catalogBasePrice, firstTrips.rate, commissionRate);
+    return {
+      discountKind: "first_trips" as const,
+      discountRate: quote.discountRate,
+      catalogBasePrice,
+      basePrice: quote.clientPays,
+      totalPrice: quote.clientPays,
+      driverCommission: quote.commission,
+      serviceHours,
+      hourlyRateSnapshot,
+    };
+  }
+
+  const applied = await applyPromotionToListPrice(ctx, catalogBasePrice, region);
 
   if (applied === null) {
     return {
@@ -1813,6 +1931,7 @@ async function buildServicePricingFields(
   }
 
   return {
+    discountKind: "campaign" as const,
     promotionId: applied.promotionId,
     promotionName: applied.promotionName,
     catalogBasePrice: applied.catalogBasePrice,

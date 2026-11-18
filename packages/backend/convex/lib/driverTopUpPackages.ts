@@ -16,9 +16,9 @@ export type DriverTopUpPackage = {
 };
 
 export const DRIVER_TOP_UP_PACKAGES: readonly DriverTopUpPackage[] = [
-  { id: "trips_1", trips: 1, pricePen: 30, label: "1 viaje" },
-  { id: "trips_2", trips: 2, pricePen: 50, label: "2 viajes" },
-  { id: "trips_5", trips: 5, pricePen: 100, label: "5 viajes" },
+  { id: "trips_1", trips: 1, pricePen: 30, label: "S/30" },
+  { id: "trips_2", trips: 2, pricePen: 50, label: "S/50" },
+  { id: "trips_5", trips: 5, pricePen: 100, label: "S/100" },
 ];
 
 export const driverTopUpPackageIdValidator = v.union(

@@ -109,10 +109,8 @@ export const getMine = query({
         kind: "trip" as const,
         at: trip.finishedAt,
         dayKey: trip.dayKey,
-        title: trip.discounted ? trip.discountLabel || "Descuento" : "Viaje",
-        subtitle: trip.discounted
-          ? `El cliente te pagó S/${trip.clientPays.toFixed(2)} · comisión S/${trip.commission.toFixed(2)} (sin descuento S/${trip.fullCommission.toFixed(2)})`
-          : `Desde ${trip.origin}`,
+        title: "Viaje",
+        subtitle: `Desde ${trip.origin}`,
         amount: trip.net,
         offer: trip.discounted ? trip.offer : undefined,
         commission: trip.discounted ? trip.commission : undefined,

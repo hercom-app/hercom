@@ -32,130 +32,91 @@ export function quoteOffer(
   return quoteDriverFare(offer, discountRate, commissionRate);
 }
 
-/** Dos importes con nombre: el de la izquierda puede ir tachado. */
-export function MoneyPair({
-  leftLabel,
-  leftAmount,
-  rightLabel,
-  rightAmount,
-  strikeLeft = false,
+/** Etiqueta verde: "−15% · Primeros viajes". */
+export function DiscountTag({
+  rate,
+  label,
   align = "flex-start",
-  leftSize = 18,
-  rightSize = 22,
 }: {
-  leftLabel: string;
-  leftAmount: number;
-  rightLabel: string;
-  rightAmount: number;
-  strikeLeft?: boolean;
-  align?: "center" | "flex-end" | "flex-start";
-  leftSize?: number;
-  rightSize?: number;
+  rate: number;
+  label?: string;
+  align?: "flex-start" | "flex-end" | "center";
 }) {
   const { colors } = useAppTheme();
+  const percent = Math.round(rate * 100);
+  const text = label !== undefined && label !== "" ? `−${percent}% · ${label}` : `−${percent}%`;
   return (
-    <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: align, gap: 14 }}>
-      <View style={{ alignItems: align === "flex-end" ? "flex-end" : "flex-start" }}>
-        <Text style={{ fontFamily: POPPINS.medium, fontSize: 12, color: colors.steel }}>
-          {leftLabel}
-        </Text>
-        <Text
-          style={{
-            fontFamily: POPPINS.medium,
-            fontSize: leftSize,
-            color: colors.steel,
-            textDecorationLine: strikeLeft ? "line-through" : "none",
-            ...TABULAR,
-          }}
-        >
-          {solesLabel(leftAmount)}
-        </Text>
-      </View>
-      <View style={{ alignItems: align === "flex-end" ? "flex-end" : "flex-start" }}>
-        <Text style={{ fontFamily: POPPINS.medium, fontSize: 12, color: colors.steel }}>
-          {rightLabel}
-        </Text>
-        <Text
-          style={{
-            fontFamily: POPPINS.bold,
-            fontSize: rightSize,
-            color: colors.textStrong,
-            ...TABULAR,
-          }}
-        >
-          {solesLabel(rightAmount)}
-        </Text>
-      </View>
+    <View
+      style={{
+        alignSelf: align,
+        backgroundColor: `${colors.success}1F`,
+        borderRadius: 999,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+      }}
+    >
+      <Text
+        numberOfLines={1}
+        style={{ fontFamily: POPPINS.semibold, fontSize: 12, color: colors.success }}
+      >
+        {text}
+      </Text>
     </View>
   );
 }
 
-/**
- * El chofer ve que es un primer viaje, cuánto le paga el cliente
- * y cuánto baja su comisión.
- */
-export function DriverFirstTripsNotice({
-  quote,
-  advance,
-  label = "Primeros viajes",
-  showPair = true,
+/** Cliente: lo que paga en grande y la oferta tachada al lado, en chico. */
+export function DiscountedPrice({
+  price,
+  original,
+  size = 22,
 }: {
-  quote: DriverFareQuote;
-  advance?: number;
-  label?: string;
-  showPair?: boolean;
+  price: number;
+  original: number;
+  size?: number;
 }) {
   const { colors } = useAppTheme();
-  if (!quote.discounted) {
-    return null;
-  }
-  const rest =
-    advance === undefined
-      ? undefined
-      : Math.round((quote.clientPays - advance) * 100) / 100;
-
   return (
-    <View
-      style={{
-        backgroundColor: colors.surfaceSunken,
-        borderRadius: 16,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        gap: 6,
-        marginBottom: 14,
-      }}
-    >
+    <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}>
+      <Text style={{ fontFamily: POPPINS.bold, fontSize: size, color: colors.textStrong, ...TABULAR }}>
+        {solesLabel(price)}
+      </Text>
       <Text
         style={{
-          fontFamily: POPPINS.bold,
-          fontSize: 13,
-          letterSpacing: 0.6,
-          color: colors.accent,
+          fontFamily: POPPINS.regular,
+          fontSize: Math.max(12, Math.round(size * 0.6)),
+          color: colors.steel,
+          textDecorationLine: "line-through",
+          ...TABULAR,
         }}
       >
-        {label.toUpperCase()}
+        {solesLabel(original)}
       </Text>
-      {showPair ? (
-        <MoneyPair
-          leftLabel="Tu oferta"
-          leftAmount={quote.offer}
-          rightLabel="Comisión"
-          rightAmount={quote.commission}
-          leftSize={18}
-          rightSize={26}
-        />
-      ) : null}
-      <Text style={{ fontFamily: POPPINS.regular, fontSize: 15, lineHeight: 21, color: colors.text }}>
-        {`El cliente te paga ${solesLabel(quote.clientPays)}. Sin este descuento la comisión sería ${solesLabel(quote.fullCommission)}.`}
+    </View>
+  );
+}
+
+/** Chofer: su oferta en grande y la comisión debajo, en chico. */
+export function OfferCommission({
+  offer,
+  commission,
+  size = 22,
+  align = "flex-start",
+}: {
+  offer: number;
+  commission: number;
+  size?: number;
+  align?: "flex-start" | "flex-end" | "center";
+}) {
+  const { colors } = useAppTheme();
+  return (
+    <View style={{ alignItems: align }}>
+      <Text style={{ fontFamily: POPPINS.bold, fontSize: size, color: colors.textStrong, ...TABULAR }}>
+        {solesLabel(offer)}
       </Text>
-      <Text style={{ fontFamily: POPPINS.semibold, fontSize: 15, lineHeight: 21, color: colors.textStrong }}>
-        {`Te quedas ${solesLabel(quote.net)}. Te pagan menos y tú pagas menos comisión.`}
+      <Text style={{ fontFamily: POPPINS.medium, fontSize: 13, color: colors.steel, ...TABULAR }}>
+        {`Comisión ${solesLabel(commission)}`}
       </Text>
-      {advance !== undefined && rest !== undefined && (
-        <Text style={{ fontFamily: POPPINS.regular, fontSize: 14, lineHeight: 20, color: colors.text }}>
-          {`Anticipo ${solesLabel(advance)}. El resto del viaje ${solesLabel(Math.max(rest, 0))}.`}
-        </Text>
-      )}
     </View>
   );
 }

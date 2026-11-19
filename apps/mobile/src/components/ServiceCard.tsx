@@ -21,7 +21,7 @@ import { canShareLiveTrip } from "../lib/serviceStatus";
 import { useAppTheme } from "../contexts/ThemeContext";
 import { HERCOM_COLORS, POPPINS, TABULAR } from "../constants/theme";
 import { driverFacingTripMoney } from "@proyecto/backend/driverFare";
-import { discountTitle, DriverFirstTripsNotice, MoneyPair } from "./FirstTripsFare";
+import { DiscountTag, discountTitle, OfferCommission } from "./FirstTripsFare";
 
 const CLIENT_ADVANCE_RATE = 0.25;
 
@@ -208,27 +208,16 @@ export const ServiceCard = memo(function ServiceCard({
           )}
         </View>
         {fare.discounted ? (
-          <MoneyPair
-            leftLabel="Tu oferta"
-            leftAmount={fare.offer}
-            rightLabel="Comisión"
-            rightAmount={fare.commission}
-            leftSize={16}
-            rightSize={22}
-            align="flex-end"
-          />
+          <View style={{ alignItems: "flex-end", gap: 4 }}>
+            <OfferCommission offer={fare.offer} commission={fare.commission} size={24} align="flex-end" />
+            <DiscountTag rate={fare.discountRate} label={discountTitle(service)} align="flex-end" />
+          </View>
         ) : (
           <Text style={{ fontFamily: POPPINS.bold, fontSize: 24, color: colors.textStrong, ...TABULAR }}>
             {soles(price)}
           </Text>
         )}
       </View>
-      <DriverFirstTripsNotice
-        quote={fare}
-        advance={advanceAmount}
-        label={discountTitle(service)}
-        showPair={false}
-      />
 
       <PassengerBanner
         forSelf={service.forSelf}

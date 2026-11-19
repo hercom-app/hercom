@@ -10,8 +10,8 @@ import {
   TacticalEmpty,
   TacticalValue,
 } from "./tactical";
-import { HERCOM_COLORS, MONO, POPPINS, TACTICAL_COLORS } from "../constants/theme";
-import { MoneyPair, quoteOffer } from "./FirstTripsFare";
+import { HERCOM_COLORS, MONO, TACTICAL_COLORS } from "../constants/theme";
+import { DiscountedPrice, DiscountTag, quoteOffer } from "./FirstTripsFare";
 
 export type DriverOfferInfo = {
   _id: Id<"serviceOffers">;
@@ -117,27 +117,9 @@ export function DriverOfferModal({
             </Text>
           )}
           {fare !== null && fare.discounted ? (
-            <View style={{ marginTop: 12 }}>
-              <Text
-                style={{
-                  fontFamily: POPPINS.semibold,
-                  fontSize: 13,
-                  color: TACTICAL_COLORS.accent,
-                }}
-              >
-                {discountLabel}
-              </Text>
-              <View style={{ marginTop: 8 }}>
-                <MoneyPair
-                  leftLabel="Oferta del chofer"
-                  leftAmount={fare.offer}
-                  rightLabel="Pagas"
-                  rightAmount={fare.clientPays}
-                  strikeLeft
-                  leftSize={18}
-                  rightSize={28}
-                />
-              </View>
+            <View style={{ marginTop: 12, gap: 4 }}>
+              <DiscountedPrice price={fare.clientPays} original={fare.offer} size={28} />
+              <DiscountTag rate={fare.discountRate} label={discountLabel} />
             </View>
           ) : (
             <TripPriceFooter

@@ -80,8 +80,8 @@ export function DriverEarningsView() {
             </TacticalValue>
             <TacticalText size={12} className="mt-1">
               {trip.discounted
-                ? `${trip.discountLabel} · ofertaste ${soles(trip.offer)} · comisión ${soles(trip.commission)} · el cliente te pagó ${soles(trip.clientPays)}`
-                : `El cliente te pagó ${soles(trip.clientPays)} · comisión ${soles(trip.commission)}`}
+                ? `${soles(trip.offer)} · comisión ${soles(trip.commission)} · ${trip.discountLabel}`
+                : `${soles(trip.offer)} · comisión ${soles(trip.commission)}`}
             </TacticalText>
           </UiCard>
         ))

@@ -28,7 +28,12 @@ import {
   type DriverProfileDetails,
 } from "../components/AdvancePayoutModal";
 import { DriverOfferModal, type DriverOfferInfo } from "../components/DriverOfferModal";
-import { discountTitle, MoneyPair, quoteOffer, solesLabel } from "../components/FirstTripsFare";
+import {
+  DiscountedPrice,
+  DiscountTag,
+  discountTitle,
+  quoteOffer,
+} from "../components/FirstTripsFare";
 import { EditTripLocationsModal } from "../components/EditTripLocationsModal";
 import { TripChatSheet } from "../components/TripChatSheet";
 import { BrandSplash } from "../components/BrandSplash";
@@ -366,16 +371,11 @@ function ClientServiceCard({
               {(service.serviceType ?? "app") === "app" && <UiChip label="App" />}
             </View>
             {agreedFare?.discounted === true ? (
-              <View style={{ alignItems: "flex-end", flexShrink: 0, maxWidth: "58%" }}>
-                <MoneyPair
-                  leftLabel="Oferta"
-                  leftAmount={agreedFare.offer}
-                  rightLabel="Pagas"
-                  rightAmount={agreedFare.clientPays}
-                  strikeLeft
-                  align="flex-end"
-                  leftSize={14}
-                  rightSize={18}
+              <View style={{ flexShrink: 0, maxWidth: "50%" }}>
+                <DiscountedPrice
+                  price={agreedFare.clientPays}
+                  original={agreedFare.offer}
+                  size={16}
                 />
               </View>
             ) : (
@@ -390,13 +390,17 @@ function ClientServiceCard({
               </TacticalValue>
             )}
           </View>
-          <TacticalText size={12} className="mb-1">
-            {agreedFare?.discounted === true
-              ? `${discountTitle(service)} · pagas ${solesLabel(agreedFare.clientPays)} (oferta ${solesLabel(agreedFare.offer)})`
-              : service.offeredPrice !== undefined
+          {(service.discountRate ?? 0) > 0 ? (
+            <View className="mb-1">
+              <DiscountTag rate={service.discountRate ?? 0} label={discountTitle(service)} />
+            </View>
+          ) : (
+            <TacticalText size={12} className="mb-1">
+              {service.offeredPrice !== undefined
                 ? `Tarifa acordada: S/${service.offeredPrice.toFixed(2)}`
                 : "Esperando acuerdo de tarifa"}
-          </TacticalText>
+            </TacticalText>
+          )}
           <View className="mb-1 flex-row items-center" style={{ gap: 8 }}>
             {service.driverName !== undefined && (
               <TouchableOpacity
@@ -788,25 +792,10 @@ function ClientServiceCard({
                   </View>
                   {quoteOffer(offer.offeredPrice, service.discountRate).discounted ? (
                     <View className="mt-1">
-                      <Text
-                        style={{
-                          fontFamily: POPPINS.bold,
-                          fontSize: 12,
-                          color: HERCOM_COLORS.primary,
-                        }}
-                      >
-                        {discountTitle(service)}
-                      </Text>
-                      <MoneyPair
-                        leftLabel="Oferta"
-                        leftAmount={offer.offeredPrice}
-                        rightLabel="Pagas"
-                        rightAmount={
-                          quoteOffer(offer.offeredPrice, service.discountRate).clientPays
-                        }
-                        strikeLeft
-                        leftSize={16}
-                        rightSize={18}
+                      <DiscountedPrice
+                        price={quoteOffer(offer.offeredPrice, service.discountRate).clientPays}
+                        original={offer.offeredPrice}
+                        size={18}
                       />
                     </View>
                   ) : (
@@ -2873,15 +2862,15 @@ export function ClientDashboard() {
                 Tarifa estimada
               </Text>
               {promoPreview !== undefined && promoPreview !== null ? (
-                <View style={{ marginTop: 4 }}>
-                  <MoneyPair
-                    leftLabel="Precio"
-                    leftAmount={listPrice}
-                    rightLabel="Pagas"
-                    rightAmount={promoPreview.basePrice}
-                    strikeLeft
-                    leftSize={18}
-                    rightSize={28}
+                <View style={{ marginTop: 2, gap: 4 }}>
+                  <DiscountedPrice
+                    price={promoPreview.basePrice}
+                    original={listPrice}
+                    size={28}
+                  />
+                  <DiscountTag
+                    rate={promoPreview.discountRate}
+                    label={promoPreview.promotionName}
                   />
                 </View>
               ) : (
@@ -2912,42 +2901,6 @@ export function ClientDashboard() {
               {hourlyRate}
             </Text>
           </View>
-
-          {promoPreview !== undefined && promoPreview !== null && (
-            <View
-              style={{
-                backgroundColor: "#E5F8EA",
-                borderRadius: 16,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                marginBottom: 12,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: POPPINS.semibold,
-                  fontSize: 14,
-                  color: HERCOM_COLORS.text,
-                }}
-              >
-                Promo: {promoPreview.promotionName} (
-                {(promoPreview.discountRate * 100).toFixed(0)}% off)
-              </Text>
-              <Text
-                style={{
-                  marginTop: 4,
-                  fontFamily: POPPINS.regular,
-                  fontSize: 13,
-                  lineHeight: 18,
-                  color: HERCOM_COLORS.textSecondary,
-                }}
-              >
-                Pagas {currencySymbol}
-                {promoPreview.basePrice.toFixed(2)}. El precio es {currencySymbol}
-                {promoPreview.catalogBasePrice.toFixed(2)}.
-              </Text>
-            </View>
-          )}
 
           <TacticalInput
             value={notes}

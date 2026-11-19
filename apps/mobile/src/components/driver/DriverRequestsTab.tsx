@@ -20,12 +20,11 @@ import { useAppTheme } from "../../contexts/ThemeContext";
 import { getDriverGpsForOffer } from "../../hooks/useDriverOfferLocation";
 import { toPeopleAddress } from "../../lib/googleGeocoding";
 import { canAffordOffer } from "../../lib/offerWallet";
-import { DriverFirstTripsNotice, MoneyPair, quoteOffer, solesLabel } from "../FirstTripsFare";
+import { DiscountTag, quoteOffer, solesLabel } from "../FirstTripsFare";
 import {
   convexErrorMessage,
   isInsufficientBalanceError,
 } from "../../lib/convexErrorMessage";
-import { computeClientAdvance } from "@proyecto/backend/constants";
 import { HERCOM_COLORS, POPPINS, TABULAR, UBER_RADIUS } from "../../constants/theme";
 
 export type OpenOfferService = FunctionReturnType<
@@ -127,7 +126,7 @@ export function DriverRequestsTab({
       Alert.alert(
         "Saldo insuficiente",
         opening.discounted
-          ? `En este viaje de primeros viajes la comisión es ${solesLabel(opening.commission)} y tu saldo no alcanza. Recarga para ofertar.`
+          ? `En este viaje con descuento la comisión es ${solesLabel(opening.commission)} y tu saldo no alcanza. Recarga para ofertar.`
           : "Tu saldo no alcanza para la comisión de un viaje. Recarga para seguir ofertando.",
         [
         { text: "Recargar", onPress: onGoToTopUp },
@@ -357,7 +356,7 @@ function RequestCard({
       accessibilityRole="button"
       accessibilityLabel={`${
         card.discountRate > 0
-          ? `${card.discountLabel}, oferta ${soles(shownPrice)}, comisión ${soles(shownFare.commission)}, el cliente paga ${soles(shownFare.clientPays)}`
+          ? `${soles(shownPrice)}, comisión ${soles(shownFare.commission)}, ${card.discountLabel}`
           : soles(card.listPrice)
       }, ${hoursLabel(card.serviceHours)}, ${card.clientFirstName}. Recojo a ${card.pickup.km} kilómetros.`}
       style={{
@@ -374,21 +373,22 @@ function RequestCard({
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <View style={{ flex: 1 }}>
           {card.discountRate > 0 ? (
-            <View>
-              <MoneyPair
-                leftLabel="Oferta"
-                leftAmount={shownPrice}
-                rightLabel="Comisión"
-                rightAmount={shownFare.commission}
-                leftSize={16}
-                rightSize={22}
-              />
+            <View style={{ gap: 4 }}>
               <Text
-                numberOfLines={2}
-                style={{ fontFamily: POPPINS.semibold, fontSize: 13, color: colors.accent, marginTop: 2 }}
+                numberOfLines={1}
+                style={{ fontFamily: POPPINS.bold, fontSize: 26, color: colors.textStrong, ...TABULAR }}
               >
-                {`${card.discountLabel} · ${hoursLabel(card.serviceHours)} · el cliente te paga ${soles(shownFare.clientPays)}`}
+                {soles(shownPrice)}
+                <Text style={{ fontFamily: POPPINS.medium, fontSize: 15, color: colors.steel }}>
+                  {`  ·  Comisión ${soles(shownFare.commission)}`}
+                </Text>
               </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <DiscountTag rate={shownFare.discountRate} label={card.discountLabel} />
+                <Text style={{ fontFamily: POPPINS.medium, fontSize: 13, color: colors.steel }}>
+                  {hoursLabel(card.serviceHours)}
+                </Text>
+              </View>
             </View>
           ) : (
             <Text
@@ -406,9 +406,7 @@ function RequestCard({
               numberOfLines={1}
               style={{ fontFamily: POPPINS.semibold, fontSize: 13, color: colors.accent }}
             >
-              {card.discountRate > 0
-                ? `Ofertaste ${soles(shownPrice)} · comisión ${soles(shownFare.commission)}`
-                : `Ofertaste ${soles(shownPrice)} · esperando al cliente`}
+              {`Ofertaste ${soles(shownPrice)} · esperando al cliente`}
             </Text>
           )}
         </View>
@@ -623,44 +621,43 @@ function OfferSheet({
       >
         <StepButton label="−" onPress={() => step(-OFFER_STEP)} disabled={price <= floor} />
         <View style={{ alignItems: "center" }}>
-          {quote.discounted ? (
-            <Text style={{ fontFamily: POPPINS.medium, fontSize: 12, color: colors.steel }}>
-              Tu oferta
-            </Text>
-          ) : null}
           <Text
             style={{ fontFamily: POPPINS.bold, fontSize: 40, color: colors.textStrong, ...TABULAR }}
           >
             {soles(price)}
           </Text>
+          {quote.discounted ? (
+            <Text style={{ fontFamily: POPPINS.medium, fontSize: 14, color: colors.steel, ...TABULAR }}>
+              {`Comisión ${soles(quote.commission)}`}
+            </Text>
+          ) : null}
         </View>
         <StepButton label="+" onPress={() => step(OFFER_STEP)} disabled={price >= max} />
       </View>
+      {quote.discounted ? (
+        <View style={{ alignItems: "center", marginTop: 4 }}>
+          <DiscountTag
+            rate={quote.discountRate}
+            label={card.discountLabel || "Primeros viajes"}
+            align="center"
+          />
+        </View>
+      ) : null}
       <Text
         style={{
           textAlign: "center",
           fontFamily: POPPINS.regular,
           fontSize: 14,
           color: colors.steel,
-          marginBottom: quote.discounted ? 8 : 16,
+          marginTop: quote.discounted ? 8 : 0,
+          marginBottom: 16,
         }}
       >
-        {quote.discounted
-          ? `Entre ${soles(floor)} y ${soles(max)}. Comisión ${soles(quote.commission)}.`
-          : `Entre ${soles(floor)} y ${soles(max)}`}
+        {`Entre ${soles(floor)} y ${soles(max)}`}
       </Text>
-      <DriverFirstTripsNotice
-        quote={quote}
-        advance={computeClientAdvance(price)}
-        label={card.discountLabel || "Primeros viajes"}
-      />
 
       <TacticalButton
-        label={
-          quote.discounted
-            ? `Ofertar ${soles(price)} · comisión ${soles(quote.commission)}`
-            : `Ofertar ${soles(price)}`
-        }
+        label={`Ofertar ${soles(price)}`}
         onPress={onSubmit}
         loading={submitting}
         disabled={submitting}

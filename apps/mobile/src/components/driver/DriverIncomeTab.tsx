@@ -275,11 +275,12 @@ function MoneySummary({
             kind={movement.kind}
             title={movement.title}
             subtitle={movement.subtitle}
-            meta={formatDateTime(movement.at)}
+            meta={
+              movement.commission !== undefined
+                ? `${formatDateTime(movement.at)} · comisión ${soles(movement.commission)}`
+                : formatDateTime(movement.at)
+            }
             amount={movement.amount}
-            strike={movement.offer}
-            beside={movement.commission}
-            besideLabel="comisión"
             onPress={movement.kind === "trip" ? () => onOpenDay(movement.dayKey) : undefined}
           />
         ))
@@ -396,13 +397,10 @@ function MoneyDayView({
           subtitle={`Viaje desde ${trip.origin}`}
           meta={
             trip.discounted
-              ? `${trip.discountLabel} · el cliente te pagó ${soles(trip.clientPays)} · comisión ${soles(trip.commission)} (sin descuento ${soles(trip.fullCommission)}) · te quedas ${soles(trip.net)}`
-              : `El cliente te pagó ${soles(trip.clientPays)} · comisión ${soles(trip.commission)} · te quedas ${soles(trip.net)}`
+              ? `${soles(trip.offer)} · comisión ${soles(trip.commission)} · ${trip.discountLabel}`
+              : `${soles(trip.offer)} · comisión ${soles(trip.commission)}`
           }
           amount={trip.net}
-          strike={trip.discounted ? trip.offer : undefined}
-          beside={trip.discounted ? trip.commission : undefined}
-          besideLabel="comisión"
         />
       ))}
       {topUps.map((topUp) => (
@@ -525,9 +523,6 @@ function MovementRow({
   subtitle,
   meta,
   amount,
-  strike,
-  beside,
-  besideLabel = "",
   onPress,
 }: {
   kind: "trip" | "top_up";
@@ -535,9 +530,6 @@ function MovementRow({
   subtitle: string;
   meta?: string;
   amount: number;
-  strike?: number;
-  beside?: number;
-  besideLabel?: string;
   onPress?: () => void;
 }) {
   const { colors, border } = useAppTheme();
@@ -579,26 +571,6 @@ function MovementRow({
         >
           {subtitle}
         </Text>
-        {strike !== undefined && beside !== undefined && (
-          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, marginTop: 2 }}>
-            <Text
-              style={{
-                fontFamily: POPPINS.medium,
-                fontSize: 14,
-                color: colors.steel,
-                textDecorationLine: "line-through",
-                ...TABULAR,
-              }}
-            >
-              {soles(strike)}
-            </Text>
-            <Text
-              style={{ fontFamily: POPPINS.semibold, fontSize: 15, color: colors.textStrong, ...TABULAR }}
-            >
-              {besideLabel === "" ? soles(beside) : `${besideLabel} ${soles(beside)}`}
-            </Text>
-          </View>
-        )}
         {meta !== undefined && (
           <Text style={{ fontFamily: POPPINS.regular, fontSize: 13, color: colors.steel }}>
             {meta}

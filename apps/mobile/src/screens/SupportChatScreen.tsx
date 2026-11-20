@@ -27,6 +27,8 @@ type SupportChatScreenProps = {
   onOpenMenu?: () => void;
   /** Sin cabecera propia: la pone la pestaña que lo contiene. */
   embedded?: boolean;
+  /** Texto con el que arranca la caja de mensaje. */
+  initialDraft?: string;
 };
 
 type ChatMessage = {
@@ -48,12 +50,13 @@ function formatTime(timestamp: number): string {
 export function SupportChatScreen({
   onOpenMenu,
   embedded = false,
+  initialDraft = "",
 }: SupportChatScreenProps) {
   const insets = useSafeAreaInsets();
   const messages = useQuery(api.support.listMyMessages);
   const sendMine = useMutation(api.support.sendMine);
   const markMineRead = useMutation(api.support.markMineRead);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(initialDraft);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);

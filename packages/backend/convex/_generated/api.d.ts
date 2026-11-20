@@ -78,6 +78,7 @@ import type * as serviceRouteArchives from "../serviceRouteArchives.js";
 import type * as serviceTracking from "../serviceTracking.js";
 import type * as services from "../services.js";
 import type * as support from "../support.js";
+import type * as tripSummary from "../tripSummary.js";
 import type * as users from "../users.js";
 import type * as verificape from "../verificape.js";
 
@@ -158,6 +159,7 @@ declare const fullApi: ApiFromModules<{
   serviceTracking: typeof serviceTracking;
   services: typeof services;
   support: typeof support;
+  tripSummary: typeof tripSummary;
   users: typeof users;
   verificape: typeof verificape;
 }>;

@@ -2,7 +2,13 @@ import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { locationValidator, serviceRequestChannelValidator, serviceStatusValidator, serviceTypeValidator } from "./schema";
+import {
+  locationValidator,
+  serviceRequestChannelValidator,
+  serviceStatusValidator,
+  serviceTypeValidator,
+  tripPaymentMethodValidator,
+} from "./schema";
 import { matchesOriginRegion, resolveCountryCode } from "./lib/regionFilters";
 import { normalizeCountryCode } from "./data/countryCatalog";
 import {
@@ -667,6 +673,56 @@ const DRIVER_TRANSITIONS: Record<Doc<"services">["status"], Doc<"services">["sta
 };
 
 /**
+ * Cliente confirma que ya envió el adelanto del 25% al chofer.
+ */
+export const confirmAdvanceSent = mutation({
+  args: {
+    serviceId: v.id("services"),
+    paymentMethod: tripPaymentMethodValidator,
+  },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null) {
+      throw new Error("Servicio no encontrado.");
+    }
+    if (service.clientId !== user._id) {
+      throw new Error("No autorizado para este servicio.");
+    }
+    if (service.status !== "assigned") {
+      throw new Error("Solo puedes confirmar adelanto en servicios asignados.");
+    }
+    if (service.offeredPrice === undefined) {
+      throw new Error("Este servicio no tiene tarifa ofertada definida.");
+    }
+    if (service.advanceSentAt !== undefined) {
+      return service._id;
+    }
+    const advanceAmount =
+      service.advanceAmount ?? computeClientAdvance(service.offeredPrice);
+    const now = Date.now();
+    await ctx.db.patch(service._id, {
+      advanceAmount,
+      advancePaymentMethod: args.paymentMethod,
+      advanceSentAt: now,
+    });
+    if (service.driverId !== undefined) {
+      const driver = await ctx.db.get(service.driverId);
+      if (driver !== null) {
+        await createNotification(ctx, {
+          userId: driver.userId,
+          type: "advance_sent",
+          title: "Cliente confirmó el adelanto",
+          message: `El cliente registró el adelanto de S/${advanceAmount.toFixed(2)}. Confirma que lo recibiste en la app.`,
+          serviceId: service._id,
+        });
+      }
+    }
+    return service._id;
+  },
+});
+
+/**
  * Chofer confirma que el cliente le entregó el anticipo del 25% antes de salir.
  */
 export const confirmAdvanceReceived = mutation({
@@ -687,6 +743,11 @@ export const confirmAdvanceReceived = mutation({
     }
     if (service.advanceConfirmedAt !== undefined) {
       return service._id;
+    }
+    if (service.advanceSentAt === undefined) {
+      throw new Error(
+        "El cliente aún no confirmó en la app que envió el adelanto. Pídele que lo marque tras transferir.",
+      );
     }
     if (service.offeredPrice === undefined) {
       throw new Error("Este servicio no tiene tarifa ofertada definida.");
@@ -1533,6 +1594,7 @@ async function loadServiceReview(ctx: QueryCtx, service: Doc<"services">) {
       requestedAt: service.requestedAt,
       offeredAt: acceptedOffer?.createdAt ?? null,
       chosenAt: service.assignedAt ?? null,
+      advanceSentAt: service.advanceSentAt ?? null,
       advanceAt: service.advanceConfirmedAt ?? null,
       departedAt: service.headingToPickupAt ?? null,
       cancelledAt: service.cancelledAt ?? null,

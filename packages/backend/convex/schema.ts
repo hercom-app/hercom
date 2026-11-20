@@ -49,6 +49,14 @@ export const paymentStatusValidator = v.union(
   v.literal("paid"),
 );
 
+/** Medio con el que cliente y chofer registran cobros P2P (adelanto o saldo). */
+export const tripPaymentMethodValidator = v.union(
+  v.literal("cash"),
+  v.literal("yape"),
+  v.literal("plin"),
+  v.literal("card"),
+);
+
 export const payoutStatusValidator = v.union(
   v.literal("pending"),
   v.literal("paid"),
@@ -95,6 +103,7 @@ export const notificationTypeValidator = v.union(
   v.literal("driver_heading_pickup"),
   v.literal("driver_arrived_pickup"),
   v.literal("advance_confirmed"),
+  v.literal("advance_sent"),
   v.literal("trip_route_updated"),
   v.literal("trip_extended"),
   v.literal("service_message"),
@@ -365,6 +374,10 @@ export default defineSchema({
     driverCommission: v.number(),
     // Adelanto del 25% sobre tarifa ofertada; el cliente lo paga al chofer antes de salir.
     advanceAmount: v.optional(v.number()),
+    /** Cliente confirmó que envió el adelanto (25%). */
+    advanceSentAt: v.optional(v.number()),
+    advancePaymentMethod: v.optional(tripPaymentMethodValidator),
+    /** Chofer confirmó que recibió el adelanto. */
     advanceConfirmedAt: v.optional(v.number()),
     // Clasificación del viaje para operación y tablero admin.
     serviceType: v.optional(serviceTypeValidator),
@@ -428,8 +441,12 @@ export default defineSchema({
     serviceId: v.id("services"),
     clientId: v.id("users"),
     amount: v.number(),
-    method: v.optional(v.string()),
+    method: v.optional(tripPaymentMethodValidator),
     status: paymentStatusValidator,
+    /** Cliente confirmó el pago del saldo al finalizar. */
+    clientPaidAt: v.optional(v.number()),
+    /** Chofer confirmó que recibió el saldo (al calificar / cerrar). */
+    driverReceivedAt: v.optional(v.number()),
     paidAt: v.optional(v.number()),
   })
     .index("by_service", ["serviceId"])

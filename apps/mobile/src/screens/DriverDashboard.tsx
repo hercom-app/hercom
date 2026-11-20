@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Keyboard, Modal, ScrollView, View } from "react-native";
+import {
+  ActivityIndicator,
+  Keyboard,
+  Modal,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
@@ -19,7 +27,13 @@ import { DriverProfileTab } from "../components/driver/DriverProfileTab";
 import { DriverRadiusSheet } from "../components/driver/DriverRadiusSheet";
 import { DriverSafetyCenterSheet } from "../components/driver/DriverSafetyCenterSheet";
 import { RateServiceStars } from "../components/RateServiceStars";
+import { TripSummaryModal } from "../components/TripSummaryModal";
 import { useAppTheme } from "../contexts/ThemeContext";
+import { HERCOM_COLORS, POPPINS } from "../constants/theme";
+import {
+  TRIP_PAYMENT_OPTIONS,
+  type TripPaymentMethod,
+} from "../lib/tripPaymentMethods";
 
 export function DriverDashboard() {
   const { userName } = useAppMode();
@@ -44,6 +58,9 @@ export function DriverDashboard() {
     useState<Id<"services"> | null>(null);
   const [driverRatingSubmitting, setDriverRatingSubmitting] = useState(false);
   const [driverRatingError, setDriverRatingError] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<TripPaymentMethod | null>(null);
+  const [summaryServiceId, setSummaryServiceId] =
+    useState<Id<"services"> | null>(null);
 
   const rateClientAsDriver = useMutation(api.serviceRatings.rateClientAsDriver);
   const pendingRating = useQuery(
@@ -54,14 +71,14 @@ export function DriverDashboard() {
 
   useEffect(() => {
     const serviceId = pendingRating?.driverServiceId;
-    if (serviceId == null || rateClientServiceId !== null) {
+    if (serviceId == null || rateClientServiceId !== null || summaryServiceId !== null) {
       return;
     }
     if (ratedDriverServiceIds.current.has(serviceId)) {
       return;
     }
     setRateClientServiceId(serviceId);
-  }, [pendingRating?.driverServiceId, rateClientServiceId]);
+  }, [pendingRating?.driverServiceId, rateClientServiceId, summaryServiceId]);
 
   const wallet = useQuery(api.driverWallets.getMine, hasDriver ? {} : "skip");
   const services = useQuery(api.services.listForDriver, hasDriver ? {} : "skip");
@@ -224,6 +241,7 @@ export function DriverDashboard() {
           onTripFinished={(serviceId) => {
             setRateClientServiceId(serviceId);
             setDriverRatingError(null);
+            setPaymentMethod(null);
             goToTab("ingresos");
           }}
           onOpenRadius={() => setRadiusOpen(true)}
@@ -260,6 +278,7 @@ export function DriverDashboard() {
           onWalletFlowChange={setWalletFlow}
           dayKey={moneyDayKey}
           onDayChange={setMoneyDayKey}
+          onOpenTrip={setSummaryServiceId}
         />
       );
       break;
@@ -336,27 +355,65 @@ export function DriverDashboard() {
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
             keyboardShouldPersistTaps="handled"
           >
+            <Text style={{ fontFamily: POPPINS.bold, fontSize: 18, color: colors.textStrong }}>
+              ¿Cómo te pagó el cliente?
+            </Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+              {TRIP_PAYMENT_OPTIONS.map((option) => {
+                const selected = paymentMethod === option.value;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    onPress={() => setPaymentMethod(option.value)}
+                    activeOpacity={0.8}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    style={{
+                      paddingHorizontal: 18,
+                      paddingVertical: 10,
+                      borderRadius: 999,
+                      borderWidth: 1.5,
+                      borderColor: selected ? HERCOM_COLORS.primaryDark : colors.surfaceSunken,
+                      backgroundColor: selected ? HERCOM_COLORS.primaryDark : colors.surfaceSunken,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: POPPINS.semibold,
+                        fontSize: 16,
+                        color: selected ? HERCOM_COLORS.white : colors.textStrong,
+                      }}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
             <RateServiceStars
               title="¿Cómo fue el cliente?"
               subtitle="Obligatorio para cerrar el servicio. Tu valoración ayuda a la comunidad."
               submitting={driverRatingSubmitting}
               error={driverRatingError}
+              submitBlocked={paymentMethod === null}
               onSubmit={(score, comment) => {
-                if (rateClientServiceId === null) {
+                if (rateClientServiceId === null || paymentMethod === null) {
                   return;
                 }
+                const ratedServiceId = rateClientServiceId;
                 setDriverRatingSubmitting(true);
                 setDriverRatingError(null);
                 void rateClientAsDriver({
-                  serviceId: rateClientServiceId,
+                  serviceId: ratedServiceId,
                   score,
+                  paymentMethod,
                   ...(comment.trim() !== "" ? { comment: comment.trim() } : {}),
                 })
                   .then(() => {
-                    if (rateClientServiceId !== null) {
-                      ratedDriverServiceIds.current.add(rateClientServiceId);
-                    }
+                    ratedDriverServiceIds.current.add(ratedServiceId);
                     setRateClientServiceId(null);
+                    setPaymentMethod(null);
+                    setSummaryServiceId(ratedServiceId);
                   })
                   .catch((error) => {
                     setDriverRatingError(
@@ -371,6 +428,11 @@ export function DriverDashboard() {
           </ScrollView>
         </View>
       </Modal>
+
+      <TripSummaryModal
+        serviceId={summaryServiceId}
+        onClose={() => setSummaryServiceId(null)}
+      />
     </View>
   );
 }

@@ -89,6 +89,10 @@ export const rateClientAsDriver = mutation({
     serviceId: v.id("services"),
     score: v.number(),
     comment: v.optional(v.string()),
+    /** Cómo le pagó el cliente el saldo del viaje. */
+    paymentMethod: v.optional(
+      v.union(v.literal("cash"), v.literal("yape"), v.literal("plin"), v.literal("card")),
+    ),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
@@ -137,6 +141,22 @@ export const rateClientAsDriver = mutation({
         driverRatedAt: now,
         createdAt: now,
       });
+    }
+
+    if (args.paymentMethod !== undefined) {
+      const payment = await ctx.db
+        .query("payments")
+        .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+        .unique();
+      if (payment !== null) {
+        const now = Date.now();
+        await ctx.db.patch(payment._id, {
+          method: args.paymentMethod,
+          driverReceivedAt: now,
+          status: "paid",
+          paidAt: now,
+        });
+      }
     }
 
     return service._id;

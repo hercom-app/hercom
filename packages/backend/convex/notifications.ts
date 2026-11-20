@@ -159,6 +159,7 @@ export async function createNotification(
       | "driver_heading_pickup"
       | "driver_arrived_pickup"
       | "advance_confirmed"
+      | "advance_sent"
       | "trip_route_updated"
       | "trip_extended"
       | "service_message"

@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@proyecto/backend";
+import type { Id } from "@proyecto/backend/dataModel";
 import { DrawerIcon } from "../DrawerIcons";
 import { DriverWalletTopUpView } from "../wallet/DriverWalletTopUpView";
 import { WalletScreenTransition } from "../wallet/WalletScreenTransition";
@@ -28,6 +29,7 @@ type DriverIncomeTabProps = {
   /** Día abierto en detalle (`YYYY-MM-DD`) o `null` para el resumen. */
   dayKey: string | null;
   onDayChange: (dayKey: string | null) => void;
+  onOpenTrip: (serviceId: Id<"services">) => void;
 };
 
 function soles(amount: number): string {
@@ -75,6 +77,7 @@ export function DriverIncomeTab({
   onWalletFlowChange,
   dayKey,
   onDayChange,
+  onOpenTrip,
 }: DriverIncomeTabProps) {
   const { colors } = useAppTheme();
   const money = useQuery(api.driverMoney.getMine);
@@ -105,6 +108,7 @@ export function DriverIncomeTab({
         dayKey={dayKey}
         onDayChange={onDayChange}
         onBack={() => onDayChange(null)}
+        onOpenTrip={onOpenTrip}
       />
     );
   }
@@ -294,11 +298,13 @@ function MoneyDayView({
   dayKey,
   onDayChange,
   onBack,
+  onOpenTrip,
 }: {
   money: Money;
   dayKey: string;
   onDayChange: (dayKey: string) => void;
   onBack: () => void;
+  onOpenTrip: (serviceId: Id<"services">) => void;
 }) {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -401,6 +407,7 @@ function MoneyDayView({
               : `${soles(trip.offer)} · comisión ${soles(trip.commission)}`
           }
           amount={trip.net}
+          onPress={() => onOpenTrip(trip.serviceId)}
         />
       ))}
       {topUps.map((topUp) => (

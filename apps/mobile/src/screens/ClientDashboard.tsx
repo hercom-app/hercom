@@ -55,6 +55,7 @@ import {
   UberScreenHeader,
 } from "../components/uber";
 import {
+  TacticalButton,
   TacticalInput,
   TacticalLabel,
   TacticalStatus,
@@ -62,6 +63,7 @@ import {
   TacticalValue,
 } from "../components/tactical";
 import { LiveTripMapModal } from "../components/LiveTripMapModal";
+import { TripSummaryModal } from "../components/TripSummaryModal";
 import { RoundAction } from "../components/driver/driverUi";
 import { DrawerIcon } from "../components/DrawerIcons";
 import {
@@ -108,6 +110,11 @@ import { useAppMode } from "../contexts/AppModeContext";
 import { HERCOM_COLORS, TACTICAL_BORDER, TACTICAL_COLORS, TACTICAL_RADIUS, MONO, POPPINS } from "../constants/theme";
 import { useAndroidBackHandler } from "../hooks/useAndroidBackHandler";
 import { convexErrorMessage } from "../lib/convexErrorMessage";
+import {
+  TRIP_PAYMENT_OPTIONS,
+  TRIP_PAYMENT_LABELS,
+  type TripPaymentMethod,
+} from "../lib/tripPaymentMethods";
 import * as Location from "expo-location";
 
 const DEFAULT_HOURLY_SERVICE_RATE = 40;
@@ -176,6 +183,16 @@ const STATUS_LABELS: Record<
   en_route: "En camino",
   finished: "Finalizado",
 };
+
+function formatClientDateTime(timestamp: number): string {
+  return new Intl.DateTimeFormat("es-PE", {
+    timeZone: "America/Lima",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(timestamp));
+}
 
 function clientServiceStatusLabel(
   service: Doc<"services">,
@@ -257,6 +274,8 @@ function ClientServiceCard({
   embedInTripSheet?: boolean;
 }) {
   const cancelService = useMutation(api.services.cancelService);
+  const confirmAdvanceSent = useMutation(api.services.confirmAdvanceSent);
+  const confirmBalancePaid = useMutation(api.payments.confirmBalancePaid);
   const acceptOffer = useMutation(api.serviceOffers.acceptOffer);
   const updateTripLocations = useMutation(api.services.updateTripLocations);
   const updateAssignedHours = useMutation(api.services.updateAssignedHours);
@@ -264,6 +283,10 @@ function ClientServiceCard({
   const offers = useQuery(
     api.serviceOffers.listForServiceAsClient,
     service.status === "pending" ? { serviceId: service._id } : "skip",
+  );
+  const balancePayment = useQuery(
+    api.payments.getForMyService,
+    service.status === "finished" ? { serviceId: service._id } : "skip",
   );
   const driverPayout = useQuery(
     api.drivers.getPayoutForClientService,
@@ -287,6 +310,12 @@ function ClientServiceCard({
   const [ratingError, setRatingError] = useState<string | null>(null);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [liveMapOpen, setLiveMapOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [advanceMethod, setAdvanceMethod] = useState<TripPaymentMethod | null>(null);
+  const [advanceSending, setAdvanceSending] = useState(false);
+  const [balanceMethod, setBalanceMethod] = useState<TripPaymentMethod | null>(null);
+  const [balanceSending, setBalanceSending] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const agreedPrice = service.offeredPrice ?? service.totalPrice;
   const agreedFare =
@@ -298,7 +327,13 @@ function ClientServiceCard({
     (service.offeredPrice !== undefined
       ? Math.round(service.offeredPrice * CLIENT_ADVANCE_RATE * 100) / 100
       : 0);
+  const advanceSent = service.advanceSentAt !== undefined;
   const advanceConfirmed = service.advanceConfirmedAt !== undefined;
+  const balanceDue = Math.max(
+    (service.totalPrice ?? agreedPrice) - advanceAmount,
+    0,
+  );
+  const balanceConfirmed = balancePayment?.clientPaidAt !== undefined;
   const inProgress = service.status === "in_progress";
   const canEditRoute = inProgress || service.status === "assigned";
   const canChat =
@@ -574,7 +609,11 @@ function ClientServiceCard({
             borderRadius: 20,
             backgroundColor: "#FFFFFF",
             borderWidth: 2,
-            borderColor: advanceConfirmed ? HERCOM_COLORS.success : HERCOM_COLORS.primary,
+            borderColor: advanceConfirmed
+              ? HERCOM_COLORS.success
+              : advanceSent
+                ? "#CA8A04"
+                : HERCOM_COLORS.primary,
             overflow: "hidden",
             elevation: 8,
             shadowColor: advanceConfirmed ? "#15803D" : HERCOM_COLORS.primary,
@@ -609,7 +648,11 @@ function ClientServiceCard({
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={{ fontFamily: POPPINS.semibold, fontSize: 15, color: HERCOM_COLORS.textMuted }}>
-                  {advanceConfirmed ? "Anticipo confirmado" : "Adelanta al chofer"}
+                  {advanceConfirmed
+                    ? "Anticipo confirmado"
+                    : advanceSent
+                      ? "Esperando al chofer"
+                      : "Adelanta al chofer"}
                 </Text>
                 <Text
                   numberOfLines={1}
@@ -637,9 +680,52 @@ function ClientServiceCard({
               }}
             >
               {advanceConfirmed
-                ? "El chofer ya recibió el aviso de tu anticipo. Puedes volver a ver Yape, Plin o el banco."
-                : "Transfiere el 25% antes de que salga. Ahí están su foto, su presentación y los datos de cobro."}
+                ? `Confirmado por el chofer el ${formatClientDateTime(service.advanceConfirmedAt!)}.`
+                : advanceSent
+                  ? `Registraste el envío el ${formatClientDateTime(service.advanceSentAt!)}${
+                      service.advancePaymentMethod !== undefined
+                        ? ` · ${TRIP_PAYMENT_LABELS[service.advancePaymentMethod]}`
+                        : ""
+                    }. El chofer debe confirmar que lo recibió.`
+                  : "Transfiere el 25% antes de que salga. Luego indica el medio y confirma el envío."}
             </Text>
+            {!advanceSent && (
+              <View style={{ marginTop: 14, gap: 10 }}>
+                <Text style={{ fontFamily: POPPINS.semibold, fontSize: 15, color: HERCOM_COLORS.text }}>
+                  ¿Con qué medio enviaste el adelanto?
+                </Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                  {TRIP_PAYMENT_OPTIONS.map((option) => {
+                    const selected = advanceMethod === option.value;
+                    return (
+                      <TouchableOpacity
+                        key={option.value}
+                        onPress={() => setAdvanceMethod(option.value)}
+                        activeOpacity={0.85}
+                        style={{
+                          paddingHorizontal: 16,
+                          paddingVertical: 10,
+                          borderRadius: 999,
+                          borderWidth: 1.5,
+                          borderColor: selected ? HERCOM_COLORS.primaryDark : HERCOM_COLORS.border,
+                          backgroundColor: selected ? HERCOM_COLORS.primaryDark : HERCOM_COLORS.surfaceMuted,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontFamily: POPPINS.semibold,
+                            fontSize: 15,
+                            color: selected ? HERCOM_COLORS.white : HERCOM_COLORS.text,
+                          }}
+                        >
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
             <TouchableOpacity
               onPress={() => setPayoutOpen(true)}
               activeOpacity={0.88}
@@ -658,9 +744,52 @@ function ClientServiceCard({
             >
               <DrawerIcon name="bill" color="#FFFFFF" size={20} />
               <Text style={{ fontFamily: POPPINS.bold, fontSize: 18, color: "#FFFFFF" }}>
-                {advanceConfirmed ? "Ver datos de cobro" : "Adelantar al chofer"}
+                {advanceConfirmed || advanceSent ? "Ver datos de cobro" : "Adelantar al chofer"}
               </Text>
             </TouchableOpacity>
+            {!advanceSent && (
+              <TouchableOpacity
+                disabled={advanceMethod === null || advanceSending}
+                onPress={() => {
+                  if (advanceMethod === null) {
+                    return;
+                  }
+                  setAdvanceSending(true);
+                  setPaymentError(null);
+                  void confirmAdvanceSent({
+                    serviceId: service._id,
+                    paymentMethod: advanceMethod,
+                  })
+                    .catch((error) =>
+                      setPaymentError(
+                        convexErrorMessage(error, "No se pudo registrar el adelanto."),
+                      ),
+                    )
+                    .finally(() => setAdvanceSending(false));
+                }}
+                activeOpacity={0.88}
+                accessibilityRole="button"
+                style={{
+                  marginTop: 10,
+                  height: 50,
+                  borderRadius: 14,
+                  borderWidth: 2,
+                  borderColor: HERCOM_COLORS.primaryDark,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: advanceMethod === null || advanceSending ? 0.45 : 1,
+                }}
+              >
+                <Text style={{ fontFamily: POPPINS.bold, fontSize: 17, color: HERCOM_COLORS.primaryDark }}>
+                  {advanceSending ? "Guardando…" : "Confirmé que envié el adelanto"}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {paymentError !== null && service.status === "assigned" && (
+              <Text style={{ marginTop: 8, fontFamily: MONO.medium, fontSize: 13, color: TACTICAL_COLORS.danger }}>
+                {paymentError}
+              </Text>
+            )}
           </View>
         </View>
       )}
@@ -819,10 +948,78 @@ function ClientServiceCard({
           )}
         </View>
       )}
+      {service.status === "finished" && balanceDue > 0.01 && !balanceConfirmed && (
+        <View
+          className="mt-3 p-3"
+          style={{
+            backgroundColor: TACTICAL_COLORS.surfaceSunken,
+            borderRadius: TACTICAL_RADIUS.sharp,
+            borderWidth: 1,
+            borderColor: TACTICAL_BORDER,
+          }}
+        >
+          <TacticalLabel tone="accent" className="mb-1">
+            Saldo del viaje
+          </TacticalLabel>
+          <TacticalText size={13} className="mb-2">
+            {`Confirma que pagaste ${balanceDue.toFixed(2)} al chofer antes de valorar el viaje.`}
+          </TacticalText>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10, marginBottom: 10 }}>
+            {TRIP_PAYMENT_OPTIONS.map((option) => {
+              const selected = balanceMethod === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  onPress={() => setBalanceMethod(option.value)}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: selected ? HERCOM_COLORS.primaryDark : TACTICAL_BORDER,
+                    backgroundColor: selected ? HERCOM_COLORS.primaryDark : TACTICAL_COLORS.surface,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: POPPINS.semibold,
+                      fontSize: 14,
+                      color: selected ? HERCOM_COLORS.white : TACTICAL_COLORS.text,
+                    }}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <TacticalButton
+            label={balanceSending ? "Guardando…" : "Confirmé el pago del saldo"}
+            size="md"
+            disabled={balanceMethod === null || balanceSending}
+            loading={balanceSending}
+            onPress={() => {
+              if (balanceMethod === null) {
+                return;
+              }
+              setBalanceSending(true);
+              setPaymentError(null);
+              void confirmBalancePaid({ serviceId: service._id, method: balanceMethod })
+                .catch((error) =>
+                  setPaymentError(
+                    convexErrorMessage(error, "No se pudo registrar el saldo."),
+                  ),
+                )
+                .finally(() => setBalanceSending(false));
+            }}
+          />
+        </View>
+      )}
       {service.status === "finished" && service.clientRating === undefined && (
         <RateServiceStars
           submitting={ratingSubmitting}
           error={ratingError}
+          submitBlocked={balanceDue > 0.01 && !balanceConfirmed}
           onSubmit={(score, comment) => {
             setRatingSubmitting(true);
             setRatingError(null);
@@ -831,6 +1028,7 @@ function ClientServiceCard({
               score,
               ...(comment.trim() !== "" ? { comment: comment.trim() } : {}),
             })
+              .then(() => setSummaryOpen(true))
               .catch((error) =>
                 setRatingError(
                   error instanceof Error
@@ -843,9 +1041,24 @@ function ClientServiceCard({
         />
       )}
       {service.status === "finished" && service.clientRating !== undefined && (
-        <TacticalText size={12} tone="text" className="mt-3">
-          {`Valoraste este viaje con ${service.clientRating}★`}
-        </TacticalText>
+        <TouchableOpacity
+          onPress={() => setSummaryOpen(true)}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          style={{
+            marginTop: 12,
+            height: 48,
+            borderRadius: 12,
+            borderWidth: 1.5,
+            borderColor: HERCOM_COLORS.primaryDark,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ fontFamily: POPPINS.semibold, fontSize: 16, color: HERCOM_COLORS.primaryDark }}>
+            Ver resumen del viaje
+          </Text>
+        </TouchableOpacity>
       )}
       {canCancel && (
         <TouchableOpacity
@@ -933,6 +1146,10 @@ function ClientServiceCard({
         serviceId={service._id}
         onClose={() => setLiveMapOpen(false)}
         title="Compartir viaje"
+      />
+      <TripSummaryModal
+        serviceId={summaryOpen ? service._id : null}
+        onClose={() => setSummaryOpen(false)}
       />
     </>
   );

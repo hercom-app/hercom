@@ -20,6 +20,8 @@ type RateServiceStarsProps = {
   onSubmit: (score: number, comment: string) => void;
   title?: string;
   subtitle?: string;
+  /** Además de las estrellas, otro dato obligatorio sin completar. */
+  submitBlocked?: boolean;
 };
 
 export function RateServiceStars({
@@ -28,6 +30,7 @@ export function RateServiceStars({
   onSubmit,
   title = "¿Cómo estuvo el servicio?",
   subtitle = "Tu valoración queda en el perfil del chofer.",
+  submitBlocked = false,
 }: RateServiceStarsProps) {
   const [score, setScore] = useState(0);
   const [comment, setComment] = useState("");
@@ -96,7 +99,7 @@ export function RateServiceStars({
         label={submitting ? "Enviando..." : "Enviar valoración"}
         size="md"
         onPress={() => onSubmit(score, comment)}
-        disabled={submitting || score < 1}
+        disabled={submitting || score < 1 || submitBlocked}
         loading={submitting}
       />
     </TacticalPanel>

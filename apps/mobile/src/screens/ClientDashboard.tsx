@@ -110,11 +110,11 @@ import { useAppMode } from "../contexts/AppModeContext";
 import { HERCOM_COLORS, TACTICAL_BORDER, TACTICAL_COLORS, TACTICAL_RADIUS, MONO, POPPINS } from "../constants/theme";
 import { useAndroidBackHandler } from "../hooks/useAndroidBackHandler";
 import { convexErrorMessage } from "../lib/convexErrorMessage";
+import { TRIP_PAYMENT_LABELS, type TripPaymentMethod } from "../lib/tripPaymentMethods";
 import {
-  TRIP_PAYMENT_OPTIONS,
-  TRIP_PAYMENT_LABELS,
-  type TripPaymentMethod,
-} from "../lib/tripPaymentMethods";
+  BalancePaymentPicker,
+  TripPaymentMethodPicker,
+} from "../components/TripPaymentMethodPicker";
 import * as Location from "expo-location";
 
 const DEFAULT_HOURLY_SERVICE_RATE = 40;
@@ -275,6 +275,7 @@ function ClientServiceCard({
 }) {
   const cancelService = useMutation(api.services.cancelService);
   const confirmAdvanceSent = useMutation(api.services.confirmAdvanceSent);
+  const updateAdvanceSent = useMutation(api.services.updateAdvanceSent);
   const confirmBalancePaid = useMutation(api.payments.confirmBalancePaid);
   const acceptOffer = useMutation(api.serviceOffers.acceptOffer);
   const updateTripLocations = useMutation(api.services.updateTripLocations);
@@ -316,6 +317,7 @@ function ClientServiceCard({
   const [balanceMethod, setBalanceMethod] = useState<TripPaymentMethod | null>(null);
   const [balanceSending, setBalanceSending] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [editingAdvance, setEditingAdvance] = useState(false);
 
   const agreedPrice = service.offeredPrice ?? service.totalPrice;
   const agreedFare =
@@ -687,43 +689,40 @@ function ClientServiceCard({
                         ? ` · ${TRIP_PAYMENT_LABELS[service.advancePaymentMethod]}`
                         : ""
                     }. El chofer debe confirmar que lo recibió.`
-                  : "Transfiere el 25% antes de que salga. Luego indica el medio y confirma el envío."}
+                  : "1. Transfiere el 25%. 2. Indica el medio. 3. Confirma el envío (el chofer aún no puede salir hasta confirmar recepción)."}
             </Text>
-            {!advanceSent && (
-              <View style={{ marginTop: 14, gap: 10 }}>
-                <Text style={{ fontFamily: POPPINS.semibold, fontSize: 15, color: HERCOM_COLORS.text }}>
-                  ¿Con qué medio enviaste el adelanto?
-                </Text>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                  {TRIP_PAYMENT_OPTIONS.map((option) => {
-                    const selected = advanceMethod === option.value;
-                    return (
-                      <TouchableOpacity
-                        key={option.value}
-                        onPress={() => setAdvanceMethod(option.value)}
-                        activeOpacity={0.85}
-                        style={{
-                          paddingHorizontal: 16,
-                          paddingVertical: 10,
-                          borderRadius: 999,
-                          borderWidth: 1.5,
-                          borderColor: selected ? HERCOM_COLORS.primaryDark : HERCOM_COLORS.border,
-                          backgroundColor: selected ? HERCOM_COLORS.primaryDark : HERCOM_COLORS.surfaceMuted,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            fontFamily: POPPINS.semibold,
-                            fontSize: 15,
-                            color: selected ? HERCOM_COLORS.white : HERCOM_COLORS.text,
-                          }}
-                        >
-                          {option.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+            {(!advanceSent || editingAdvance) && (
+              <View style={{ marginTop: 14 }}>
+                <TripPaymentMethodPicker
+                  label="¿Con qué medio pagaste el adelanto?"
+                  value={
+                    advanceMethod ??
+                    (editingAdvance ? service.advancePaymentMethod ?? null : null)
+                  }
+                  onChange={setAdvanceMethod}
+                />
+              </View>
+            )}
+            {advanceSent && !editingAdvance && service.advancePaymentMethod !== undefined && (
+              <View style={{ marginTop: 14 }}>
+                <TripPaymentMethodPicker
+                  label="Medio registrado para el adelanto"
+                  value={service.advancePaymentMethod}
+                  locked
+                />
+                {!advanceConfirmed && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setEditingAdvance(true);
+                      setAdvanceMethod(service.advancePaymentMethod ?? null);
+                    }}
+                    style={{ marginTop: 8 }}
+                  >
+                    <Text style={{ fontFamily: POPPINS.semibold, fontSize: 14, color: HERCOM_COLORS.primaryDark }}>
+                      Corregir medio (antes de que el chofer confirme)
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
             <TouchableOpacity
@@ -747,7 +746,7 @@ function ClientServiceCard({
                 {advanceConfirmed || advanceSent ? "Ver datos de cobro" : "Adelantar al chofer"}
               </Text>
             </TouchableOpacity>
-            {!advanceSent && (
+            {(!advanceSent || editingAdvance) && (
               <TouchableOpacity
                 disabled={advanceMethod === null || advanceSending}
                 onPress={() => {
@@ -756,10 +755,20 @@ function ClientServiceCard({
                   }
                   setAdvanceSending(true);
                   setPaymentError(null);
-                  void confirmAdvanceSent({
-                    serviceId: service._id,
-                    paymentMethod: advanceMethod,
-                  })
+                  const action =
+                    editingAdvance && advanceSent
+                      ? updateAdvanceSent({
+                          serviceId: service._id,
+                          paymentMethod: advanceMethod,
+                        })
+                      : confirmAdvanceSent({
+                          serviceId: service._id,
+                          paymentMethod: advanceMethod,
+                        });
+                  void action
+                    .then(() => {
+                      setEditingAdvance(false);
+                    })
                     .catch((error) =>
                       setPaymentError(
                         convexErrorMessage(error, "No se pudo registrar el adelanto."),
@@ -777,11 +786,27 @@ function ClientServiceCard({
                   borderColor: HERCOM_COLORS.primaryDark,
                   alignItems: "center",
                   justifyContent: "center",
-                  opacity: advanceMethod === null || advanceSending ? 0.45 : 1,
+                  backgroundColor:
+                    advanceMethod === null || advanceSending
+                      ? HERCOM_COLORS.surfaceMuted
+                      : HERCOM_COLORS.white,
                 }}
               >
-                <Text style={{ fontFamily: POPPINS.bold, fontSize: 17, color: HERCOM_COLORS.primaryDark }}>
-                  {advanceSending ? "Guardando…" : "Confirmé que envié el adelanto"}
+                <Text
+                  style={{
+                    fontFamily: POPPINS.bold,
+                    fontSize: 17,
+                    color:
+                      advanceMethod === null || advanceSending
+                        ? HERCOM_COLORS.textMuted
+                        : HERCOM_COLORS.primaryDark,
+                  }}
+                >
+                  {advanceSending
+                    ? "Guardando…"
+                    : editingAdvance
+                      ? "Guardar medio del adelanto"
+                      : "Confirmé que envié el adelanto"}
                 </Text>
               </TouchableOpacity>
             )}
@@ -961,37 +986,13 @@ function ClientServiceCard({
           <TacticalLabel tone="accent" className="mb-1">
             Saldo del viaje
           </TacticalLabel>
-          <TacticalText size={13} className="mb-2">
-            {`Confirma que pagaste ${balanceDue.toFixed(2)} al chofer antes de valorar el viaje.`}
-          </TacticalText>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10, marginBottom: 10 }}>
-            {TRIP_PAYMENT_OPTIONS.map((option) => {
-              const selected = balanceMethod === option.value;
-              return (
-                <TouchableOpacity
-                  key={option.value}
-                  onPress={() => setBalanceMethod(option.value)}
-                  style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    borderRadius: 999,
-                    borderWidth: 1,
-                    borderColor: selected ? HERCOM_COLORS.primaryDark : TACTICAL_BORDER,
-                    backgroundColor: selected ? HERCOM_COLORS.primaryDark : TACTICAL_COLORS.surface,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: POPPINS.semibold,
-                      fontSize: 14,
-                      color: selected ? HERCOM_COLORS.white : TACTICAL_COLORS.text,
-                    }}
-                  >
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          <View style={{ marginBottom: 12 }}>
+            <BalancePaymentPicker
+              balanceDue={balanceDue}
+              advanceMethod={service.advancePaymentMethod}
+              value={balanceMethod}
+              onChange={setBalanceMethod}
+            />
           </View>
           <TacticalButton
             label={balanceSending ? "Guardando…" : "Confirmé el pago del saldo"}

@@ -443,6 +443,8 @@ export default defineSchema({
     amount: v.number(),
     method: v.optional(tripPaymentMethodValidator),
     status: paymentStatusValidator,
+    /** Cliente indicó si el saldo se pagó con el mismo medio que el adelanto. */
+    sameMethodAsAdvance: v.optional(v.boolean()),
     /** Cliente confirmó el pago del saldo al finalizar. */
     clientPaidAt: v.optional(v.number()),
     /** Chofer confirmó que recibió el saldo (al calificar / cerrar). */

@@ -723,6 +723,34 @@ export const confirmAdvanceSent = mutation({
 });
 
 /**
+ * Cliente corrige el medio del adelanto antes de que el chofer lo confirme.
+ */
+export const updateAdvanceSent = mutation({
+  args: {
+    serviceId: v.id("services"),
+    paymentMethod: tripPaymentMethodValidator,
+  },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null || service.clientId !== user._id) {
+      throw new Error("No autorizado para este servicio.");
+    }
+    if (service.status !== "assigned" || service.advanceSentAt === undefined) {
+      throw new Error("Aún no hay adelanto registrado para corregir.");
+    }
+    if (service.advanceConfirmedAt !== undefined) {
+      throw new Error("El chofer ya confirmó el adelanto; no se puede cambiar.");
+    }
+    await ctx.db.patch(service._id, {
+      advancePaymentMethod: args.paymentMethod,
+      advanceSentAt: Date.now(),
+    });
+    return service._id;
+  },
+});
+
+/**
  * Chofer confirma que el cliente le entregó el anticipo del 25% antes de salir.
  */
 export const confirmAdvanceReceived = mutation({

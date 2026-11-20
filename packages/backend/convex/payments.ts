@@ -107,9 +107,11 @@ export const balanceContextForMyService = query({
       .unique();
     return {
       balanceDue,
+      advancePaymentMethod: service.advancePaymentMethod ?? null,
       clientPaidAt: payment?.clientPaidAt ?? null,
       driverReceivedAt: payment?.driverReceivedAt ?? null,
       method: payment?.method ?? null,
+      sameMethodAsAdvance: payment?.sameMethodAsAdvance ?? null,
     };
   },
 });
@@ -145,9 +147,14 @@ export const confirmBalancePaid = mutation({
       return payment._id;
     }
     const now = Date.now();
+    const sameMethodAsAdvance =
+      service.advancePaymentMethod !== undefined
+        ? service.advancePaymentMethod === args.method
+        : undefined;
     await ctx.db.patch(payment._id, {
       method: args.method,
       clientPaidAt: now,
+      ...(sameMethodAsAdvance !== undefined ? { sameMethodAsAdvance } : {}),
     });
     return payment._id;
   },

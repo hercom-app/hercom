@@ -115,6 +115,8 @@ import {
   BalancePaymentPicker,
   TripPaymentMethodPicker,
 } from "../components/TripPaymentMethodPicker";
+import { clientAdvanceAmount, clientBalanceDue } from "../lib/clientServiceMoney";
+import { ClientTripPaymentBreakdown } from "../components/ClientTripPaymentBreakdown";
 import * as Location from "expo-location";
 
 const DEFAULT_HOURLY_SERVICE_RATE = 40;
@@ -122,7 +124,6 @@ const DEFAULT_MIN_SERVICE_HOURS = 2;
 const DEFAULT_MIN_SERVICE_PRICE =
   DEFAULT_HOURLY_SERVICE_RATE * DEFAULT_MIN_SERVICE_HOURS;
 const DEFAULT_COUNTRY_CODE = "PE";
-const CLIENT_ADVANCE_RATE = 0.25;
 const SERVICE_HOUR_OPTIONS = [2, 3, 4, 5, 6, 8] as const;
 const LIMA_REGION = {
   latitude: -12.0464,
@@ -324,17 +325,10 @@ function ClientServiceCard({
     service.offeredPrice !== undefined
       ? quoteOffer(service.offeredPrice, service.discountRate)
       : null;
-  const advanceAmount =
-    service.advanceAmount ??
-    (service.offeredPrice !== undefined
-      ? Math.round(service.offeredPrice * CLIENT_ADVANCE_RATE * 100) / 100
-      : 0);
+  const advanceAmount = clientAdvanceAmount(service);
   const advanceSent = service.advanceSentAt !== undefined;
   const advanceConfirmed = service.advanceConfirmedAt !== undefined;
-  const balanceDue = Math.max(
-    (service.totalPrice ?? agreedPrice) - advanceAmount,
-    0,
-  );
+  const balanceDue = clientBalanceDue(service);
   const balanceConfirmed = balancePayment?.clientPaidAt !== undefined;
   const inProgress = service.status === "in_progress";
   const canEditRoute = inProgress || service.status === "assigned";
@@ -983,7 +977,12 @@ function ClientServiceCard({
             borderColor: TACTICAL_BORDER,
           }}
         >
-          <TacticalLabel tone="accent" className="mb-1">
+          <ClientTripPaymentBreakdown
+            serviceTotal={service.totalPrice}
+            advanceAmount={advanceAmount}
+            balanceDue={balanceDue}
+          />
+          <TacticalLabel tone="accent" className="mb-1 mt-3">
             Saldo del viaje
           </TacticalLabel>
           <View style={{ marginBottom: 12 }}>

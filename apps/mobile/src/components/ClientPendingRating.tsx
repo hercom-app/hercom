@@ -6,6 +6,7 @@ import type { Id } from "@proyecto/backend/dataModel";
 import { RateServiceStars } from "./RateServiceStars";
 import { TripSummaryModal } from "./TripSummaryModal";
 import { BalancePaymentPicker } from "./TripPaymentMethodPicker";
+import { ClientTripPaymentBreakdown } from "./ClientTripPaymentBreakdown";
 import { TacticalButton, TacticalLabel, TacticalText } from "./tactical";
 import { TACTICAL_BORDER, TACTICAL_COLORS } from "../constants/theme";
 import { convexErrorMessage } from "../lib/convexErrorMessage";
@@ -50,7 +51,14 @@ export function ClientPendingRating() {
                   borderColor: TACTICAL_BORDER,
                 }}
               >
-                <TacticalLabel tone="accent" className="mb-1">
+                {balanceContext !== undefined && balanceContext !== null && (
+                  <ClientTripPaymentBreakdown
+                    serviceTotal={balanceContext.serviceTotal}
+                    advanceAmount={balanceContext.advanceAmount}
+                    balanceDue={balanceContext.balanceDue}
+                  />
+                )}
+                <TacticalLabel tone="accent" className="mb-1 mt-3">
                   Saldo del viaje
                 </TacticalLabel>
                 <View style={{ marginBottom: 12 }}>

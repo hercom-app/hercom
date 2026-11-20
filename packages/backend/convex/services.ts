@@ -287,7 +287,7 @@ export const assignDriver = mutation({
         insufficientBalanceMessage(balance, commission, commissionRate),
       );
     }
-    const advanceAmount = computeClientAdvance(offeredPrice);
+    const advanceAmount = computeClientAdvance(clientTotal);
     await ctx.db.patch(service._id, {
       driverId: driver._id,
       offeredPrice,
@@ -699,7 +699,7 @@ export const confirmAdvanceSent = mutation({
       return service._id;
     }
     const advanceAmount =
-      service.advanceAmount ?? computeClientAdvance(service.offeredPrice);
+      service.advanceAmount ?? computeClientAdvance(service.totalPrice);
     const now = Date.now();
     await ctx.db.patch(service._id, {
       advanceAmount,
@@ -782,7 +782,7 @@ export const confirmAdvanceReceived = mutation({
     }
 
     const advanceAmount =
-      service.advanceAmount ?? computeClientAdvance(service.offeredPrice);
+      service.advanceAmount ?? computeClientAdvance(service.totalPrice);
     const now = Date.now();
     await ctx.db.patch(service._id, {
       advanceAmount,
@@ -838,7 +838,7 @@ export const updateStatus = mutation({
         const advanceAmount =
           service.advanceAmount ??
           (service.offeredPrice !== undefined
-            ? computeClientAdvance(service.offeredPrice)
+            ? computeClientAdvance(service.totalPrice)
             : 0);
         throw new Error(
           `Debes confirmar que recibiste el anticipo del 25% (S/${advanceAmount.toFixed(2)}) antes de salir a recoger.`,
@@ -988,66 +988,13 @@ export const startTripWithCode = mutation({
   },
 });
 
-/**
- * Cliente avisa extensión +1 h: alarga el tiempo operativo del viaje.
- * El pago de horas extra es directo al chofer; no se recalcula tarifa ni comisión Hercom.
- */
+/** @deprecated Usa `serviceExtensions.requestExtension`. */
 export const extendService = mutation({
-  args: {
-    serviceId: v.id("services"),
-  },
-  handler: async (ctx, args) => {
-    const user = await requireUser(ctx);
-    const service = await ctx.db.get(args.serviceId);
-    if (service === null) {
-      throw new Error("Servicio no encontrado.");
-    }
-    if (service.clientId !== user._id) {
-      throw new Error("No autorizado.");
-    }
-    if (
-      service.status !== "in_progress" &&
-      service.status !== "en_route" &&
-      service.status !== "arrived_destination"
-    ) {
-      throw new Error("Solo puedes avisar extensión en un viaje en curso.");
-    }
-
-    const market = await getMarketByCountry(ctx, service.origin.countryCode);
-    const currentHours = service.serviceHours ?? market.minServiceHours;
-    const nextHours = currentHours + 1;
-    const baseEndsAt =
-      service.serviceEndsAt ??
-      (service.departedWithClientAt !== undefined
-        ? computeServiceEndsAt(service.departedWithClientAt, currentHours)
-        : Date.now());
-    const serviceEndsAt = baseEndsAt + MS_PER_SERVICE_HOUR;
-
-    const extendedAt = [...(service.extendedAt ?? []), Date.now()];
-    await ctx.db.patch(service._id, {
-      serviceHours: nextHours,
-      serviceEndsAt,
-      extendedAt,
-    });
-
-    if (service.driverId !== undefined) {
-      const driver = await ctx.db.get(service.driverId);
-      if (driver !== null) {
-        await createNotification(ctx, {
-          userId: driver.userId,
-          type: "trip_extended",
-          title: "Servicio extendido",
-          message:
-            "El cliente avisó que necesita 1 hora más. Sigue en servicio. Las horas extra se pagan directo a ti, fuera de la app.",
-          serviceId: service._id,
-        });
-      }
-    }
-
-    return {
-      serviceHours: nextHours,
-      serviceEndsAt,
-    };
+  args: { serviceId: v.id("services") },
+  handler: async () => {
+    throw new Error(
+      "Actualiza la app: la extensión se acuerda con el chofer (horas y monto).",
+    );
   },
 });
 
@@ -1393,7 +1340,7 @@ export const reviseAssignedFare = mutation({
       service.discountRate,
       commissionRate,
     );
-    const advanceAmount = computeClientAdvance(offeredPrice);
+    const advanceAmount = computeClientAdvance(clientTotal);
 
     await ctx.db.patch(service._id, {
       offeredPrice,

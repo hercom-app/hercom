@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { requireUser } from "./lib/auth";
+import { computeClientAdvance } from "./lib/constants";
 import { driverFacingTripMoney } from "./lib/driverFare";
 import { driverPhotoUrl } from "./lib/driverPublicPhoto";
 import { estimateRoadLeg, haversineDistanceKm } from "./lib/geoDistance";
@@ -121,6 +122,11 @@ export const getForService = query({
 
     if (role === "client") {
       const driverUser = await ctx.db.get(driver.userId);
+      const serviceTotal = money(service.totalPrice);
+      const advanceAmount = money(
+        service.advanceAmount ?? computeClientAdvance(service.totalPrice),
+      );
+      const balanceDue = money(Math.max(serviceTotal - advanceAmount, 0));
       return {
         ...common,
         role,
@@ -132,7 +138,10 @@ export const getForService = query({
         discount,
         discountLabel: discount > 0 ? discountLabel(service) : null,
         discountRate: fare.discountRate,
-        totalPaid: fare.clientPays,
+        serviceTotal,
+        advanceAmount,
+        balanceDue,
+        totalPaid: serviceTotal,
       };
     }
 

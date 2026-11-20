@@ -106,6 +106,10 @@ export const notificationTypeValidator = v.union(
   v.literal("advance_sent"),
   v.literal("trip_route_updated"),
   v.literal("trip_extended"),
+  v.literal("extension_requested"),
+  v.literal("extension_countered"),
+  v.literal("extension_accepted"),
+  v.literal("extension_rejected"),
   v.literal("service_message"),
   v.literal("support_reply"),
 );
@@ -433,6 +437,28 @@ export default defineSchema({
     .index("by_driver", ["driverId"])
     .index("by_service_status", ["serviceId", "status"])
     .index("by_service_driver", ["serviceId", "driverId"]),
+
+  /** Extensión de horas en viaje: el cliente propone monto; el chofer acepta o contraoferta. */
+  serviceExtensionRequests: defineTable({
+    serviceId: v.id("services"),
+    clientId: v.id("users"),
+    driverId: v.id("drivers"),
+    extraHours: v.number(),
+    /** Lo que el cliente propone pagar por el tramo extra (con descuento si aplica). */
+    clientAmount: v.number(),
+    /** Contraoferta del chofer (solo si status = countered). */
+    driverAmount: v.optional(v.number()),
+    status: v.union(
+      v.literal("pending_driver"),
+      v.literal("countered"),
+      v.literal("accepted"),
+      v.literal("rejected"),
+    ),
+    createdAt: v.number(),
+    respondedAt: v.optional(v.number()),
+  })
+    .index("by_service", ["serviceId"])
+    .index("by_service_status", ["serviceId", "status"]),
 
   /**
    * Historial de pagos de los clientes (uno por servicio).

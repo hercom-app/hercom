@@ -95,6 +95,22 @@ export function resolveServiceHoursAndHourlyRate(
   return { serviceHours, hourlyRateSnapshot };
 }
 
+/** Monto de lista y lo que paga el cliente por horas extra en el viaje. */
+export function computeExtensionAmounts(
+  extraHours: number,
+  hourlyRate: number,
+  discountRate: number | undefined,
+  commissionRate: number = PLATFORM_COMMISSION_RATE,
+): { listExtra: number; clientExtra: number } {
+  const listExtra = normalizeMoney(Math.max(extraHours, 0) * hourlyRate);
+  const clientExtra = computeClientTotalForOffer(
+    listExtra,
+    discountRate,
+    commissionRate,
+  );
+  return { listExtra, clientExtra };
+}
+
 export function getMinimumOfferPrice(service: {
   catalogBasePrice?: number;
   basePrice: number;

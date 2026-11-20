@@ -22,8 +22,8 @@ import { useAppTheme } from "../contexts/ThemeContext";
 import { HERCOM_COLORS, POPPINS, TABULAR } from "../constants/theme";
 import { driverFacingTripMoney } from "@proyecto/backend/driverFare";
 import { DiscountTag, discountTitle, OfferCommission } from "./FirstTripsFare";
-
-const CLIENT_ADVANCE_RATE = 0.25;
+import { DriverExtensionCard } from "./DriverExtensionCard";
+import { clientAdvanceAmount } from "../lib/clientServiceMoney";
 
 const HEADLINES: Partial<Record<Doc<"services">["status"], string>> = {
   assigned: "Viaje confirmado",
@@ -85,11 +85,7 @@ export const ServiceCard = memo(function ServiceCard({
 
   const price = service.offeredPrice ?? service.totalPrice;
   const fare = driverFacingTripMoney(service);
-  const advanceAmount =
-    service.advanceAmount ??
-    (service.offeredPrice !== undefined
-      ? Math.round(service.offeredPrice * CLIENT_ADVANCE_RATE * 100) / 100
-      : 0);
+  const advanceAmount = clientAdvanceAmount(service);
   const advanceConfirmed = service.advanceConfirmedAt !== undefined;
   const serviceStops = [service.destination, ...(service.extraDestinations ?? [])];
   const currentStopIndex = service.currentStopIndex ?? 0;
@@ -455,6 +451,8 @@ export const ServiceCard = memo(function ServiceCard({
           resetSignal={slideResetCounter}
         />
       )}
+
+      <DriverExtensionCard service={service} />
 
       <ErrorText message={actionError} />
       <TripChatSheet

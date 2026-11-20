@@ -315,7 +315,7 @@ export const acceptOffer = mutation({
       service.discountRate,
       commissionRate,
     );
-    const advanceAmount = computeClientAdvance(offer.offeredPrice);
+    const advanceAmount = computeClientAdvance(clientTotal);
     const balance = await getWalletBalance(ctx, driver._id);
     if (!balanceCoversCommission(balance, commission)) {
       throw new Error(

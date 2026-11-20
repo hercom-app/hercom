@@ -315,16 +315,20 @@ function CounterpartRow({
 
 function ClientMoney({ summary }: { summary: ClientSummary }) {
   return (
-    <Section title="Pago del viaje">
-      <MoneyRow label="Costo inicial" value={pen(summary.initialCost)} />
+  <Section title="Pago del viaje">
       {summary.discount > 0 && (
-        <MoneyRow
-          label={`Descuento · ${summary.discountLabel ?? "Promoción"} (−${percent(summary.discountRate)})`}
-          value={`−${pen(summary.discount)}`}
-          tone="success"
-        />
+        <>
+          <MoneyRow label="Tarifa lista" value={pen(summary.initialCost)} />
+          <MoneyRow
+            label={`Descuento · ${summary.discountLabel ?? "Promoción"} (−${percent(summary.discountRate)})`}
+            value={`−${pen(summary.discount)}`}
+            tone="success"
+          />
+        </>
       )}
-      <TotalRow label="Total pagado" value={pen(summary.totalPaid)} />
+      <MoneyRow label="Total del servicio" value={pen(summary.serviceTotal)} strong />
+      <MoneyRow label="Adelanto (25%)" value={`− ${pen(summary.advanceAmount)}`} />
+      <TotalRow label="Saldo pagado al chofer" value={pen(summary.balanceDue)} />
     </Section>
   );
 }

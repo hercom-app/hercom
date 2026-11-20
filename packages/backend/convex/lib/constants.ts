@@ -37,7 +37,7 @@ export function computePlatformCommission(
 }
 
 /**
- * Adelanto que el cliente entrega al chofer antes de que salga (25% de la tarifa ofertada).
+ * Adelanto que el cliente entrega al chofer antes de salir (25% de lo que paga el cliente, con descuento).
  * No es la comisión de Hercom.
  */
 export const CLIENT_ADVANCE_RATE = 0.25;
@@ -48,8 +48,9 @@ export const CLIENT_ADVANCE_RATE = 0.25;
  */
 export const PENDING_SERVICE_TTL_MS = 2 * 60 * 60 * 1000;
 
-export function computeClientAdvance(offeredPrice: number): number {
-  return Math.round(offeredPrice * CLIENT_ADVANCE_RATE * 100) / 100;
+/** `clientPaysTotal`: total a pagar el cliente (tarifa con promo), no la lista del chofer. */
+export function computeClientAdvance(clientPaysTotal: number): number {
+  return Math.round(clientPaysTotal * CLIENT_ADVANCE_RATE * 100) / 100;
 }
 
 /**

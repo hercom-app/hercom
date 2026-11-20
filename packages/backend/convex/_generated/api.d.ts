@@ -71,6 +71,7 @@ import type * as seed from "../seed.js";
 import type * as seedHrCleanup from "../seedHrCleanup.js";
 import type * as seedOwner from "../seedOwner.js";
 import type * as serviceChecklists from "../serviceChecklists.js";
+import type * as serviceExtensions from "../serviceExtensions.js";
 import type * as serviceMessages from "../serviceMessages.js";
 import type * as serviceOffers from "../serviceOffers.js";
 import type * as serviceRatings from "../serviceRatings.js";
@@ -152,6 +153,7 @@ declare const fullApi: ApiFromModules<{
   seedHrCleanup: typeof seedHrCleanup;
   seedOwner: typeof seedOwner;
   serviceChecklists: typeof serviceChecklists;
+  serviceExtensions: typeof serviceExtensions;
   serviceMessages: typeof serviceMessages;
   serviceOffers: typeof serviceOffers;
   serviceRatings: typeof serviceRatings;

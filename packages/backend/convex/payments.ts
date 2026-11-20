@@ -98,8 +98,7 @@ export const balanceContextForMyService = query({
       return null;
     }
     const advanceAmount =
-      service.advanceAmount ??
-      (service.offeredPrice !== undefined ? computeClientAdvance(service.offeredPrice) : 0);
+      service.advanceAmount ?? computeClientAdvance(service.totalPrice);
     const balanceDue = normalizeMoney(Math.max(service.totalPrice - advanceAmount, 0));
     const payment = await ctx.db
       .query("payments")
@@ -107,6 +106,8 @@ export const balanceContextForMyService = query({
       .unique();
     return {
       balanceDue,
+      serviceTotal: normalizeMoney(service.totalPrice),
+      advanceAmount,
       advancePaymentMethod: service.advancePaymentMethod ?? null,
       clientPaidAt: payment?.clientPaidAt ?? null,
       driverReceivedAt: payment?.driverReceivedAt ?? null,

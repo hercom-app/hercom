@@ -162,6 +162,10 @@ export async function createNotification(
       | "advance_sent"
       | "trip_route_updated"
       | "trip_extended"
+      | "extension_requested"
+      | "extension_countered"
+      | "extension_accepted"
+      | "extension_rejected"
       | "service_message"
       | "support_reply";
     title: string;

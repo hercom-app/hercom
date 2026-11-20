@@ -5,7 +5,10 @@ import type { MutationCtx } from "./_generated/server";
 import { requireDriver, requireStaff, requireUser } from "./lib/auth";
 import { filterServicesByAccess, getAccessContext, originMatchesDistrictScopes } from "./lib/adminAccess";
 import { ADMIN_LIVE_STATUSES, SHARE_LIVE_STATUSES } from "./lib/liveShare";
-import { appendRouteArchivePoint } from "./lib/serviceRouteArchive";
+import {
+  appendRouteArchivePoint,
+  appendRouteArchivePoints,
+} from "./lib/serviceRouteArchive";
 
 const MAX_TRAIL_POINTS = 400;
 const MIN_UPDATE_INTERVAL_MS = 3000;
@@ -158,6 +161,123 @@ export const updateMyLiveLocation = mutation({
     });
 
     return { ok: true as const, throttled: false };
+  },
+});
+
+const MAX_BATCH_POINTS = 500;
+const LATE_BATCH_WINDOW_MS = 6 * 60 * 60 * 1000;
+const CLOCK_SKEW_MS = 2 * 60 * 1000;
+
+/**
+ * Lote de GPS capturado por la tarea en segundo plano (con hora del dispositivo).
+ * Acepta lotes tardíos tras finalizar para completar la ruta archivada.
+ */
+export const appendMyLocationBatch = mutation({
+  args: {
+    serviceId: v.id("services"),
+    points: v.array(
+      v.object({
+        lat: v.number(),
+        lng: v.number(),
+        t: v.number(),
+        heading: v.optional(v.number()),
+        speed: v.optional(v.number()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const { driver } = await requireDriver(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (service === null) {
+      return { ok: false as const, reason: "not_found", accepted: 0 };
+    }
+    if (service.driverId !== driver._id) {
+      throw new Error("Este servicio no está asignado a ti.");
+    }
+
+    const now = Date.now();
+    const isLive = SHARE_LIVE_STATUSES.has(service.status);
+    const finishedAt = service.finishedAt;
+    const acceptsLate =
+      service.status === "finished" &&
+      finishedAt !== undefined &&
+      now - finishedAt <= LATE_BATCH_WINDOW_MS;
+    if (!isLive && !acceptsLate) {
+      return { ok: false as const, reason: "not_live", accepted: 0 };
+    }
+
+    const windowStart = (service.departedWithClientAt ?? service.requestedAt) - CLOCK_SKEW_MS;
+    const windowEnd = acceptsLate ? finishedAt! + CLOCK_SKEW_MS : now + CLOCK_SKEW_MS;
+    const valid = args.points
+      .slice(-MAX_BATCH_POINTS)
+      .filter(
+        (p) =>
+          Number.isFinite(p.lat) &&
+          Number.isFinite(p.lng) &&
+          Number.isFinite(p.t) &&
+          Math.abs(p.lat) <= 90 &&
+          Math.abs(p.lng) <= 180 &&
+          p.t >= windowStart &&
+          p.t <= windowEnd,
+      )
+      .sort((a, b) => a.t - b.t);
+    if (valid.length === 0) {
+      return { ok: true as const, accepted: 0 };
+    }
+
+    const trackingId = await ensureServiceTracking(ctx, args.serviceId);
+    const tracking = await ctx.db.get(trackingId);
+    if (tracking === null) {
+      throw new Error("Tracking no encontrado.");
+    }
+
+    const lastKnown = tracking.trail[tracking.trail.length - 1];
+    const sampled: { lat: number; lng: number; t: number }[] = [];
+    let prev = lastKnown !== undefined && lastKnown.t <= valid[0]!.t ? lastKnown : undefined;
+    for (const p of valid) {
+      const point = { lat: p.lat, lng: p.lng, t: p.t };
+      if (
+        prev === undefined ||
+        point.t - prev.t >= MIN_TRAIL_INTERVAL_MS ||
+        haversineMeters(prev, point) >= MIN_TRAIL_DISTANCE_M
+      ) {
+        sampled.push(point);
+        prev = point;
+      }
+    }
+
+    await appendRouteArchivePoints(ctx, args.serviceId, sampled);
+
+    if (isLive && tracking.trailFrozen !== true) {
+      let trail = [...tracking.trail, ...sampled].sort((a, b) => a.t - b.t);
+      if (trail.length > MAX_TRAIL_POINTS) {
+        trail = trail.slice(trail.length - MAX_TRAIL_POINTS);
+      }
+      const latest = valid[valid.length - 1]!;
+      const isNewest = tracking.updatedAt === undefined || latest.t >= tracking.updatedAt - CLOCK_SKEW_MS;
+      await ctx.db.patch(trackingId, {
+        trail,
+        ...(isNewest
+          ? {
+              lat: latest.lat,
+              lng: latest.lng,
+              ...(latest.heading !== undefined ? { heading: latest.heading } : {}),
+              ...(latest.speed !== undefined ? { speed: latest.speed } : {}),
+              updatedAt: Math.min(latest.t, now),
+            }
+          : {}),
+      });
+    } else if (sampled.length > 0) {
+      const archive = await ctx.db
+        .query("serviceRouteArchives")
+        .withIndex("by_service", (q) => q.eq("serviceId", args.serviceId))
+        .unique();
+      if (archive !== null) {
+        await ctx.db.patch(trackingId, { trail: archive.trail });
+      }
+    }
+
+    return { ok: true as const, accepted: sampled.length };
   },
 });
 

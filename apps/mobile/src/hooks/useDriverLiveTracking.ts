@@ -1,28 +1,40 @@
 import { useEffect, useRef } from "react";
-import { AppState, type AppStateStatus } from "react-native";
+import { Alert, AppState, type AppStateStatus } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Doc, Id } from "@proyecto/backend/dataModel";
 import * as Location from "expo-location";
 import { canShareLiveTrip } from "../lib/serviceStatus";
+import {
+  flushTripLocationQueue,
+  startTripLocationUpdates,
+  stopTripLocationUpdates,
+} from "../lib/backgroundTripTracking";
 
 type TrackableService = {
   _id: Id<"services">;
   status: string;
 };
 
+const FOREGROUND_FLUSH_MS = 20000;
+
 /**
- * Publica GPS del chofer solo después de iniciar el viaje (compartir viaje).
- * Nota: con la app en segundo plano (p. ej. Waze) el OS puede pausar el GPS;
- * al volver a Hercom se reanuda.
+ * Registra el recorrido del chofer desde que inicia el viaje.
+ * Con permiso «Permitir siempre» usa la tarea en segundo plano (sigue con Waze);
+ * si no, cae al GPS solo con la app abierta.
  */
 export function useDriverLiveTracking(services: TrackableService[] | undefined) {
   const updateMyLiveLocation = useMutation(
     api.serviceTracking.updateMyLiveLocation,
   );
+  const appendMyLocationBatch = useMutation(
+    api.serviceTracking.appendMyLocationBatch,
+  );
   const ensureForMyService = useMutation(api.serviceTracking.ensureForMyService);
   const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
   const activeIdRef = useRef<Id<"services"> | null>(null);
+  const warnedRef = useRef<Id<"services"> | null>(null);
+  const askedRef = useRef<Id<"services"> | null>(null);
 
   const liveService =
     services?.find((service) => canShareLiveTrip(service.status as Doc<"services">["status"])) ??
@@ -30,8 +42,11 @@ export function useDriverLiveTracking(services: TrackableService[] | undefined) 
 
   useEffect(() => {
     let cancelled = false;
+    const flush = () => {
+      void flushTripLocationQueue((args) => appendMyLocationBatch(args)).catch(() => {});
+    };
 
-    async function stopWatching() {
+    function stopForegroundWatch() {
       if (subscriptionRef.current !== null) {
         subscriptionRef.current.remove();
         subscriptionRef.current = null;
@@ -39,25 +54,12 @@ export function useDriverLiveTracking(services: TrackableService[] | undefined) 
       activeIdRef.current = null;
     }
 
-    async function startWatching(serviceId: Id<"services">) {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (!permission.granted || cancelled) {
-        return;
-      }
-      try {
-        await ensureForMyService({ serviceId });
-      } catch {
-        // El servidor también crea tracking al cambiar de estado.
-      }
-      if (cancelled) {
-        return;
-      }
-
-      await stopWatching();
+    async function startForegroundWatch(serviceId: Id<"services">) {
+      stopForegroundWatch();
       activeIdRef.current = serviceId;
       subscriptionRef.current = await Location.watchPositionAsync(
         {
-          accuracy: Location.Accuracy.Balanced,
+          accuracy: Location.Accuracy.High,
           timeInterval: 5000,
           distanceInterval: 15,
         },
@@ -83,31 +85,79 @@ export function useDriverLiveTracking(services: TrackableService[] | undefined) 
       );
     }
 
+    async function start(serviceId: Id<"services">) {
+      try {
+        await ensureForMyService({ serviceId });
+      } catch {
+        // El servidor también crea tracking al cambiar de estado.
+      }
+      if (cancelled) {
+        return;
+      }
+      const askPermission = askedRef.current !== serviceId;
+      askedRef.current = serviceId;
+      let background = false;
+      try {
+        background = await startTripLocationUpdates(serviceId, askPermission);
+      } catch {
+        background = false;
+      }
+      if (cancelled) {
+        return;
+      }
+      if (background) {
+        stopForegroundWatch();
+        flush();
+        return;
+      }
+      const foreground = await Location.getForegroundPermissionsAsync();
+      if (!foreground.granted || cancelled) {
+        return;
+      }
+      await startForegroundWatch(serviceId);
+      if (warnedRef.current !== serviceId) {
+        warnedRef.current = serviceId;
+        Alert.alert(
+          "Ubicación en segundo plano",
+          "Para guardar la ruta real mientras usas Waze, permite la ubicación «Todo el tiempo» para Hercom en los ajustes del teléfono.",
+        );
+      }
+    }
+
     if (liveService === null) {
-      void stopWatching();
+      stopForegroundWatch();
+      void stopTripLocationUpdates()
+        .catch(() => {})
+        .finally(flush);
       return () => {
         cancelled = true;
-        void stopWatching();
       };
     }
 
-    void startWatching(liveService._id);
+    void start(liveService._id);
 
     const onAppState = (state: AppStateStatus) => {
-      if (state === "active" && liveService !== null) {
-        void startWatching(liveService._id);
+      if (state === "active") {
+        void start(liveService._id);
       }
     };
     const appSub = AppState.addEventListener("change", onAppState);
+    const interval = setInterval(() => {
+      if (AppState.currentState === "active") {
+        flush();
+      }
+    }, FOREGROUND_FLUSH_MS);
 
     return () => {
       cancelled = true;
       appSub.remove();
-      void stopWatching();
+      clearInterval(interval);
+      stopForegroundWatch();
     };
   }, [
     liveService?._id,
     liveService?.status,
+    appendMyLocationBatch,
     ensureForMyService,
     updateMyLiveLocation,
   ]);

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Hercom",
     "slug": "choferes-reemplazo-driver",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "choferes",
@@ -15,7 +15,11 @@
         "googleMapsApiKey": "AIzaSyBbjTrcUBbeNw84CP_0BDOWoTe99WiHJWQ"
       },
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Hercom pedirá acceso a tu ubicación cuando pulses «Usar mi ubicación actual» para completar el punto de recojo.",
+        "NSLocationWhenInUseUsageDescription": "Hercom usa tu ubicación para completar el punto de recojo y, si eres chofer, compartir el recorrido del viaje con el cliente.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Durante un viaje, Hercom registra tu recorrido aunque uses Waze u otra app, para que el cliente y soporte vean la ruta real.",
+        "UIBackgroundModes": [
+          "location"
+        ],
         "NSCameraUsageDescription": "Hercom necesita la cámara para la foto selfie de tu identidad.",
         "LSApplicationQueriesSchemes": [
           "waze"
@@ -44,6 +48,9 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
         "android.permission.POST_NOTIFICATIONS"
       ]
     },
@@ -68,7 +75,11 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Hercom pedirá acceso a tu ubicación cuando pulses «Usar mi ubicación actual» para completar el punto de recojo."
+          "locationWhenInUsePermission": "Hercom usa tu ubicación para completar el punto de recojo y, si eres chofer, compartir el recorrido del viaje con el cliente.",
+          "locationAlwaysAndWhenInUsePermission": "Durante un viaje, Hercom registra tu recorrido aunque uses Waze u otra app, para que el cliente y soporte vean la ruta real.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true,
+          "isIosBackgroundLocationEnabled": true
         }
       ],
       [

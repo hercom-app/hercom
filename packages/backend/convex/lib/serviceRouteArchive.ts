@@ -55,6 +55,37 @@ export async function appendRouteArchivePoint(
   });
 }
 
+/**
+ * Agrega varios puntos al archivo. Si el viaje ya se archivó (lote que llegó tarde
+ * desde segundo plano), los mezcla por tiempo y regenera el GeoJSON.
+ */
+export async function appendRouteArchivePoints(
+  ctx: MutationCtx,
+  serviceId: Id<"services">,
+  points: RouteTrailPoint[],
+): Promise<void> {
+  if (points.length === 0) {
+    return;
+  }
+  const archiveId = await ensureRecordingArchive(ctx, serviceId);
+  const archive = await ctx.db.get(archiveId);
+  if (archive === null) {
+    return;
+  }
+  const merged = mergeTrailPoints(archive.trail, points);
+  if (archive.status === "recording") {
+    await ctx.db.patch(archiveId, { trail: merged });
+    return;
+  }
+  if (archive.geoJsonStorageId !== undefined) {
+    await ctx.storage.delete(archive.geoJsonStorageId);
+  }
+  await ctx.db.patch(archiveId, { trail: merged, geoJsonStorageId: undefined });
+  await ctx.scheduler.runAfter(0, internal.serviceRouteArchives.uploadGeoJson, {
+    archiveId,
+  });
+}
+
 function mergeTrailPoints(
   primary: RouteTrailPoint[],
   secondary: RouteTrailPoint[],

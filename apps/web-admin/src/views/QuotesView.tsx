@@ -70,7 +70,7 @@ export function QuotesView() {
   return (
     <AdminPage>
       <AdminPageHeader
-        title="Cotizaciones"
+        title="Servicios premium"
         description="Solicitudes desde la web comercial y cotizaciones que registras por teléfono u otro canal."
         actions={
           <button

@@ -115,7 +115,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: "quotes",
-    label: "Cotizaciones",
+    label: "Servicios premium",
     description: "Viajes corporativos",
     icon: (
       <NavIcon>

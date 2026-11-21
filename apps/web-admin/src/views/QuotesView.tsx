@@ -68,7 +68,10 @@ export function QuotesView() {
 
   return (
     <AdminPage>
-      <div className="flex flex-wrap justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold tracking-tight text-zinc-900">
+          Lista de requerimientos
+        </h2>
         <button
           type="button"
           className={btnPrimaryClass}

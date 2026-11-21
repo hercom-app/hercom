@@ -17,9 +17,18 @@ export const submitCorporateQuote = makeFunctionReference<
   {
     companyName: string;
     contactName: string;
+    ruc: string;
     email: string;
     phone: string;
-    city: string;
+    originDepartment: string;
+    originProvince: string;
+    originDistrict: string;
+    destinationDepartment: string;
+    destinationProvince: string;
+    destinationDistrict: string;
+    serviceEnd: string;
+    driverCount: number;
+    serviceHours: number;
     detail: string;
   },
   { id: string; emailSent: boolean }

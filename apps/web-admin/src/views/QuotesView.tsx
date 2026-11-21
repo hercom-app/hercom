@@ -15,6 +15,27 @@ function formatWhen(timestamp: number): string {
   }).format(new Date(timestamp));
 }
 
+function formatEnd(value: string | undefined): string {
+  if (value === undefined || value === "") return "—";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value.replace("T", " ");
+  return new Intl.DateTimeFormat("es-PE", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(parsed);
+}
+
+function place(
+  department: string | undefined,
+  province: string | undefined,
+  district: string | undefined,
+): string {
+  const text = [district, province, department]
+    .filter((part) => part !== undefined && part !== "")
+    .join(", ");
+  return text === "" ? "—" : text;
+}
+
 export function QuotesView() {
   const rows = useQuery(api.corporateQuotes.listForAdmin, {});
 
@@ -27,15 +48,20 @@ export function QuotesView() {
           <AdminEmpty message="Todavía no hay solicitudes de viajes corporativos." />
         ) : (
           <AdminTableWrap>
-            <table className="min-w-[920px] w-full text-left text-sm">
+            <table className="min-w-[1280px] w-full text-left text-sm">
               <thead className="text-xs uppercase tracking-wide text-zinc-400">
                 <tr>
                   <th className="px-4 py-3 font-medium">Fecha</th>
-                  <th className="px-4 py-3 font-medium">Empresa</th>
                   <th className="px-4 py-3 font-medium">Contacto</th>
+                  <th className="px-4 py-3 font-medium">Empresa</th>
+                  <th className="px-4 py-3 font-medium">RUC</th>
                   <th className="px-4 py-3 font-medium">Correo</th>
                   <th className="px-4 py-3 font-medium">Teléfono</th>
-                  <th className="px-4 py-3 font-medium">Ciudad</th>
+                  <th className="px-4 py-3 font-medium">Origen</th>
+                  <th className="px-4 py-3 font-medium">Destino</th>
+                  <th className="px-4 py-3 font-medium">Fin</th>
+                  <th className="px-4 py-3 font-medium">Choferes</th>
+                  <th className="px-4 py-3 font-medium">Horas</th>
                   <th className="px-4 py-3 font-medium">Detalle</th>
                   <th className="px-4 py-3 font-medium">Confirmación</th>
                 </tr>
@@ -47,12 +73,35 @@ export function QuotesView() {
                       {formatWhen(row.createdAt)}
                     </td>
                     <td className="px-4 py-3 font-medium text-zinc-900">
-                      {row.companyName}
+                      {row.contactName}
                     </td>
-                    <td className="px-4 py-3">{row.contactName}</td>
+                    <td className="px-4 py-3">
+                      {row.companyName === "" ? "—" : row.companyName}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      {row.ruc ?? "—"}
+                    </td>
                     <td className="px-4 py-3">{row.email}</td>
                     <td className="whitespace-nowrap px-4 py-3">{row.phone}</td>
-                    <td className="px-4 py-3">{row.city}</td>
+                    <td className="px-4 py-3">
+                      {place(
+                        row.originDepartment,
+                        row.originProvince,
+                        row.originDistrict,
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {place(
+                        row.destinationDepartment,
+                        row.destinationProvince,
+                        row.destinationDistrict,
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      {formatEnd(row.serviceEnd)}
+                    </td>
+                    <td className="px-4 py-3">{row.driverCount ?? "—"}</td>
+                    <td className="px-4 py-3">{row.serviceHours ?? "—"}</td>
                     <td className="max-w-xs px-4 py-3 text-zinc-600">
                       {row.detail}
                     </td>

@@ -66,7 +66,7 @@ export default function Page() {
           ))}
           <div className="flex flex-col justify-between rounded-3xl bg-primary p-8 text-white">
             <p className="text-xl font-bold leading-snug">
-              Pide un chofer y llega a casa en tu propio auto.
+              Pide un chofer y llega a casa en la comodidad de tu propio auto
             </p>
             <a
               className="mt-6 w-fit rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-primary"

@@ -6,19 +6,134 @@ import { Input, Textarea } from "@nextui-org/input";
 import { useAction } from "convex/react";
 
 import { submitCorporateQuote } from "@/lib/convexApi";
+import {
+  PERU_DEPARTMENTS,
+  listDistrictsForProvince,
+  listProvincesForDepartment,
+} from "@proyecto/peru-locations";
+
+type Place = {
+  department: string;
+  province: string;
+  district: string;
+};
+
+const emptyPlace: Place = { department: "", province: "", district: "" };
 
 const empty = {
   companyName: "",
   contactName: "",
+  ruc: "",
   email: "",
   phone: "",
-  city: "",
+  serviceEnd: "",
+  driverCount: "",
+  serviceHours: "",
   detail: "",
 };
+
+const selectClass =
+  "w-full rounded-xl bg-default-100 px-3 py-2.5 text-sm text-foreground outline-none";
+
+function PlaceFields({
+  legend,
+  value,
+  onChange,
+}: {
+  legend: string;
+  value: Place;
+  onChange: (next: Place) => void;
+}) {
+  const provinces = listProvincesForDepartment(value.department);
+  const districts = listDistrictsForProvince(value.department, value.province);
+  const typedDistrict = districts.length === 0 && value.province !== "";
+
+  return (
+    <fieldset className="sm:col-span-2">
+      <legend className="mb-3 text-sm font-semibold">{legend}</legend>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <label className="block">
+          <span className="mb-1.5 block text-sm">Departamento</span>
+          <select
+            required
+            className={selectClass}
+            value={value.department}
+            onChange={(event) =>
+              onChange({
+                department: event.target.value,
+                province: "",
+                district: "",
+              })
+            }
+          >
+            <option value="">Elige</option>
+            {PERU_DEPARTMENTS.map((department) => (
+              <option key={department} value={department}>
+                {department}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1.5 block text-sm">Provincia</span>
+          <select
+            required
+            className={selectClass}
+            disabled={value.department === ""}
+            value={value.province}
+            onChange={(event) =>
+              onChange({ ...value, province: event.target.value, district: "" })
+            }
+          >
+            <option value="">Elige</option>
+            {provinces.map((province) => (
+              <option key={province} value={province}>
+                {province}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1.5 block text-sm">Distrito</span>
+          {typedDistrict ? (
+            <input
+              required
+              className={selectClass}
+              placeholder="Escribe el distrito"
+              value={value.district}
+              onChange={(event) =>
+                onChange({ ...value, district: event.target.value })
+              }
+            />
+          ) : (
+            <select
+              required
+              className={selectClass}
+              disabled={value.province === ""}
+              value={value.district}
+              onChange={(event) =>
+                onChange({ ...value, district: event.target.value })
+              }
+            >
+              <option value="">Elige</option>
+              {districts.map((district) => (
+                <option key={district} value={district}>
+                  {district}
+                </option>
+              ))}
+            </select>
+          )}
+        </label>
+      </div>
+    </fieldset>
+  );
+}
 
 export function CorporateQuoteForm() {
   const submit = useAction(submitCorporateQuote);
   const [values, setValues] = useState(empty);
+  const [origin, setOrigin] = useState<Place>(emptyPlace);
+  const [destination, setDestination] = useState<Place>(emptyPlace);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState<"sent" | "saved" | null>(null);
@@ -32,9 +147,27 @@ export function CorporateQuoteForm() {
     setError("");
     setPending(true);
     try {
-      const result = await submit(values);
+      const result = await submit({
+        companyName: values.companyName,
+        contactName: values.contactName,
+        ruc: values.ruc,
+        email: values.email,
+        phone: values.phone,
+        originDepartment: origin.department,
+        originProvince: origin.province,
+        originDistrict: origin.district,
+        destinationDepartment: destination.department,
+        destinationProvince: destination.province,
+        destinationDistrict: destination.district,
+        serviceEnd: values.serviceEnd,
+        driverCount: Number(values.driverCount),
+        serviceHours: Number(values.serviceHours),
+        detail: values.detail,
+      });
       setDone(result.emailSent ? "sent" : "saved");
       setValues(empty);
+      setOrigin(emptyPlace);
+      setDestination(emptyPlace);
     } catch (cause) {
       const message =
         cause instanceof Error ? cause.message : "No pudimos enviar la solicitud.";
@@ -75,6 +208,13 @@ export function CorporateQuoteForm() {
       <div className="grid gap-8 sm:grid-cols-2">
         <Input
           isRequired
+          label="Nombre de contacto"
+          labelPlacement="outside"
+          placeholder="Quién coordina el viaje"
+          value={values.contactName}
+          onValueChange={(value) => setField("contactName", value)}
+        />
+        <Input
           label="Empresa"
           labelPlacement="outside"
           placeholder="Nombre de la empresa"
@@ -83,20 +223,13 @@ export function CorporateQuoteForm() {
         />
         <Input
           isRequired
-          label="Nombre de contacto"
+          label="RUC"
           labelPlacement="outside"
-          placeholder="Quién coordina el viaje"
-          value={values.contactName}
-          onValueChange={(value) => setField("contactName", value)}
-        />
-        <Input
-          isRequired
-          label="Correo"
-          labelPlacement="outside"
-          placeholder="correo@empresa.com"
-          type="email"
-          value={values.email}
-          onValueChange={(value) => setField("email", value)}
+          inputMode="numeric"
+          maxLength={11}
+          placeholder="11 dígitos"
+          value={values.ruc}
+          onValueChange={(value) => setField("ruc", value.replace(/\D/g, "").slice(0, 11))}
         />
         <Input
           isRequired
@@ -109,11 +242,47 @@ export function CorporateQuoteForm() {
         <Input
           isRequired
           className="sm:col-span-2"
-          label="Ciudad"
+          label="Correo"
           labelPlacement="outside"
-          placeholder="Lima"
-          value={values.city}
-          onValueChange={(value) => setField("city", value)}
+          placeholder="correo@empresa.com"
+          type="email"
+          value={values.email}
+          onValueChange={(value) => setField("email", value)}
+        />
+        <PlaceFields legend="Origen del servicio" value={origin} onChange={setOrigin} />
+        <PlaceFields
+          legend="Destino del servicio"
+          value={destination}
+          onChange={setDestination}
+        />
+        <Input
+          isRequired
+          className="sm:col-span-2"
+          label="Fin del servicio"
+          labelPlacement="outside"
+          type="datetime-local"
+          value={values.serviceEnd}
+          onValueChange={(value) => setField("serviceEnd", value)}
+        />
+        <Input
+          isRequired
+          label="Cantidad de choferes"
+          labelPlacement="outside"
+          min={1}
+          step={1}
+          type="number"
+          value={values.driverCount}
+          onValueChange={(value) => setField("driverCount", value)}
+        />
+        <Input
+          isRequired
+          label="Horas del servicio"
+          labelPlacement="outside"
+          min={1}
+          step={1}
+          type="number"
+          value={values.serviceHours}
+          onValueChange={(value) => setField("serviceHours", value)}
         />
         <Textarea
           isRequired
@@ -121,7 +290,7 @@ export function CorporateQuoteForm() {
           label="Detalle del viaje"
           labelPlacement="outside"
           minRows={4}
-          placeholder="Fecha, origen, destino, cantidad de vehículos y lo que debamos saber"
+          placeholder="Lo que debamos saber del viaje"
           value={values.detail}
           onValueChange={(value) => setField("detail", value)}
         />

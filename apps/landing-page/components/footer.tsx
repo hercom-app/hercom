@@ -1,98 +1,81 @@
-"use client";
-
-import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { Link } from "@nextui-org/link";
-import { button as buttonStyles } from "@nextui-org/theme";
+import NextLink from "next/link";
 
-import { LogosGooglePlay, LogosApple } from "./icons";
 import { SocialLinks } from "./social-links";
+import { StoreBadges } from "./store-badges";
 
 import Logo from "@/assets/logo_inverted.png";
 import { siteConfig } from "@/config/site";
 
+const columnTitle = "mb-4 text-sm font-semibold text-white";
+const linkClass = "text-white/65 transition-colors hover:text-white";
+
 export const Footer = () => {
-  const path = usePathname();
-
   return (
-    <footer className="w-full py-5 bg-primary">
-      <div className="section grid grid-cols-1 gap-5 lg:grid-cols-4 lg:grid-rows-4">
-        <div className="col-span-1 flex items-center justify-center lg:col-span-2 lg:justify-start">
-          <Image alt="logo" height={100} src={Logo} width={100} />
-        </div>
-        {path !== "/" && (
-          <div className="col-span-1 flex items-center justify-center gap-2 lg:col-span-2 lg:col-start-1 lg:row-start-2 lg:justify-start">
-            <Link
-              isExternal
-              className={buttonStyles({
-                color: "primary",
-                radius: "full",
-                className: "bg-black flex items-center gap-2 relative px-5",
-              })}
-              href="https://play.google.com/store/"
-            >
-              <LogosGooglePlay className="text-xl" />
-              <div className="flex flex-col ">
-                <span className="top-0 text-[10px] leading-none">
-                  Disponible en
-                </span>
-                <span className="font-semibold text-white">Google Play</span>
-              </div>
-            </Link>
-            <Link
-              isExternal
-              className={buttonStyles({
-                color: "primary",
-                radius: "full",
-                className: "bg-black flex items-center gap-2 relative px-5",
-              })}
-              href="https://www.apple.com/la/app-store/"
-            >
-              <LogosApple className="text-xl text-white" />
-              <div className="flex flex-col ">
-                <span className="top-0 text-[10px] leading-none">
-                  Descargalo en el
-                </span>
-                <span className="font-semibold text-white">App Store</span>
-              </div>
-            </Link>
-          </div>
-        )}
-        <div className="col-span-1 flex flex-col items-center gap-2 lg:col-span-2 lg:col-start-1 lg:row-start-3 lg:items-start">
-          <p className="text-white font-semibold">Siguenos en:</p>
-          <SocialLinks iconSize={24} />
-        </div>
-        <div className="col-span-1 flex flex-col items-center gap-2 lg:row-span-3 lg:col-start-3 lg:items-start">
-          <p className="text-white font-semibold">Ciudades:</p>
-          <p className="flex flex-wrap text-white gap-2 justify-center lg:flex-nowrap lg:flex-col lg:gap-0">
-            {["Lima", "Callao"].map((s, i) => (
-              <span key={`mobile-city-${i}`} className="lg:text-sm">
-                {s}
-              </span>
-            ))}
+    <footer className="bg-[#0a0f1f] text-white">
+      <div className="section grid gap-12 py-14 lg:grid-cols-12 lg:py-20">
+        <div className="flex flex-col items-start gap-6 lg:col-span-5">
+          <Image alt="HERCOM" height={64} src={Logo} width={64} />
+          <p className="max-w-sm leading-relaxed text-white/65">
+            Chofer para Remplazo. Manejamos tu vehículo para que tú y tu
+            familia lleguen a casa sanos y salvos.
           </p>
-        </div>
-        <div className="col-span-1 flex flex-col items-center gap-2 lg:row-span-3 lg:col-start-4 lg:items-start">
-          <p className="text-white font-semibold">Menú</p>
-          <div className="flex flex-wrap text-white gap-2 justify-center lg:flex-nowrap lg:flex-col">
-            {siteConfig.navItems.map((s, i) => (
-              <Link
-                key={`mobile-link-${i}`}
-                className="text-white"
-                href={s.href}
-              >
-                {s.label}
-              </Link>
-            ))}
-            <Link className="text-white" href="/politica-de-privacidad">
-              Política de privacidad
-            </Link>
-          </div>
+          <StoreBadges />
         </div>
 
-        <div className="col-span-full flex items-center gap-1 justify-center lg:row-start-4">
-          <span className="text-white">Con el respaldo de</span>
-          <p className="text-white font-bold">Ricardos & Más S.A.C.</p>
+        <div className="lg:col-span-3">
+          <p className={columnTitle}>Menú</p>
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-3 lg:grid-cols-1">
+            {siteConfig.navItems.map((item) => (
+              <li key={item.href}>
+                <NextLink className={linkClass} href={item.href}>
+                  {item.label}
+                </NextLink>
+              </li>
+            ))}
+            <li>
+              <NextLink className={linkClass} href="/terminos-y-condiciones">
+                Términos de uso
+              </NextLink>
+            </li>
+            <li>
+              <NextLink className={linkClass} href="/politica-de-privacidad">
+                Política de privacidad
+              </NextLink>
+            </li>
+          </ul>
+        </div>
+
+        <div className="lg:col-span-2">
+          <p className={columnTitle}>Ciudades</p>
+          <ul className="space-y-3 text-white/65">
+            <li>Lima</li>
+            <li>Callao</li>
+          </ul>
+        </div>
+
+        <div className="lg:col-span-2">
+          <p className={columnTitle}>Síguenos</p>
+          <SocialLinks
+            className="flex items-center gap-3"
+            iconClassName="text-white"
+            iconSize={22}
+          />
+        </div>
+      </div>
+
+      <div className="border-t border-white/10">
+        <div className="section flex flex-col items-center justify-between gap-2 py-6 text-sm text-white/50 sm:flex-row">
+          <span>
+            © {new Date().getFullYear()} {siteConfig.name}. Todos los derechos
+            reservados.
+          </span>
+          <span>
+            Con el respaldo de{" "}
+            <span className="font-semibold text-white/80">
+              Ricardos &amp; Más S.A.C.
+            </span>
+          </span>
         </div>
       </div>
     </footer>

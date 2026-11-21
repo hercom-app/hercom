@@ -11,9 +11,8 @@ import {
   TacticalText,
   TacticalValue,
 } from "../components/tactical";
-import { PRIVACY_POLICY, TERMS_OF_USE } from "@proyecto/legal";
+import { PRIVACY_DOCUMENT, TERMS_DOCUMENT } from "@proyecto/legal";
 import {
-  TACTICAL_BORDER,
   TACTICAL_BORDER_SOFT,
   TACTICAL_COLORS,
   TACTICAL_RADIUS,
@@ -113,26 +112,27 @@ export function ClientSettingsScreen({ onOpenMenu }: ClientSettingsScreenProps) 
         </TacticalPanel>
 
         <TacticalPanel className="mt-4 p-1">
-          <TouchableOpacity
-            onPress={() => setLegal("terms")}
-            className="px-3 py-3.5"
-          >
-            <TacticalLabel tone="text">
-              Términos de uso
-            </TacticalLabel>
-          </TouchableOpacity>
-          <View
-            className="mx-3"
-            style={{ height: 1, backgroundColor: TACTICAL_BORDER_SOFT }}
-          />
-          <TouchableOpacity
-            onPress={() => setLegal("privacy")}
-            className="px-3 py-3.5"
-          >
-            <TacticalLabel tone="text">
-              Política de privacidad
-            </TacticalLabel>
-          </TouchableOpacity>
+          {(
+            [
+              ["terms", "Términos de uso"],
+              ["privacy", "Política de privacidad"],
+            ] as const
+          ).map(([key, label], index) => (
+            <View key={key}>
+              {index > 0 && (
+                <View
+                  className="mx-3"
+                  style={{ height: 1, backgroundColor: TACTICAL_BORDER_SOFT }}
+                />
+              )}
+              <TouchableOpacity
+                onPress={() => setLegal(key)}
+                className="px-3 py-3.5"
+              >
+                <TacticalLabel tone="text">{label}</TacticalLabel>
+              </TouchableOpacity>
+            </View>
+          ))}
         </TacticalPanel>
 
         <View className="mt-4">
@@ -142,14 +142,14 @@ export function ClientSettingsScreen({ onOpenMenu }: ClientSettingsScreenProps) 
 
       <LegalDocumentModal
         visible={legal === "terms"}
-        title={TERMS_OF_USE.title}
-        body={TERMS_OF_USE.body}
+        document={TERMS_DOCUMENT}
+        title={TERMS_DOCUMENT.title}
         onClose={() => setLegal(null)}
       />
       <LegalDocumentModal
         visible={legal === "privacy"}
-        title={PRIVACY_POLICY.title}
-        body={PRIVACY_POLICY.body}
+        document={PRIVACY_DOCUMENT}
+        title={PRIVACY_DOCUMENT.title}
         onClose={() => setLegal(null)}
       />
     </AccountScreenShell>

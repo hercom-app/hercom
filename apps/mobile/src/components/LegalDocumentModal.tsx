@@ -1,20 +1,23 @@
 import { Modal, ScrollView, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { LegalDocument } from "@proyecto/legal";
 import { TacticalLabel, TacticalText, TacticalTitle } from "./tactical";
 import { TACTICAL_BORDER, TACTICAL_COLORS } from "../constants/theme";
 
 type LegalDocumentModalProps = {
   visible: boolean;
   title: string;
-  body: string;
+  body?: string;
+  document?: LegalDocument;
   onClose: () => void;
 };
 
-/** Modal de lectura para Términos de Uso o Política de Privacidad. */
+/** Modal de lectura para términos, privacidad y autorizaciones. */
 export function LegalDocumentModal({
   visible,
   title,
   body,
+  document,
   onClose,
 }: LegalDocumentModalProps) {
   const insets = useSafeAreaInsets();
@@ -43,7 +46,7 @@ export function LegalDocumentModal({
           }}
         >
           <TacticalTitle size={17} className="flex-1 pr-3">
-            {title}
+            {document?.title ?? title}
           </TacticalTitle>
           <TouchableOpacity onPress={onClose} hitSlop={12} className="px-2 py-1">
             <TacticalLabel tone="accent" size={10}>
@@ -56,9 +59,70 @@ export function LegalDocumentModal({
           showsVerticalScrollIndicator
           contentContainerStyle={{ paddingBottom: 32 }}
         >
-          <TacticalText size={13} tone="text" className="mt-2">
-            {body}
-          </TacticalText>
+          {document ? (
+            <View className="pb-4">
+              <TacticalLabel className="mt-4">
+                {`Actualizado: ${document.updated}`}
+              </TacticalLabel>
+              <TacticalText size={13} tone="text" className="mt-3">
+                {document.lead}
+              </TacticalText>
+              {document.sections.map((section) => (
+                <View key={section.id} className="mt-6">
+                  <TacticalTitle size={16}>{section.title}</TacticalTitle>
+                  {section.blocks.map((block, index) => {
+                    if (block.kind === "callout") {
+                      return (
+                        <View
+                          key={index}
+                          className="mt-3 rounded-xl px-3 py-3"
+                          style={{ backgroundColor: TACTICAL_COLORS.accent }}
+                        >
+                          <TacticalText
+                            size={13}
+                            className="font-semibold"
+                            style={{ color: "#FFFFFF" }}
+                          >
+                            {block.text}
+                          </TacticalText>
+                        </View>
+                      );
+                    }
+                    if (block.kind === "p") {
+                      return (
+                        <TacticalText
+                          key={index}
+                          size={13}
+                          tone="text"
+                          className="mt-2"
+                        >
+                          {block.text}
+                        </TacticalText>
+                      );
+                    }
+                    return (
+                      <View key={index} className="mt-2">
+                        {block.items.map((item) => (
+                          <TacticalText
+                            key={item}
+                            size={13}
+                            tone="text"
+                            className="mt-1.5"
+                          >
+                            {`• ${item}`}
+                          </TacticalText>
+                        ))}
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
+            </View>
+          ) : (
+            <TacticalText size={13} tone="text" className="mt-2">
+              {body}
+            </TacticalText>
+          )}
         </ScrollView>
       </View>
     </Modal>

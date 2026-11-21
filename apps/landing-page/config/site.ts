@@ -11,8 +11,8 @@ export const siteConfig = {
       href: "/",
     },
     {
-      label: "Cliente",
-      href: "/cliente",
+      label: "Viajes corporativos",
+      href: "/viajes-corporativos",
     },
     {
       label: "Nosotros",
@@ -37,8 +37,8 @@ export const siteConfig = {
       href: "/",
     },
     {
-      label: "Cliente",
-      href: "/cliente",
+      label: "Viajes corporativos",
+      href: "/viajes-corporativos",
     },
     {
       label: "Nosotros",

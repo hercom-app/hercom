@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { LegalDocumentModal } from "../components/LegalDocumentModal";
 import { SignInScreenBackground } from "../components/SignInScreenBackground";
-import { PRIVACY_POLICY, TERMS_OF_USE } from "@proyecto/legal";
+import { PRIVACY_DOCUMENT, TERMS_DOCUMENT } from "@proyecto/legal";
 import { HERCOM_COLORS, POPPINS } from "../constants/theme";
 
 const MARK_ASPECT = 377 / 446;
@@ -210,14 +210,14 @@ export function SignInScreen() {
 
       <LegalDocumentModal
         visible={legalDoc === "terms"}
-        title={TERMS_OF_USE.title}
-        body={TERMS_OF_USE.body}
+        document={TERMS_DOCUMENT}
+        title={TERMS_DOCUMENT.title}
         onClose={() => setLegalDoc(null)}
       />
       <LegalDocumentModal
         visible={legalDoc === "privacy"}
-        title={PRIVACY_POLICY.title}
-        body={PRIVACY_POLICY.body}
+        document={PRIVACY_DOCUMENT}
+        title={PRIVACY_DOCUMENT.title}
         onClose={() => setLegalDoc(null)}
       />
     </View>

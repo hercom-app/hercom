@@ -78,7 +78,8 @@ import { AppModal } from "../components/AppModal";
 import { LegalDocumentModal } from "../components/LegalDocumentModal";
 import {
   DRIVER_PERSONAL_DATA_CONSENT,
-  PRIVACY_POLICY,
+  PRIVACY_DOCUMENT,
+  TERMS_DOCUMENT,
 } from "@proyecto/legal";
 
 type LicenseFormat = "physical" | "digital";
@@ -146,7 +147,9 @@ export function DriverRegisterScreen({
   const [formError, setFormError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [personalDataConsent, setPersonalDataConsent] = useState(false);
-  const [legalDoc, setLegalDoc] = useState<"consent" | "privacy" | null>(null);
+  const [legalDoc, setLegalDoc] = useState<
+    "consent" | "privacy" | "terms" | null
+  >(null);
   const [reniecLoading, setReniecLoading] = useState(false);
   const [dniReniecValidated, setDniReniecValidated] = useState(false);
   const [reniecManualFallback, setReniecManualFallback] = useState(false);
@@ -1459,6 +1462,14 @@ export function DriverRegisterScreen({
                   </TacticalLabel>
                 </TouchableOpacity>
                 <TouchableOpacity
+                  onPress={() => setLegalDoc("terms")}
+                  hitSlop={8}
+                >
+                  <TacticalLabel tone="accent">
+                    Términos de uso
+                  </TacticalLabel>
+                </TouchableOpacity>
+                <TouchableOpacity
                   onPress={() => setLegalDoc("privacy")}
                   hitSlop={8}
                 >
@@ -1528,9 +1539,15 @@ export function DriverRegisterScreen({
         onClose={() => setLegalDoc(null)}
       />
       <LegalDocumentModal
+        visible={legalDoc === "terms"}
+        document={TERMS_DOCUMENT}
+        title={TERMS_DOCUMENT.title}
+        onClose={() => setLegalDoc(null)}
+      />
+      <LegalDocumentModal
         visible={legalDoc === "privacy"}
-        title={PRIVACY_POLICY.title}
-        body={PRIVACY_POLICY.body}
+        document={PRIVACY_DOCUMENT}
+        title={PRIVACY_DOCUMENT.title}
         onClose={() => setLegalDoc(null)}
       />
       <AppModal

@@ -11,6 +11,7 @@
 import type * as adminLogs from "../adminLogs.js";
 import type * as appErrors from "../appErrors.js";
 import type * as auth from "../auth.js";
+import type * as corporateQuotes from "../corporateQuotes.js";
 import type * as crons from "../crons.js";
 import type * as data_countryCatalog from "../data/countryCatalog.js";
 import type * as data_peruLocations from "../data/peruLocations.js";
@@ -93,6 +94,7 @@ declare const fullApi: ApiFromModules<{
   adminLogs: typeof adminLogs;
   appErrors: typeof appErrors;
   auth: typeof auth;
+  corporateQuotes: typeof corporateQuotes;
   crons: typeof crons;
   "data/countryCatalog": typeof data_countryCatalog;
   "data/peruLocations": typeof data_peruLocations;

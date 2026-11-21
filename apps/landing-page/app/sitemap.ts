@@ -9,7 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     {
-      url: "https://www.hercom.pe/cliente",
+      url: "https://www.hercom.pe/viajes-corporativos",
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.8,
@@ -49,6 +49,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.7,
+    },
+    {
+      url: "https://www.hercom.pe/terminos-y-condiciones",
+      lastModified: new Date(),
+      changeFrequency: "yearly",
+      priority: 0.5,
     },
     {
       url: "https://www.hercom.pe/politica-de-privacidad",

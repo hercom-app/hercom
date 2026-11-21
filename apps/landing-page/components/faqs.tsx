@@ -46,14 +46,19 @@ export function Faqs() {
   return (
     // NextUI Accordion triggers an overly complex union in strict TS builds.
     // @ts-expect-error — known NextUI + TypeScript limitation
-    <Accordion variant="bordered">
+    <Accordion
+      itemClasses={{
+        base: "!rounded-2xl !shadow-none border border-default-200/70 dark:border-default-100",
+      }}
+      variant="splitted"
+    >
       {data.map((item, index) => (
         <AccordionItem
           key={index}
           aria-label={item.title}
           classNames={{
-            title: "text-base",
-            content: "text-small",
+            title: "text-base font-medium",
+            content: "text-small text-default-600 pb-4",
           }}
           title={item.title}
         >

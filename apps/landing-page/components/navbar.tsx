@@ -4,108 +4,140 @@ import {
   Navbar as NextUINavbar,
   NavbarContent,
   NavbarBrand,
-  NavbarItem,
   NavbarMenuToggle,
   NavbarMenu,
   NavbarMenuItem,
 } from "@nextui-org/navbar";
 import NextLink from "next/link";
 import Image from "next/image";
-import { Link } from "@nextui-org/link";
+import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { useState } from "react";
 
-import { SocialLinks } from "@/components/social-links";
-import { ThemeSwitch } from "@/components/theme-switch";
+import { LocaleSelect } from "@/components/locale-select";
 import { siteConfig } from "@/config/site";
+import LogoWhite from "@/assets/logo_inverted.png";
+
+const COUNTRIES = [{ value: "pe", label: "Perú" }];
+const LANGUAGES = [{ value: "es", label: "Español" }];
+
+function GlobeIcon() {
+  return (
+    <svg
+      aria-hidden
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.8}
+      viewBox="0 0 24 24"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+    </svg>
+  );
+}
+
+function isActive(pathname: string, href: string): boolean {
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <NextUINavbar
       classNames={{
-        base: "bg-transparent",
+        base: "z-50 bg-primary text-white",
+        wrapper: "px-6",
+        toggle: "text-white",
       }}
+      height="4.5rem"
+      isBlurred={false}
       isMenuOpen={isOpen}
       maxWidth="xl"
       position="sticky"
       onMenuOpenChange={setIsOpen}
     >
-      <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
-        <NavbarBrand as="li" className="gap-3 max-w-fit">
-          <NextLink
-            className="flex justify-start items-center gap-1 text-white dark:text-neutral-800"
-            href="/"
-          >
-            <Image alt="logo" height={60} src="/logo.png" width={60} />
+      <NavbarContent className="basis-1/5" justify="start">
+        <NavbarBrand as="li" className="max-w-fit">
+          <NextLink className="flex items-center" href="/">
+            <Image
+              priority
+              alt="HERCOM"
+              className="h-11 w-auto"
+              src={LogoWhite}
+            />
           </NextLink>
         </NavbarBrand>
-        <ul className="hidden lg:flex gap-4 justify-start ml-2">
-          {siteConfig.navItems.map((item) => (
-            <NavbarItem key={item.href}>
-              <NextLink
-                className={clsx(
-                  // linkStyles({ color: "foreground" }),
-                  "text-foreground font-semibold",
-                  "data-[active=true]:text-primary data-[active=true]:font-medium active:text-primary-500 hover:text-primary-500 duration-300 hover:!opacity-100",
-                )}
-                color="foreground"
-                href={item.href}
-              >
-                {item.label}
-              </NextLink>
-            </NavbarItem>
-          ))}
-        </ul>
       </NavbarContent>
 
-      <NavbarContent
-        className="hidden sm:flex basis-1/5 sm:basis-full"
-        justify="end"
-      >
-        <NavbarItem className="hidden sm:flex gap-2">
-          <SocialLinks
-            iconClassName="text-foreground"
-            iconSize={20}
+      <NavbarContent className="hidden gap-1 lg:flex" justify="center">
+        {siteConfig.navItems.map((item) => (
+          <li key={item.href}>
+            <NextLink
+              aria-current={isActive(pathname, item.href) ? "page" : undefined}
+              className={clsx(
+                "rounded-full px-3.5 py-2 text-[15px] font-medium text-white transition-colors",
+                isActive(pathname, item.href)
+                  ? "bg-white/20"
+                  : "hover:bg-white/10",
+              )}
+              href={item.href}
+            >
+              {item.label}
+            </NextLink>
+          </li>
+        ))}
+      </NavbarContent>
+
+      <NavbarContent className="basis-1/5 gap-2" justify="end">
+        <li className="hidden items-center gap-2 sm:flex">
+          <LocaleSelect
+            ariaLabel="País"
+            options={COUNTRIES}
+            value="pe"
+            variant="solid"
           />
-          <ThemeSwitch />
-        </NavbarItem>
+          <LocaleSelect
+            ariaLabel="Idioma"
+            icon={<GlobeIcon />}
+            options={LANGUAGES}
+            value="es"
+            variant="ghost"
+          />
+        </li>
+        <NavbarMenuToggle className="lg:hidden" />
       </NavbarContent>
 
-      <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
-        <SocialLinks iconClassName="text-foreground" iconSize={20} />
-        <ThemeSwitch />
-        <NavbarMenuToggle />
-      </NavbarContent>
-
-      <NavbarMenu>
-        <div className="mx-4 mt-2 flex flex-col gap-2">
-          <NavbarMenuItem>
-            <div className="flex flex-col gap-2 pb-2">
-              <span className="text-small font-semibold text-default-600">
-                Síguenos
-              </span>
-              <SocialLinks
-                iconClassName="text-foreground"
-                iconSize={24}
-              />
-            </div>
+      <NavbarMenu className="gap-1 pt-6">
+        {siteConfig.navMenuItems.map((item) => (
+          <NavbarMenuItem key={item.href}>
+            <NextLink
+              className={clsx(
+                "block rounded-2xl px-4 py-3 text-lg font-medium",
+                isActive(pathname, item.href)
+                  ? "bg-primary/10 text-primary"
+                  : "text-foreground",
+              )}
+              href={item.href}
+              onClick={() => setIsOpen(false)}
+            >
+              {item.label}
+            </NextLink>
           </NavbarMenuItem>
-          {siteConfig.navMenuItems.map((item, index) => (
-            <NavbarMenuItem key={`${item}-${index}`}>
-              <Link
-                className="w-full"
-                color="foreground"
-                href={item.href}
-                size="lg"
-                onClick={() => setIsOpen(false)}
-              >
-                {item.label}
-              </Link>
-            </NavbarMenuItem>
-          ))}
-        </div>
+        ))}
+        <NavbarMenuItem className="mt-4 flex gap-6 border-t border-default-200 px-4 pt-5 text-default-600 sm:hidden">
+          <span>
+            País: <span className="font-semibold text-foreground">Perú</span>
+          </span>
+          <span>
+            Idioma:{" "}
+            <span className="font-semibold text-foreground">Español</span>
+          </span>
+        </NavbarMenuItem>
       </NavbarMenu>
     </NextUINavbar>
   );

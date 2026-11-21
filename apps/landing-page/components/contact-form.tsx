@@ -7,14 +7,16 @@ import { Tabs, Tab } from "@nextui-org/tabs";
 
 export function ContactForm() {
   return (
-    <section className="section py-10 lg:py-20 space-y-10 lg:px-32">
+    <section className="section max-w-4xl pb-16 lg:pb-24">
       <Tabs
         classNames={{
-          base: "flex flex-col items-center",
+          base: "flex flex-col items-start",
+          tabList: "rounded-full p-1",
+          cursor: "rounded-full",
         }}
       >
         <Tab key="chofer" title="Para Choferes">
-          <Card>
+          <Card className="rounded-3xl border border-default-200 p-2 shadow-none sm:p-4">
             <CardHeader className="flex gap-2">
               <p className="lg:flex gap-2">
                 Si deseas ser parte de nuestro equipo de Choferes, envíanos tu
@@ -56,12 +58,14 @@ export function ContactForm() {
               />
             </CardBody>
             <CardFooter className="justify-end">
-              <Button color="primary">Enviar</Button>
+              <Button color="primary" radius="full">
+                Enviar
+              </Button>
             </CardFooter>
           </Card>
         </Tab>
         <Tab key="pasajero" title="Para Pasajeros">
-          <Card>
+          <Card className="rounded-3xl border border-default-200 p-2 shadow-none sm:p-4">
             <CardHeader>
               Estamos gustosos de poder recibir tus requerimientos
             </CardHeader>
@@ -88,7 +92,9 @@ export function ContactForm() {
               />
             </CardBody>
             <CardFooter className="justify-end">
-              <Button color="primary">Enviar</Button>
+              <Button color="primary" radius="full">
+                Enviar
+              </Button>
             </CardFooter>
           </Card>
         </Tab>

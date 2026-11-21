@@ -805,6 +805,17 @@ export default defineSchema({
     .index("by_user", ["userId", "createdAt"])
     .index("by_device", ["deviceId", "createdAt"]),
 
+  corporateQuotes: defineTable({
+    companyName: v.string(),
+    contactName: v.string(),
+    email: v.string(),
+    phone: v.string(),
+    city: v.string(),
+    detail: v.string(),
+    createdAt: v.number(),
+    emailSent: v.boolean(),
+  }).index("by_createdAt", ["createdAt"]),
+
   /**
    * Errores del panel interno. La consola del navegador + Convex Logs
    * también los muestran; esta tabla los deja persistidos.

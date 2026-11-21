@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 
-import { title } from "@/components/primitives";
+import { PageHero } from "@/components/page-hero";
+import CuidandoVidasImg from "@/assets/cliente_background.png";
 
 export const metadata: Metadata = {
   title: "Cuidando vidas",
@@ -34,44 +35,46 @@ const RISKS = [
 export default function Page() {
   return (
     <>
-      <main className="relative flex min-h-screen w-full flex-col overflow-hidden bg-neutral-200 bg-[url(../assets/nosotros_background.png)] bg-cover bg-center pt-16 -mt-16 dark:bg-neutral-900">
-        <div className="absolute z-[2] w-screen top-0 left-0 bg-gradient-to-b from-primary/75 to-transparent h-10" />
-        <div className="absolute top-0 left-0 z-[1] bg-white/75 dark:bg-black/75 w-full h-full" />
-        <div className="section relative z-[3] flex min-h-[calc(100svh-4rem)] flex-1 items-center justify-center">
-          <h1
-            className={title({
-              class: "text-center font-bold text-balance",
-              size: "lg",
-            })}
-          >
-            Cuidando vidas
-          </h1>
-        </div>
-      </main>
-      <section className="section py-10 lg:py-20 space-y-8">
-        <h2
-          className={title({
-            size: "xs",
-            fullWidth: true,
-            class: "text-center",
-          })}
-        >
-          Tomar y manejar no es una anécdota
-        </h2>
-        <p className="text-balance text-lg lg:text-center">
-          Si vas a beber, no tomes el volante. Un chofer de remplazo maneja tu
-          auto y tú llegas. Estas son las consecuencias de no parar a tiempo.
-        </p>
-        <div className="grid gap-4 md:grid-cols-2">
-          {RISKS.map((risk) => (
+      <PageHero
+        description={
+          <p>
+            Si vas a beber, no tomes el volante. Un chofer de remplazo maneja tu
+            auto y tú llegas. Estas son las consecuencias de no parar a tiempo.
+          </p>
+        }
+        eyebrow="Cuidando vidas"
+        image={CuidandoVidasImg}
+        imageAlt="Familia viajando segura con HERCOM"
+        imageClassName="object-[40%_40%]"
+        title="Tomar y manejar no es una anécdota"
+      />
+      <section className="section pb-16 lg:pb-24">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {RISKS.map((risk, index) => (
             <article
               key={risk.title}
-              className="rounded-2xl bg-neutral-100 px-5 py-5 dark:bg-neutral-800"
+              className="rounded-3xl bg-default-100 p-8 dark:bg-default-50"
             >
-              <h3 className="text-lg font-semibold">{risk.title}</h3>
-              <p className="mt-2 text-balance">{risk.body}</p>
+              <span className="text-sm font-bold text-primary">
+                0{index + 1}
+              </span>
+              <h2 className="mt-4 text-xl font-bold">{risk.title}</h2>
+              <p className="mt-2 leading-relaxed text-default-600">
+                {risk.body}
+              </p>
             </article>
           ))}
+          <div className="flex flex-col justify-between rounded-3xl bg-primary p-8 text-white">
+            <p className="text-xl font-bold leading-snug">
+              Pide un chofer y llega a casa en tu propio auto.
+            </p>
+            <a
+              className="mt-6 w-fit rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-primary"
+              href="/#descarga"
+            >
+              Descarga la app
+            </a>
+          </div>
         </div>
       </section>
     </>

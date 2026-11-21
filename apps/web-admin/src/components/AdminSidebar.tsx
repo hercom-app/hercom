@@ -114,6 +114,19 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
+    id: "quotes",
+    label: "Cotizaciones",
+    description: "Viajes corporativos",
+    icon: (
+      <NavIcon>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+          <path d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z" />
+          <path d="M14 3v6h6M8 13h8M8 17h5" strokeLinecap="round" />
+        </svg>
+      </NavIcon>
+    ),
+  },
+  {
     id: "support",
     label: "Chat con usuarios",
     description: "Chats de la app",

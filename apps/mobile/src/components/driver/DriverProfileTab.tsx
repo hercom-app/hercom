@@ -8,7 +8,13 @@ import { ThemeToggle } from "../ThemeToggle";
 import { UberScreenHeader } from "../uber/UberScreenHeader";
 import { useAppMode } from "../../contexts/AppModeContext";
 import { useAppTheme } from "../../contexts/ThemeContext";
+import { LegalDocumentModal } from "../LegalDocumentModal";
 import { HERCOM_COLORS, POPPINS } from "../../constants/theme";
+import {
+  PRIVACY_DOCUMENT,
+  TERMS_DOCUMENT,
+  type LegalDocument,
+} from "@proyecto/legal";
 
 type DriverProfileTabProps = {
   driver: Doc<"drivers">;
@@ -74,6 +80,7 @@ export function DriverProfileTab({
   const { signOut } = useAuthActions();
   const { setMode } = useAppMode();
   const [switching, setSwitching] = useState(false);
+  const [legal, setLegal] = useState<LegalDocument | null>(null);
   const displayName = userName.trim() !== "" ? userName : "Chofer Hercom";
 
   if (section === "datos") {
@@ -157,12 +164,29 @@ export function DriverProfileTab({
           }}
         />
 
+        <ProfileRow
+          icon="shield"
+          title="Términos de uso"
+          onPress={() => setLegal(TERMS_DOCUMENT)}
+        />
+        <ProfileRow
+          icon="key"
+          title="Política de privacidad"
+          onPress={() => setLegal(PRIVACY_DOCUMENT)}
+        />
+
         <View style={{ paddingVertical: 16 }}>
           <ThemeToggle />
         </View>
 
         <ProfileRow icon="logout" title="Cerrar sesión" danger onPress={() => void signOut()} />
       </ScrollView>
+      <LegalDocumentModal
+        visible={legal !== null}
+        document={legal ?? undefined}
+        title={legal?.title ?? ""}
+        onClose={() => setLegal(null)}
+      />
     </View>
   );
 }

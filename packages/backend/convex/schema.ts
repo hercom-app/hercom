@@ -818,6 +818,7 @@ export default defineSchema({
     destinationDepartment: v.optional(v.string()),
     destinationProvince: v.optional(v.string()),
     destinationDistrict: v.optional(v.string()),
+    serviceStart: v.optional(v.string()),
     serviceEnd: v.optional(v.string()),
     driverCount: v.optional(v.number()),
     serviceHours: v.optional(v.number()),

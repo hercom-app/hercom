@@ -16,10 +16,15 @@ const quoteArgs = {
   destinationDepartment: v.string(),
   destinationProvince: v.string(),
   destinationDistrict: v.string(),
+  serviceStart: v.string(),
   serviceEnd: v.string(),
   driverCount: v.number(),
-  serviceHours: v.number(),
   detail: v.string(),
+};
+
+const insertArgs = {
+  ...quoteArgs,
+  serviceHours: v.number(),
 };
 
 function clean(value: string, max: number): string {
@@ -30,8 +35,26 @@ function place(department: string, province: string, district: string): string {
   return [district, province, department].filter((part) => part !== "").join(", ");
 }
 
+function parseServiceMoment(value: string): number {
+  const at = new Date(value.trim()).getTime();
+  if (Number.isNaN(at)) {
+    throw new Error("Indica hora de inicio y hora de fin válidas.");
+  }
+  return at;
+}
+
+function serviceHoursBetween(start: string, end: string): number {
+  const startAt = parseServiceMoment(start);
+  const endAt = parseServiceMoment(end);
+  if (endAt <= startAt) {
+    throw new Error("La hora de fin debe ser posterior a la hora de inicio.");
+  }
+  const hours = (endAt - startAt) / (60 * 60 * 1000);
+  return Math.round(hours * 100) / 100;
+}
+
 export const insert = internalMutation({
-  args: quoteArgs,
+  args: insertArgs,
   handler: async (ctx, args) => {
     return await ctx.db.insert("corporateQuotes", {
       companyName: clean(args.companyName, 120),
@@ -45,6 +68,7 @@ export const insert = internalMutation({
       destinationDepartment: clean(args.destinationDepartment, 80),
       destinationProvince: clean(args.destinationProvince, 80),
       destinationDistrict: clean(args.destinationDistrict, 80),
+      serviceStart: clean(args.serviceStart, 40),
       serviceEnd: clean(args.serviceEnd, 40),
       driverCount: Math.round(args.driverCount),
       serviceHours: args.serviceHours,
@@ -80,6 +104,7 @@ async function sendConfirmation(args: {
   companyName: string;
   origin: string;
   destination: string;
+  serviceStart: string;
   serviceEnd: string;
   driverCount: number;
   serviceHours: number;
@@ -106,9 +131,10 @@ async function sendConfirmation(args: {
         `Recibimos la solicitud de viaje de ${who}.`,
         `Origen: ${args.origin}`,
         `Destino: ${args.destination}`,
-        `Fin del servicio: ${args.serviceEnd}`,
-        `Choferes: ${args.driverCount}`,
+        `Inicio: ${args.serviceStart}`,
+        `Fin: ${args.serviceEnd}`,
         `Horas: ${args.serviceHours}`,
+        `Choferes: ${args.driverCount}`,
         "",
         "Un ejecutivo de HERCOM la revisará y te escribirá para confirmar la cotización.",
         "",
@@ -145,18 +171,16 @@ export const submit = action({
     ) {
       throw new Error("Elige el origen y el destino del servicio.");
     }
-    if (args.serviceEnd.trim() === "") {
-      throw new Error("Indica el fin del servicio.");
+    if (args.serviceStart.trim() === "" || args.serviceEnd.trim() === "") {
+      throw new Error("Indica la hora de inicio y la hora de fin.");
     }
     if (!Number.isFinite(args.driverCount) || args.driverCount < 1) {
       throw new Error("Indica la cantidad de choferes.");
     }
-    if (!Number.isFinite(args.serviceHours) || args.serviceHours <= 0) {
-      throw new Error("Indica las horas del servicio.");
-    }
+    const serviceHours = serviceHoursBetween(args.serviceStart, args.serviceEnd);
     const id: Id<"corporateQuotes"> = await ctx.runMutation(
       internal.corporateQuotes.insert,
-      { ...args, ruc },
+      { ...args, ruc, serviceHours },
     );
     const sent = await sendConfirmation({
       contactName: args.contactName.trim(),
@@ -168,9 +192,10 @@ export const submit = action({
         args.destinationProvince,
         args.destinationDistrict,
       ),
+      serviceStart: args.serviceStart.trim(),
       serviceEnd: args.serviceEnd.trim(),
       driverCount: args.driverCount,
-      serviceHours: args.serviceHours,
+      serviceHours,
     });
     await ctx.runMutation(internal.corporateQuotes.markEmail, { id, sent });
     return { id, emailSent: sent };

@@ -12,13 +12,19 @@ import {
   listProvincesForDepartment,
 } from "@proyecto/peru-locations";
 
-type Place = {
+type ServicePoint = {
   department: string;
   province: string;
   district: string;
+  at: string;
 };
 
-const emptyPlace: Place = { department: "", province: "", district: "" };
+const emptyPoint: ServicePoint = {
+  department: "",
+  province: "",
+  district: "",
+  at: "",
+};
 
 const empty = {
   companyName: "",
@@ -26,23 +32,23 @@ const empty = {
   ruc: "",
   email: "",
   phone: "",
-  serviceEnd: "",
   driverCount: "",
-  serviceHours: "",
   detail: "",
 };
 
-const selectClass =
+const fieldClass =
   "w-full rounded-xl bg-default-100 px-3 py-2.5 text-sm text-foreground outline-none";
 
-function PlaceFields({
+function ServicePointFields({
   legend,
+  timeLabel,
   value,
   onChange,
 }: {
   legend: string;
-  value: Place;
-  onChange: (next: Place) => void;
+  timeLabel: string;
+  value: ServicePoint;
+  onChange: (next: ServicePoint) => void;
 }) {
   const provinces = listProvincesForDepartment(value.department);
   const districts = listDistrictsForProvince(value.department, value.province);
@@ -51,15 +57,16 @@ function PlaceFields({
   return (
     <fieldset className="sm:col-span-2">
       <legend className="mb-3 text-sm font-semibold">{legend}</legend>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="block">
           <span className="mb-1.5 block text-sm">Departamento</span>
           <select
             required
-            className={selectClass}
+            className={fieldClass}
             value={value.department}
             onChange={(event) =>
               onChange({
+                ...value,
                 department: event.target.value,
                 province: "",
                 district: "",
@@ -78,7 +85,7 @@ function PlaceFields({
           <span className="mb-1.5 block text-sm">Provincia</span>
           <select
             required
-            className={selectClass}
+            className={fieldClass}
             disabled={value.department === ""}
             value={value.province}
             onChange={(event) =>
@@ -98,7 +105,7 @@ function PlaceFields({
           {typedDistrict ? (
             <input
               required
-              className={selectClass}
+              className={fieldClass}
               placeholder="Escribe el distrito"
               value={value.district}
               onChange={(event) =>
@@ -108,7 +115,7 @@ function PlaceFields({
           ) : (
             <select
               required
-              className={selectClass}
+              className={fieldClass}
               disabled={value.province === ""}
               value={value.district}
               onChange={(event) =>
@@ -124,6 +131,16 @@ function PlaceFields({
             </select>
           )}
         </label>
+        <label className="block">
+          <span className="mb-1.5 block text-sm">{timeLabel}</span>
+          <input
+            required
+            className={fieldClass}
+            type="datetime-local"
+            value={value.at}
+            onChange={(event) => onChange({ ...value, at: event.target.value })}
+          />
+        </label>
       </div>
     </fieldset>
   );
@@ -132,8 +149,8 @@ function PlaceFields({
 export function CorporateQuoteForm() {
   const submit = useAction(submitCorporateQuote);
   const [values, setValues] = useState(empty);
-  const [origin, setOrigin] = useState<Place>(emptyPlace);
-  const [destination, setDestination] = useState<Place>(emptyPlace);
+  const [origin, setOrigin] = useState<ServicePoint>(emptyPoint);
+  const [destination, setDestination] = useState<ServicePoint>(emptyPoint);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState<"sent" | "saved" | null>(null);
@@ -159,15 +176,15 @@ export function CorporateQuoteForm() {
         destinationDepartment: destination.department,
         destinationProvince: destination.province,
         destinationDistrict: destination.district,
-        serviceEnd: values.serviceEnd,
+        serviceStart: origin.at,
+        serviceEnd: destination.at,
         driverCount: Number(values.driverCount),
-        serviceHours: Number(values.serviceHours),
         detail: values.detail,
       });
       setDone(result.emailSent ? "sent" : "saved");
       setValues(empty);
-      setOrigin(emptyPlace);
-      setDestination(emptyPlace);
+      setOrigin(emptyPoint);
+      setDestination(emptyPoint);
     } catch (cause) {
       const message =
         cause instanceof Error ? cause.message : "No pudimos enviar la solicitud.";
@@ -249,23 +266,21 @@ export function CorporateQuoteForm() {
           value={values.email}
           onValueChange={(value) => setField("email", value)}
         />
-        <PlaceFields legend="Origen del servicio" value={origin} onChange={setOrigin} />
-        <PlaceFields
+        <ServicePointFields
+          legend="Origen del servicio"
+          timeLabel="Hora de inicio"
+          value={origin}
+          onChange={setOrigin}
+        />
+        <ServicePointFields
           legend="Destino del servicio"
+          timeLabel="Hora de fin"
           value={destination}
           onChange={setDestination}
         />
         <Input
           isRequired
           className="sm:col-span-2"
-          label="Fin del servicio"
-          labelPlacement="outside"
-          type="datetime-local"
-          value={values.serviceEnd}
-          onValueChange={(value) => setField("serviceEnd", value)}
-        />
-        <Input
-          isRequired
           label="Cantidad de choferes"
           labelPlacement="outside"
           min={1}
@@ -273,16 +288,6 @@ export function CorporateQuoteForm() {
           type="number"
           value={values.driverCount}
           onValueChange={(value) => setField("driverCount", value)}
-        />
-        <Input
-          isRequired
-          label="Horas del servicio"
-          labelPlacement="outside"
-          min={1}
-          step={1}
-          type="number"
-          value={values.serviceHours}
-          onValueChange={(value) => setField("serviceHours", value)}
         />
         <Textarea
           isRequired

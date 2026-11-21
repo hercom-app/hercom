@@ -26,9 +26,9 @@ export const submitCorporateQuote = makeFunctionReference<
     destinationDepartment: string;
     destinationProvince: string;
     destinationDistrict: string;
+    serviceStart: string;
     serviceEnd: string;
     driverCount: number;
-    serviceHours: number;
     detail: string;
   },
   { id: string; emailSent: boolean }

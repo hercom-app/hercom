@@ -15,7 +15,7 @@ function formatWhen(timestamp: number): string {
   }).format(new Date(timestamp));
 }
 
-function formatEnd(value: string | undefined): string {
+function formatServiceMoment(value: string | undefined): string {
   if (value === undefined || value === "") return "—";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value.replace("T", " ");
@@ -36,6 +36,11 @@ function place(
   return text === "" ? "—" : text;
 }
 
+function formatHours(value: number | undefined): string {
+  if (value === undefined) return "—";
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
 export function QuotesView() {
   const rows = useQuery(api.corporateQuotes.listForAdmin, {});
 
@@ -48,7 +53,7 @@ export function QuotesView() {
           <AdminEmpty message="Todavía no hay solicitudes de viajes corporativos." />
         ) : (
           <AdminTableWrap>
-            <table className="min-w-[1280px] w-full text-left text-sm">
+            <table className="min-w-[1400px] w-full text-left text-sm">
               <thead className="text-xs uppercase tracking-wide text-zinc-400">
                 <tr>
                   <th className="px-4 py-3 font-medium">Fecha</th>
@@ -58,10 +63,11 @@ export function QuotesView() {
                   <th className="px-4 py-3 font-medium">Correo</th>
                   <th className="px-4 py-3 font-medium">Teléfono</th>
                   <th className="px-4 py-3 font-medium">Origen</th>
+                  <th className="px-4 py-3 font-medium">Inicio</th>
                   <th className="px-4 py-3 font-medium">Destino</th>
                   <th className="px-4 py-3 font-medium">Fin</th>
-                  <th className="px-4 py-3 font-medium">Choferes</th>
                   <th className="px-4 py-3 font-medium">Horas</th>
+                  <th className="px-4 py-3 font-medium">Choferes</th>
                   <th className="px-4 py-3 font-medium">Detalle</th>
                   <th className="px-4 py-3 font-medium">Confirmación</th>
                 </tr>
@@ -90,6 +96,9 @@ export function QuotesView() {
                         row.originDistrict,
                       )}
                     </td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      {formatServiceMoment(row.serviceStart)}
+                    </td>
                     <td className="px-4 py-3">
                       {place(
                         row.destinationDepartment,
@@ -98,10 +107,10 @@ export function QuotesView() {
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      {formatEnd(row.serviceEnd)}
+                      {formatServiceMoment(row.serviceEnd)}
                     </td>
+                    <td className="px-4 py-3">{formatHours(row.serviceHours)}</td>
                     <td className="px-4 py-3">{row.driverCount ?? "—"}</td>
-                    <td className="px-4 py-3">{row.serviceHours ?? "—"}</td>
                     <td className="max-w-xs px-4 py-3 text-zinc-600">
                       {row.detail}
                     </td>

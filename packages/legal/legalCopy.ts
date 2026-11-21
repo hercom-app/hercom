@@ -327,7 +327,7 @@ export const PASSENGER_TERMS_DOCUMENT: LegalDocument = {
         },
         {
           kind: "p",
-          text: "Las horas adicionales, la espera y, si corresponde, la movilidad para que el chofer llegue al punto (taxi) requieren aprobación previa del cliente. La calificación del usuario en la app permite garantizar el servicio.",
+          text: "Las horas adicionales, la espera y si corresponde la movilidad para que el chofer llegue al punto (taxi) requieren aprobación previa del cliente. La calificación del usuario en la app permite garantizar el servicio.",
         },
         {
           kind: "p",

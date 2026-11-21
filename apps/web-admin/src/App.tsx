@@ -154,13 +154,17 @@ function Dashboard() {
                 <h1 className="text-lg font-semibold leading-tight tracking-tight text-slate-900 sm:truncate sm:text-xl">
                   {meta.title}
                 </h1>
-                <p className="mt-0.5 text-xs leading-snug text-slate-500 sm:truncate sm:text-sm">
-                  {isFullAdmin
-                    ? meta.description
-                    : me.districtScopes
-                        .map(formatAdminScopeLabel)
-                        .join(" · ") || meta.description}
-                </p>
+                {(isFullAdmin ? meta.description : me.districtScopes
+                    .map(formatAdminScopeLabel)
+                    .join(" · ") || meta.description) !== "" ? (
+                  <p className="mt-0.5 text-xs leading-snug text-slate-500 sm:truncate sm:text-sm">
+                    {isFullAdmin
+                      ? meta.description
+                      : me.districtScopes
+                          .map(formatAdminScopeLabel)
+                          .join(" · ") || meta.description}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>

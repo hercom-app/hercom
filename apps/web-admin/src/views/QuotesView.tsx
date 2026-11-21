@@ -7,7 +7,6 @@ import {
   AdminEmpty,
   AdminLoading,
   AdminPage,
-  AdminPageHeader,
   AdminTableWrap,
 } from "../components/AdminLayout";
 import { btnPrimaryClass, selectClass } from "../lib/adminUi";
@@ -69,22 +68,18 @@ export function QuotesView() {
 
   return (
     <AdminPage>
-      <AdminPageHeader
-        title="Servicios premium"
-        description="Solicitudes desde la web comercial y cotizaciones que registras por teléfono u otro canal."
-        actions={
-          <button
-            type="button"
-            className={btnPrimaryClass}
-            onClick={() => {
-              setShowForm((current) => !current);
-              setMessage(null);
-            }}
-          >
-            {showForm ? "Cerrar formulario" : "Generar cotización"}
-          </button>
-        }
-      />
+      <div className="flex flex-wrap justify-end gap-2">
+        <button
+          type="button"
+          className={btnPrimaryClass}
+          onClick={() => {
+            setShowForm((current) => !current);
+            setMessage(null);
+          }}
+        >
+          {showForm ? "Cerrar formulario" : "Generar cotización"}
+        </button>
+      </div>
 
       {showForm && (
         <AdminCard>

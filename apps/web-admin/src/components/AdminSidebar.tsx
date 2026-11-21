@@ -116,7 +116,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: "quotes",
     label: "Servicios premium",
-    description: "Viajes corporativos",
+    description: "",
     icon: (
       <NavIcon>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">

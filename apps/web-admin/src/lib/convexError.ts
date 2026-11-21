@@ -6,6 +6,11 @@ export function formatConvexError(error: unknown, fallback: string): string {
   const raw = error instanceof Error ? error.message : String(error);
   console.error("[hercom-admin]", raw, error);
 
+  const uncaught = raw.match(/Uncaught Error:\s*([^\n]+)/i);
+  if (uncaught?.[1] !== undefined && uncaught[1].trim() !== "") {
+    return uncaught[1].trim();
+  }
+
   const lines = raw
     .split("\n")
     .map((line) => line.trim())

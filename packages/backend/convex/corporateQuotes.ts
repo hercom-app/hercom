@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import {
   action,
   internalMutation,
@@ -64,7 +64,7 @@ function place(department: string, province: string, district: string): string {
 function parseServiceMoment(value: string): number {
   const at = new Date(value.trim()).getTime();
   if (Number.isNaN(at)) {
-    throw new Error("Indica hora de inicio y hora de fin válidas.");
+    throw new ConvexError("Indica hora de inicio y hora de fin válidas.");
   }
   return at;
 }
@@ -73,7 +73,7 @@ function serviceHoursBetween(start: string, end: string): number {
   const startAt = parseServiceMoment(start);
   const endAt = parseServiceMoment(end);
   if (endAt <= startAt) {
-    throw new Error("La hora de fin debe ser posterior a la hora de inicio.");
+    throw new ConvexError("La hora de fin debe ser posterior a la hora de inicio.");
   }
   const hours = (endAt - startAt) / (60 * 60 * 1000);
   return Math.round(hours * 100) / 100;
@@ -100,10 +100,10 @@ function validateQuote(args: {
   const email = args.email.trim().toLowerCase();
   const ruc = normalizeRuc(args.ruc);
   if (!email.includes("@") || args.contactName.trim() === "") {
-    throw new Error("Completa el nombre y un correo válido.");
+    throw new ConvexError("Completa el nombre y un correo válido.");
   }
   if (ruc.length !== 11) {
-    throw new Error("El RUC debe tener 11 dígitos.");
+    throw new ConvexError("El RUC debe tener 11 dígitos.");
   }
   if (
     args.originDepartment.trim() === "" ||
@@ -113,13 +113,13 @@ function validateQuote(args: {
     args.destinationProvince.trim() === "" ||
     args.destinationDistrict.trim() === ""
   ) {
-    throw new Error("Elige el origen y el destino del servicio.");
+    throw new ConvexError("Elige el origen y el destino del servicio.");
   }
   if (args.serviceStart.trim() === "" || args.serviceEnd.trim() === "") {
-    throw new Error("Indica la hora de inicio y la hora de fin.");
+    throw new ConvexError("Indica la hora de inicio y la hora de fin.");
   }
   if (!Number.isFinite(args.driverCount) || args.driverCount < 1) {
-    throw new Error("Indica la cantidad de choferes.");
+    throw new ConvexError("Indica la cantidad de choferes.");
   }
   const serviceHours = serviceHoursBetween(args.serviceStart, args.serviceEnd);
   return { email, ruc, serviceHours };

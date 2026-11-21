@@ -6,6 +6,7 @@ import { Input, Textarea } from "@nextui-org/input";
 import { useAction } from "convex/react";
 
 import { submitCorporateQuote } from "@/lib/convexApi";
+import { formatConvexError } from "@/lib/convexError";
 import {
   PERU_DEPARTMENTS,
   listDistrictsForProvince,
@@ -36,8 +37,14 @@ const empty = {
   detail: "",
 };
 
+const RUC_LENGTH = 11;
+
 const fieldClass =
   "w-full rounded-xl bg-default-100 px-3 py-2.5 text-sm text-foreground outline-none";
+
+function normalizeRuc(raw: string): string {
+  return raw.replace(/\D/g, "").slice(0, RUC_LENGTH);
+}
 
 function ServicePointFields({
   legend,
@@ -154,6 +161,19 @@ export function CorporateQuoteForm() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState<"sent" | "saved" | null>(null);
+  const [rucBlurred, setRucBlurred] = useState(false);
+
+  const rucComplete = values.ruc.length === RUC_LENGTH;
+  const rucProgress =
+    values.ruc.length > 0 && !rucComplete && !rucBlurred
+      ? `${values.ruc.length}/${RUC_LENGTH} dígitos`
+      : undefined;
+  const rucFieldError =
+    rucBlurred && !rucComplete
+      ? values.ruc.length === 0
+        ? "Ingresa el RUC de 11 dígitos."
+        : "El RUC debe tener 11 dígitos."
+      : undefined;
 
   function setField(key: keyof typeof empty, value: string) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -162,6 +182,52 @@ export function CorporateQuoteForm() {
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setError("");
+
+    if (!rucComplete) {
+      setRucBlurred(true);
+      setError("El RUC debe tener 11 dígitos.");
+      return;
+    }
+
+    const drivers = Number(values.driverCount);
+    if (!Number.isFinite(drivers) || drivers < 1) {
+      setError("Indica la cantidad de choferes.");
+      return;
+    }
+
+    if (values.detail.trim() === "") {
+      setError("Completa el detalle del viaje.");
+      return;
+    }
+
+    if (
+      origin.department === "" ||
+      origin.province === "" ||
+      origin.district === "" ||
+      destination.department === "" ||
+      destination.province === "" ||
+      destination.district === ""
+    ) {
+      setError("Elige el origen y el destino del servicio.");
+      return;
+    }
+
+    if (origin.at === "" || destination.at === "") {
+      setError("Indica la hora de inicio y la hora de fin.");
+      return;
+    }
+
+    const startMs = Date.parse(origin.at);
+    const endMs = Date.parse(destination.at);
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
+      setError("Indica hora de inicio y hora de fin válidas.");
+      return;
+    }
+    if (endMs <= startMs) {
+      setError("La hora de fin debe ser posterior a la hora de inicio.");
+      return;
+    }
+
     setPending(true);
     try {
       const result = await submit({
@@ -185,10 +251,9 @@ export function CorporateQuoteForm() {
       setValues(empty);
       setOrigin(emptyPoint);
       setDestination(emptyPoint);
+      setRucBlurred(false);
     } catch (cause) {
-      const message =
-        cause instanceof Error ? cause.message : "No pudimos enviar la solicitud.";
-      setError(message);
+      setError(formatConvexError(cause, "No pudimos enviar la solicitud."));
     } finally {
       setPending(false);
     }
@@ -240,13 +305,17 @@ export function CorporateQuoteForm() {
         />
         <Input
           isRequired
+          description={rucProgress}
+          errorMessage={rucFieldError}
+          isInvalid={rucFieldError !== undefined}
           label="RUC"
           labelPlacement="outside"
           inputMode="numeric"
-          maxLength={11}
+          maxLength={RUC_LENGTH}
           placeholder="11 dígitos"
           value={values.ruc}
-          onValueChange={(value) => setField("ruc", value.replace(/\D/g, "").slice(0, 11))}
+          onBlur={() => setRucBlurred(true)}
+          onValueChange={(value) => setField("ruc", normalizeRuc(value))}
         />
         <Input
           isRequired
@@ -306,7 +375,13 @@ export function CorporateQuoteForm() {
         </p>
       )}
       <div className="mt-8 flex justify-end">
-        <Button color="primary" isLoading={pending} radius="full" type="submit">
+        <Button
+          color="primary"
+          isDisabled={!rucComplete}
+          isLoading={pending}
+          radius="full"
+          type="submit"
+        >
           Solicitar cotización
         </Button>
       </div>

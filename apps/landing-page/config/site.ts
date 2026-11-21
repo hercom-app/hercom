@@ -19,10 +19,6 @@ export const siteConfig = {
       href: "/nosotros",
     },
     {
-      label: "Servicios",
-      href: "/servicios",
-    },
-    {
       label: "Cuidando vidas",
       href: "/cuidando-vidas",
     },
@@ -39,10 +35,6 @@ export const siteConfig = {
     {
       label: "Nosotros",
       href: "/nosotros",
-    },
-    {
-      label: "Servicios",
-      href: "/servicios",
     },
     {
       label: "Cuidando vidas",

@@ -10,8 +10,7 @@ export type DriverService = {
 export const replacementDriver = {
   title: "Chofer para Remplazo",
   description: [
-    "Viaja sin stres del tránsito, en la comodidad de tu vehículo con tu APP HERCOM.",
-    "Descárgalo desde tu celular de manera gratuito y comienza a disfrutar de nuestros servicios.",
+    "No te preocupes si no puedes manejar, solicita un chofer con tu app HERCOM.",
   ],
 };
 

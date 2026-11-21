@@ -1,20 +1,14 @@
 import Image from "next/image";
 import NextLink from "next/link";
-import { ReactNode } from "react";
 
 import {
-  BusinessIcon,
   HeartFilledIcon,
   PhoneCheckIcon,
-  PremiumIcon,
-  ReplaceTaxi,
   SecurityIcon,
   ThumbsUpIcon,
-  VehicleTruckIcon,
 } from "@/components/icons";
 import { Faqs } from "@/components/faqs";
 import { StoreBadges } from "@/components/store-badges";
-import { driverServices, replacementDriver } from "@/lib/driverServices";
 import ServiciosImg from "@/assets/servicios_background.png";
 import NosotrosImg from "@/assets/nosotros_background.png";
 import ClienteImg from "@/assets/cliente_background.png";
@@ -39,13 +33,6 @@ const REASONS = [
       "Descarga nuestro aplicativo y en un solo click podrás llamar a nuestros Choferes para Remplazo",
   },
 ];
-
-const SERVICE_ICONS: Record<string, ReactNode> = {
-  "chofer-premium": <PremiumIcon size={32} />,
-  "chofer-corporativo": <BusinessIcon size={32} />,
-  "chofer-seguro": <SecurityIcon size={32} />,
-  "chofer-de-flota": <VehicleTruckIcon size={32} />,
-};
 
 const DISCOVER = [
   {
@@ -148,8 +135,8 @@ export default function Home() {
       </section>
 
       <section className="section py-16 lg:py-24" id="porque-elegirnos">
-        <h2 className={`${sectionTitle} max-w-3xl`}>
-          ¿Por qué elegir a HERCOM - Chofer para Remplazo?
+        <h2 className="text-center font-bold leading-tight tracking-tight whitespace-nowrap text-[clamp(0.7rem,3.4vw,3rem)]">
+          ¿Por qué elegir un chofer para remplazo HERCOM?
         </h2>
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           {REASONS.map((item) => (
@@ -163,58 +150,6 @@ export default function Home() {
                 {item.description}
               </p>
             </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="section pb-16 lg:pb-24" id="nuestros-servicios">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <h2 className={sectionTitle}>Descubre Nuestros Servicios</h2>
-          <NextLink
-            className="group flex items-center gap-2 font-semibold text-primary"
-            href="/servicios"
-          >
-            Ver todos <ArrowIcon />
-          </NextLink>
-        </div>
-        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <NextLink
-            className="group flex flex-col justify-between rounded-3xl bg-primary p-8 text-white md:row-span-2"
-            href="/servicios"
-          >
-            <ReplaceTaxi size={44} />
-            <div className="mt-16">
-              <h3 className="flex items-center gap-2 text-2xl font-bold">
-                {replacementDriver.title} <ArrowIcon />
-              </h3>
-              <p className="mt-3 leading-relaxed text-white/85">
-                {replacementDriver.description[0]}
-              </p>
-            </div>
-          </NextLink>
-          {driverServices.map((service) => (
-            <NextLink
-              key={service.slug}
-              className="group flex flex-col justify-between rounded-3xl bg-default-100 p-7 transition-colors hover:bg-default-200 dark:bg-default-50 dark:hover:bg-default-100"
-              href={`/servicios/${service.slug}`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-                    {service.audience}
-                  </p>
-                  <h3 className="mt-2 flex items-center gap-2 text-xl font-bold">
-                    {service.title} <ArrowIcon />
-                  </h3>
-                </div>
-                <span className="text-primary">
-                  {SERVICE_ICONS[service.slug]}
-                </span>
-              </div>
-              <p className="mt-6 text-sm leading-relaxed text-default-600">
-                {service.lead}
-              </p>
-            </NextLink>
           ))}
         </div>
       </section>

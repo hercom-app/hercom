@@ -1,9 +1,57 @@
 import { Metadata } from "next";
+import { ReactNode } from "react";
 
 import { CorporateQuoteForm } from "@/components/corporate-quote-form";
 import { PageHero } from "@/components/page-hero";
 import ContactanosImg from "@/assets/contactanos_background.png";
-import { driverServices, replacementDriver } from "@/lib/driverServices";
+import { driverServices } from "@/lib/driverServices";
+
+function SolutionIcon({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      aria-hidden
+      className="h-8 w-8"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.6}
+      viewBox="0 0 24 24"
+    >
+      {children}
+    </svg>
+  );
+}
+
+const SOLUTION_ICONS: Record<string, ReactNode> = {
+  "chofer-premium": (
+    <SolutionIcon>
+      <circle cx="12" cy="8" r="3" />
+      <path d="M6 19c.7-2.8 2.8-4.5 6-4.5s5.3 1.7 6 4.5" />
+    </SolutionIcon>
+  ),
+  "chofer-corporativo": (
+    <SolutionIcon>
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" />
+      <path d="M3 12h18" />
+    </SolutionIcon>
+  ),
+  "chofer-seguro": (
+    <SolutionIcon>
+      <path d="M12 3l7 3v6c0 4.2-2.8 7.2-7 8.5C7.8 19.2 5 16.2 5 12V6l7-3z" />
+      <path d="M9 12l2 2 4-4" />
+    </SolutionIcon>
+  ),
+  "chofer-de-flota": (
+    <SolutionIcon>
+      <path d="M3 7h11v8H3z" />
+      <path d="M14 10h4l3 3v2h-7" />
+      <circle cx="7" cy="17" r="1.6" />
+      <circle cx="17" cy="17" r="1.6" />
+    </SolutionIcon>
+  ),
+};
 
 export const metadata: Metadata = {
   title: "Viajes corporativos",
@@ -20,7 +68,7 @@ export default function ViajesCorporativosPage() {
         image={ContactanosImg}
         imageAlt="Ejecutiva de atención de HERCOM"
         imageClassName="object-[50%_30%]"
-        title="Soluciones de chofer para tu empresa"
+        title="Reserva un viaje para ti o tu empresa"
       >
         <a
           className="rounded-full bg-primary px-7 py-3.5 font-semibold text-white transition-colors hover:bg-primary-600"
@@ -43,35 +91,16 @@ export default function ViajesCorporativosPage() {
         </p>
 
         <div className="mt-10 grid gap-4 md:grid-cols-2">
-          <article className="flex flex-col justify-between rounded-3xl bg-primary p-8 text-white md:col-span-2 lg:p-10">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-white/70">
-                App HERCOM
-              </p>
-              <h3 className="mt-3 text-2xl font-bold sm:text-3xl">
-                {replacementDriver.title}
-              </h3>
-              <p className="mt-4 max-w-2xl text-lg leading-relaxed text-white/85">
-                {replacementDriver.description[0]}
-              </p>
-            </div>
-            <a
-              className="mt-8 inline-flex w-fit rounded-full bg-white px-6 py-3 font-semibold text-primary transition-colors hover:bg-white/90"
-              href="#cotizacion"
-            >
-              Contacta un ejecutivo
-            </a>
-          </article>
-
           {driverServices.map((service) => (
             <article
               key={service.slug}
               className="flex flex-col rounded-3xl border border-default-200 p-8"
             >
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+              <span className="text-primary">{SOLUTION_ICONS[service.slug]}</span>
+              <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-primary">
                 {service.audience}
               </p>
-              <h3 className="mt-3 text-2xl font-bold">{service.title}</h3>
+              <h3 className="mt-2 text-2xl font-bold">{service.title}</h3>
               <p className="mt-4 flex-1 leading-relaxed text-default-600">
                 {service.lead}
               </p>
@@ -80,12 +109,6 @@ export default function ViajesCorporativosPage() {
                   <li key={point}>{point}</li>
                 ))}
               </ul>
-              <a
-                className="mt-6 font-semibold text-primary hover:underline"
-                href="#cotizacion"
-              >
-                Contacta un ejecutivo
-              </a>
             </article>
           ))}
         </div>

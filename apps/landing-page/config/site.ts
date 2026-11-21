@@ -26,10 +26,6 @@ export const siteConfig = {
       label: "Cuidando vidas",
       href: "/cuidando-vidas",
     },
-    {
-      label: "Contáctanos",
-      href: "/contactanos",
-    },
   ],
   navMenuItems: [
     {
@@ -51,10 +47,6 @@ export const siteConfig = {
     {
       label: "Cuidando vidas",
       href: "/cuidando-vidas",
-    },
-    {
-      label: "Contáctanos",
-      href: "/contactanos",
     },
   ],
   links: {

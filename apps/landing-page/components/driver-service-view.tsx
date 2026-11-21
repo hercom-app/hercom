@@ -18,7 +18,7 @@ export function DriverServiceView({ service }: { service: DriverService }) {
         <div className="flex flex-wrap gap-3">
           <NextLink
             className="rounded-full bg-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-primary-600"
-            href="/contactanos"
+            href="/viajes-corporativos"
           >
             Hablar con un ejecutivo
           </NextLink>

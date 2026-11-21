@@ -18,7 +18,6 @@ import { driverServices, replacementDriver } from "@/lib/driverServices";
 import ServiciosImg from "@/assets/servicios_background.png";
 import NosotrosImg from "@/assets/nosotros_background.png";
 import ClienteImg from "@/assets/cliente_background.png";
-import ContactanosImg from "@/assets/contactanos_background.png";
 
 const REASONS = [
   {
@@ -62,13 +61,6 @@ const DISCOVER = [
     href: "/cuidando-vidas",
     image: ClienteImg,
     imageClassName: "object-[40%_40%]",
-  },
-  {
-    title: "Contáctanos",
-    description: "Escríbenos si quieres un servicio o ser parte de nuestros choferes.",
-    href: "/contactanos",
-    image: ContactanosImg,
-    imageClassName: "object-[50%_30%]",
   },
 ];
 
@@ -230,7 +222,7 @@ export default function Home() {
       <section className="bg-default-100/70 py-16 dark:bg-default-50/50 lg:py-24">
         <div className="section">
           <h2 className={sectionTitle}>Conoce HERCOM</h2>
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
             {DISCOVER.map((item) => (
               <NextLink key={item.href} className="group" href={item.href}>
                 <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-default-200">

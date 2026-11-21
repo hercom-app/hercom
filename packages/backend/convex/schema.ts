@@ -822,6 +822,8 @@ export default defineSchema({
     serviceEnd: v.optional(v.string()),
     driverCount: v.optional(v.number()),
     serviceHours: v.optional(v.number()),
+    source: v.optional(v.union(v.literal("web"), v.literal("manual"))),
+    createdByUserId: v.optional(v.id("users")),
     detail: v.string(),
     createdAt: v.number(),
     emailSent: v.boolean(),

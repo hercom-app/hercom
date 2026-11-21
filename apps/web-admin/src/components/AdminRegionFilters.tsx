@@ -21,6 +21,8 @@ type AdminRegionFiltersProps = {
   children?: ReactNode;
   allowedScopes?: DistrictScopeOption[] | undefined;
   onClear?: () => void;
+  /** Barra compacta en una sola línea (p. ej. Choferes). */
+  layout?: "default" | "inline";
 };
 
 function unique(values: string[]): string[] {
@@ -33,6 +35,7 @@ export function AdminRegionFilters({
   children,
   allowedScopes,
   onClear,
+  layout = "default",
 }: AdminRegionFiltersProps) {
   const [draft, setDraft] = useState<RegionFilter>(value);
 
@@ -109,17 +112,33 @@ export function AdminRegionFilters({
   const level2Label = geoConfig?.level2Label ?? "Nivel 2";
   const level3Label = geoConfig?.level3Label ?? "Nivel 3";
 
+  const inline = layout === "inline";
+
   return (
-    <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {scoped ? "Zonas asignadas" : "Filtros"}
-      </p>
+    <div
+      className={
+        inline
+          ? "mb-3 flex flex-wrap items-center gap-2"
+          : "mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+      }
+    >
+      {!inline && (
+        <p className="w-full text-xs font-semibold uppercase tracking-wide text-slate-500">
+          {scoped ? "Zonas asignadas" : "Filtros"}
+        </p>
+      )}
       {scoped ? (
-        <p className="text-xs text-slate-500">
+        <p className="w-full text-xs text-slate-500">
           Solo ves {allowedScopes.map(formatAdminScopeLabel).join(" · ")}.
         </p>
       ) : null}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div
+        className={
+          inline
+            ? "contents"
+            : "grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-4"
+        }
+      >
         <select
           value={draft.countryCode}
           onChange={(event) =>
@@ -130,7 +149,7 @@ export function AdminRegionFilters({
               district: "",
             })
           }
-          className={selectClass}
+          className={`${selectClass}${inline ? " min-w-[7rem] max-w-[9rem]" : ""}`}
         >
           {countryOptions.map((code) => (
             <option key={code} value={code}>
@@ -153,7 +172,7 @@ export function AdminRegionFilters({
                 district: "",
               })
             }
-            className={selectClass}
+            className={`${selectClass}${inline ? " min-w-[8.5rem] max-w-[11rem]" : ""}`}
           >
             <option value="">Todos los {level1Label.toLowerCase()}s</option>
             {level1Options.map((item) => (
@@ -172,7 +191,7 @@ export function AdminRegionFilters({
               district: "",
             })
           }
-          className={selectClass}
+          className={`${selectClass}${inline ? " min-w-[8.5rem] max-w-[11rem]" : ""}`}
           disabled={draft.department === ""}
         >
           <option value="">Todas las {level2Label.toLowerCase()}s</option>
@@ -187,7 +206,7 @@ export function AdminRegionFilters({
           onChange={(event) =>
             setDraft({ ...draft, district: event.target.value })
           }
-          className={selectClass}
+          className={`${selectClass}${inline ? " min-w-[8.5rem] max-w-[11rem]" : ""}`}
           disabled={draft.department === "" || draft.province === ""}
         >
           <option value="">Todos los {level3Label.toLowerCase()}s</option>
@@ -198,13 +217,23 @@ export function AdminRegionFilters({
           ))}
         </select>
       </div>
-      {children !== undefined && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+      {children !== undefined && !inline ? (
+        <div className="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {children}
+        </div>
+      ) : (
+        children
       )}
-      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+      <div
+        className={
+          inline
+            ? "contents"
+            : "flex w-full flex-col gap-2 sm:flex-row sm:justify-end"
+        }
+      >
         <button
           type="button"
-          className={`${btnSecondaryClass} w-full sm:w-auto`}
+          className={`${btnSecondaryClass} ${inline ? "" : "w-full sm:w-auto"}`}
           onClick={() => {
             setDraft(EMPTY_REGION_FILTER);
             onChange(EMPTY_REGION_FILTER);
@@ -215,7 +244,7 @@ export function AdminRegionFilters({
         </button>
         <button
           type="button"
-          className={`${btnPrimaryClass} w-full sm:w-auto`}
+          className={`${btnPrimaryClass} ${inline ? "" : "w-full sm:w-auto"}`}
           onClick={() => onChange(draft)}
         >
           Filtrar

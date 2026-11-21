@@ -3,6 +3,7 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireDriver, requireFullAdmin } from "./lib/auth";
+import { formatDriverStatus } from "./lib/statusLabels";
 import {
   MIN_DRIVER_WALLET_BALANCE,
   PLATFORM_COMMISSION_RATE,
@@ -96,6 +97,7 @@ export const listForAdmin = query({
           driverId: driver._id,
           userId: driver.userId,
           driverStatus: driver.status,
+          driverStatusLabel: formatDriverStatus(driver.status),
           plate: driver.vehicle.plate,
           userName: user?.name ?? "Sin nombre",
           userEmail: user?.email ?? "Sin correo",
@@ -142,6 +144,7 @@ export const listTopUpsForAdmin = query({
         return {
           ...tx,
           driverStatus: driver?.status ?? "offline",
+          driverStatusLabel: formatDriverStatus(driver?.status ?? "offline"),
           plate: driver?.vehicle.plate ?? "N/A",
           userName: user?.name ?? "Sin nombre",
           userEmail: user?.email ?? "Sin correo",
@@ -191,6 +194,7 @@ export const listTopUpsTodayForAdmin = query({
         return {
           ...tx,
           driverStatus: driver?.status ?? "offline",
+          driverStatusLabel: formatDriverStatus(driver?.status ?? "offline"),
           plate: driver?.vehicle.plate ?? "N/A",
           userName: user?.name ?? "Sin nombre",
           userEmail: user?.email ?? "Sin correo",

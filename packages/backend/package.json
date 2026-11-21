@@ -32,6 +32,10 @@
       "types": "./convex/lib/personName.ts",
       "default": "./convex/lib/personName.ts"
     },
+    "./statusLabels": {
+      "types": "./convex/lib/statusLabels.ts",
+      "default": "./convex/lib/statusLabels.ts"
+    },
     "./constants": {
       "types": "./convex/lib/constants.ts",
       "default": "./convex/lib/constants.ts"

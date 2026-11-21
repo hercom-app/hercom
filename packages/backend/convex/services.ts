@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -477,7 +478,7 @@ export const purgeAllForDemo = internalMutation({
     const drivers = await ctx.db.query("drivers").collect();
     let releasedDrivers = 0;
     for (const driver of drivers) {
-      if (driver.status === "busy") {
+      if (driver.status !== "available") {
         await ctx.db.patch(driver._id, { status: "available" });
         releasedDrivers += 1;
       }
@@ -488,6 +489,15 @@ export const purgeAllForDemo = internalMutation({
       deletedServices: services.length,
       releasedDrivers,
     };
+  },
+});
+
+/** Superadmin: borra todos los servicios y deja choferes disponibles. */
+export const purgeAllServicesForAdmin = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireFullAdmin(ctx);
+    return await ctx.runMutation(internal.services.purgeAllForDemo, {});
   },
 });
 

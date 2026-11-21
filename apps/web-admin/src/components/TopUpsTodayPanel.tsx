@@ -52,7 +52,9 @@ export function TopUpsTodayPanel() {
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
                 <span>{tx.userEmail}</span>
                 <span>Placa: {tx.plate}</span>
-                <span>Estado: {tx.driverStatus}</span>
+                <span>
+                  Estado: {tx.driverStatusLabel ?? tx.driverStatus}
+                </span>
                 <span>{formatDateTime(tx.createdAt)}</span>
               </div>
             </li>

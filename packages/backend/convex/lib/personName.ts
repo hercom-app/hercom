@@ -59,3 +59,25 @@ export function formatPersonNameForDisplay(raw: string | undefined | null): stri
   }
   return normalizePersonNamePart(raw);
 }
+
+/** Apellidos en la primera línea y nombres en la segunda (orden Perú al guardar). */
+export function splitPeruDisplayFullName(fullName: string): {
+  surnames: string;
+  givenNames: string;
+} {
+  const normalized = formatPersonNameForDisplay(fullName);
+  const parts = normalized.split(" ").filter((part) => part !== "");
+  if (parts.length === 0) {
+    return { surnames: "", givenNames: "" };
+  }
+  if (parts.length === 1) {
+    return { surnames: parts[0] ?? "", givenNames: "" };
+  }
+  if (parts.length === 2) {
+    return { surnames: parts[0] ?? "", givenNames: parts[1] ?? "" };
+  }
+  return {
+    surnames: parts.slice(0, 2).join(" "),
+    givenNames: parts.slice(2).join(" "),
+  };
+}

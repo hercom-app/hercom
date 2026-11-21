@@ -390,7 +390,10 @@ export function DriverDossierPanel({
           <InfoRow label="Placa (perfil)" value={application.driverPlate} />
         )}
         {application.driverStatus !== null && (
-          <InfoRow label="Estado operativo" value={application.driverStatus} />
+          <InfoRow
+            label="Estado operativo"
+            value={application.driverStatusLabel ?? application.driverStatus}
+          />
         )}
       </div>
 

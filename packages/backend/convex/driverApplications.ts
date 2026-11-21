@@ -18,6 +18,10 @@ import {
   formatPeruPersonFullName,
   normalizePersonNamePart,
 } from "./lib/personName";
+import {
+  formatDriverApplicationStatus,
+  formatDriverStatus,
+} from "./lib/statusLabels";
 
 /** URL temporal para subir archivos (fotos brevete, CUL PDF). */
 export const generateUploadUrl = mutation({
@@ -571,6 +575,9 @@ export const listForAdmin = query({
           driverId: driver?._id ?? null,
           driverPlate: driver?.vehicle.plate ?? null,
           driverStatus: driver?.status ?? null,
+          applicationStatusLabel: formatDriverApplicationStatus(application.status),
+          driverStatusLabel:
+            driver !== null ? formatDriverStatus(driver.status) : null,
           licensePhotoUrls,
           licensePdfUrl,
           culPdfUrl,

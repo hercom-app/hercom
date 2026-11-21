@@ -8,7 +8,9 @@ import { isDriverApplicantMinor } from "@proyecto/backend/age";
 import {
   formatPeruPersonFullName,
   formatPersonNameForDisplay,
+  splitPeruDisplayFullName,
 } from "@proyecto/backend/personName";
+import { resolveAdminDriverRowStatus } from "@proyecto/backend/statusLabels";
 import {
   DriverDossierPanel,
   type DriverApplicationForAdmin,
@@ -30,7 +32,6 @@ import {
   AdminEmpty,
   AdminLoading,
   AdminPage,
-  AdminPageHeader,
   AdminTableWrap,
 } from "../components/AdminLayout";
 import {
@@ -42,6 +43,22 @@ import {
   tdClass,
   thClass,
 } from "../lib/adminUi";
+
+const DRIVERS_PAGE_SIZE = 20;
+
+function nameLinesFromApplication(application: {
+  firstLastName: string;
+  secondLastName: string;
+  firstName: string;
+}): { surnames: string; givenNames: string } {
+  return splitPeruDisplayFullName(
+    formatPeruPersonFullName({
+      firstLastName: application.firstLastName,
+      secondLastName: application.secondLastName,
+      firstName: application.firstName,
+    }),
+  );
+}
 
 function formatDate(timestamp: number): string {
   return new Intl.DateTimeFormat("es-PE", {
@@ -73,14 +90,14 @@ type DriversViewProps = {
 type ChoferRow = {
   key: string;
   userId: Id<"users">;
-  fullName: string;
+  nameSurnames: string;
+  nameGivenNames: string;
   dni: string | undefined;
   department: string | undefined;
   province: string | undefined;
   district: string | undefined;
   zone: string;
   statusLabel: string;
-  documentsLabel: string;
   registeredAt: number;
   application: DriverApplicationForAdmin | null;
   finance: DriverFinanceInfo;
@@ -139,26 +156,25 @@ export function DriversView({
     const driverUserIds = new Set(drivers.map((driver) => driver.userId));
     const fromDrivers: ChoferRow[] = drivers.map((driver) => {
       const application = applicationByUserId.get(driver.userId);
+      const displayName =
+        formatPersonNameForDisplay(driver.fullName) || "Sin nombre";
+      const nameParts = splitPeruDisplayFullName(displayName);
       return {
         key: driver._id,
         userId: driver.userId,
-        fullName:
-          formatPersonNameForDisplay(driver.fullName) || "Sin nombre",
+        nameSurnames: nameParts.surnames || displayName,
+        nameGivenNames: nameParts.givenNames,
         dni: driver.dni,
         department: driver.department,
         province: driver.province,
         district: driver.district,
         zone: zoneLabel(driver),
-        statusLabel: driver.status,
-        documentsLabel:
-          application === undefined
-            ? "Sin solicitud"
-            : [
-                application.conductorRecordPdfUrl !== null
-                  ? "Récord"
-                  : "Récord pendiente",
-                application.culPdfUrl !== null ? "CUL" : "CUL pendiente",
-              ].join(" · "),
+        statusLabel: resolveAdminDriverRowStatus({
+          driverStatus: driver.status,
+          ...(application !== undefined
+            ? { applicationStatus: application.status }
+            : {}),
+        }),
         registeredAt: driver._creationTime,
         application: application ?? null,
         driverId: driver._id,
@@ -182,26 +198,21 @@ export function DriversView({
           application.status === "pending" &&
           !driverUserIds.has(application.userId),
       )
-      .map((application) => ({
+      .map((application) => {
+        const nameParts = nameLinesFromApplication(application);
+        return {
         key: `app-${application._id}`,
         userId: application.userId,
-        fullName: formatPeruPersonFullName({
-          firstLastName: application.firstLastName,
-          secondLastName: application.secondLastName,
-          firstName: application.firstName,
-        }),
+        nameSurnames: nameParts.surnames || "Sin nombre",
+        nameGivenNames: nameParts.givenNames,
         dni: application.dni,
         department: application.department,
         province: application.province,
         district: application.district,
         zone: zoneLabel(application),
-        statusLabel: "Pendiente de revisión",
-        documentsLabel: [
-          application.conductorRecordPdfUrl !== null
-            ? "Récord"
-            : "Récord pendiente",
-          application.culPdfUrl !== null ? "CUL" : "CUL pendiente",
-        ].join(" · "),
+        statusLabel: resolveAdminDriverRowStatus({
+          applicationStatus: application.status,
+        }),
         registeredAt: application.submittedAt,
         application,
         driverId: null,
@@ -216,7 +227,8 @@ export function DriversView({
           bankAccount3: undefined,
           walletBalance: undefined,
         },
-      }));
+      };
+      });
 
     return [...pendingOnly, ...fromDrivers];
   }, [drivers, applications, applicationByUserId, wallets]);
@@ -228,7 +240,8 @@ export function DriversView({
     return rows.filter((row) => {
       if (
         !matchesTextSearch(search, [
-          row.fullName,
+          row.nameSurnames,
+          row.nameGivenNames,
           row.dni,
           row.application?.licenseNumber,
         ])
@@ -259,9 +272,10 @@ export function DriversView({
     });
   }, [rows, search, region, statusFilter]);
 
-  const { page, setPage, pageCount, total, paged } = usePagedItems(
+  const { page, setPage, pageCount, total, paged, pageSize } = usePagedItems(
     filteredRows,
     `${region.department}|${region.province}|${region.district}|${search}|${statusFilter}`,
+    DRIVERS_PAGE_SIZE,
   );
 
   const selectedRow =
@@ -284,22 +298,33 @@ export function DriversView({
     const title =
       detail.section === "historial"
         ? "Historial de servicios"
-        : (selectedRow?.fullName ?? "Registro del chofer");
+        : [selectedRow?.nameSurnames, selectedRow?.nameGivenNames]
+            .filter((part) => part !== "")
+            .join(" ") || "Registro del chofer";
     const description =
       selectedRow === null
         ? ""
         : (detail.section === "historial"
-            ? [selectedRow.fullName, selectedRow.dni, selectedRow.zone]
+            ? [
+                selectedRow.nameSurnames,
+                selectedRow.nameGivenNames,
+                selectedRow.dni,
+                selectedRow.zone,
+              ]
             : [selectedRow.dni, selectedRow.zone]
           )
             .filter((part) => part !== undefined && part !== "")
             .join(" · ");
     return (
       <AdminPage>
-        <AdminPageHeader
-          title={title}
-          {...(description !== "" ? { description } : {})}
-        />
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold tracking-tight text-zinc-900">
+            {title}
+          </h2>
+          {description !== "" ? (
+            <p className="mt-1 text-sm text-zinc-500">{description}</p>
+          ) : null}
+        </div>
         {rows === undefined ? (
           <AdminCard>
             <AdminLoading message="Cargando registro…" />
@@ -316,7 +341,9 @@ export function DriversView({
         ) : (
           <DriverDossierPanel
             application={selectedRow.application}
-            userName={selectedRow.fullName}
+            userName={[selectedRow.nameSurnames, selectedRow.nameGivenNames]
+              .filter((part) => part !== "")
+              .join(" ")}
             finance={selectedRow.finance}
             showFinance={showFinance}
             canEditHrExtras={canEditHrExtras}
@@ -328,9 +355,8 @@ export function DriversView({
 
   return (
     <AdminPage>
-      <AdminPageHeader title="Choferes" />
-
       <AdminRegionFilters
+        layout="inline"
         value={region}
         onChange={setRegion}
         allowedScopes={isFullAdmin ? undefined : districtScopes}
@@ -343,12 +369,12 @@ export function DriversView({
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Buscar nombre o DNI"
-          className={inputClass}
+          className={`${inputClass} min-w-[11rem]`}
         />
         <select
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value)}
-          className={selectClass}
+          className={`${selectClass} min-w-[11rem]`}
         >
           <option value="">Estado: todos</option>
           <option value="pending">Pendiente de revisión</option>
@@ -364,6 +390,14 @@ export function DriversView({
           <AdminEmpty message="No hay choferes ni solicitudes con estos filtros." />
         ) : (
           <>
+          <AdminPagination
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            className="mb-3 border-b border-zinc-100 pb-3"
+          />
           <AdminTableWrap>
             <table className={tableClass}>
               <thead className={tableHeadClass}>
@@ -372,7 +406,6 @@ export function DriversView({
                   <th className={thClass}>DNI</th>
                   <th className={thClass}>Zona</th>
                   <th className={thClass}>Estado</th>
-                  <th className={thClass}>Documentos</th>
                   <th className={thClass}>Registro</th>
                   <th className={thClass}>Acciones</th>
                 </tr>
@@ -380,12 +413,17 @@ export function DriversView({
               <tbody>
                 {(paged ?? []).map((row) => (
                   <tr key={row.key} className={rowClass}>
-                    <td className={`${tdClass} font-medium text-slate-900`}>
-                      {row.fullName}
+                    <td className={`${tdClass} max-w-[11rem] whitespace-normal font-medium text-slate-900`}>
+                      <span className="block leading-snug">{row.nameSurnames}</span>
+                      {row.nameGivenNames !== "" ? (
+                        <span className="block text-sm font-normal text-slate-600">
+                          {row.nameGivenNames}
+                        </span>
+                      ) : null}
                     </td>
                     <td className={tdClass}>{row.dni ?? "—"}</td>
                     <td className={tdClass}>{row.zone || "—"}</td>
-                    <td className={`${tdClass} capitalize`}>
+                    <td className={tdClass}>
                       <span>{row.statusLabel}</span>
                       {row.application !== null &&
                       row.application.status === "pending" &&
@@ -394,9 +432,6 @@ export function DriversView({
                           Menor de 18
                         </span>
                       ) : null}
-                    </td>
-                    <td className={`${tdClass} text-xs text-slate-600`}>
-                      {row.documentsLabel}
                     </td>
                     <td className={`${tdClass} text-slate-500`}>
                       {formatDate(row.registeredAt)}
@@ -413,7 +448,7 @@ export function DriversView({
                             })
                           }
                         >
-                          Vista de registro
+                          Registro
                         </button>
                         <button
                           type="button"
@@ -425,7 +460,7 @@ export function DriversView({
                             })
                           }
                         >
-                          Vista de historial de servicios
+                          Historial de servicios
                         </button>
                       </div>
                     </td>
@@ -438,7 +473,9 @@ export function DriversView({
             page={page}
             pageCount={pageCount}
             total={total}
+            pageSize={pageSize}
             onPageChange={setPage}
+            className="mt-4 border-t border-zinc-100 pt-4"
           />
           </>
         )}

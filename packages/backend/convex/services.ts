@@ -35,10 +35,7 @@ import {
   computePlatformCommissionForService,
   resolveServiceHoursAndHourlyRate,
 } from "./lib/pricing";
-import {
-  computeServiceEndsAt,
-  MS_PER_SERVICE_HOUR,
-} from "./lib/commissionTiers";
+import { computeServiceEndsAt } from "./lib/commissionTiers";
 import { requireDriver, requireFullAdmin, requireStaff, requireUser } from "./lib/auth";
 import { hasYapeOrPlin } from "./lib/driverPayout";
 import { resolveCommissionRate, resolveOfferLimits } from "./lib/offerLimits";

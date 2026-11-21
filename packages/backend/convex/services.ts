@@ -1,5 +1,4 @@
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -458,38 +457,43 @@ export const expireStalePending = internalMutation({
   },
 });
 
+async function purgeAllServicesAndReleaseDrivers(ctx: MutationCtx): Promise<{
+  deletedOffers: number;
+  deletedServices: number;
+  releasedDrivers: number;
+}> {
+  const offers = await ctx.db.query("serviceOffers").collect();
+  for (const offer of offers) {
+    await ctx.db.delete(offer._id);
+  }
+  const services = await ctx.db.query("services").collect();
+  for (const service of services) {
+    await ctx.db.delete(service._id);
+  }
+
+  const drivers = await ctx.db.query("drivers").collect();
+  let releasedDrivers = 0;
+  for (const driver of drivers) {
+    if (driver.status !== "available") {
+      await ctx.db.patch(driver._id, { status: "available" });
+      releasedDrivers += 1;
+    }
+  }
+
+  return {
+    deletedOffers: offers.length,
+    deletedServices: services.length,
+    releasedDrivers,
+  };
+}
+
 /**
- * DEMO: borra todos los servicios y ofertas, y libera choferes "busy".
+ * DEMO: borra todos los servicios y ofertas, y libera choferes.
  * Uso: `npx convex run services:purgeAllForDemo`
  */
 export const purgeAllForDemo = internalMutation({
   args: {},
-  handler: async (ctx) => {
-    const offers = await ctx.db.query("serviceOffers").collect();
-    for (const offer of offers) {
-      await ctx.db.delete(offer._id);
-    }
-    const services = await ctx.db.query("services").collect();
-    for (const service of services) {
-      await ctx.db.delete(service._id);
-    }
-
-    // Al borrar viajes a mano, el chofer puede quedar "busy" sin servicio.
-    const drivers = await ctx.db.query("drivers").collect();
-    let releasedDrivers = 0;
-    for (const driver of drivers) {
-      if (driver.status !== "available") {
-        await ctx.db.patch(driver._id, { status: "available" });
-        releasedDrivers += 1;
-      }
-    }
-
-    return {
-      deletedOffers: offers.length,
-      deletedServices: services.length,
-      releasedDrivers,
-    };
-  },
+  handler: async (ctx) => purgeAllServicesAndReleaseDrivers(ctx),
 });
 
 /** Superadmin: borra todos los servicios y deja choferes disponibles. */
@@ -497,7 +501,7 @@ export const purgeAllServicesForAdmin = mutation({
   args: {},
   handler: async (ctx) => {
     await requireFullAdmin(ctx);
-    return await ctx.runMutation(internal.services.purgeAllForDemo, {});
+    return await purgeAllServicesAndReleaseDrivers(ctx);
   },
 });
 

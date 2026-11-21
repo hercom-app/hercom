@@ -352,7 +352,12 @@ export function DriverDossierPanel({
             </p>
           </div>
         ) : null}
-        <InfoRow label="Sexo" value={SEX_LABELS[application.sex]} />
+        <InfoRow
+          label="Sexo"
+          value={
+            application.sex !== undefined ? SEX_LABELS[application.sex] : "—"
+          }
+        />
         <InfoRow
           label="Fecha de nacimiento"
           value={formatBirthDate(application.birthDate)}

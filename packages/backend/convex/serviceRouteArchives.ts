@@ -55,7 +55,10 @@ export const uploadGeoJson = internalAction({
       type: "Feature" as const,
       geometry: {
         type: "LineString" as const,
-        coordinates: archive.trail.map((p) => [p.lng, p.lat]),
+        coordinates: archive.trail.map((p: { lat: number; lng: number }) => [
+          p.lng,
+          p.lat,
+        ]),
       },
       properties: {
         serviceId: archive.serviceId,

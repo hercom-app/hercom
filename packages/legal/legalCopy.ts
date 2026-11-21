@@ -260,7 +260,7 @@ export const PASSENGER_TERMS_DOCUMENT: LegalDocument = {
       blocks: [
         {
           kind: "p",
-          text: "Quien desee el servicio descarga la app en su celular y llena la información necesaria. Si ingresa y cumple los requisitos, puede generar requerimientos de traslado o pedir otros servicios de choferes por los canales comerciales. También puede entrar por www.hercom.pe.",
+          text: "Podrá descargar la app desde su celular y completar los campos requeridos.",
         },
         {
           kind: "p",

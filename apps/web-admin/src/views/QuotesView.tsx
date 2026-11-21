@@ -77,7 +77,7 @@ export function QuotesView() {
             setMessage(null);
           }}
         >
-          {showForm ? "Cerrar formulario" : "Generar cotización"}
+          {showForm ? "Cerrar formulario" : "Generar requerimiento manual"}
         </button>
       </div>
 

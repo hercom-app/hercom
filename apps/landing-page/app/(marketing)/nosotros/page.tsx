@@ -71,15 +71,18 @@ export default function Page() {
             alguien.
           </p>
           <p>
-            Nuestros servicios pueden ser programados en la APP o en la Central
-            Telefónica con anticipación y de esta manera prevenir cualquier tipo
-            de accidente de tránsito. Trabajamos las 24 horas del día con la
-            finalidad de contar siempre con nuestros choferes y no solo depender
-            de una póliza. Por la que muchos por sentirse obligados a pagar mes a
-            mes optan por manejar sin la lucidez necesaria y luego ocasionando
-            desastres familiares como también desastres sociales (accidentes,
-            multas, o hasta la muerte). Podrás contar con nuestros servicios
-            desde ya, desde tu móvil, desde tu casa.
+            Estamos disponibles las 24 horas para que nunca tengas que ponerte al
+            volante si estás cansado, estresado o no te sientes con la lucidez
+            necesaria. Con HERCOM – Chofer para remplazo no dependes de pólizas
+            mensuales ni ataduras para cuidar tu vida y evitar accidentes;
+            puedes pedir o programar un conductor al instante desde nuestra App
+            cuando lo necesites.
+          </p>
+          <p>
+            Y si buscas una atención a medida, desde nuestra web también puedes
+            solicitar nuestros servicios especializados de Chofer Corporativo,
+            Chofer Premium, Chofer Seguro y Chofer de Flota, adaptados tanto a
+            tus requerimientos personales como a la operación de tu empresa.
           </p>
         </div>
       </section>

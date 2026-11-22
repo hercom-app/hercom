@@ -16,7 +16,7 @@ export default function Page() {
             <p>
               En Hercom trabajamos por el bienestar y la tranquilidad de
               quienes confían en nosotros. A través de nuestra aplicación
-              HERCOM – Chofer para remplazo, llevamos seguridad directamente a
+              HERCOM - Chofer para Remplazo, llevamos seguridad directamente a
               tu celular para que cualquier persona pueda trasladarse en la
               comodidad y protección de su propio vehículo.
             </p>
@@ -42,8 +42,8 @@ export default function Page() {
         <div className="space-y-5 text-lg leading-relaxed text-default-600">
           <p>
             Los accidentes de tránsito causados por el estrés, el agotamiento o
-            el alcohol se pueden prevenir. Por eso creamos la app HErcom - Chofer
-            de Remplazo, una solución móvil diseñada para proteger tu vida
+            el alcohol se pueden prevenir. Por eso creamos la app HERCOM - Chofer
+            para Remplazo, una solución móvil diseñada para proteger tu vida
             poniendo a un conductor profesional al volante de tu propio auto.
           </p>
           <p>
@@ -72,7 +72,7 @@ export default function Page() {
           <p>
             Estamos disponibles las 24 horas para que nunca tengas que ponerte al
             volante si estás cansado, estresado o no te sientes con la lucidez
-            necesaria. Con HERCOM – Chofer para remplazo no dependes de pólizas
+            necesaria. Con HERCOM - Chofer para Remplazo no dependes de pólizas
             mensuales ni ataduras para cuidar tu vida y evitar accidentes;
             puedes pedir o programar un conductor al instante desde nuestra App
             cuando lo necesites.

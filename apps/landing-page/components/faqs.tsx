@@ -17,12 +17,12 @@ export function Faqs() {
     {
       title: "¿La App HERCOM está activa las 24 horas del día?",
       content:
-        "La app sí está disponible las 24 horas del día los 7 días de la semana. Solo tienes que bajar la App Hercom - Chofer para Remplazo en tu celular y estará totalmente disponible para ti, tu familia y tus amigos",
+        "La app sí está disponible las 24 horas del día los 7 días de la semana. Solo tienes que bajar la app HERCOM - Chofer para Remplazo en tu celular y estará totalmente disponible para ti, tu familia y tus amigos",
     },
     {
       title: "¿Cómo hago para afiliarme como Chofer para Remplazo?",
       content:
-        "Solo tienes que bajar la App Hercom - Chofer para Remplazo en tu celular por Google Play Store o también por la App Store; ingresa tus datos al aplicativo y un ejecutivo se pondrá en contacto contigo de calificar con los requisitos. Es totalmente gratis.",
+        "Solo tienes que bajar la app HERCOM - Chofer para Remplazo en tu celular por Google Play Store o también por la App Store; ingresa tus datos al aplicativo y un ejecutivo se pondrá en contacto contigo de calificar con los requisitos. Es totalmente gratis.",
     },
     {
       title:

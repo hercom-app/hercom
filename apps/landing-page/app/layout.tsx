@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     googleBot: { index: false, follow: false },
   },
   openGraph: {
-    title: "HERCOM - Chofer para Reemplazo",
+    title: "HERCOM - Chofer para Remplazo",
     description: siteConfig.description,
     locale: "es",
     tags: [

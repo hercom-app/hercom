@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Button } from "@nextui-org/button";
 import { Input, Textarea } from "@nextui-org/input";
@@ -11,43 +11,17 @@ import { formatConvexError } from "@/lib/convexError";
 import SolicitudImg from "@/assets/solicitud-recibida.png";
 import {
   PERU_DEPARTMENTS,
-  listDistrictsForProvince,
+  PERU_DISTRICTS,
   listProvincesForDepartment,
 } from "@proyecto/peru-locations";
 
-type ServicePoint = {
-  department: string;
-  province: string;
+type Place = {
   district: string;
-  date: string;
+  province: string;
+  department: string;
 };
 
-const emptyPoint: ServicePoint = {
-  department: "",
-  province: "",
-  district: "",
-  date: "",
-};
-
-function todayInputValue(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
-}
-
-function formatServiceDate(iso: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if (match === null) return "";
-  const parsed = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
-  const label = new Intl.DateTimeFormat("es-PE", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-  }).format(parsed);
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
+const DEFAULT_ORIGIN: Place = { district: "Lima", province: "Lima", department: "Lima" };
 
 const empty = {
   companyName: "",
@@ -55,16 +29,128 @@ const empty = {
   ruc: "",
   email: "",
   phone: "",
-  driverCount: "",
   serviceHours: "",
   detail: "",
 };
 
 const RUC_LENGTH = 11;
 const PHONE_LENGTH = 9;
+const MAX_DRIVERS = 50;
 
-const fieldClass =
-  "w-full rounded-xl bg-default-100 px-3 py-2.5 text-sm text-foreground outline-none";
+const MONTHS = [
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+];
+const WEEKDAYS = ["l", "m", "x", "j", "v", "s", "d"];
+
+function fold(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function buildPlaces(): Place[] {
+  const places: Place[] = [];
+  for (const department of PERU_DEPARTMENTS) {
+    for (const province of listProvincesForDepartment(department)) {
+      const districts = PERU_DISTRICTS[`${department}|${province}`];
+      if (districts === undefined) {
+        places.push({ district: province, province, department });
+      } else {
+        for (const district of districts) {
+          places.push({ district, province, department });
+        }
+      }
+    }
+  }
+  return places;
+}
+
+const PLACES = buildPlaces();
+
+function searchPlaces(query: string): Place[] {
+  const term = fold(query.trim());
+  if (term === "") return PLACES.filter((place) => place.province === "Lima").slice(0, 8);
+  const starts: Place[] = [];
+  const contains: Place[] = [];
+  const region: Place[] = [];
+  for (const place of PLACES) {
+    const district = fold(place.district);
+    if (district.startsWith(term)) starts.push(place);
+    else if (district.includes(term)) contains.push(place);
+    else if (fold(`${place.province} ${place.department}`).includes(term)) region.push(place);
+  }
+  return [starts, contains, region].flatMap((group) => group.sort(byCapitalFirst)).slice(0, 8);
+}
+
+function byCapitalFirst(a: Place, b: Place): number {
+  const rank = (place: Place) => (place.department === "Lima" || place.department === "Callao" ? 0 : 1);
+  return rank(a) - rank(b);
+}
+
+function placeRegion(place: Place): string {
+  return `${place.province} - ${place.department}`;
+}
+
+function samePlace(a: Place | null, b: Place | null): boolean {
+  return (
+    a !== null &&
+    b !== null &&
+    a.district === b.district &&
+    a.province === b.province &&
+    a.department === b.department
+  );
+}
+
+function Highlight({ text, query }: { text: string; query: string }) {
+  const term = fold(query.trim());
+  const index = term === "" ? -1 : fold(text).indexOf(term);
+  if (index === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, index)}
+      <strong className="font-semibold">{text.slice(index, index + term.length)}</strong>
+      {text.slice(index + term.length)}
+    </>
+  );
+}
+
+function isoDate(year: number, month: number, day: number): string {
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function todayIso(): string {
+  const now = new Date();
+  return isoDate(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function shortDate(iso: string): string {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Intl.DateTimeFormat("es-PE", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  })
+    .format(new Date(Date.UTC(year, month - 1, day)))
+    .replace(".", "");
+}
+
+function rangeLabel(start: string, end: string): string {
+  if (start === "") return "";
+  if (end === "" || end === start) return shortDate(start);
+  return `${shortDate(start)} - ${shortDate(end)}`;
+}
 
 function normalizeRuc(raw: string): string {
   return raw.replace(/\D/g, "").slice(0, RUC_LENGTH);
@@ -74,55 +160,85 @@ function normalizePhone(raw: string): string {
   return raw.replace(/\D/g, "").slice(0, PHONE_LENGTH);
 }
 
-function fold(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-function exactOption(value: string, options: readonly string[]): string | undefined {
-  const folded = fold(value);
-  if (folded === "") return undefined;
-  return options.find((option) => fold(option) === folded);
-}
-
-function resolvePoint(point: ServicePoint): ServicePoint | null {
-  const department = exactOption(point.department, PERU_DEPARTMENTS);
-  if (department === undefined) return null;
-  const province = exactOption(point.province, listProvincesForDepartment(department));
-  if (province === undefined) return null;
-  const districts = listDistrictsForProvince(department, province);
-  const district =
-    districts.length === 0 ? point.district.trim() : exactOption(point.district, districts);
-  if (district === undefined || district === "") return null;
-  return { ...point, department, province, district };
-}
-
-function SuggestInput({
+function FieldShell({
   label,
-  value,
-  options,
-  disabled,
-  placeholder,
-  onChange,
+  icon,
+  active,
+  children,
 }: {
   label: string;
-  value: string;
-  options: readonly string[];
-  disabled?: boolean;
+  icon: ReactNode;
+  active?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={`relative flex h-14 min-w-0 items-center gap-3 rounded-xl border bg-white px-3 transition-colors ${
+        active ? "border-primary ring-1 ring-primary" : "border-default-300 hover:border-default-400"
+      }`}
+    >
+      <span className="shrink-0 text-default-400">{icon}</span>
+      <div className="min-w-0 flex-1">
+        <span className="block text-[11px] font-medium leading-none text-default-500">{label}</span>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function PinIcon() {
+  return (
+    <svg aria-hidden className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24">
+      <path d="M12 21s-6-5.3-6-10.5a6 6 0 1112 0C18 15.7 12 21 12 21z" strokeLinejoin="round" />
+      <circle cx="12" cy="10.5" r="2.2" />
+    </svg>
+  );
+}
+
+function FlagIcon() {
+  return (
+    <svg aria-hidden className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24">
+      <path d="M5 21V4m0 0h11l-2 4 2 4H5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg aria-hidden className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24">
+      <rect height="16" rx="2" width="18" x="3" y="5" />
+      <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DriverIcon() {
+  return (
+    <svg aria-hidden className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24">
+      <circle cx="12" cy="8" r="3.2" />
+      <path d="M5.5 19.5c.8-3 3.3-4.8 6.5-4.8s5.7 1.8 6.5 4.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PlaceField({
+  label,
+  icon,
+  value,
+  placeholder,
+  onSelect,
+}: {
+  label: string;
+  icon: ReactNode;
+  value: Place | null;
   placeholder: string;
-  onChange: (next: string) => void;
+  onSelect: (place: Place) => void;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
-  const folded = fold(value);
-  const matches =
-    folded === ""
-      ? options.slice(0, 8)
-      : options.filter((option) => fold(option).includes(folded)).slice(0, 8);
+  const results = searchPlaces(query);
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
@@ -132,187 +248,331 @@ function SuggestInput({
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, []);
 
-  function commit(next: string) {
-    onChange(next);
+  function pick(place: Place) {
+    onSelect(place);
+    setQuery("");
     setOpen(false);
   }
 
   return (
     <div ref={rootRef} className="relative min-w-0">
-      <label className="block">
-        <span className="mb-1.5 block text-sm">{label}</span>
+      <FieldShell active={open} icon={icon} label={label}>
         <input
-          required
           aria-autocomplete="list"
           aria-expanded={open}
+          aria-label={label}
           autoComplete="off"
-          className={`${fieldClass} h-11 disabled:cursor-not-allowed disabled:opacity-60`}
-          disabled={disabled}
-          placeholder={placeholder}
+          className="mt-1 w-full truncate bg-transparent text-sm text-foreground outline-none placeholder:text-default-400"
+          placeholder={value === null ? placeholder : `${value.district}, ${value.province}`}
           role="combobox"
-          value={value}
+          value={open ? query : value === null ? "" : `${value.district}, ${value.province}`}
           onChange={(event) => {
-            onChange(event.target.value);
-            setOpen(true);
+            setQuery(event.target.value);
             setActive(0);
+            setOpen(true);
           }}
           onFocus={() => {
-            if (!disabled) setOpen(true);
-          }}
-          onBlur={() => {
-            const exact = exactOption(value, options);
-            if (exact !== undefined && exact !== value) onChange(exact);
+            setQuery("");
+            setOpen(true);
           }}
           onKeyDown={(event) => {
-            if (disabled || matches.length === 0) return;
+            if (!open || results.length === 0) return;
             if (event.key === "ArrowDown") {
               event.preventDefault();
-              setOpen(true);
-              setActive((index) => Math.min(index + 1, matches.length - 1));
+              setActive((index) => Math.min(index + 1, results.length - 1));
             } else if (event.key === "ArrowUp") {
               event.preventDefault();
               setActive((index) => Math.max(index - 1, 0));
-            } else if (event.key === "Enter" && open && matches[active] !== undefined) {
+            } else if (event.key === "Enter") {
               event.preventDefault();
-              commit(matches[active]);
+              pick(results[active]);
             } else if (event.key === "Escape") {
               setOpen(false);
             }
           }}
         />
-      </label>
-      {open && !disabled && matches.length > 0 && (
-        <ul
-          className="absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-default-200 bg-white py-1 shadow-lg"
-          role="listbox"
-        >
-          {matches.map((option, index) => (
-            <li key={option}>
-              <button
-                className={`block min-h-11 w-full px-3 py-2.5 text-left text-sm ${
-                  index === active ? "bg-primary/10 text-primary" : "text-foreground"
-                }`}
-                type="button"
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  commit(option);
-                }}
-              >
-                {option}
-              </button>
-            </li>
-          ))}
-        </ul>
+      </FieldShell>
+      {open && (
+        <div className="absolute left-0 right-0 z-40 mt-2 overflow-hidden rounded-2xl border border-default-200 bg-white shadow-xl sm:right-auto sm:w-80">
+          {results.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-default-500">No encontramos ese distrito.</p>
+          ) : (
+            <ul className="max-h-80 overflow-auto py-1" role="listbox">
+              {results.map((place, index) => (
+                <li key={`${place.department}|${place.province}|${place.district}`}>
+                  <button
+                    className={`block w-full px-4 py-3 text-left ${
+                      index === active ? "bg-primary/10" : "hover:bg-default-100"
+                    }`}
+                    type="button"
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      pick(place);
+                    }}
+                    onMouseEnter={() => setActive(index)}
+                  >
+                    <span className="block text-sm text-foreground">
+                      <Highlight query={query} text={place.district} />
+                    </span>
+                    <span className="mt-0.5 block text-xs text-default-500">{placeRegion(place)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-function ServicePointFields({
-  legend,
-  value,
-  onChange,
+function MonthGrid({
+  year,
+  month,
+  start,
+  end,
+  hover,
+  today,
+  onPick,
+  onHover,
 }: {
-  legend: string;
-  value: ServicePoint;
-  onChange: (next: ServicePoint) => void;
+  year: number;
+  month: number;
+  start: string;
+  end: string;
+  hover: string;
+  today: string;
+  onPick: (iso: string) => void;
+  onHover: (iso: string) => void;
 }) {
-  const department = exactOption(value.department, PERU_DEPARTMENTS);
-  const provinces =
-    department === undefined ? [] : listProvincesForDepartment(department);
-  const province = exactOption(value.province, provinces);
-  const districts =
-    department === undefined || province === undefined
-      ? []
-      : listDistrictsForProvince(department, province);
-  const freeDistrict = province !== undefined && districts.length === 0;
-  const dateLabel = value.date === "" ? "" : formatServiceDate(value.date);
-  const inThePast = value.date !== "" && value.date < todayInputValue();
+  const offset = (new Date(year, month, 1).getDay() + 6) % 7;
+  const total = new Date(year, month + 1, 0).getDate();
+  const cells: Array<string | null> = [
+    ...Array.from({ length: offset }, () => null),
+    ...Array.from({ length: total }, (_, index) => isoDate(year, month, index + 1)),
+  ];
+  const rangeEnd = end !== "" ? end : hover !== "" && start !== "" && hover > start ? hover : "";
 
   return (
-    <fieldset className="sm:col-span-2">
-      <legend className="mb-3 text-sm font-semibold">{legend}</legend>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="block min-w-0">
-          <span className="mb-1.5 block text-sm">Fecha</span>
-          <input
-            required
-            className={`${fieldClass} h-11 [color-scheme:light]`}
-            min={todayInputValue()}
-            type="date"
-            value={value.date}
-            onChange={(event) => onChange({ ...value, date: event.target.value })}
-          />
-        </label>
-        <SuggestInput
-          label="Departamento"
-          options={PERU_DEPARTMENTS}
-          placeholder="Escribe y elige"
-          value={value.department}
-          onChange={(next) => {
-            const picked = exactOption(next, PERU_DEPARTMENTS);
-            const same = picked !== undefined && picked === department;
-            onChange({
-              ...value,
-              department: next,
-              province: same ? value.province : "",
-              district: same ? value.district : "",
-            });
-          }}
-        />
-        <SuggestInput
-          disabled={department === undefined}
-          label="Provincia"
-          options={provinces}
-          placeholder={department === undefined ? "Primero el departamento" : "Escribe y elige"}
-          value={value.province}
-          onChange={(next) => {
-            const picked = exactOption(next, provinces);
-            const same = picked !== undefined && picked === province;
-            onChange({
-              ...value,
-              province: next,
-              district: same ? value.district : "",
-            });
-          }}
-        />
-        {freeDistrict ? (
-          <label className="block min-w-0">
-            <span className="mb-1.5 block text-sm">Distrito</span>
-            <input
-              required
-              className={`${fieldClass} h-11`}
-              placeholder="Escribe el distrito"
-              value={value.district}
-              onChange={(event) => onChange({ ...value, district: event.target.value })}
-            />
-          </label>
-        ) : (
-          <SuggestInput
-            disabled={province === undefined}
-            label="Distrito"
-            options={districts}
-            placeholder={province === undefined ? "Primero la provincia" : "Escribe y elige"}
-            value={value.district}
-            onChange={(next) => onChange({ ...value, district: next })}
-          />
-        )}
+    <div className="min-w-0">
+      <div className="mb-3 flex items-baseline justify-between px-1">
+        <p className="text-lg font-semibold">{MONTHS[month]}</p>
+        <p className="text-xs font-semibold text-default-500">{year}</p>
       </div>
-      {dateLabel !== "" && (
-        <p className={`mt-2 text-sm ${inThePast ? "text-danger" : "text-default-500"}`}>
-          {inThePast ? "Elige una fecha de hoy en adelante. " : ""}
-          {dateLabel}
-        </p>
-      )}
-    </fieldset>
+      <div className="grid grid-cols-7 gap-1 text-center">
+        {WEEKDAYS.map((weekday) => (
+          <span key={weekday} className="pb-1 text-xs text-default-400">
+            {weekday}
+          </span>
+        ))}
+        {cells.map((iso, index) => {
+          if (iso === null) return <span key={`blank-${index}`} />;
+          const past = iso < today;
+          const edge = iso === start || iso === end;
+          const inside = start !== "" && rangeEnd !== "" && iso > start && iso < rangeEnd;
+          return (
+            <button
+              key={iso}
+              className={`h-10 rounded-lg text-sm transition-colors sm:h-11 ${
+                past
+                  ? "cursor-not-allowed bg-default-100 text-default-300"
+                  : edge
+                    ? "bg-primary font-semibold text-white"
+                    : inside
+                      ? "bg-primary/15 text-primary"
+                      : "bg-default-50 text-foreground hover:bg-primary/10"
+              } ${iso === today && !edge ? "ring-1 ring-primary" : ""}`}
+              disabled={past}
+              type="button"
+              onClick={() => onPick(iso)}
+              onMouseEnter={() => onHover(iso)}
+            >
+              {Number(iso.slice(8))}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DateRangeModal({
+  initialStart,
+  initialEnd,
+  onClose,
+  onApply,
+}: {
+  initialStart: string;
+  initialEnd: string;
+  onClose: () => void;
+  onApply: (start: string, end: string) => void;
+}) {
+  const today = todayIso();
+  const seed = initialStart !== "" ? initialStart : today;
+  const [view, setView] = useState({
+    year: Number(seed.slice(0, 4)),
+    month: Number(seed.slice(5, 7)) - 1,
+  });
+  const [start, setStart] = useState(initialStart);
+  const [end, setEnd] = useState(initialEnd === initialStart ? "" : initialEnd);
+  const [hover, setHover] = useState("");
+
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const next = view.month === 11 ? { year: view.year + 1, month: 0 } : { year: view.year, month: view.month + 1 };
+  const canGoBack =
+    view.year > Number(today.slice(0, 4)) ||
+    (view.year === Number(today.slice(0, 4)) && view.month > Number(today.slice(5, 7)) - 1);
+
+  function pick(iso: string) {
+    if (start === "" || end !== "") {
+      setStart(iso);
+      setEnd("");
+    } else if (iso < start) {
+      setStart(iso);
+    } else if (iso === start) {
+      setEnd("");
+    } else {
+      setEnd(iso);
+    }
+  }
+
+  function shift(step: number) {
+    setView((current) => {
+      const month = current.month + step;
+      if (month < 0) return { year: current.year - 1, month: 11 };
+      if (month > 11) return { year: current.year + 1, month: 0 };
+      return { year: current.year, month };
+    });
+  }
+
+  const summary = start === "" ? "Elige uno o varios días" : rangeLabel(start, end);
+
+  return (
+    <div
+      aria-modal
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-6"
+      role="dialog"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:max-w-3xl sm:rounded-3xl">
+        <div className="flex flex-col gap-3 border-b border-default-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <h3 className="text-lg font-bold">Selecciona las fechas del servicio</h3>
+          <div className="flex h-11 items-center gap-2 rounded-xl border border-default-300 px-3 text-sm text-default-600 sm:min-w-72">
+            <CalendarIcon />
+            <span className={start === "" ? "text-default-400" : "text-foreground"}>{summary}</span>
+          </div>
+        </div>
+
+        <div className="relative overflow-auto px-5 py-5 sm:px-12">
+          <button
+            aria-label="Mes anterior"
+            className="absolute left-1 top-1/2 hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full text-default-500 hover:bg-default-100 disabled:opacity-30 sm:grid"
+            disabled={!canGoBack}
+            type="button"
+            onClick={() => shift(-1)}
+          >
+            ‹
+          </button>
+          <button
+            aria-label="Mes siguiente"
+            className="absolute right-1 top-1/2 hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full text-default-500 hover:bg-default-100 sm:grid"
+            type="button"
+            onClick={() => shift(1)}
+          >
+            ›
+          </button>
+          <div className="mb-3 flex justify-between sm:hidden">
+            <button
+              className="rounded-full px-3 py-1.5 text-sm text-default-600 disabled:opacity-30"
+              disabled={!canGoBack}
+              type="button"
+              onClick={() => shift(-1)}
+            >
+              ‹ Anterior
+            </button>
+            <button
+              className="rounded-full px-3 py-1.5 text-sm text-default-600"
+              type="button"
+              onClick={() => shift(1)}
+            >
+              Siguiente ›
+            </button>
+          </div>
+          <div className="grid gap-8 md:grid-cols-2" onMouseLeave={() => setHover("")}>
+            <MonthGrid
+              end={end}
+              hover={hover}
+              month={view.month}
+              start={start}
+              today={today}
+              year={view.year}
+              onHover={setHover}
+              onPick={pick}
+            />
+            <div className="hidden md:block">
+              <MonthGrid
+                end={end}
+                hover={hover}
+                month={next.month}
+                start={start}
+                today={today}
+                year={next.year}
+                onHover={setHover}
+                onPick={pick}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-default-200 px-5 py-4 sm:px-6">
+          <button
+            className="text-sm font-medium text-default-600 hover:text-foreground"
+            type="button"
+            onClick={() => {
+              setStart("");
+              setEnd("");
+            }}
+          >
+            Limpiar
+          </button>
+          <Button
+            color="primary"
+            isDisabled={start === ""}
+            radius="full"
+            onPress={() => onApply(start, end === "" ? start : end)}
+          >
+            Listo
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 
 export function CorporateQuoteForm() {
   const submit = useAction(submitCorporateQuote);
+  const detailsRef = useRef<HTMLDivElement>(null);
+  const [origin, setOrigin] = useState<Place | null>(DEFAULT_ORIGIN);
+  const [destination, setDestination] = useState<Place | null>(null);
+  const [dates, setDates] = useState({ start: "", end: "" });
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [drivers, setDrivers] = useState(1);
+  const [step, setStep] = useState<"trip" | "details">("trip");
   const [values, setValues] = useState(empty);
-  const [origin, setOrigin] = useState<ServicePoint>(emptyPoint);
-  const [destination, setDestination] = useState<ServicePoint>(emptyPoint);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState<"sent" | "saved" | null>(null);
@@ -321,19 +581,11 @@ export function CorporateQuoteForm() {
 
   const rucComplete = values.ruc.length === RUC_LENGTH;
   const phoneComplete = values.phone.length === PHONE_LENGTH;
-  const rucProgress =
-    values.ruc.length > 0 && !rucComplete && !rucBlurred
-      ? `${values.ruc.length}/${RUC_LENGTH} dígitos`
-      : undefined;
   const rucFieldError =
     rucBlurred && !rucComplete
       ? values.ruc.length === 0
         ? "Ingresa el RUC de 11 dígitos."
         : "El RUC debe tener 11 dígitos."
-      : undefined;
-  const phoneProgress =
-    values.phone.length > 0 && !phoneComplete && !phoneBlurred
-      ? `${values.phone.length}/${PHONE_LENGTH} dígitos`
       : undefined;
   const phoneFieldError =
     phoneBlurred && !phoneComplete
@@ -342,60 +594,56 @@ export function CorporateQuoteForm() {
         : "El teléfono debe tener 9 dígitos."
       : undefined;
 
+  useEffect(() => {
+    if (step === "details") {
+      detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [step]);
+
   function setField(key: keyof typeof empty, value: string) {
     setValues((current) => ({ ...current, [key]: value }));
+  }
+
+  function tripError(): string {
+    if (origin === null) return "Elige el distrito de origen.";
+    if (destination === null) return "Elige el distrito de destino.";
+    if (dates.start === "") return "Elige las fechas del servicio.";
+    if (dates.start < todayIso()) return "La fecha de inicio debe ser de hoy en adelante.";
+    return "";
+  }
+
+  function onContinue() {
+    const message = tripError();
+    setError(message);
+    if (message === "") setStep("details");
   }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setError("");
 
+    const trip = tripError();
+    if (trip !== "" || origin === null || destination === null) {
+      setError(trip);
+      return;
+    }
     if (!rucComplete) {
       setRucBlurred(true);
       setError("El RUC debe tener 11 dígitos.");
       return;
     }
-
     if (!phoneComplete) {
       setPhoneBlurred(true);
       setError("El teléfono debe tener 9 dígitos.");
       return;
     }
-
-    const drivers = Number(values.driverCount);
-    if (!Number.isFinite(drivers) || drivers < 1) {
-      setError("Indica la cantidad de choferes.");
-      return;
-    }
-
-    if (values.detail.trim() === "") {
-      setError("Completa el detalle del viaje.");
-      return;
-    }
-
-    const originPoint = resolvePoint(origin);
-    const destinationPoint = resolvePoint(destination);
-    if (originPoint === null || destinationPoint === null) {
-      setError("Elige departamento, provincia y distrito de la lista.");
-      return;
-    }
-
-    if (origin.date === "" || destination.date === "") {
-      setError("Indica la fecha de inicio y la fecha de fin.");
-      return;
-    }
-    if (origin.date < todayInputValue()) {
-      setError("La fecha de inicio debe ser de hoy en adelante.");
-      return;
-    }
-    if (destination.date < origin.date) {
-      setError("La fecha de fin no puede ser anterior a la fecha de inicio.");
-      return;
-    }
-
     const serviceHours = Number(values.serviceHours);
     if (!Number.isFinite(serviceHours) || serviceHours < 1) {
       setError("Indica las horas aproximadas del servicio.");
+      return;
+    }
+    if (values.detail.trim() === "") {
+      setError("Completa el detalle del viaje.");
       return;
     }
 
@@ -407,22 +655,25 @@ export function CorporateQuoteForm() {
         ruc: values.ruc,
         email: values.email,
         phone: values.phone,
-        originDepartment: originPoint.department,
-        originProvince: originPoint.province,
-        originDistrict: originPoint.district,
-        destinationDepartment: destinationPoint.department,
-        destinationProvince: destinationPoint.province,
-        destinationDistrict: destinationPoint.district,
-        serviceStart: origin.date,
-        serviceEnd: destination.date,
+        originDepartment: origin.department,
+        originProvince: origin.province,
+        originDistrict: origin.district,
+        destinationDepartment: destination.department,
+        destinationProvince: destination.province,
+        destinationDistrict: destination.district,
+        serviceStart: dates.start,
+        serviceEnd: dates.end === "" ? dates.start : dates.end,
         serviceHours,
-        driverCount: Number(values.driverCount),
+        driverCount: drivers,
         detail: values.detail,
       });
       setDone(result.emailSent ? "sent" : "saved");
       setValues(empty);
-      setOrigin(emptyPoint);
-      setDestination(emptyPoint);
+      setOrigin(DEFAULT_ORIGIN);
+      setDestination(null);
+      setDates({ start: "", end: "" });
+      setDrivers(1);
+      setStep("trip");
       setRucBlurred(false);
       setPhoneBlurred(false);
     } catch (cause) {
@@ -436,20 +687,13 @@ export function CorporateQuoteForm() {
     return (
       <div className="flex flex-col items-center gap-8 rounded-3xl bg-default-100 p-8 sm:flex-row sm:items-center lg:gap-12 lg:p-12">
         <div className="min-w-0 flex-1">
-          <h2 className="text-2xl font-bold tracking-tight">
-            Recibimos tu solicitud
-          </h2>
+          <h2 className="text-2xl font-bold tracking-tight">Recibimos tu solicitud</h2>
           <p className="mt-4 text-lg leading-relaxed text-default-600">
             {done === "sent"
               ? "Hemos enviado una confirmación de esta solicitud a tu correo. Un ejecutivo de HERCOM se pondrá en contacto contigo."
               : "Guardamos tu solicitud. El correo de confirmación no pudo salir en este momento. Un ejecutivo de HERCOM se pondrá en contacto contigo."}
           </p>
-          <Button
-            className="mt-8"
-            color="primary"
-            radius="full"
-            onPress={() => setDone(null)}
-          >
+          <Button className="mt-8" color="primary" radius="full" onPress={() => setDone(null)}>
             Enviar otra solicitud
           </Button>
         </div>
@@ -463,122 +707,205 @@ export function CorporateQuoteForm() {
   }
 
   return (
-    <form
-      className="rounded-3xl border border-default-200 p-6 sm:p-8 lg:p-10"
-      onSubmit={onSubmit}
-    >
-      <div className="grid gap-6 sm:grid-cols-2 sm:gap-8">
-        <ServicePointFields
-          legend="Origen del servicio"
-          value={origin}
-          onChange={setOrigin}
-        />
-        <ServicePointFields
-          legend="Destino del servicio"
-          value={destination}
-          onChange={setDestination}
-        />
-        <Input
-          isRequired
-          label="Nombre de contacto"
-          labelPlacement="outside"
-          placeholder="Quién coordina el viaje"
-          value={values.contactName}
-          onValueChange={(value) => setField("contactName", value)}
-        />
-        <Input
-          label="Empresa"
-          labelPlacement="outside"
-          placeholder="Nombre de la empresa"
-          value={values.companyName}
-          onValueChange={(value) => setField("companyName", value)}
-        />
-        <Input
-          isRequired
-          description={rucProgress}
-          errorMessage={rucFieldError}
-          isInvalid={rucFieldError !== undefined}
-          label="RUC"
-          labelPlacement="outside"
-          inputMode="numeric"
-          maxLength={RUC_LENGTH}
-          placeholder="11 dígitos"
-          value={values.ruc}
-          onBlur={() => setRucBlurred(true)}
-          onValueChange={(value) => setField("ruc", normalizeRuc(value))}
-        />
-        <Input
-          isRequired
-          description={phoneProgress}
-          errorMessage={phoneFieldError}
-          isInvalid={phoneFieldError !== undefined}
-          label="Teléfono"
-          labelPlacement="outside"
-          inputMode="numeric"
-          maxLength={PHONE_LENGTH}
-          placeholder="9 dígitos"
-          value={values.phone}
-          onBlur={() => setPhoneBlurred(true)}
-          onValueChange={(value) => setField("phone", normalizePhone(value))}
-        />
-        <Input
-          isRequired
-          className="sm:col-span-2"
-          label="Correo"
-          labelPlacement="outside"
-          placeholder="correo@empresa.com"
-          type="email"
-          value={values.email}
-          onValueChange={(value) => setField("email", value)}
-        />
-        <Input
-          isRequired
-          label="Horas aproximadas"
-          labelPlacement="outside"
-          min={1}
-          step={1}
-          type="number"
-          value={values.serviceHours}
-          onValueChange={(value) => setField("serviceHours", value)}
-        />
-        <Input
-          isRequired
-          label="Cantidad de choferes"
-          labelPlacement="outside"
-          min={1}
-          step={1}
-          type="number"
-          value={values.driverCount}
-          onValueChange={(value) => setField("driverCount", value)}
-        />
-        <Textarea
-          isRequired
-          className="sm:col-span-2"
-          label="Detalle del viaje"
-          labelPlacement="outside"
-          minRows={4}
-          placeholder="Lo que debamos saber del viaje"
-          value={values.detail}
-          onValueChange={(value) => setField("detail", value)}
-        />
+    <form onSubmit={onSubmit}>
+      <div className="rounded-3xl border border-default-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_auto]">
+          <PlaceField
+            icon={<PinIcon />}
+            label="Desde"
+            placeholder="Ingresa distrito"
+            value={origin}
+            onSelect={setOrigin}
+          />
+          <PlaceField
+            icon={<FlagIcon />}
+            label="Hacia"
+            placeholder="Ingresa distrito"
+            value={destination}
+            onSelect={(place) => {
+              setDestination(place);
+              if (!samePlace(place, destination) || dates.start === "") setCalendarOpen(true);
+            }}
+          />
+          <button className="min-w-0 text-left" type="button" onClick={() => setCalendarOpen(true)}>
+            <FieldShell active={calendarOpen} icon={<CalendarIcon />} label="Fechas">
+              <span
+                className={`mt-1 block truncate text-sm ${
+                  dates.start === "" ? "text-default-400" : "text-foreground"
+                }`}
+              >
+                {dates.start === "" ? "Inicio - Fin" : rangeLabel(dates.start, dates.end)}
+              </span>
+            </FieldShell>
+          </button>
+          <FieldShell icon={<DriverIcon />} label="Choferes">
+            <div className="mt-0.5 flex items-center justify-between gap-2">
+              <span className="text-sm">
+                {drivers} {drivers === 1 ? "chofer" : "choferes"}
+              </span>
+              <span className="flex items-center gap-1">
+                <button
+                  aria-label="Quitar un chofer"
+                  className="grid h-7 w-7 place-items-center rounded-full border border-default-300 text-sm disabled:opacity-30"
+                  disabled={drivers <= 1}
+                  type="button"
+                  onClick={() => setDrivers((count) => Math.max(1, count - 1))}
+                >
+                  −
+                </button>
+                <button
+                  aria-label="Agregar un chofer"
+                  className="grid h-7 w-7 place-items-center rounded-full border border-default-300 text-sm disabled:opacity-30"
+                  disabled={drivers >= MAX_DRIVERS}
+                  type="button"
+                  onClick={() => setDrivers((count) => Math.min(MAX_DRIVERS, count + 1))}
+                >
+                  +
+                </button>
+              </span>
+            </div>
+          </FieldShell>
+          <Button
+            className="h-14 px-8 font-semibold md:col-span-2 xl:col-span-1"
+            color="primary"
+            radius="lg"
+            type="button"
+            onPress={onContinue}
+          >
+            Continuar
+          </Button>
+        </div>
+        {step === "trip" && error !== "" && (
+          <p className="mt-4 text-sm text-danger" role="alert">
+            {error}
+          </p>
+        )}
       </div>
-      {error !== "" && (
-        <p className="mt-6 text-sm text-danger" role="alert">
-          {error}
-        </p>
-      )}
-      <div className="mt-8 flex sm:justify-end">
-        <Button
-          className="w-full sm:w-auto"
-          color="primary"
-          isDisabled={!rucComplete || !phoneComplete}
-          isLoading={pending}
-          radius="full"
-          type="submit"
+
+      {step === "details" && (
+        <div
+          ref={detailsRef}
+          className="mt-6 scroll-mt-28 rounded-3xl border border-default-200 p-6 sm:p-8 lg:p-10"
         >
-          Solicitar cotización
-        </Button>
-      </div>
+          <h3 className="text-xl font-bold tracking-tight">Datos de contacto</h3>
+          <p className="mt-1 text-sm text-default-500">
+            {origin?.district} → {destination?.district} · {rangeLabel(dates.start, dates.end)} ·{" "}
+            {drivers} {drivers === 1 ? "chofer" : "choferes"}
+          </p>
+          <div className="mt-8 grid gap-6 sm:grid-cols-2 sm:gap-8">
+            <Input
+              isRequired
+              label="Nombre de contacto"
+              labelPlacement="outside"
+              placeholder="Quién coordina el viaje"
+              value={values.contactName}
+              onValueChange={(value) => setField("contactName", value)}
+            />
+            <Input
+              label="Empresa"
+              labelPlacement="outside"
+              placeholder="Nombre de la empresa"
+              value={values.companyName}
+              onValueChange={(value) => setField("companyName", value)}
+            />
+            <Input
+              isRequired
+              description={
+                values.ruc.length > 0 && !rucComplete && !rucBlurred
+                  ? `${values.ruc.length}/${RUC_LENGTH} dígitos`
+                  : undefined
+              }
+              errorMessage={rucFieldError}
+              inputMode="numeric"
+              isInvalid={rucFieldError !== undefined}
+              label="RUC"
+              labelPlacement="outside"
+              maxLength={RUC_LENGTH}
+              placeholder="11 dígitos"
+              value={values.ruc}
+              onBlur={() => setRucBlurred(true)}
+              onValueChange={(value) => setField("ruc", normalizeRuc(value))}
+            />
+            <Input
+              isRequired
+              description={
+                values.phone.length > 0 && !phoneComplete && !phoneBlurred
+                  ? `${values.phone.length}/${PHONE_LENGTH} dígitos`
+                  : undefined
+              }
+              errorMessage={phoneFieldError}
+              inputMode="numeric"
+              isInvalid={phoneFieldError !== undefined}
+              label="Teléfono"
+              labelPlacement="outside"
+              maxLength={PHONE_LENGTH}
+              placeholder="9 dígitos"
+              value={values.phone}
+              onBlur={() => setPhoneBlurred(true)}
+              onValueChange={(value) => setField("phone", normalizePhone(value))}
+            />
+            <Input
+              isRequired
+              label="Correo"
+              labelPlacement="outside"
+              placeholder="correo@empresa.com"
+              type="email"
+              value={values.email}
+              onValueChange={(value) => setField("email", value)}
+            />
+            <Input
+              isRequired
+              label="Horas aproximadas"
+              labelPlacement="outside"
+              min={1}
+              placeholder="Ej. 8"
+              step={1}
+              type="number"
+              value={values.serviceHours}
+              onValueChange={(value) => setField("serviceHours", value)}
+            />
+            <Textarea
+              isRequired
+              className="sm:col-span-2"
+              label="Detalle del viaje"
+              labelPlacement="outside"
+              minRows={4}
+              placeholder="Lo que debamos saber del viaje"
+              value={values.detail}
+              onValueChange={(value) => setField("detail", value)}
+            />
+          </div>
+          {error !== "" && (
+            <p className="mt-6 text-sm text-danger" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="mt-8 flex sm:justify-end">
+            <Button
+              className="w-full sm:w-auto"
+              color="primary"
+              isDisabled={!rucComplete || !phoneComplete}
+              isLoading={pending}
+              radius="full"
+              type="submit"
+            >
+              Solicitar cotización
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {calendarOpen && (
+        <DateRangeModal
+          initialEnd={dates.end}
+          initialStart={dates.start}
+          onApply={(start, end) => {
+            setDates({ start, end });
+            setCalendarOpen(false);
+          }}
+          onClose={() => setCalendarOpen(false)}
+        />
+      )}
     </form>
   );
 }

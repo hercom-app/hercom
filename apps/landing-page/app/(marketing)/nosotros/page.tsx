@@ -42,8 +42,8 @@ export default function Page() {
         <div className="space-y-5 text-lg leading-relaxed text-default-600">
           <p>
             Los accidentes de tránsito causados por el estrés, el agotamiento o
-            el alcohol se pueden prevenir. Por eso creamos App Hercom – Choferes
-            de Reemplazo, una solución móvil diseñada para proteger tu vida
+            el alcohol se pueden prevenir. Por eso creamos la app HErcom - Chofer
+            de Remplazo, una solución móvil diseñada para proteger tu vida
             poniendo a un conductor profesional al volante de tu propio auto.
           </p>
           <p>

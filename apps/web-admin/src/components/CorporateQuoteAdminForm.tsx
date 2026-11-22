@@ -18,14 +18,14 @@ type ServicePoint = {
   department: string;
   province: string;
   district: string;
-  at: string;
+  date: string;
 };
 
 const emptyPoint: ServicePoint = {
   department: "",
   province: "",
   district: "",
-  at: "",
+  date: "",
 };
 
 const empty = {
@@ -35,17 +35,16 @@ const empty = {
   email: "",
   phone: "",
   driverCount: "",
+  serviceHours: "",
   detail: "",
 };
 
 function ServicePointFields({
   legend,
-  timeLabel,
   value,
   onChange,
 }: {
   legend: string;
-  timeLabel: string;
   value: ServicePoint;
   onChange: (next: ServicePoint) => void;
 }) {
@@ -131,13 +130,13 @@ function ServicePointFields({
           )}
         </label>
         <label className="block">
-          <span className={labelClass}>{timeLabel}</span>
+          <span className={labelClass}>Fecha</span>
           <input
             required
             className={inputClass}
-            type="datetime-local"
-            value={value.at}
-            onChange={(event) => onChange({ ...value, at: event.target.value })}
+            type="date"
+            value={value.date}
+            onChange={(event) => onChange({ ...value, date: event.target.value })}
           />
         </label>
       </div>
@@ -146,7 +145,7 @@ function ServicePointFields({
 }
 
 type CorporateQuoteAdminFormProps = {
-  onDone?: (emailSent: boolean) => void;
+  onDone?: (result: { id: string; emailSent: boolean }) => void;
   onCancel?: () => void;
 };
 
@@ -169,6 +168,24 @@ export function CorporateQuoteAdminForm({
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setError("");
+    const phone = values.phone.replace(/\D/g, "");
+    if (phone.length !== 9) {
+      setError("El teléfono debe tener 9 dígitos.");
+      return;
+    }
+    const serviceHours = Number(values.serviceHours);
+    if (!Number.isFinite(serviceHours) || serviceHours < 1) {
+      setError("Indica las horas aproximadas del servicio.");
+      return;
+    }
+    if (origin.date === "" || destination.date === "") {
+      setError("Indica la fecha de inicio y la fecha de fin.");
+      return;
+    }
+    if (destination.date < origin.date) {
+      setError("La fecha de fin no puede ser anterior a la fecha de inicio.");
+      return;
+    }
     setPending(true);
     try {
       const result = await createQuote({
@@ -176,20 +193,21 @@ export function CorporateQuoteAdminForm({
         contactName: values.contactName,
         ruc: values.ruc,
         email: values.email,
-        phone: values.phone,
+        phone,
         originDepartment: origin.department,
         originProvince: origin.province,
         originDistrict: origin.district,
         destinationDepartment: destination.department,
         destinationProvince: destination.province,
         destinationDistrict: destination.district,
-        serviceStart: origin.at,
-        serviceEnd: destination.at,
+        serviceStart: origin.date,
+        serviceEnd: destination.date,
+        serviceHours,
         driverCount: Number(values.driverCount),
         detail: values.detail,
         sendConfirmation,
       });
-      onDone?.(result.emailSent);
+      onDone?.(result);
       setValues(empty);
       setOrigin(emptyPoint);
       setDestination(emptyPoint);
@@ -206,11 +224,11 @@ export function CorporateQuoteAdminForm({
   return (
     <form className="space-y-4" onSubmit={onSubmit}>
       <h3 className="font-display text-lg font-bold tracking-tight text-slate-900">
-        Nueva cotización manual
+        Nuevo requerimiento
       </h3>
       <p className="text-sm text-zinc-500">
-        Para solicitudes por teléfono u otro canal. Las horas se calculan entre
-        inicio y fin.
+        Para solicitudes por teléfono u otro canal. Indica las fechas y las horas
+        aproximadas. La cotización se completa en el siguiente paso.
       </p>
       <div className="grid gap-3 md:grid-cols-2">
         <label className="block">
@@ -248,8 +266,13 @@ export function CorporateQuoteAdminForm({
           <input
             required
             className={inputClass}
+            inputMode="numeric"
+            maxLength={9}
+            placeholder="9 dígitos"
             value={values.phone}
-            onChange={(event) => setField("phone", event.target.value)}
+            onChange={(event) =>
+              setField("phone", event.target.value.replace(/\D/g, "").slice(0, 9))
+            }
           />
         </label>
         <label className="block md:col-span-2">
@@ -265,28 +288,40 @@ export function CorporateQuoteAdminForm({
       </div>
       <ServicePointFields
         legend="Origen del servicio"
-        timeLabel="Hora de inicio"
         value={origin}
         onChange={setOrigin}
       />
       <ServicePointFields
         legend="Destino del servicio"
-        timeLabel="Hora de fin"
         value={destination}
         onChange={setDestination}
       />
-      <label className="block">
-        <span className={labelClass}>Cantidad de choferes *</span>
-        <input
-          required
-          className={`${inputClass} max-w-xs`}
-          min={1}
-          step={1}
-          type="number"
-          value={values.driverCount}
-          onChange={(event) => setField("driverCount", event.target.value)}
-        />
-      </label>
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="block">
+          <span className={labelClass}>Horas aproximadas *</span>
+          <input
+            required
+            className={inputClass}
+            min={1}
+            step={1}
+            type="number"
+            value={values.serviceHours}
+            onChange={(event) => setField("serviceHours", event.target.value)}
+          />
+        </label>
+        <label className="block">
+          <span className={labelClass}>Cantidad de choferes *</span>
+          <input
+            required
+            className={inputClass}
+            min={1}
+            step={1}
+            type="number"
+            value={values.driverCount}
+            onChange={(event) => setField("driverCount", event.target.value)}
+          />
+        </label>
+      </div>
       <label className="block">
         <span className={labelClass}>Detalle del viaje *</span>
         <textarea
@@ -312,7 +347,7 @@ export function CorporateQuoteAdminForm({
       )}
       <div className="flex flex-wrap gap-2">
         <button type="submit" disabled={pending} className={btnPrimaryClass}>
-          {pending ? "Guardando…" : "Generar cotización"}
+          {pending ? "Guardando…" : "Guardar requerimiento"}
         </button>
         {onCancel !== undefined && (
           <button type="button" onClick={onCancel} className={btnSecondaryClass}>

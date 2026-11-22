@@ -827,6 +827,19 @@ export default defineSchema({
     detail: v.string(),
     createdAt: v.number(),
     emailSent: v.boolean(),
+    quoteAmount: v.optional(v.number()),
+    driverProfiles: v.optional(
+      v.array(
+        v.union(
+          v.literal("premium"),
+          v.literal("corporativo"),
+          v.literal("seguro"),
+          v.literal("flota"),
+        ),
+      ),
+    ),
+    quoteDescription: v.optional(v.string()),
+    quotedAt: v.optional(v.number()),
   }).index("by_createdAt", ["createdAt"]),
 
   /**

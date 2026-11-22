@@ -17,15 +17,35 @@ type ServicePoint = {
   department: string;
   province: string;
   district: string;
-  at: string;
+  date: string;
 };
 
 const emptyPoint: ServicePoint = {
   department: "",
   province: "",
   district: "",
-  at: "",
+  date: "",
 };
+
+function todayInputValue(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function formatServiceDate(iso: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (match === null) return "";
+  const parsed = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  const label = new Intl.DateTimeFormat("es-PE", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  }).format(parsed);
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
 
 const empty = {
   companyName: "",
@@ -34,10 +54,12 @@ const empty = {
   email: "",
   phone: "",
   driverCount: "",
+  serviceHours: "",
   detail: "",
 };
 
 const RUC_LENGTH = 11;
+const PHONE_LENGTH = 9;
 
 const fieldClass =
   "w-full rounded-xl bg-default-100 px-3 py-2.5 text-sm text-foreground outline-none";
@@ -46,25 +68,29 @@ function normalizeRuc(raw: string): string {
   return raw.replace(/\D/g, "").slice(0, RUC_LENGTH);
 }
 
+function normalizePhone(raw: string): string {
+  return raw.replace(/\D/g, "").slice(0, PHONE_LENGTH);
+}
+
 function ServicePointFields({
   legend,
-  timeLabel,
   value,
   onChange,
 }: {
   legend: string;
-  timeLabel: string;
   value: ServicePoint;
   onChange: (next: ServicePoint) => void;
 }) {
   const provinces = listProvincesForDepartment(value.department);
   const districts = listDistrictsForProvince(value.department, value.province);
   const typedDistrict = districts.length === 0 && value.province !== "";
+  const dateLabel = value.date === "" ? "" : formatServiceDate(value.date);
+  const inThePast = value.date !== "" && value.date < todayInputValue();
 
   return (
     <fieldset className="sm:col-span-2">
       <legend className="mb-3 text-sm font-semibold">{legend}</legend>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <label className="block">
           <span className="mb-1.5 block text-sm">Departamento</span>
           <select
@@ -138,17 +164,24 @@ function ServicePointFields({
             </select>
           )}
         </label>
-        <label className="block">
-          <span className="mb-1.5 block text-sm">{timeLabel}</span>
-          <input
-            required
-            className={fieldClass}
-            type="datetime-local"
-            value={value.at}
-            onChange={(event) => onChange({ ...value, at: event.target.value })}
-          />
-        </label>
       </div>
+      <label className="mt-4 block max-w-xs">
+        <span className="mb-1.5 block text-sm">Fecha</span>
+        <input
+          required
+          className={`${fieldClass} h-11 [color-scheme:light]`}
+          min={todayInputValue()}
+          type="date"
+          value={value.date}
+          onChange={(event) => onChange({ ...value, date: event.target.value })}
+        />
+      </label>
+      {dateLabel !== "" && (
+        <p className={`mt-2 text-sm ${inThePast ? "text-danger" : "text-default-500"}`}>
+          {inThePast ? "Elige una fecha de hoy en adelante. " : ""}
+          {dateLabel}
+        </p>
+      )}
     </fieldset>
   );
 }
@@ -162,8 +195,10 @@ export function CorporateQuoteForm() {
   const [error, setError] = useState("");
   const [done, setDone] = useState<"sent" | "saved" | null>(null);
   const [rucBlurred, setRucBlurred] = useState(false);
+  const [phoneBlurred, setPhoneBlurred] = useState(false);
 
   const rucComplete = values.ruc.length === RUC_LENGTH;
+  const phoneComplete = values.phone.length === PHONE_LENGTH;
   const rucProgress =
     values.ruc.length > 0 && !rucComplete && !rucBlurred
       ? `${values.ruc.length}/${RUC_LENGTH} dígitos`
@@ -173,6 +208,16 @@ export function CorporateQuoteForm() {
       ? values.ruc.length === 0
         ? "Ingresa el RUC de 11 dígitos."
         : "El RUC debe tener 11 dígitos."
+      : undefined;
+  const phoneProgress =
+    values.phone.length > 0 && !phoneComplete && !phoneBlurred
+      ? `${values.phone.length}/${PHONE_LENGTH} dígitos`
+      : undefined;
+  const phoneFieldError =
+    phoneBlurred && !phoneComplete
+      ? values.phone.length === 0
+        ? "Ingresa el teléfono de 9 dígitos."
+        : "El teléfono debe tener 9 dígitos."
       : undefined;
 
   function setField(key: keyof typeof empty, value: string) {
@@ -186,6 +231,12 @@ export function CorporateQuoteForm() {
     if (!rucComplete) {
       setRucBlurred(true);
       setError("El RUC debe tener 11 dígitos.");
+      return;
+    }
+
+    if (!phoneComplete) {
+      setPhoneBlurred(true);
+      setError("El teléfono debe tener 9 dígitos.");
       return;
     }
 
@@ -212,19 +263,22 @@ export function CorporateQuoteForm() {
       return;
     }
 
-    if (origin.at === "" || destination.at === "") {
-      setError("Indica la hora de inicio y la hora de fin.");
+    if (origin.date === "" || destination.date === "") {
+      setError("Indica la fecha de inicio y la fecha de fin.");
+      return;
+    }
+    if (origin.date < todayInputValue()) {
+      setError("La fecha de inicio debe ser de hoy en adelante.");
+      return;
+    }
+    if (destination.date < origin.date) {
+      setError("La fecha de fin no puede ser anterior a la fecha de inicio.");
       return;
     }
 
-    const startMs = Date.parse(origin.at);
-    const endMs = Date.parse(destination.at);
-    if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
-      setError("Indica hora de inicio y hora de fin válidas.");
-      return;
-    }
-    if (endMs <= startMs) {
-      setError("La hora de fin debe ser posterior a la hora de inicio.");
+    const serviceHours = Number(values.serviceHours);
+    if (!Number.isFinite(serviceHours) || serviceHours < 1) {
+      setError("Indica las horas aproximadas del servicio.");
       return;
     }
 
@@ -242,8 +296,9 @@ export function CorporateQuoteForm() {
         destinationDepartment: destination.department,
         destinationProvince: destination.province,
         destinationDistrict: destination.district,
-        serviceStart: origin.at,
-        serviceEnd: destination.at,
+        serviceStart: origin.date,
+        serviceEnd: destination.date,
+        serviceHours,
         driverCount: Number(values.driverCount),
         detail: values.detail,
       });
@@ -252,6 +307,7 @@ export function CorporateQuoteForm() {
       setOrigin(emptyPoint);
       setDestination(emptyPoint);
       setRucBlurred(false);
+      setPhoneBlurred(false);
     } catch (cause) {
       setError(formatConvexError(cause, "No pudimos enviar la solicitud."));
     } finally {
@@ -319,11 +375,17 @@ export function CorporateQuoteForm() {
         />
         <Input
           isRequired
+          description={phoneProgress}
+          errorMessage={phoneFieldError}
+          isInvalid={phoneFieldError !== undefined}
           label="Teléfono"
           labelPlacement="outside"
-          placeholder="999 999 999"
+          inputMode="numeric"
+          maxLength={PHONE_LENGTH}
+          placeholder="9 dígitos"
           value={values.phone}
-          onValueChange={(value) => setField("phone", value)}
+          onBlur={() => setPhoneBlurred(true)}
+          onValueChange={(value) => setField("phone", normalizePhone(value))}
         />
         <Input
           isRequired
@@ -337,19 +399,26 @@ export function CorporateQuoteForm() {
         />
         <ServicePointFields
           legend="Origen del servicio"
-          timeLabel="Hora de inicio"
           value={origin}
           onChange={setOrigin}
         />
         <ServicePointFields
           legend="Destino del servicio"
-          timeLabel="Hora de fin"
           value={destination}
           onChange={setDestination}
         />
         <Input
           isRequired
-          className="sm:col-span-2"
+          label="Horas aproximadas"
+          labelPlacement="outside"
+          min={1}
+          step={1}
+          type="number"
+          value={values.serviceHours}
+          onValueChange={(value) => setField("serviceHours", value)}
+        />
+        <Input
+          isRequired
           label="Cantidad de choferes"
           labelPlacement="outside"
           min={1}
@@ -377,7 +446,7 @@ export function CorporateQuoteForm() {
       <div className="mt-8 flex justify-end">
         <Button
           color="primary"
-          isDisabled={!rucComplete}
+          isDisabled={!rucComplete || !phoneComplete}
           isLoading={pending}
           radius="full"
           type="submit"

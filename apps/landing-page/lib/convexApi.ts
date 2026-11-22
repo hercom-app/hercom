@@ -28,6 +28,7 @@ export const submitCorporateQuote = makeFunctionReference<
     destinationDistrict: string;
     serviceStart: string;
     serviceEnd: string;
+    serviceHours: number;
     driverCount: number;
     detail: string;
   },

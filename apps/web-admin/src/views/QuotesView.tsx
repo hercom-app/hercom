@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
+import type { Id } from "@proyecto/backend/dataModel";
 import { CorporateQuoteAdminForm } from "../components/CorporateQuoteAdminForm";
+import { QuoteDetailView } from "../components/QuoteDetailView";
 import {
   AdminCard,
   AdminEmpty,
@@ -18,14 +20,16 @@ function formatWhen(timestamp: number): string {
   }).format(new Date(timestamp));
 }
 
-function formatServiceMoment(value: string | undefined): string {
+function formatServiceDate(value: string | undefined): string {
   if (value === undefined || value === "") return "—";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value.replace("T", " ");
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (match === null) return value.replace("T", " ");
   return new Intl.DateTimeFormat("es-PE", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(parsed);
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).format(
+    new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))),
+  );
 }
 
 function place(
@@ -50,12 +54,15 @@ function sourceLabel(source: "web" | "manual" | undefined): string {
 }
 
 type SourceFilter = "" | "web" | "manual";
+type Screen =
+  | { kind: "list" }
+  | { kind: "create" }
+  | { kind: "detail"; id: Id<"corporateQuotes">; notice: string | null };
 
 export function QuotesView() {
   const rows = useQuery(api.corporateQuotes.listForAdmin, {});
-  const [showForm, setShowForm] = useState(false);
+  const [screen, setScreen] = useState<Screen>({ kind: "list" });
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("");
-  const [message, setMessage] = useState<string | null>(null);
 
   const filtered =
     rows === undefined
@@ -66,6 +73,46 @@ export function QuotesView() {
           return source === sourceFilter;
         });
 
+  if (screen.kind === "detail") {
+    return (
+      <QuoteDetailView
+        quoteId={screen.id}
+        notice={screen.notice}
+        onBack={() => setScreen({ kind: "list" })}
+      />
+    );
+  }
+
+  if (screen.kind === "create") {
+    return (
+      <AdminPage>
+        <div>
+          <button
+            type="button"
+            className="text-sm font-medium text-zinc-500 hover:text-zinc-900"
+            onClick={() => setScreen({ kind: "list" })}
+          >
+            Volver a la lista
+          </button>
+        </div>
+        <AdminCard>
+          <CorporateQuoteAdminForm
+            onCancel={() => setScreen({ kind: "list" })}
+            onDone={(result) => {
+              setScreen({
+                kind: "detail",
+                id: result.id as Id<"corporateQuotes">,
+                notice: result.emailSent
+                  ? "Requerimiento guardado y correo de confirmación enviado."
+                  : "Requerimiento guardado. El correo de confirmación no salió.",
+              });
+            }}
+          />
+        </AdminCard>
+      </AdminPage>
+    );
+  }
+
   return (
     <AdminPage>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -75,36 +122,11 @@ export function QuotesView() {
         <button
           type="button"
           className={btnPrimaryClass}
-          onClick={() => {
-            setShowForm((current) => !current);
-            setMessage(null);
-          }}
+          onClick={() => setScreen({ kind: "create" })}
         >
-          {showForm ? "Cerrar formulario" : "Generar requerimiento manual"}
+          Generar requerimiento manual
         </button>
       </div>
-
-      {showForm && (
-        <AdminCard>
-          <CorporateQuoteAdminForm
-            onCancel={() => setShowForm(false)}
-            onDone={(emailSent) => {
-              setShowForm(false);
-              setMessage(
-                emailSent
-                  ? "Cotización guardada y correo de confirmación enviado."
-                  : "Cotización guardada. El correo no salió (revisa Resend en Convex).",
-              );
-            }}
-          />
-        </AdminCard>
-      )}
-
-      {message !== null && (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          {message}
-        </p>
-      )}
 
       <AdminCard>
         <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -145,13 +167,19 @@ export function QuotesView() {
                   <th className="px-4 py-3 font-medium">Fin</th>
                   <th className="px-4 py-3 font-medium">Horas</th>
                   <th className="px-4 py-3 font-medium">Choferes</th>
-                  <th className="px-4 py-3 font-medium">Detalle</th>
+                  <th className="px-4 py-3 font-medium">Cotización</th>
                   <th className="px-4 py-3 font-medium">Confirmación</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((row) => (
-                  <tr key={row._id} className="border-t border-zinc-100 align-top">
+                  <tr
+                    key={row._id}
+                    className="cursor-pointer border-t border-zinc-100 align-top hover:bg-zinc-50"
+                    onClick={() =>
+                      setScreen({ kind: "detail", id: row._id, notice: null })
+                    }
+                  >
                     <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
                       {formatWhen(row.createdAt)}
                     </td>
@@ -185,7 +213,7 @@ export function QuotesView() {
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      {formatServiceMoment(row.serviceStart)}
+                      {formatServiceDate(row.serviceStart)}
                     </td>
                     <td className="px-4 py-3">
                       {place(
@@ -195,12 +223,14 @@ export function QuotesView() {
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      {formatServiceMoment(row.serviceEnd)}
+                      {formatServiceDate(row.serviceEnd)}
                     </td>
                     <td className="px-4 py-3">{formatHours(row.serviceHours)}</td>
                     <td className="px-4 py-3">{row.driverCount ?? "—"}</td>
-                    <td className="max-w-xs px-4 py-3 text-zinc-600">
-                      {row.detail}
+                    <td className="whitespace-nowrap px-4 py-3">
+                      {row.quoteAmount === undefined
+                        ? "Pendiente"
+                        : `S/ ${row.quoteAmount.toFixed(2)}`}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       {row.emailSent ? "Enviado" : "Pendiente"}

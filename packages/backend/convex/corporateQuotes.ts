@@ -3,6 +3,7 @@ import {
   action,
   internalMutation,
   internalQuery,
+  mutation,
   query,
   type ActionCtx,
 } from "./_generated/server";
@@ -24,13 +25,20 @@ const quoteArgs = {
   destinationDistrict: v.string(),
   serviceStart: v.string(),
   serviceEnd: v.string(),
+  serviceHours: v.number(),
   driverCount: v.number(),
   detail: v.string(),
 };
 
+const driverProfile = v.union(
+  v.literal("premium"),
+  v.literal("corporativo"),
+  v.literal("seguro"),
+  v.literal("flota"),
+);
+
 const insertArgs = {
   ...quoteArgs,
-  serviceHours: v.number(),
   source: v.union(v.literal("web"), v.literal("manual")),
   createdByUserId: v.optional(v.id("users")),
 };
@@ -49,6 +57,7 @@ type QuoteFields = {
   destinationDistrict: string;
   serviceStart: string;
   serviceEnd: string;
+  serviceHours: number;
   driverCount: number;
   detail: string;
 };
@@ -61,26 +70,25 @@ function place(department: string, province: string, district: string): string {
   return [district, province, department].filter((part) => part !== "").join(", ");
 }
 
-function parseServiceMoment(value: string): number {
-  const at = new Date(value.trim()).getTime();
-  if (Number.isNaN(at)) {
-    throw new ConvexError("Indica hora de inicio y hora de fin válidas.");
+function parseServiceDate(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
+  if (match === null) {
+    throw new ConvexError("Indica la fecha de inicio y la fecha de fin.");
   }
-  return at;
-}
-
-function serviceHoursBetween(start: string, end: string): number {
-  const startAt = parseServiceMoment(start);
-  const endAt = parseServiceMoment(end);
-  if (endAt <= startAt) {
-    throw new ConvexError("La hora de fin debe ser posterior a la hora de inicio.");
+  const iso = `${match[1]}-${match[2]}-${match[3]}`;
+  const parsed = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new ConvexError("Indica la fecha de inicio y la fecha de fin.");
   }
-  const hours = (endAt - startAt) / (60 * 60 * 1000);
-  return Math.round(hours * 100) / 100;
+  return iso;
 }
 
 function normalizeRuc(ruc: string): string {
   return ruc.replace(/\D/g, "");
+}
+
+function normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, "");
 }
 
 function validateQuote(args: {
@@ -95,15 +103,21 @@ function validateQuote(args: {
   destinationDistrict: string;
   serviceStart: string;
   serviceEnd: string;
+  serviceHours: number;
   driverCount: number;
-}): { email: string; ruc: string; serviceHours: number } {
+  phone: string;
+}): { email: string; ruc: string; phone: string; serviceHours: number; serviceStart: string; serviceEnd: string } {
   const email = args.email.trim().toLowerCase();
   const ruc = normalizeRuc(args.ruc);
+  const phone = normalizePhone(args.phone);
   if (!email.includes("@") || args.contactName.trim() === "") {
     throw new ConvexError("Completa el nombre y un correo válido.");
   }
   if (ruc.length !== 11) {
     throw new ConvexError("El RUC debe tener 11 dígitos.");
+  }
+  if (phone.length !== 9) {
+    throw new ConvexError("El teléfono debe tener 9 dígitos.");
   }
   if (
     args.originDepartment.trim() === "" ||
@@ -115,14 +129,19 @@ function validateQuote(args: {
   ) {
     throw new ConvexError("Elige el origen y el destino del servicio.");
   }
-  if (args.serviceStart.trim() === "" || args.serviceEnd.trim() === "") {
-    throw new ConvexError("Indica la hora de inicio y la hora de fin.");
+  const serviceStart = parseServiceDate(args.serviceStart);
+  const serviceEnd = parseServiceDate(args.serviceEnd);
+  if (serviceEnd < serviceStart) {
+    throw new ConvexError("La fecha de fin no puede ser anterior a la fecha de inicio.");
   }
   if (!Number.isFinite(args.driverCount) || args.driverCount < 1) {
     throw new ConvexError("Indica la cantidad de choferes.");
   }
-  const serviceHours = serviceHoursBetween(args.serviceStart, args.serviceEnd);
-  return { email, ruc, serviceHours };
+  if (!Number.isFinite(args.serviceHours) || args.serviceHours < 1 || args.serviceHours > 720) {
+    throw new ConvexError("Indica las horas aproximadas del servicio.");
+  }
+  const serviceHours = Math.round(args.serviceHours * 100) / 100;
+  return { email, ruc, phone, serviceHours, serviceStart, serviceEnd };
 }
 
 export const assertStaffUser = internalQuery({
@@ -140,7 +159,7 @@ export const insert = internalMutation({
       contactName: clean(args.contactName, 120),
       ruc: clean(args.ruc, 11),
       email: clean(args.email, 160).toLowerCase(),
-      phone: clean(args.phone, 40),
+      phone: clean(args.phone, 9),
       originDepartment: clean(args.originDepartment, 80),
       originProvince: clean(args.originProvince, 80),
       originDistrict: clean(args.originDistrict, 80),
@@ -169,6 +188,46 @@ export const markEmail = internalMutation({
   },
 });
 
+export const getForAdmin = query({
+  args: { id: v.id("corporateQuotes") },
+  handler: async (ctx, args) => {
+    await requireStaff(ctx);
+    return await ctx.db.get(args.id);
+  },
+});
+
+export const saveQuote = mutation({
+  args: {
+    id: v.id("corporateQuotes"),
+    quoteAmount: v.number(),
+    driverProfiles: v.array(driverProfile),
+    quoteDescription: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireStaff(ctx);
+    const existing = await ctx.db.get(args.id);
+    if (existing === null) {
+      throw new ConvexError("No encontramos el requerimiento.");
+    }
+    if (!Number.isFinite(args.quoteAmount) || args.quoteAmount < 0) {
+      throw new ConvexError("Indica el costo de la cotización.");
+    }
+    if (args.driverProfiles.length === 0) {
+      throw new ConvexError("Elige al menos un perfil de chofer.");
+    }
+    if (args.quoteDescription.trim() === "") {
+      throw new ConvexError("Escribe la descripción de la cotización.");
+    }
+    const uniqueProfiles = [...new Set(args.driverProfiles)];
+    await ctx.db.patch(args.id, {
+      quoteAmount: Math.round(args.quoteAmount * 100) / 100,
+      driverProfiles: uniqueProfiles,
+      quoteDescription: args.quoteDescription.trim().slice(0, 2000),
+      quotedAt: Date.now(),
+    });
+  },
+});
+
 export const listForAdmin = query({
   args: {},
   handler: async (ctx) => {
@@ -180,54 +239,6 @@ export const listForAdmin = query({
       .take(200);
   },
 });
-
-async function sendConfirmation(args: {
-  contactName: string;
-  email: string;
-  companyName: string;
-  origin: string;
-  destination: string;
-  serviceStart: string;
-  serviceEnd: string;
-  driverCount: number;
-  serviceHours: number;
-}): Promise<boolean> {
-  const key = process.env.RESEND_API_KEY;
-  if (key === undefined || key.trim() === "") return false;
-  const from =
-    process.env.QUOTE_FROM_EMAIL ?? "HERCOM <noreply@hercom.pe>";
-  const who =
-    args.companyName === "" ? args.contactName : args.companyName;
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [args.email],
-      subject: "Recibimos tu solicitud de viaje corporativo",
-      text: [
-        `Hola ${args.contactName},`,
-        "",
-        `Recibimos la solicitud de viaje de ${who}.`,
-        `Origen: ${args.origin}`,
-        `Destino: ${args.destination}`,
-        `Inicio: ${args.serviceStart}`,
-        `Fin: ${args.serviceEnd}`,
-        `Horas: ${args.serviceHours}`,
-        `Choferes: ${args.driverCount}`,
-        "",
-        "Un ejecutivo de HERCOM la revisará y te escribirá para confirmar la cotización.",
-        "",
-        "HERCOM – Chofer para Remplazo",
-        "www.hercom.pe",
-      ].join("\n"),
-    }),
-  });
-  return response.ok;
-}
 
 async function persistAndMaybeEmail(
   ctx: ActionCtx,
@@ -266,7 +277,7 @@ async function persistAndMaybeEmail(
   );
   let sent = false;
   if (args.sendConfirmation) {
-    sent = await sendConfirmation({
+    sent = await ctx.runAction(internal.quoteMail.sendQuoteConfirmation, {
       contactName: args.contactName.trim(),
       email: args.email,
       companyName: args.companyName.trim(),
@@ -290,12 +301,10 @@ async function persistAndMaybeEmail(
 export const submit = action({
   args: quoteArgs,
   handler: async (ctx, args): Promise<{ id: Id<"corporateQuotes">; emailSent: boolean }> => {
-    const { email, ruc, serviceHours } = validateQuote(args);
+    const validated = validateQuote(args);
     return await persistAndMaybeEmail(ctx, {
       ...args,
-      email,
-      ruc,
-      serviceHours,
+      ...validated,
       source: "web",
       sendConfirmation: true,
     });
@@ -310,30 +319,20 @@ export const createFromAdmin = action({
   },
   handler: async (ctx, args): Promise<{ id: Id<"corporateQuotes">; emailSent: boolean }> => {
     const staff = await ctx.runQuery(internal.corporateQuotes.assertStaffUser, {});
-    const { email, ruc, serviceHours } = validateQuote(args);
+    const validated = validateQuote(args);
     const sendConfirmation = args.sendConfirmation !== false;
-    const quoteFields = {
+    return await persistAndMaybeEmail(ctx, {
       companyName: args.companyName,
       contactName: args.contactName,
-      ruc: args.ruc,
-      email: args.email,
-      phone: args.phone,
       originDepartment: args.originDepartment,
       originProvince: args.originProvince,
       originDistrict: args.originDistrict,
       destinationDepartment: args.destinationDepartment,
       destinationProvince: args.destinationProvince,
       destinationDistrict: args.destinationDistrict,
-      serviceStart: args.serviceStart,
-      serviceEnd: args.serviceEnd,
       driverCount: args.driverCount,
       detail: args.detail,
-    };
-    return await persistAndMaybeEmail(ctx, {
-      ...quoteFields,
-      email,
-      ruc,
-      serviceHours,
+      ...validated,
       source: "manual",
       createdByUserId: staff._id,
       sendConfirmation,

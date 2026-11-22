@@ -1,12 +1,14 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Image from "next/image";
 import { Button } from "@nextui-org/button";
 import { Input, Textarea } from "@nextui-org/input";
 import { useAction } from "convex/react";
 
 import { submitCorporateQuote } from "@/lib/convexApi";
 import { formatConvexError } from "@/lib/convexError";
+import SolicitudImg from "@/assets/solicitud-recibida.png";
 import {
   PERU_DEPARTMENTS,
   listDistrictsForProvince,
@@ -317,23 +319,30 @@ export function CorporateQuoteForm() {
 
   if (done !== null) {
     return (
-      <div className="rounded-3xl bg-default-100 p-8 lg:p-12">
-        <h2 className="text-2xl font-bold tracking-tight">
-          Recibimos tu solicitud
-        </h2>
-        <p className="mt-4 max-w-2xl text-lg leading-relaxed text-default-600">
-          {done === "sent"
-            ? "Te enviamos la confirmación al correo que indicaste. Un ejecutivo de HERCOM revisará el viaje y te escribirá con la cotización."
-            : "Guardamos tu solicitud. El correo de confirmación no pudo salir en este momento; un ejecutivo de HERCOM te contactará con la cotización."}
-        </p>
-        <Button
-          className="mt-8"
-          color="primary"
-          radius="full"
-          onPress={() => setDone(null)}
-        >
-          Enviar otra solicitud
-        </Button>
+      <div className="flex flex-col items-center gap-8 rounded-3xl bg-default-100 p-8 sm:flex-row sm:items-center lg:gap-12 lg:p-12">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-2xl font-bold tracking-tight">
+            Recibimos tu solicitud
+          </h2>
+          <p className="mt-4 text-lg leading-relaxed text-default-600">
+            {done === "sent"
+              ? "Hemos enviado una confirmación de esta solicitud a tu correo. Un ejecutivo de HERCOM se pondrá en contacto contigo."
+              : "Guardamos tu solicitud. El correo de confirmación no pudo salir en este momento. Un ejecutivo de HERCOM se pondrá en contacto contigo."}
+          </p>
+          <Button
+            className="mt-8"
+            color="primary"
+            radius="full"
+            onPress={() => setDone(null)}
+          >
+            Enviar otra solicitud
+          </Button>
+        </div>
+        <Image
+          alt=""
+          className="h-auto w-full max-w-[280px] shrink-0 sm:max-w-[320px]"
+          src={SolicitudImg}
+        />
       </div>
     );
   }

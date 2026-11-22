@@ -115,12 +115,14 @@ export default function ViajesCorporativosPage() {
       </section>
 
       <section className="section scroll-mt-28 pb-16 lg:pb-24" id="cotizacion">
-        <h2 className="max-w-3xl text-3xl font-bold tracking-tight sm:text-4xl">
-          Cuéntanos el viaje
+        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          Cuéntanos de tu viaje
         </h2>
-        <p className="mt-4 max-w-2xl text-lg leading-relaxed text-default-600">
-          Deja los datos de tu empresa. Guardamos la solicitud y te enviamos
-          la confirmación al correo que indiques.
+        <p
+          className="mt-3 whitespace-nowrap leading-snug text-default-600"
+          style={{ fontSize: "min(1.125rem, calc((100vw - 3rem) / 36))" }}
+        >
+          Compártenos los detalles de tu traslado aquí abajo para ayudarte.
         </p>
         <div className="mt-10">
           <CorporateQuoteForm />

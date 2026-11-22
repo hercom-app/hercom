@@ -12,13 +12,22 @@ export default function Page() {
     <>
       <PageHero
         description={
-          <p>
-            Somos una empresa que trabaja pensando por el bienestar de tu
-            familia; impulsando desde tu celular el proyecto HERCOM – Chofer
-            para remplazo, queremos llegar a tu hogar para que desde una
-            aplicación móvil puedas llevar o traer a tus familiares en la
-            comodidad de tu propio vehículo.
-          </p>
+          <div className="space-y-4">
+            <p>
+              En Hercom trabajamos por el bienestar y la tranquilidad de
+              quienes confían en nosotros. A través de nuestra aplicación
+              HERCOM – Chofer para remplazo, llevamos seguridad directamente a
+              tu celular para que tú, tu familia o cualquier persona en
+              movimiento pueda trasladarse en la comodidad y protección de su
+              propio vehículo.
+            </p>
+            <p>
+              Al mismo tiempo, respaldamos el crecimiento de los negocios en el
+              Perú con soluciones especializadas de conducción corporativa,
+              ejecutiva y de flota, profesionalizando el rol del conductor bajo
+              los más altos estándares de seguridad.
+            </p>
+          </div>
         }
         eyebrow="Nosotros"
         image={NosotrosImg}

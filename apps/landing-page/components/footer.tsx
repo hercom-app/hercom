@@ -16,10 +16,6 @@ export const Footer = () => {
       <div className="section grid gap-12 py-14 lg:grid-cols-12 lg:py-20">
         <div className="flex flex-col items-start gap-6 lg:col-span-5">
           <Image alt="HERCOM" height={64} src={Logo} width={64} />
-          <p className="max-w-sm leading-relaxed text-white/65">
-            Chofer para Remplazo. Manejamos tu vehículo para que tú y tu
-            familia lleguen a casa sanos y salvos.
-          </p>
           <StoreBadges />
         </div>
 

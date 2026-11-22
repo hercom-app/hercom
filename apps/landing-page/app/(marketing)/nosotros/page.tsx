@@ -13,10 +13,11 @@ export default function Page() {
       <PageHero
         description={
           <p>
-            Somos una empresa peruana, con experiencia en diagnóstico de
-            brechas sociales, elaboración de procesos, desarrollo de software e
-            implementación de alta tecnología en el mercado nacional e
-            internacional.
+            Somos una empresa que trabaja pensando por el bienestar de tu
+            familia; impulsando desde tu celular el proyecto HERCOM – Chofer
+            para remplazo, queremos llegar a tu hogar para que desde una
+            aplicación móvil puedas llevar o traer a tus familiares en la
+            comodidad de tu propio vehículo.
           </p>
         }
         eyebrow="Nosotros"
@@ -26,40 +27,22 @@ export default function Page() {
         title="Cuidamos de ti y de tu familia"
       />
 
-      <section className="section pb-16 lg:pb-24">
-        <div className="rounded-3xl bg-default-100 p-8 dark:bg-default-50 lg:p-12">
-          <p className="max-w-4xl text-lg leading-relaxed lg:text-xl">
-            Contamos con un equipo de profesionales que nos permite garantizar
-            aportes a una sociedad moderna con soluciones móviles e
-            inteligentes y complementándolos con otros servicios como es hoy en
-            día la inseguridad por la que atravesamos.
-          </p>
-        </div>
-      </section>
-
       <section className="section grid gap-10 pb-16 lg:grid-cols-[1fr_2fr] lg:gap-16 lg:pb-24">
         <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
           Sobre la App
         </h2>
         <div className="space-y-5 text-lg leading-relaxed text-default-600">
           <p>
-            APP HERCOM - CHOFERES PARA REMPLAZO es un aplicativo móvil que fue
-            estudiado y desarrollado para mitigar una brecha social como son los
-            ACCIDENTES DE TRANSITO, causados por diferentes maniobras al volante
-            como fue desde el año 1896 en New York - EE. UU, donde se realizaban
-            las primeras pruebas de vehículos a motor y remontando a la
-            actualidad, donde los accidentes de tránsito son ocasionados en su
-            mayoría por la ingesta de alcohol, en otros casos por descuido o por
-            una distracción al volante o como también por el stres que
-            actualmente vivimos.
+            Los accidentes de tránsito causados por el estrés, el agotamiento o
+            el alcohol se pueden prevenir. Por eso creamos App Hercom – Choferes
+            de Reemplazo, una solución móvil diseñada para proteger tu vida
+            poniendo a un conductor profesional al volante de tu propio auto.
           </p>
           <p>
-            La APP HERCOM - CHOFER PARA REMPLAZO, es el inicio de querer
-            profesionalizar a la persona que va al volante y te ofrece su
-            servicio en las distintas opciones que te presentamos. Impulsaremos
-            acciones preventivas de seguridad física, seguridad médica y
-            seguridad social. La APP está diseñada para sugerir acciones móviles
-            que nos permita llegar sanos y salvos a casa.
+            Nuestro compromiso va más allá del traslado: profesionalizamos la
+            labor del chofer mediante estándares de seguridad física, médica y
+            social, creando un ecosistema pensado para que tú y tu equipo
+            vuelvan siempre sanos y salvos a casa.
           </p>
         </div>
       </section>

@@ -70,7 +70,7 @@ export default function ViajesCorporativosPage() {
         image={ContactanosImg}
         imageAlt="Ejecutiva de atención de HERCOM"
         imageClassName="object-[50%_30%]"
-        title="Reserva un viaje para ti o tu empresa"
+        title="Reserva un chofer para ti o tu empresa"
       >
         <a
           className="rounded-full bg-primary px-7 py-3.5 font-semibold text-white transition-colors hover:bg-primary-600"

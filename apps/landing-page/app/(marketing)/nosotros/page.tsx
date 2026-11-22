@@ -17,9 +17,8 @@ export default function Page() {
               En Hercom trabajamos por el bienestar y la tranquilidad de
               quienes confían en nosotros. A través de nuestra aplicación
               HERCOM – Chofer para remplazo, llevamos seguridad directamente a
-              tu celular para que tú, tu familia o cualquier persona en
-              movimiento pueda trasladarse en la comodidad y protección de su
-              propio vehículo.
+              tu celular para que cualquier persona pueda trasladarse en la
+              comodidad y protección de su propio vehículo.
             </p>
             <p>
               Al mismo tiempo, respaldamos el crecimiento de los negocios en el

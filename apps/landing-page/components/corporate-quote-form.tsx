@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Button } from "@nextui-org/button";
 import { Input, Textarea } from "@nextui-org/input";
@@ -74,6 +74,140 @@ function normalizePhone(raw: string): string {
   return raw.replace(/\D/g, "").slice(0, PHONE_LENGTH);
 }
 
+function fold(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function exactOption(value: string, options: readonly string[]): string | undefined {
+  const folded = fold(value);
+  if (folded === "") return undefined;
+  return options.find((option) => fold(option) === folded);
+}
+
+function resolvePoint(point: ServicePoint): ServicePoint | null {
+  const department = exactOption(point.department, PERU_DEPARTMENTS);
+  if (department === undefined) return null;
+  const province = exactOption(point.province, listProvincesForDepartment(department));
+  if (province === undefined) return null;
+  const districts = listDistrictsForProvince(department, province);
+  const district =
+    districts.length === 0 ? point.district.trim() : exactOption(point.district, districts);
+  if (district === undefined || district === "") return null;
+  return { ...point, department, province, district };
+}
+
+function SuggestInput({
+  label,
+  value,
+  options,
+  disabled,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly string[];
+  disabled?: boolean;
+  placeholder: string;
+  onChange: (next: string) => void;
+}) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const folded = fold(value);
+  const matches =
+    folded === ""
+      ? options.slice(0, 8)
+      : options.filter((option) => fold(option).includes(folded)).slice(0, 8);
+
+  useEffect(() => {
+    function onPointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, []);
+
+  function commit(next: string) {
+    onChange(next);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={rootRef} className="relative min-w-0">
+      <label className="block">
+        <span className="mb-1.5 block text-sm">{label}</span>
+        <input
+          required
+          aria-autocomplete="list"
+          aria-expanded={open}
+          autoComplete="off"
+          className={`${fieldClass} h-11 disabled:cursor-not-allowed disabled:opacity-60`}
+          disabled={disabled}
+          placeholder={placeholder}
+          role="combobox"
+          value={value}
+          onChange={(event) => {
+            onChange(event.target.value);
+            setOpen(true);
+            setActive(0);
+          }}
+          onFocus={() => {
+            if (!disabled) setOpen(true);
+          }}
+          onBlur={() => {
+            const exact = exactOption(value, options);
+            if (exact !== undefined && exact !== value) onChange(exact);
+          }}
+          onKeyDown={(event) => {
+            if (disabled || matches.length === 0) return;
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              setOpen(true);
+              setActive((index) => Math.min(index + 1, matches.length - 1));
+            } else if (event.key === "ArrowUp") {
+              event.preventDefault();
+              setActive((index) => Math.max(index - 1, 0));
+            } else if (event.key === "Enter" && open && matches[active] !== undefined) {
+              event.preventDefault();
+              commit(matches[active]);
+            } else if (event.key === "Escape") {
+              setOpen(false);
+            }
+          }}
+        />
+      </label>
+      {open && !disabled && matches.length > 0 && (
+        <ul
+          className="absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-default-200 bg-white py-1 shadow-lg"
+          role="listbox"
+        >
+          {matches.map((option, index) => (
+            <li key={option}>
+              <button
+                className={`block min-h-11 w-full px-3 py-2.5 text-left text-sm ${
+                  index === active ? "bg-primary/10 text-primary" : "text-foreground"
+                }`}
+                type="button"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  commit(option);
+                }}
+              >
+                {option}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function ServicePointFields({
   legend,
   value,
@@ -83,101 +217,87 @@ function ServicePointFields({
   value: ServicePoint;
   onChange: (next: ServicePoint) => void;
 }) {
-  const provinces = listProvincesForDepartment(value.department);
-  const districts = listDistrictsForProvince(value.department, value.province);
-  const typedDistrict = districts.length === 0 && value.province !== "";
+  const department = exactOption(value.department, PERU_DEPARTMENTS);
+  const provinces =
+    department === undefined ? [] : listProvincesForDepartment(department);
+  const province = exactOption(value.province, provinces);
+  const districts =
+    department === undefined || province === undefined
+      ? []
+      : listDistrictsForProvince(department, province);
+  const freeDistrict = province !== undefined && districts.length === 0;
   const dateLabel = value.date === "" ? "" : formatServiceDate(value.date);
   const inThePast = value.date !== "" && value.date < todayInputValue();
 
   return (
     <fieldset className="sm:col-span-2">
       <legend className="mb-3 text-sm font-semibold">{legend}</legend>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <label className="block">
-          <span className="mb-1.5 block text-sm">Departamento</span>
-          <select
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="block min-w-0">
+          <span className="mb-1.5 block text-sm">Fecha</span>
+          <input
             required
-            className={fieldClass}
-            value={value.department}
-            onChange={(event) =>
-              onChange({
-                ...value,
-                department: event.target.value,
-                province: "",
-                district: "",
-              })
-            }
-          >
-            <option value="">Elige</option>
-            {PERU_DEPARTMENTS.map((department) => (
-              <option key={department} value={department}>
-                {department}
-              </option>
-            ))}
-          </select>
+            className={`${fieldClass} h-11 [color-scheme:light]`}
+            min={todayInputValue()}
+            type="date"
+            value={value.date}
+            onChange={(event) => onChange({ ...value, date: event.target.value })}
+          />
         </label>
-        <label className="block">
-          <span className="mb-1.5 block text-sm">Provincia</span>
-          <select
-            required
-            className={fieldClass}
-            disabled={value.department === ""}
-            value={value.province}
-            onChange={(event) =>
-              onChange({ ...value, province: event.target.value, district: "" })
-            }
-          >
-            <option value="">Elige</option>
-            {provinces.map((province) => (
-              <option key={province} value={province}>
-                {province}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block">
-          <span className="mb-1.5 block text-sm">Distrito</span>
-          {typedDistrict ? (
+        <SuggestInput
+          label="Departamento"
+          options={PERU_DEPARTMENTS}
+          placeholder="Escribe y elige"
+          value={value.department}
+          onChange={(next) => {
+            const picked = exactOption(next, PERU_DEPARTMENTS);
+            const same = picked !== undefined && picked === department;
+            onChange({
+              ...value,
+              department: next,
+              province: same ? value.province : "",
+              district: same ? value.district : "",
+            });
+          }}
+        />
+        <SuggestInput
+          disabled={department === undefined}
+          label="Provincia"
+          options={provinces}
+          placeholder={department === undefined ? "Primero el departamento" : "Escribe y elige"}
+          value={value.province}
+          onChange={(next) => {
+            const picked = exactOption(next, provinces);
+            const same = picked !== undefined && picked === province;
+            onChange({
+              ...value,
+              province: next,
+              district: same ? value.district : "",
+            });
+          }}
+        />
+        {freeDistrict ? (
+          <label className="block min-w-0">
+            <span className="mb-1.5 block text-sm">Distrito</span>
             <input
               required
-              className={fieldClass}
+              className={`${fieldClass} h-11`}
               placeholder="Escribe el distrito"
               value={value.district}
-              onChange={(event) =>
-                onChange({ ...value, district: event.target.value })
-              }
+              onChange={(event) => onChange({ ...value, district: event.target.value })}
             />
-          ) : (
-            <select
-              required
-              className={fieldClass}
-              disabled={value.province === ""}
-              value={value.district}
-              onChange={(event) =>
-                onChange({ ...value, district: event.target.value })
-              }
-            >
-              <option value="">Elige</option>
-              {districts.map((district) => (
-                <option key={district} value={district}>
-                  {district}
-                </option>
-              ))}
-            </select>
-          )}
-        </label>
+          </label>
+        ) : (
+          <SuggestInput
+            disabled={province === undefined}
+            label="Distrito"
+            options={districts}
+            placeholder={province === undefined ? "Primero la provincia" : "Escribe y elige"}
+            value={value.district}
+            onChange={(next) => onChange({ ...value, district: next })}
+          />
+        )}
       </div>
-      <label className="mt-4 block max-w-xs">
-        <span className="mb-1.5 block text-sm">Fecha</span>
-        <input
-          required
-          className={`${fieldClass} h-11 [color-scheme:light]`}
-          min={todayInputValue()}
-          type="date"
-          value={value.date}
-          onChange={(event) => onChange({ ...value, date: event.target.value })}
-        />
-      </label>
       {dateLabel !== "" && (
         <p className={`mt-2 text-sm ${inThePast ? "text-danger" : "text-default-500"}`}>
           {inThePast ? "Elige una fecha de hoy en adelante. " : ""}
@@ -253,15 +373,10 @@ export function CorporateQuoteForm() {
       return;
     }
 
-    if (
-      origin.department === "" ||
-      origin.province === "" ||
-      origin.district === "" ||
-      destination.department === "" ||
-      destination.province === "" ||
-      destination.district === ""
-    ) {
-      setError("Elige el origen y el destino del servicio.");
+    const originPoint = resolvePoint(origin);
+    const destinationPoint = resolvePoint(destination);
+    if (originPoint === null || destinationPoint === null) {
+      setError("Elige departamento, provincia y distrito de la lista.");
       return;
     }
 
@@ -292,12 +407,12 @@ export function CorporateQuoteForm() {
         ruc: values.ruc,
         email: values.email,
         phone: values.phone,
-        originDepartment: origin.department,
-        originProvince: origin.province,
-        originDistrict: origin.district,
-        destinationDepartment: destination.department,
-        destinationProvince: destination.province,
-        destinationDistrict: destination.district,
+        originDepartment: originPoint.department,
+        originProvince: originPoint.province,
+        originDistrict: originPoint.district,
+        destinationDepartment: destinationPoint.department,
+        destinationProvince: destinationPoint.province,
+        destinationDistrict: destinationPoint.district,
         serviceStart: origin.date,
         serviceEnd: destination.date,
         serviceHours,
@@ -352,7 +467,17 @@ export function CorporateQuoteForm() {
       className="rounded-3xl border border-default-200 p-6 sm:p-8 lg:p-10"
       onSubmit={onSubmit}
     >
-      <div className="grid gap-8 sm:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-2 sm:gap-8">
+        <ServicePointFields
+          legend="Origen del servicio"
+          value={origin}
+          onChange={setOrigin}
+        />
+        <ServicePointFields
+          legend="Destino del servicio"
+          value={destination}
+          onChange={setDestination}
+        />
         <Input
           isRequired
           label="Nombre de contacto"
@@ -406,16 +531,6 @@ export function CorporateQuoteForm() {
           value={values.email}
           onValueChange={(value) => setField("email", value)}
         />
-        <ServicePointFields
-          legend="Origen del servicio"
-          value={origin}
-          onChange={setOrigin}
-        />
-        <ServicePointFields
-          legend="Destino del servicio"
-          value={destination}
-          onChange={setDestination}
-        />
         <Input
           isRequired
           label="Horas aproximadas"
@@ -452,8 +567,9 @@ export function CorporateQuoteForm() {
           {error}
         </p>
       )}
-      <div className="mt-8 flex justify-end">
+      <div className="mt-8 flex sm:justify-end">
         <Button
+          className="w-full sm:w-auto"
           color="primary"
           isDisabled={!rucComplete || !phoneComplete}
           isLoading={pending}

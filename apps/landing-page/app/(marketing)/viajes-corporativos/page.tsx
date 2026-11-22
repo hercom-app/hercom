@@ -78,7 +78,19 @@ export default function ViajesCorporativosPage() {
         </a>
       </PageHero>
 
-      <section className="section pb-8 lg:pb-12" id="soluciones">
+      <section className="section scroll-mt-28 pb-8 pt-2 lg:pb-12" id="cotizacion">
+        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          Cuéntanos de tu viaje
+        </h2>
+        <p className="mt-3 text-base leading-snug text-default-600 md:whitespace-nowrap md:text-lg">
+          Compártenos los detalles de tu traslado aquí abajo para ayudarte.
+        </p>
+        <div className="mt-6">
+          <CorporateQuoteForm />
+        </div>
+      </section>
+
+      <section className="section pb-16 lg:pb-24" id="soluciones">
         <p className="text-sm font-semibold uppercase tracking-wider text-primary">
           Soluciones
         </p>
@@ -94,17 +106,17 @@ export default function ViajesCorporativosPage() {
           {driverServices.map((service) => (
             <article
               key={service.slug}
-              className="flex flex-col rounded-3xl border border-default-200 p-8"
+              className="flex flex-col rounded-3xl border border-default-200 p-5 sm:p-8"
             >
               <span className="text-primary">{SOLUTION_ICONS[service.slug]}</span>
               <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-primary">
                 {service.audience}
               </p>
               <h3 className="mt-2 text-2xl font-bold">{service.title}</h3>
-              <p className="mt-4 flex-1 leading-relaxed text-default-600">
+              <p className="mt-4 leading-relaxed text-default-600">
                 {service.lead}
               </p>
-              <ul className="mt-6 space-y-2 text-sm leading-relaxed text-default-600">
+              <ul className="mt-4 space-y-2 text-sm leading-relaxed text-default-600">
                 {service.points.map((point) => (
                   <li key={point}>{point}</li>
                 ))}
@@ -114,20 +126,6 @@ export default function ViajesCorporativosPage() {
         </div>
       </section>
 
-      <section className="section scroll-mt-28 pb-16 lg:pb-24" id="cotizacion">
-        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Cuéntanos de tu viaje
-        </h2>
-        <p
-          className="mt-3 whitespace-nowrap leading-snug text-default-600"
-          style={{ fontSize: "min(1.125rem, calc((100vw - 3rem) / 36))" }}
-        >
-          Compártenos los detalles de tu traslado aquí abajo para ayudarte.
-        </p>
-        <div className="mt-10">
-          <CorporateQuoteForm />
-        </div>
-      </section>
     </>
   );
 }

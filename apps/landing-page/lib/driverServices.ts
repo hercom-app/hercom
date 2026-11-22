@@ -29,7 +29,6 @@ export const driverServices: DriverService[] = [
       "Uso personal: traslados del día, compromisos familiares y viajes en los que prefieres no tomar el volante.",
       "Choferes recomendados por sus valores, su educación y los idiomas que hablan.",
       "Preparados en primeros auxilios y con disponibilidad para viajar al interior o al exterior del país.",
-      "Cubrimos el requerimiento específico que nos indiques al reservar.",
     ],
   },
   {
@@ -41,11 +40,10 @@ export const driverServices: DriverService[] = [
       "Te trasladamos a tus actividades como: al aeropuerto, directorios, ceremonias, bodas, conferencias, entre otros requerimientos que Ud. planifique.",
       "Contáctate para mayor información con uno de nuestros ejecutivos.",
     ],
-    lead: "Chofer Corporativo es el servicio para empresas que coordinan traslados con anticipación.",
+    lead: "Chofer Corporativo es el servicio para empresas.",
     points: [
-      "Reservas desde la casa o la oficina, antes del día del servicio.",
+      "Reservas desde la casa o la oficina.",
       "Traslados de empresa: aeropuerto, directorios, ceremonias, bodas, conferencias y otros compromisos que planifiques.",
-      "Un ejecutivo de Hercom coordina el servicio con tu empresa.",
     ],
   },
   {
@@ -75,7 +73,6 @@ export const driverServices: DriverService[] = [
     points: [
       "Maquinaria, buses, tráiler y otros equipos de flota.",
       "Conductores con especificación de ruta larga y de vehículos especiales.",
-      "El pedido se coordina con nuestra central.",
     ],
   },
 ];

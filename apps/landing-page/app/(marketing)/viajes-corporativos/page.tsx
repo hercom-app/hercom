@@ -53,17 +53,19 @@ const SOLUTION_ICONS: Record<string, ReactNode> = {
   ),
 };
 
+const HERO_DESCRIPTION =
+  "Gestiona tus traslados personales y los de tu equipo de forma simple y segura con Hercom. Simplificamos la movilidad de tu empresa con choferes eficientes, confiables y adaptados a cada necesidad.";
+
 export const metadata: Metadata = {
   title: "Viajes corporativos",
-  description:
-    "No te preocupes si no puedes manejar, solicita un chofer con tu app HERCOM.",
+  description: HERO_DESCRIPTION,
 };
 
 export default function ViajesCorporativosPage() {
   return (
     <>
       <PageHero
-        description="No te preocupes si no puedes manejar, solicita un chofer con tu app HERCOM."
+        description={HERO_DESCRIPTION}
         eyebrow="Viajes corporativos"
         image={ContactanosImg}
         imageAlt="Ejecutiva de atención de HERCOM"
@@ -78,29 +80,13 @@ export default function ViajesCorporativosPage() {
         </a>
       </PageHero>
 
-      <section className="section scroll-mt-28 pb-8 pt-2 lg:pb-12" id="cotizacion">
-        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Cuéntanos de tu viaje
-        </h2>
-        <p className="mt-3 text-base leading-snug text-default-600 md:whitespace-nowrap md:text-lg">
-          Compártenos los detalles de tu traslado aquí abajo para ayudarte.
-        </p>
-        <div className="mt-6">
-          <CorporateQuoteForm />
-        </div>
-      </section>
-
-      <section className="section pb-16 lg:pb-24" id="soluciones">
+      <section className="section pb-8 lg:pb-12" id="soluciones">
         <p className="text-sm font-semibold uppercase tracking-wider text-primary">
           Soluciones
         </p>
         <h2 className="mt-3 max-w-3xl text-3xl font-bold tracking-tight sm:text-4xl">
           Un chofer para cada necesidad
         </h2>
-        <p className="mt-4 max-w-2xl text-lg leading-relaxed text-default-600">
-          Elige el servicio y cuéntanos el viaje. Un ejecutivo de HERCOM
-          revisa la solicitud y te escribe con la cotización.
-        </p>
 
         <div className="mt-10 grid gap-4 md:grid-cols-2">
           {driverServices.map((service) => (
@@ -126,6 +112,17 @@ export default function ViajesCorporativosPage() {
         </div>
       </section>
 
+      <section className="section scroll-mt-28 pb-16 lg:pb-24" id="cotizacion">
+        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          Cuéntanos de tu viaje
+        </h2>
+        <p className="mt-3 text-base leading-snug text-default-600 md:whitespace-nowrap md:text-lg">
+          Compártenos los detalles de tu traslado aquí abajo para ayudarte.
+        </p>
+        <div className="mt-6">
+          <CorporateQuoteForm />
+        </div>
+      </section>
     </>
   );
 }

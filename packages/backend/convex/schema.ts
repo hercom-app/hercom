@@ -69,6 +69,13 @@ export const walletTransactionTypeValidator = v.union(
   v.literal("trip_debit"),
 );
 
+export const walletTopUpOrderStatusValidator = v.union(
+  v.literal("pending"),
+  v.literal("paid"),
+  v.literal("failed"),
+  v.literal("expired"),
+);
+
 export const serviceOfferStatusValidator = v.union(
   v.literal("pending"),
   v.literal("accepted"),
@@ -509,6 +516,25 @@ export default defineSchema({
     tripCredits: v.optional(v.number()),
     updatedAt: v.number(),
   }).index("by_driver", ["driverId"]),
+
+  /**
+   * Cobro Izipay/Lyra antes de acreditar la billetera del chofer.
+   */
+  walletTopUpOrders: defineTable({
+    driverId: v.id("drivers"),
+    userId: v.id("users"),
+    amountPen: v.number(),
+    lyraOrderId: v.string(),
+    formToken: v.string(),
+    status: walletTopUpOrderStatusValidator,
+    customerEmail: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    paidAt: v.optional(v.number()),
+  })
+    .index("by_lyra_order", ["lyraOrderId"])
+    .index("by_driver", ["driverId"])
+    .index("by_driver_status", ["driverId", "status"]),
 
   /**
    * Movimientos del saldo del chofer.

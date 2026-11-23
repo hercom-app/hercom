@@ -46,6 +46,7 @@ import type * as lib_identity from "../lib/identity.js";
 import type * as lib_identityServiceErrors from "../lib/identityServiceErrors.js";
 import type * as lib_licenseLookupTypes from "../lib/licenseLookupTypes.js";
 import type * as lib_liveShare from "../lib/liveShare.js";
+import type * as lib_lyra from "../lib/lyra.js";
 import type * as lib_markets from "../lib/markets.js";
 import type * as lib_money from "../lib/money.js";
 import type * as lib_offerLimits from "../lib/offerLimits.js";
@@ -62,6 +63,7 @@ import type * as lib_serviceRouteArchive from "../lib/serviceRouteArchive.js";
 import type * as lib_serviceStops from "../lib/serviceStops.js";
 import type * as lib_statusLabels from "../lib/statusLabels.js";
 import type * as lib_vehicleChecklistPhotos from "../lib/vehicleChecklistPhotos.js";
+import type * as lyraCheckoutHttp from "../lyraCheckoutHttp.js";
 import type * as markets from "../markets.js";
 import type * as notifications from "../notifications.js";
 import type * as payments from "../payments.js";
@@ -86,6 +88,8 @@ import type * as support from "../support.js";
 import type * as tripSummary from "../tripSummary.js";
 import type * as users from "../users.js";
 import type * as verificape from "../verificape.js";
+import type * as walletTopUpOrders from "../walletTopUpOrders.js";
+import type * as walletTopUps from "../walletTopUps.js";
 
 import type {
   ApiFromModules,
@@ -132,6 +136,7 @@ declare const fullApi: ApiFromModules<{
   "lib/identityServiceErrors": typeof lib_identityServiceErrors;
   "lib/licenseLookupTypes": typeof lib_licenseLookupTypes;
   "lib/liveShare": typeof lib_liveShare;
+  "lib/lyra": typeof lib_lyra;
   "lib/markets": typeof lib_markets;
   "lib/money": typeof lib_money;
   "lib/offerLimits": typeof lib_offerLimits;
@@ -148,6 +153,7 @@ declare const fullApi: ApiFromModules<{
   "lib/serviceStops": typeof lib_serviceStops;
   "lib/statusLabels": typeof lib_statusLabels;
   "lib/vehicleChecklistPhotos": typeof lib_vehicleChecklistPhotos;
+  lyraCheckoutHttp: typeof lyraCheckoutHttp;
   markets: typeof markets;
   notifications: typeof notifications;
   payments: typeof payments;
@@ -172,6 +178,8 @@ declare const fullApi: ApiFromModules<{
   tripSummary: typeof tripSummary;
   users: typeof users;
   verificape: typeof verificape;
+  walletTopUpOrders: typeof walletTopUpOrders;
+  walletTopUps: typeof walletTopUps;
 }>;
 
 /**

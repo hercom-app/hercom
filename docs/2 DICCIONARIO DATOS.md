@@ -311,12 +311,32 @@ Campos:
 - `updatedAt` (number)
 
 Observacion:
-- El chofer recarga soles desde la app (S/30, S/50 o S/100).
+- El chofer recarga soles desde la app (hoy paquetes S/30, S/50, S/100; vía Izipay/Lyra).
 - Al cerrar un viaje se descuenta la comisión (25% por defecto, o la del distrito).
 - Límite mínimo de saldo permitido: S/-15.
 
 Indices:
 - `by_driver` sobre `driverId`
+
+## `walletTopUpOrders` (cobro Izipay antes de acreditar saldo)
+
+Campos:
+- `driverId` (id `drivers`)
+- `userId` (id `users`, chofer que inició la recarga)
+- `amountPen` (number, soles a acreditar si el pago se confirma)
+- `lyraOrderId` (string, ref. pedido enviada a Lyra; se ve en Transacciones de TEST)
+- `formToken` (string, token de pago ~15 min)
+- `status` (`pending` | `paid` | `failed` | `expired`)
+- `customerEmail` (optional string)
+- `createdAt`, `updatedAt` (number)
+- `paidAt` (optional number)
+
+Indices:
+- `by_lyra_order` sobre `lyraOrderId`
+- `by_driver` sobre `driverId`
+- `by_driver_status` sobre `driverId, status`
+
+Ver flujo completo: `docs/3 IZIPAY RECARGA BILLETERA.md`.
 
 ## `walletTransactions` (movimientos del saldo del chofer)
 

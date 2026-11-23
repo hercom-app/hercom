@@ -2,9 +2,41 @@
 export const IZIPAY_TOP_UP_FEE_RATE = 0.0248;
 export const IZIPAY_TOP_UP_FEE_FIXED_PEN = 0.34;
 
-/** Rango de precios de paquetes de recarga (1 / 2 / 5 viajes). */
-export const IZIPAY_TOP_UP_MIN_PEN = 30;
-export const IZIPAY_TOP_UP_MAX_PEN = 100;
+/** Debe coincidir con `walletTopUps` en Convex (validación servidor). */
+export const WALLET_TOP_UP_MIN_PEN = 10;
+export const WALLET_TOP_UP_MAX_PEN = 500;
+
+/** @deprecated Usar WALLET_TOP_UP_MIN_PEN */
+export const IZIPAY_TOP_UP_MIN_PEN = WALLET_TOP_UP_MIN_PEN;
+/** @deprecated Usar WALLET_TOP_UP_MAX_PEN */
+export const IZIPAY_TOP_UP_MAX_PEN = WALLET_TOP_UP_MAX_PEN;
+
+/** Interpreta texto del chofer → soles (null si vacío o no numérico). */
+export function parseTopUpAmountPen(text: string): number | null {
+  const trimmed = text.trim().replace(/\s/g, "").replace(/,/g, ".");
+  if (trimmed === "") {
+    return null;
+  }
+  const normalized = trimmed.replace(/^s\/\s*/i, "");
+  const value = Number.parseFloat(normalized);
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+  return Math.round(value * 100) / 100;
+}
+
+export function validateTopUpAmountPen(amountPen: number | null): string | null {
+  if (amountPen === null) {
+    return "Indica cuánto quieres recargar.";
+  }
+  if (amountPen < WALLET_TOP_UP_MIN_PEN) {
+    return `El monto mínimo es S/ ${WALLET_TOP_UP_MIN_PEN}.`;
+  }
+  if (amountPen > WALLET_TOP_UP_MAX_PEN) {
+    return `El monto máximo es S/ ${WALLET_TOP_UP_MAX_PEN}.`;
+  }
+  return null;
+}
 
 export type IzipayTopUpQuote = {
   amountPen: number;

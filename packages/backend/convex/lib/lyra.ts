@@ -5,6 +5,17 @@ export type LyraCreatePaymentResponse = {
   detailedErrorMessage?: string;
 };
 
+export type LyraCreatePaymentOrderResponse = {
+  status?: string;
+  answer?: {
+    paymentURL?: string;
+    paymentOrderId?: string;
+    orderId?: string;
+  };
+  errorMessage?: string;
+  detailedErrorMessage?: string;
+};
+
 export type LyraOrderGetResponse = {
   status?: string;
   answer?: {
@@ -87,6 +98,48 @@ export async function lyraCreateFormToken(args: {
     throw new Error("Lyra no devolvió formToken.");
   }
   return token;
+}
+
+/**
+ * Modo redirección (doc: enlace de pago URL) — el chofer paga en secure.micuentaweb.pe.
+ * @see https://secure.micuentaweb.pe/doc/es-PE/rest/V4.0/api/kb/url_payment_order.html
+ */
+export async function lyraCreatePaymentUrl(args: {
+  amountPen: number;
+  orderId: string;
+  customerEmail?: string;
+}): Promise<{ paymentURL: string; paymentOrderId: string }> {
+  const payload: Record<string, unknown> = {
+    amount: penToLyraAmount(args.amountPen),
+    currency: "PEN",
+    orderId: args.orderId,
+    channelOptions: { channelType: "URL" },
+    locale: "es_PE",
+    dataCollectionForm: false,
+  };
+  if (args.customerEmail !== undefined && args.customerEmail !== "") {
+    payload.customer = { email: args.customerEmail };
+    payload.paymentReceiptEmail = args.customerEmail;
+  }
+  const result = await lyraPost<LyraCreatePaymentOrderResponse>(
+    "Charge/CreatePaymentOrder",
+    payload,
+  );
+  const paymentURL = result.answer?.paymentURL;
+  const paymentOrderId = result.answer?.paymentOrderId;
+  if (paymentURL === undefined || paymentURL === "") {
+    throw new Error("Izipay no devolvió paymentURL.");
+  }
+  if (paymentOrderId === undefined || paymentOrderId === "") {
+    throw new Error("Izipay no devolvió paymentOrderId.");
+  }
+  return { paymentURL, paymentOrderId };
+}
+
+/** embedded = página propia con Krypton; redirect = enlace secure.micuentaweb.pe (default). */
+export function lyraCheckoutMode(): "embedded" | "redirect" {
+  const raw = (process.env.LYRA_CHECKOUT_MODE ?? "redirect").toLowerCase();
+  return raw === "embedded" ? "embedded" : "redirect";
 }
 
 function txLooksPaid(status: string, detailedStatus: string): boolean {

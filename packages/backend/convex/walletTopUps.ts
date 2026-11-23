@@ -3,7 +3,13 @@ import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { lyraCreateFormToken, lyraOrderIsPaid, lyraPublicKey } from "./lib/lyra";
+import {
+  lyraCheckoutMode,
+  lyraCreateFormToken,
+  lyraCreatePaymentUrl,
+  lyraOrderIsPaid,
+  lyraPublicKey,
+} from "./lib/lyra";
 
 type BeginTopUpResult = {
   orderDocId: Id<"walletTopUpOrders">;
@@ -60,11 +66,33 @@ export const beginTopUp = action({
     const amountPen = assertTopUpAmount(args.amountPen);
     const lyraOrderId = newLyraOrderId();
     const email = ctxDriver.user.email?.trim() ?? "";
-    const formToken = await lyraCreateFormToken({
-      amountPen,
-      orderId: lyraOrderId,
-      ...(email !== "" ? { customerEmail: email } : {}),
-    });
+    const mode = lyraCheckoutMode();
+    let checkoutUrl: string;
+    let formToken: string;
+
+    if (mode === "redirect") {
+      const payment = await lyraCreatePaymentUrl({
+        amountPen,
+        orderId: lyraOrderId,
+        ...(email !== "" ? { customerEmail: email } : {}),
+      });
+      checkoutUrl = payment.paymentURL;
+      formToken = payment.paymentOrderId;
+    } else {
+      formToken = await lyraCreateFormToken({
+        amountPen,
+        orderId: lyraOrderId,
+        ...(email !== "" ? { customerEmail: email } : {}),
+      });
+      const siteUrl =
+        process.env.CONVEX_SITE_URL?.replace(/\/$/, "") ??
+        process.env.SITE_URL?.replace(/\/$/, "");
+      if (siteUrl === undefined || siteUrl === "") {
+        throw new Error("Configura CONVEX_SITE_URL o SITE_URL en Convex.");
+      }
+      checkoutUrl = `${siteUrl}/lyra/checkout?order=${encodeURIComponent(lyraOrderId)}`;
+    }
+
     const orderDocId = await ctx.runMutation(internal.walletTopUpOrders.insertPendingOrder, {
       driverId: ctxDriver.driver._id,
       userId,
@@ -73,12 +101,6 @@ export const beginTopUp = action({
       formToken,
       ...(email !== "" ? { customerEmail: email } : {}),
     });
-
-    const siteUrl = process.env.CONVEX_SITE_URL;
-    if (siteUrl === undefined || siteUrl === "") {
-      throw new Error("CONVEX_SITE_URL no está configurado en Convex.");
-    }
-    const checkoutUrl = `${siteUrl.replace(/\/$/, "")}/lyra/checkout?order=${encodeURIComponent(lyraOrderId)}`;
 
     return {
       orderDocId,

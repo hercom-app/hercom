@@ -4,6 +4,7 @@ import {
   Alert,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -12,15 +13,14 @@ import type { Id } from "@proyecto/backend/dataModel";
 import { api } from "@proyecto/backend";
 import * as WebBrowser from "expo-web-browser";
 import {
-  DRIVER_TOP_UP_PACKAGES,
-  getDriverTopUpPackage,
-  type DriverTopUpPackageId,
-} from "@proyecto/backend/driverTopUpPackages";
-import {
   computeIzipayTopUpQuote,
   formatPenAmount,
   IZIPAY_TOP_UP_FEE_FIXED_PEN,
   IZIPAY_TOP_UP_FEE_RATE,
+  parseTopUpAmountPen,
+  validateTopUpAmountPen,
+  WALLET_TOP_UP_MAX_PEN,
+  WALLET_TOP_UP_MIN_PEN,
 } from "../../lib/izipayTopUpFees";
 import { convexErrorMessage } from "../../lib/convexErrorMessage";
 import { TABULAR, TYPE } from "../../constants/theme";
@@ -40,20 +40,23 @@ export function DriverWalletTopUpView({
   const wallet = useWalletTheme();
   const beginTopUp = useAction(api.walletTopUps.beginTopUp);
   const fulfillTopUp = useAction(api.walletTopUps.fulfillTopUp);
-  const [packageId, setPackageId] = useState<DriverTopUpPackageId>("trips_1");
+  const [amountText, setAmountText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<Id<"walletTopUpOrders"> | null>(
     null,
   );
+  const [lastChargedPen, setLastChargedPen] = useState<number | null>(null);
 
-  const selected = useMemo(
-    () => getDriverTopUpPackage(packageId),
-    [packageId],
+  const amountPen = useMemo(() => parseTopUpAmountPen(amountText), [amountText]);
+  const validationError = useMemo(
+    () => validateTopUpAmountPen(amountPen),
+    [amountPen],
   );
+  const canPay = validationError === null && amountPen !== null;
 
   const quote = useMemo(
-    () => computeIzipayTopUpQuote(selected.pricePen),
-    [selected.pricePen],
+    () => computeIzipayTopUpQuote(amountPen ?? 0),
+    [amountPen],
   );
 
   const commissionLabel = `${(IZIPAY_TOP_UP_FEE_RATE * 100).toFixed(2)}% + PEN ${IZIPAY_TOP_UP_FEE_FIXED_PEN.toFixed(2)}`;
@@ -66,11 +69,12 @@ export function DriverWalletTopUpView({
     try {
       const result = await fulfillTopUp({ orderDocId: pendingOrderId });
       setPendingOrderId(null);
+      const credited = lastChargedPen ?? quote.amountPen;
       Alert.alert(
         "Recarga acreditada",
         result.alreadyPaid === true
           ? `Tu saldo es S/ ${result.balance?.toFixed(2) ?? "—"}.`
-          : `Se sumaron S/ ${quote.amountPen.toFixed(2)}. Saldo S/ ${result.balance?.toFixed(2) ?? "—"}.`,
+          : `Se sumaron S/ ${credited.toFixed(2)}. Saldo S/ ${result.balance?.toFixed(2) ?? "—"}.`,
       );
       onTopUpComplete?.();
     } catch (error) {
@@ -87,28 +91,48 @@ export function DriverWalletTopUpView({
   }
 
   async function handleRecargar() {
+    if (!canPay || amountPen === null) {
+      Alert.alert("Monto inválido", validationError ?? "Revisa el monto.");
+      return;
+    }
     setSubmitting(true);
+    const chargedPen = amountPen;
     try {
-      const session = await beginTopUp({ amountPen: selected.pricePen });
+      const session = await beginTopUp({ amountPen: chargedPen });
+      setLastChargedPen(chargedPen);
       setPendingOrderId(session.orderDocId);
-      await WebBrowser.openBrowserAsync(session.checkoutUrl);
-      Alert.alert(
-        "Pago con Izipay (test)",
-        "Usa la tarjeta Visa 4970100000000055 en el formulario. Al cerrar el navegador, pulsa «Confirmar pago».",
-        [
-          { text: "Más tarde", style: "cancel" },
-          {
-            text: "Confirmar pago",
-            onPress: () => void handleConfirmPayment(),
-          },
-        ],
-      );
+      await WebBrowser.openBrowserAsync(session.checkoutUrl, {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+      });
+      try {
+        const result = await fulfillTopUp({ orderDocId: session.orderDocId });
+        setPendingOrderId(null);
+        Alert.alert(
+          "Recarga acreditada",
+          result.alreadyPaid === true
+            ? `Tu saldo es S/ ${result.balance?.toFixed(2) ?? "—"}.`
+            : `Se sumaron S/ ${chargedPen.toFixed(2)}. Saldo S/ ${result.balance?.toFixed(2) ?? "—"}.`,
+        );
+        onTopUpComplete?.();
+      } catch {
+        Alert.alert(
+          "Confirma tu pago",
+          "Si ya pagaste en Izipay (tarjeta, Yape u otro medio), pulsa «Confirmar pago». Si no, inténtalo de nuevo.",
+          [
+            { text: "Más tarde", style: "cancel" },
+            {
+              text: "Confirmar pago",
+              onPress: () => void handleConfirmPayment(),
+            },
+          ],
+        );
+      }
     } catch (error) {
       Alert.alert(
         "No se pudo abrir Izipay",
         convexErrorMessage(
           error,
-          "Revisa que Convex tenga LYRA_REST_USER, LYRA_REST_PASSWORD y LYRA_PUBLIC_KEY (test).",
+          "Revisa que Convex tenga las claves REST de Izipay (test o producción).",
         ),
       );
     } finally {
@@ -123,6 +147,7 @@ export function DriverWalletTopUpView({
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <Text
           style={{
@@ -132,68 +157,69 @@ export function DriverWalletTopUpView({
             color: wallet.textDim,
           }}
         >
-          Elige un monto. Se suma a tu saldo al confirmar el pago con Izipay.
-          Cada viaje descuenta la comisión de Hercom.
+          {`Indica el monto (S/ ${WALLET_TOP_UP_MIN_PEN} – S/ ${WALLET_TOP_UP_MAX_PEN}). Tras pagar en Izipay, confirmamos y sumamos el saldo a tu billetera.`}
         </Text>
 
-        <View style={{ marginTop: 16, gap: 10 }}>
-          {DRIVER_TOP_UP_PACKAGES.map((pkg) => {
-            const active = pkg.id === packageId;
-            return (
-              <TouchableOpacity
-                key={pkg.id}
-                onPress={() => setPackageId(pkg.id)}
-                activeOpacity={0.85}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={`${pkg.label}, ${formatPenAmount(pkg.pricePen)}`}
-                style={{
-                  backgroundColor: active ? wallet.surfaceElevated : wallet.surface,
-                  borderRadius: 16,
-                  paddingHorizontal: 16,
-                  paddingVertical: 18,
-                  borderWidth: 2,
-                  borderColor: active ? wallet.ctaBg : wallet.border,
-                }}
-              >
-                <View className="flex-row items-center justify-between">
-                  <View>
-                    <Text
-                      style={{
-                        fontFamily: WALLET_FONT.bold,
-                        fontSize: WALLET_TYPE.body,
-                        color: wallet.text,
-                      }}
-                    >
-                      {pkg.label}
-                    </Text>
-                    <Text
-                      style={{
-                        marginTop: 4,
-                        fontFamily: WALLET_FONT.regular,
-                        fontSize: WALLET_TYPE.caption,
-                        color: wallet.textDim,
-                      }}
-                    >
-                      Saldo a acreditar
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: "flex-end" }}>
-                    <Text
-                      style={{
-                        fontFamily: WALLET_FONT.bold,
-                        fontSize: WALLET_TYPE.amountInput,
-                        color: wallet.text,
-                        ...TABULAR,
-                      }}
-                    >
-                      {`S/ ${pkg.pricePen}`}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+        <View
+          style={{
+            marginTop: 20,
+            backgroundColor: wallet.surface,
+            borderRadius: 16,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderWidth: 1,
+            borderColor: validationError !== null && amountText.trim() !== "" ? "#E53935" : wallet.border,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: WALLET_FONT.regular,
+              fontSize: WALLET_TYPE.caption,
+              color: wallet.textDim,
+            }}
+          >
+            Monto a recargar
+          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+            <Text
+              style={{
+                fontFamily: WALLET_FONT.bold,
+                fontSize: WALLET_TYPE.amountInput,
+                color: wallet.textDim,
+                marginRight: 6,
+              }}
+            >
+              S/
+            </Text>
+            <TextInput
+              value={amountText}
+              onChangeText={setAmountText}
+              placeholder="0.00"
+              placeholderTextColor={wallet.textDim}
+              keyboardType="decimal-pad"
+              accessibilityLabel="Monto de recarga en soles"
+              style={{
+                flex: 1,
+                fontFamily: WALLET_FONT.bold,
+                fontSize: WALLET_TYPE.amountInput,
+                color: wallet.text,
+                paddingVertical: 8,
+                ...TABULAR,
+              }}
+            />
+          </View>
+          {validationError !== null && amountText.trim() !== "" ? (
+            <Text
+              style={{
+                marginTop: 6,
+                fontFamily: WALLET_FONT.regular,
+                fontSize: WALLET_TYPE.caption,
+                color: "#E53935",
+              }}
+            >
+              {validationError}
+            </Text>
+          ) : null}
         </View>
 
         <View
@@ -226,7 +252,7 @@ export function DriverWalletTopUpView({
                 color: wallet.textDim,
               }}
             >
-              {`Comisión IZIPAY: ${commissionLabel}`}
+              {`Comisión pasarela (referencia): ${commissionLabel}`}
             </Text>
           </View>
         </View>
@@ -238,6 +264,7 @@ export function DriverWalletTopUpView({
             borderRadius: 16,
             paddingHorizontal: 16,
             paddingVertical: 4,
+            opacity: canPay ? 1 : 0.55,
           }}
         >
           <View
@@ -256,7 +283,7 @@ export function DriverWalletTopUpView({
                 color: wallet.text,
               }}
             >
-              Paquete
+              Se acredita en billetera
             </Text>
             <Text
               style={{
@@ -266,7 +293,7 @@ export function DriverWalletTopUpView({
                 ...TABULAR,
               }}
             >
-              {`PEN ${quote.amountPen.toFixed(2)}`}
+              {canPay ? formatPenAmount(quote.amountPen) : "—"}
             </Text>
           </View>
           <View
@@ -295,7 +322,7 @@ export function DriverWalletTopUpView({
                 ...TABULAR,
               }}
             >
-              {`PEN ${quote.commissionPen.toFixed(2)}`}
+              {canPay ? `PEN ${quote.commissionPen.toFixed(2)}` : "—"}
             </Text>
           </View>
           <View
@@ -312,7 +339,7 @@ export function DriverWalletTopUpView({
                 color: wallet.text,
               }}
             >
-              Se debitarán de la cuenta
+              Cobro en pasarela (hoy)
             </Text>
             <Text
               style={{
@@ -322,7 +349,7 @@ export function DriverWalletTopUpView({
                 ...TABULAR,
               }}
             >
-              {`PEN ${quote.totalDebitPen.toFixed(2)}`}
+              {canPay ? `PEN ${quote.amountPen.toFixed(2)}` : "—"}
             </Text>
           </View>
         </View>
@@ -359,7 +386,7 @@ export function DriverWalletTopUpView({
         )}
         <TouchableOpacity
           onPress={() => void handleRecargar()}
-          disabled={submitting}
+          disabled={submitting || !canPay}
           activeOpacity={0.9}
           accessibilityRole="button"
           accessibilityLabel="Recargar con Izipay"
@@ -369,7 +396,7 @@ export function DriverWalletTopUpView({
             backgroundColor: wallet.ctaBg,
             alignItems: "center",
             justifyContent: "center",
-            opacity: submitting ? 0.85 : 1,
+            opacity: submitting || !canPay ? 0.55 : 1,
           }}
         >
           {submitting ? (
@@ -382,7 +409,9 @@ export function DriverWalletTopUpView({
                 color: wallet.ctaText,
               }}
             >
-              {`Pagar con Izipay · ${selected.label}`}
+              {canPay
+                ? `Pagar con Izipay · S/ ${quote.amountPen.toFixed(2)}`
+                : "Pagar con Izipay"}
             </Text>
           )}
         </TouchableOpacity>

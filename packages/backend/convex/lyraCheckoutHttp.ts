@@ -38,10 +38,10 @@ export const checkoutPage = httpAction(async (ctx, request) => {
   ></script>
 </head>
 <body style="font-family: system-ui, sans-serif; padding: 16px; max-width: 480px; margin: 0 auto;">
-  <h1 style="font-size: 1.25rem;">Recarga S/ ${order.amountPen.toFixed(2)} (sandbox)</h1>
-  <p style="color: #555; font-size: 0.9rem;">Tarjeta de prueba Visa: 4970100000000055</p>
+  <h1 style="font-size: 1.25rem;">Hercom · Recarga S/ ${order.amountPen.toFixed(2)}</h1>
+  <p style="color: #555; font-size: 0.9rem;">Pago seguro con Izipay. En modo test puedes usar la tarjeta Visa 4970100000000055.</p>
   <div class="kr-embedded" kr-form-token="${safeToken}"></div>
-  <p style="margin-top: 24px; color: #666; font-size: 0.85rem;">Al terminar, vuelve a la app y pulsa «Confirmar pago».</p>
+  <p style="margin-top: 24px; color: #666; font-size: 0.85rem;">Al terminar, cierra el navegador, vuelve a la app Hercom y pulsa «Confirmar pago».</p>
 </body>
 </html>`;
 

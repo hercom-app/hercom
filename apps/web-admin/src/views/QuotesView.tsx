@@ -3,7 +3,8 @@ import { useQuery } from "convex/react";
 import { api } from "@proyecto/backend";
 import type { Id } from "@proyecto/backend/dataModel";
 import { CorporateQuoteAdminForm } from "../components/CorporateQuoteAdminForm";
-import { QuoteDetailView } from "../components/QuoteDetailView";
+import { QuoteOfferView } from "../components/QuoteOfferView";
+import { QuoteRequirementView } from "../components/QuoteRequirementView";
 import {
   AdminCard,
   AdminEmpty,
@@ -11,7 +12,7 @@ import {
   AdminPage,
   AdminTableWrap,
 } from "../components/AdminLayout";
-import { btnPrimaryClass, selectClass } from "../lib/adminUi";
+import { btnPrimaryClass, btnSecondaryClass, selectClass } from "../lib/adminUi";
 
 function formatWhen(timestamp: number): string {
   return new Intl.DateTimeFormat("es-PE", {
@@ -57,7 +58,8 @@ type SourceFilter = "" | "web" | "manual";
 type Screen =
   | { kind: "list" }
   | { kind: "create" }
-  | { kind: "detail"; id: Id<"corporateQuotes">; notice: string | null };
+  | { kind: "requirement"; id: Id<"corporateQuotes">; notice: string | null }
+  | { kind: "quote"; id: Id<"corporateQuotes"> };
 
 export function QuotesView() {
   const rows = useQuery(api.corporateQuotes.listForAdmin, {});
@@ -73,12 +75,24 @@ export function QuotesView() {
           return source === sourceFilter;
         });
 
-  if (screen.kind === "detail") {
+  if (screen.kind === "quote") {
     return (
-      <QuoteDetailView
+      <QuoteOfferView
         quoteId={screen.id}
+        onBack={() =>
+          setScreen({ kind: "requirement", id: screen.id, notice: null })
+        }
+      />
+    );
+  }
+
+  if (screen.kind === "requirement") {
+    return (
+      <QuoteRequirementView
         notice={screen.notice}
+        quoteId={screen.id}
         onBack={() => setScreen({ kind: "list" })}
+        onQuote={() => setScreen({ kind: "quote", id: screen.id })}
       />
     );
   }
@@ -100,7 +114,7 @@ export function QuotesView() {
             onCancel={() => setScreen({ kind: "list" })}
             onDone={(result) => {
               setScreen({
-                kind: "detail",
+                kind: "requirement",
                 id: result.id as Id<"corporateQuotes">,
                 notice: result.emailSent
                   ? "Requerimiento guardado y correo de confirmación enviado."
@@ -151,7 +165,7 @@ export function QuotesView() {
           <AdminEmpty message="No hay cotizaciones con este filtro." />
         ) : (
           <AdminTableWrap>
-            <table className="min-w-[1480px] w-full text-left text-sm">
+            <table className="min-w-[1520px] w-full text-left text-sm">
               <thead className="text-xs uppercase tracking-wide text-zinc-400">
                 <tr>
                   <th className="px-4 py-3 font-medium">Fecha</th>
@@ -169,6 +183,7 @@ export function QuotesView() {
                   <th className="px-4 py-3 font-medium">Choferes</th>
                   <th className="px-4 py-3 font-medium">Cotización</th>
                   <th className="px-4 py-3 font-medium">Confirmación</th>
+                  <th className="px-4 py-3 font-medium">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -177,7 +192,7 @@ export function QuotesView() {
                     key={row._id}
                     className="cursor-pointer border-t border-zinc-100 align-top hover:bg-zinc-50"
                     onClick={() =>
-                      setScreen({ kind: "detail", id: row._id, notice: null })
+                      setScreen({ kind: "requirement", id: row._id, notice: null })
                     }
                   >
                     <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
@@ -234,6 +249,18 @@ export function QuotesView() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       {row.emailSent ? "Enviado" : "Pendiente"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <button
+                        type="button"
+                        className={btnSecondaryClass}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setScreen({ kind: "quote", id: row._id });
+                        }}
+                      >
+                        Cotizar
+                      </button>
                     </td>
                   </tr>
                 ))}

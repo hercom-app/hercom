@@ -7,7 +7,7 @@ import {
   query,
   type ActionCtx,
 } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { requireStaff } from "./lib/auth";
 
@@ -188,6 +188,30 @@ export const markEmail = internalMutation({
   },
 });
 
+export const markQuoteOfferEmail = internalMutation({
+  args: { id: v.id("corporateQuotes"), sent: v.boolean() },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, { quoteOfferEmailSent: args.sent });
+  },
+});
+
+export const getQuoteForOfferEmail = internalQuery({
+  args: { id: v.id("corporateQuotes") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+
+const PROFILE_LABELS: Record<
+  "premium" | "corporativo" | "seguro" | "flota",
+  string
+> = {
+  premium: "Chofer Premium",
+  corporativo: "Chofer Corporativo",
+  seguro: "Chofer Seguro",
+  flota: "Chofer de Flota",
+};
+
 export const getForAdmin = query({
   args: { id: v.id("corporateQuotes") },
   handler: async (ctx, args) => {
@@ -308,6 +332,41 @@ export const submit = action({
       source: "web",
       sendConfirmation: true,
     });
+  },
+});
+
+/** Guarda la cotización y la envía al correo del cliente. */
+export const deliverQuote = action({
+  args: {
+    id: v.id("corporateQuotes"),
+    quoteAmount: v.number(),
+    driverProfiles: v.array(driverProfile),
+    quoteDescription: v.string(),
+  },
+  handler: async (ctx, args): Promise<{ quoteOfferEmailSent: boolean }> => {
+    await ctx.runQuery(internal.corporateQuotes.assertStaffUser, {});
+    await ctx.runMutation(api.corporateQuotes.saveQuote, args);
+    const quote = await ctx.runQuery(internal.corporateQuotes.getQuoteForOfferEmail, {
+      id: args.id,
+    });
+    if (quote === null) {
+      throw new ConvexError("No encontramos el requerimiento.");
+    }
+    const profileLabels = (quote.driverProfiles ?? []).map(
+      (profile) => PROFILE_LABELS[profile],
+    );
+    const sent = await ctx.runAction(internal.quoteMail.sendQuoteOffer, {
+      contactName: quote.contactName,
+      email: quote.email,
+      quoteAmount: quote.quoteAmount ?? args.quoteAmount,
+      profileLabels,
+      quoteDescription: quote.quoteDescription ?? args.quoteDescription,
+    });
+    await ctx.runMutation(internal.corporateQuotes.markQuoteOfferEmail, {
+      id: args.id,
+      sent,
+    });
+    return { quoteOfferEmailSent: sent };
   },
 });
 

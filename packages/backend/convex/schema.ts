@@ -840,6 +840,7 @@ export default defineSchema({
     ),
     quoteDescription: v.optional(v.string()),
     quotedAt: v.optional(v.number()),
+    quoteOfferEmailSent: v.optional(v.boolean()),
   }).index("by_createdAt", ["createdAt"]),
 
   /**

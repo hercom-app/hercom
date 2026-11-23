@@ -10,6 +10,44 @@ const SMTP_HOST = "smtp.gmail.com";
 const SMTP_PORT = 465;
 const HERCOM_LOGO_URL = "https://www.hercom.pe/logo.png";
 const HERCOM_LOGO_MUTED_URL = "https://www.hercom.pe/logo-inverted.png";
+const HERCOM_SITE = "https://www.hercom.pe";
+const SOCIAL_LINKS = [
+  { label: "Facebook", url: "https://www.facebook.com/profile.php?id=61571135840620" },
+  { label: "Instagram", url: "https://www.instagram.com/hercomperu/reels/" },
+  { label: "TikTok", url: "https://www.tiktok.com/@hercomchoferes" },
+] as const;
+
+function centeredCta(label: string): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:32px;">
+    <tr>
+      <td align="center" style="padding:0 0 48px;">
+        <a href="${HERCOM_SITE}" style="display:inline-block;background:#111111;color:#ffffff;text-decoration:none;border-radius:999px;padding:12px 28px;font-size:14px;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">${label}</a>
+      </td>
+    </tr>
+  </table>`;
+}
+
+function emailFooter(): string {
+  const social = SOCIAL_LINKS.map(
+    (item) =>
+      `<a href="${item.url}" style="color:#6b7280;text-decoration:none;font-size:13px;font-weight:500;">${item.label}</a>`,
+  ).join(
+    `<span style="color:#d1d5db;padding:0 8px;">·</span>`,
+  );
+  return `<tr>
+    <td style="padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;text-align:center;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="border-top:1px solid #e5e7eb;padding:48px 0 0;text-align:center;">
+            <img src="${HERCOM_LOGO_MUTED_URL}" alt="" width="52" height="44" style="display:inline-block;border:0;outline:none;width:52px;height:auto;opacity:0.45;" />
+            <p style="margin:20px 0 16px;font-size:14px;line-height:1.6;color:#6b7280;">Hercom es el mejor servicio de choferes en el Perú</p>
+            <p style="margin:0 0 8px;line-height:1.6;">${social}</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>`;
+}
 
 function appPassword(raw: string | undefined): string {
   return (raw ?? "").replace(/\s/g, "");
@@ -83,24 +121,10 @@ function quoteEmailHtml(args: {
                 ${row("Horas aproximadas", hours)}
                 ${row("Choferes", String(args.driverCount))}
               </table>
-              <p style="margin:18px 0 0;">
-                <a href="https://www.hercom.pe/contactanos" style="display:inline-block;background:#111111;color:#ffffff;text-decoration:none;border-radius:999px;padding:12px 22px;font-size:14px;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">Visitar hercom.pe</a>
-              </p>
+              ${centeredCta("Visitar hercom")}
             </td>
           </tr>
-          <tr>
-            <td style="padding:40px 0 0;border-top:1px solid #e5e7eb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;text-align:center;">
-              <img src="${HERCOM_LOGO_MUTED_URL}" alt="" width="52" height="44" style="display:inline-block;border:0;outline:none;width:52px;height:auto;opacity:0.5;" />
-              <p style="margin:16px 0 8px;font-size:13px;line-height:1.6;">
-                <a href="https://www.hercom.pe" style="color:#6b7280;text-decoration:none;">Inicio</a>
-                <span style="color:#d1d5db;"> · </span>
-                <a href="https://www.hercom.pe/viajes-corporativos" style="color:#6b7280;text-decoration:none;">Viajes corporativos</a>
-                <span style="color:#d1d5db;"> · </span>
-                <a href="https://www.hercom.pe/contactanos" style="color:#6b7280;text-decoration:none;">Contacto</a>
-              </p>
-              <p style="margin:0;font-size:12px;line-height:1.6;color:#9ca3af;">HERCOM - Chofer para Remplazo · Lima, Perú<br>www.hercom.pe</p>
-            </td>
-          </tr>
+          ${emailFooter()}
         </table>
       </td>
     </tr>
@@ -219,6 +243,99 @@ async function sendGmail(args: {
     socket.end();
   }
 }
+
+function quoteOfferEmailHtml(args: {
+  contactName: string;
+  quoteAmount: number;
+  profileLabels: string[];
+  quoteDescription: string;
+}): string {
+  const profiles = args.profileLabels.map(escapeHtml).join(", ");
+  const amount = args.quoteAmount.toFixed(2);
+  return `<!DOCTYPE html>
+<html lang="es">
+<body style="margin:0;padding:0;background:#ffffff;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;">
+    <tr>
+      <td align="center" style="padding:56px 24px 40px;">
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:480px;max-width:480px;">
+          <tr>
+            <td style="padding:0 0 48px;">
+              <a href="${HERCOM_SITE}" style="text-decoration:none;">
+                <img src="${HERCOM_LOGO_URL}" alt="HERCOM" width="64" height="54" style="display:block;border:0;outline:none;width:64px;height:auto;" />
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+              <p style="margin:0 0 10px;font-size:13px;line-height:1.4;color:#6b7280;">Cotización</p>
+              <h1 style="margin:0 0 16px;font-size:28px;line-height:1.2;font-weight:600;letter-spacing:-0.03em;color:#111111;">Tu cotización HERCOM</h1>
+              <p style="margin:0 0 32px;font-size:16px;line-height:1.6;color:#374151;">Hola ${escapeHtml(args.contactName)}. Compartimos la cotización para tu requerimiento de chofer corporativo.</p>
+              <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">Costo</p>
+              <p style="margin:0 0 24px;font-size:32px;font-weight:600;letter-spacing:-0.02em;color:#111111;">S/ ${amount}</p>
+              <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">Perfiles de chofer</p>
+              <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#111111;">${profiles}</p>
+              <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">Detalle</p>
+              <p style="margin:0;font-size:15px;line-height:1.6;color:#374151;">${escapeHtml(args.quoteDescription).replace(/\n/g, "<br>")}</p>
+              ${centeredCta("Visitar hercom")}
+            </td>
+          </tr>
+          ${emailFooter()}
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export const sendQuoteOffer = internalAction({
+  args: {
+    contactName: v.string(),
+    email: v.string(),
+    quoteAmount: v.number(),
+    profileLabels: v.array(v.string()),
+    quoteDescription: v.string(),
+  },
+  handler: async (_ctx, args): Promise<boolean> => {
+    const user = process.env.GMAIL_SMTP_USER?.trim() ?? "";
+    const pass = appPassword(process.env.GMAIL_SMTP_PASSWORD);
+    if (user === "" || pass === "") {
+      console.error(
+        "corporateQuotes: falta GMAIL_SMTP_USER o GMAIL_SMTP_PASSWORD en Convex.",
+      );
+      return false;
+    }
+    const from = process.env.QUOTE_FROM_EMAIL?.trim() || `HERCOM <${user}>`;
+    const amount = args.quoteAmount.toFixed(2);
+    try {
+      await sendGmail({
+        user,
+        pass,
+        from,
+        to: args.email,
+        subject: `Cotización HERCOM — S/ ${amount}`,
+        text: [
+          `Hola ${args.contactName},`,
+          "",
+          "Tu cotización HERCOM:",
+          `Costo: S/ ${amount}`,
+          `Perfiles: ${args.profileLabels.join(", ")}`,
+          "",
+          args.quoteDescription,
+          "",
+          HERCOM_SITE,
+        ].join("\n"),
+        html: quoteOfferEmailHtml(args),
+      });
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error SMTP";
+      console.error("corporateQuotes: Gmail rechazó la cotización", message);
+      return false;
+    }
+  },
+});
 
 export const sendQuoteConfirmation = internalAction({
   args: {

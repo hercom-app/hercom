@@ -38,8 +38,9 @@ export default function Page() {
       <PageHero
         description={
           <p>
-            Si vas a beber, no tomes el volante. Un chofer de remplazo maneja tu
-            auto y tú llegas. Estas son las consecuencias de no parar a tiempo.
+            Si vas a beber no tomes el volante. Un chofer para remplazo te
+            llevará de regreso con tu familia en la comodidad de tu propio
+            vehículo.
           </p>
         }
         eyebrow="Cuidando vidas"
@@ -49,7 +50,16 @@ export default function Page() {
         title="Tomar y manejar no es una anécdota"
       />
       <section className="section pb-16 lg:pb-24">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Cuida tu vida y la vida de los demás.
+          </h2>
+          <p className="mt-4 text-lg leading-relaxed text-default-600">
+            Estas son las consecuencias reales por conducir en un estado
+            inapropiado o por tomar una mala decisión al volante.
+          </p>
+        </div>
+        <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {RISKS.map((risk, index) => (
             <article
               key={risk.title}

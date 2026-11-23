@@ -79,9 +79,7 @@ export function QuotesView() {
     return (
       <QuoteOfferView
         quoteId={screen.id}
-        onBack={() =>
-          setScreen({ kind: "requirement", id: screen.id, notice: null })
-        }
+        onBack={() => setScreen({ kind: "list" })}
       />
     );
   }
@@ -130,9 +128,15 @@ export function QuotesView() {
   return (
     <AdminPage>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold tracking-tight text-zinc-900">
-          Lista de requerimientos
-        </h2>
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-900">
+            Lista de requerimientos
+          </h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Haz clic en una fila para ver el requerimiento. Usa Cotizar para armar y
+            enviar la oferta.
+          </p>
+        </div>
         <button
           type="button"
           className={btnPrimaryClass}
@@ -176,6 +180,7 @@ export function QuotesView() {
                   <th className="px-4 py-3 font-medium">Correo</th>
                   <th className="px-4 py-3 font-medium">Teléfono</th>
                   <th className="px-4 py-3 font-medium">Origen</th>
+                  <th className="px-4 py-3 font-medium">Acciones</th>
                   <th className="px-4 py-3 font-medium">Inicio</th>
                   <th className="px-4 py-3 font-medium">Destino</th>
                   <th className="px-4 py-3 font-medium">Fin</th>
@@ -183,14 +188,14 @@ export function QuotesView() {
                   <th className="px-4 py-3 font-medium">Choferes</th>
                   <th className="px-4 py-3 font-medium">Cotización</th>
                   <th className="px-4 py-3 font-medium">Confirmación</th>
-                  <th className="px-4 py-3 font-medium">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((row) => (
                   <tr
                     key={row._id}
-                    className="cursor-pointer border-t border-zinc-100 align-top hover:bg-zinc-50"
+                    className="group cursor-pointer border-t border-zinc-100 align-top hover:bg-zinc-50"
+                    title="Ver requerimiento"
                     onClick={() =>
                       setScreen({ kind: "requirement", id: row._id, notice: null })
                     }
@@ -210,7 +215,9 @@ export function QuotesView() {
                       </span>
                     </td>
                     <td className="px-4 py-3 font-medium text-zinc-900">
-                      {row.contactName}
+                      <span className="group-hover:text-sky-700 group-hover:underline">
+                        {row.contactName}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       {row.companyName === "" ? "—" : row.companyName}
@@ -226,6 +233,18 @@ export function QuotesView() {
                         row.originProvince,
                         row.originDistrict,
                       )}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <button
+                        type="button"
+                        className={btnSecondaryClass}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setScreen({ kind: "quote", id: row._id });
+                        }}
+                      >
+                        Cotizar
+                      </button>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       {formatServiceDate(row.serviceStart)}
@@ -249,18 +268,6 @@ export function QuotesView() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       {row.emailSent ? "Enviado" : "Pendiente"}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <button
-                        type="button"
-                        className={btnSecondaryClass}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setScreen({ kind: "quote", id: row._id });
-                        }}
-                      >
-                        Cotizar
-                      </button>
                     </td>
                   </tr>
                 ))}

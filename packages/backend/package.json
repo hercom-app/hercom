@@ -61,7 +61,8 @@
   "dependencies": {
     "@auth/core": "0.37.0",
     "@convex-dev/auth": "^0.0.87",
-    "convex": "^1.23.0"
+    "convex": "^1.23.0",
+    "pdf-lib": "1.17.1"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

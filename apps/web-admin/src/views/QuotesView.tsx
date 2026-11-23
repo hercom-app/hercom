@@ -12,6 +12,7 @@ import {
   AdminPage,
 } from "../components/AdminLayout";
 import { btnPrimaryClass, btnSecondaryClass, selectClass } from "../lib/adminUi";
+import { QUOTE_STATUS_BADGE, QUOTE_STATUS_LABEL, quoteStatusOf } from "../lib/quoteStatus";
 
 function formatWhen(timestamp: number): string {
   return new Intl.DateTimeFormat("es-PE", {
@@ -30,19 +31,6 @@ function formatServiceDate(value: string | undefined): string {
   }).format(
     new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))),
   );
-}
-
-function quoteStatus(row: {
-  quoteAmount?: number;
-  quoteOfferEmailSent?: boolean;
-}): string {
-  if (row.quoteOfferEmailSent === true) {
-    return row.quoteAmount === undefined
-      ? "Enviada"
-      : `Enviada · S/ ${row.quoteAmount.toFixed(2)}`;
-  }
-  if (row.quoteAmount === undefined) return "Pendiente";
-  return `S/ ${row.quoteAmount.toFixed(2)}`;
 }
 
 function sourceLabel(source: "web" | "manual" | undefined): string {
@@ -172,7 +160,7 @@ export function QuotesView() {
                 <col />
                 <col className="w-[22%]" />
                 <col className="w-[6.5rem]" />
-                <col className="w-[7.5rem]" />
+                <col className="w-[8rem]" />
                 <col className="w-[6.75rem]" />
               </colgroup>
               <thead className="text-xs uppercase tracking-wide text-zinc-400">
@@ -223,8 +211,17 @@ export function QuotesView() {
                     <td className="whitespace-nowrap px-2 py-3 sm:px-3">
                       {formatServiceDate(row.serviceStart)}
                     </td>
-                    <td className="truncate px-2 py-3 text-zinc-700 sm:px-3">
-                      {quoteStatus(row)}
+                    <td className="px-2 py-3 text-zinc-700 sm:px-3">
+                      <span
+                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${QUOTE_STATUS_BADGE[quoteStatusOf(row)]}`}
+                      >
+                        {QUOTE_STATUS_LABEL[quoteStatusOf(row)]}
+                      </span>
+                      {row.quoteAmount !== undefined && (
+                        <span className="mt-1 block truncate text-xs text-zinc-500">
+                          S/ {row.quoteAmount.toFixed(2)}
+                        </span>
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-2 py-3 sm:px-3">
                       <button

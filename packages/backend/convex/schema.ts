@@ -841,6 +841,25 @@ export default defineSchema({
     quoteDescription: v.optional(v.string()),
     quotedAt: v.optional(v.number()),
     quoteOfferEmailSent: v.optional(v.boolean()),
+    /** Borrador → Enviada; si el cliente pide cambios: En revisión → Reenviada. */
+    quoteStatus: v.optional(
+      v.union(
+        v.literal("draft"),
+        v.literal("sent"),
+        v.literal("revising"),
+        v.literal("resent"),
+      ),
+    ),
+    quoteSends: v.optional(
+      v.array(
+        v.object({
+          sentAt: v.number(),
+          quoteAmount: v.number(),
+          resend: v.boolean(),
+          ok: v.boolean(),
+        }),
+      ),
+    ),
   }).index("by_createdAt", ["createdAt"]),
 
   /**

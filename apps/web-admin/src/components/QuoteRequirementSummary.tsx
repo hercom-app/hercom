@@ -1,4 +1,5 @@
 import type { Doc } from "@proyecto/backend/dataModel";
+import { QUOTE_STATUS_LABEL, quoteStatusOf } from "../lib/quoteStatus";
 
 function formatWhen(timestamp: number): string {
   return new Intl.DateTimeFormat("es-PE", {
@@ -86,16 +87,7 @@ export function QuoteRequirementSummary({ quote }: { quote: Doc<"corporateQuotes
               : `S/ ${quote.quoteAmount.toFixed(2)}`
           }
         />
-        <Fact
-          label="Cotización enviada"
-          value={
-            quote.quoteOfferEmailSent === true
-              ? "Sí"
-              : quote.quoteOfferEmailSent === false
-                ? "Falló el envío"
-                : "Pendiente"
-          }
-        />
+        <Fact label="Estado de cotización" value={QUOTE_STATUS_LABEL[quoteStatusOf(quote)]} />
       </dl>
       <div className="mt-6">
         <p className="text-xs font-medium text-zinc-500">Detalle</p>

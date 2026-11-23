@@ -54,6 +54,7 @@ import type * as lib_personName from "../lib/personName.js";
 import type * as lib_pickApiString from "../lib/pickApiString.js";
 import type * as lib_pricing from "../lib/pricing.js";
 import type * as lib_promotions from "../lib/promotions.js";
+import type * as lib_quotePdf from "../lib/quotePdf.js";
 import type * as lib_regionFilters from "../lib/regionFilters.js";
 import type * as lib_reniecDriverQuota from "../lib/reniecDriverQuota.js";
 import type * as lib_serviceClosure from "../lib/serviceClosure.js";
@@ -139,6 +140,7 @@ declare const fullApi: ApiFromModules<{
   "lib/pickApiString": typeof lib_pickApiString;
   "lib/pricing": typeof lib_pricing;
   "lib/promotions": typeof lib_promotions;
+  "lib/quotePdf": typeof lib_quotePdf;
   "lib/regionFilters": typeof lib_regionFilters;
   "lib/reniecDriverQuota": typeof lib_reniecDriverQuota;
   "lib/serviceClosure": typeof lib_serviceClosure;

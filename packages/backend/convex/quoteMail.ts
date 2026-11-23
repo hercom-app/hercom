@@ -2,9 +2,12 @@
 
 import tls from "node:tls";
 
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 
-import { internalAction } from "./_generated/server";
+import { internal } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
+import { action, internalAction } from "./_generated/server";
+import { PROFILE_LABELS, buildQuotePdf, quotePdfInput } from "./lib/quotePdf";
 
 const SMTP_HOST = "smtp.gmail.com";
 const SMTP_PORT = 465;
@@ -133,6 +136,18 @@ function quoteEmailHtml(args: {
 </html>`;
 }
 
+type MailAttachment = { filename: string; contentType: string; content: Uint8Array };
+
+function base64Lines(content: Uint8Array): string {
+  return (Buffer.from(content).toString("base64").match(/.{1,76}/g) ?? []).join("\r\n");
+}
+
+function encodeHeader(value: string): string {
+  return /^[\x20-\x7e]*$/.test(value)
+    ? value
+    : `=?UTF-8?B?${Buffer.from(value, "utf8").toString("base64")}?=`;
+}
+
 async function sendGmail(args: {
   user: string;
   pass: string;
@@ -141,6 +156,7 @@ async function sendGmail(args: {
   subject: string;
   text: string;
   html: string;
+  attachments?: MailAttachment[];
 }): Promise<void> {
   if (/[\r\n]/.test(args.to) || /[\r\n]/.test(args.subject)) {
     throw new Error("Destinatario o asunto inválido.");
@@ -218,13 +234,9 @@ async function sendGmail(args: {
     write("DATA");
     await readReply(354);
     const boundary = "hercom-quote-mail";
-    const payload = [
-      `From: ${args.from}`,
-      `To: ${args.to}`,
-      `Subject: ${args.subject}`,
-      "MIME-Version: 1.0",
-      `Content-Type: multipart/alternative; boundary="${boundary}"`,
-      "",
+    const mixed = "hercom-quote-mixed";
+    const attachments = args.attachments ?? [];
+    const alternative = [
       `--${boundary}`,
       "Content-Type: text/plain; charset=UTF-8",
       "",
@@ -234,7 +246,40 @@ async function sendGmail(args: {
       "",
       args.html.replace(/^\./gm, ".."),
       `--${boundary}--`,
-    ].join("\r\n");
+    ];
+    const headers = [
+      `From: ${args.from}`,
+      `To: ${args.to}`,
+      `Subject: ${encodeHeader(args.subject)}`,
+      "MIME-Version: 1.0",
+    ];
+    const payload = (
+      attachments.length === 0
+        ? [
+            ...headers,
+            `Content-Type: multipart/alternative; boundary="${boundary}"`,
+            "",
+            ...alternative,
+          ]
+        : [
+            ...headers,
+            `Content-Type: multipart/mixed; boundary="${mixed}"`,
+            "",
+            `--${mixed}`,
+            `Content-Type: multipart/alternative; boundary="${boundary}"`,
+            "",
+            ...alternative,
+            ...attachments.flatMap((file) => [
+              `--${mixed}`,
+              `Content-Type: ${file.contentType}; name="${file.filename}"`,
+              "Content-Transfer-Encoding: base64",
+              `Content-Disposition: attachment; filename="${file.filename}"`,
+              "",
+              base64Lines(file.content),
+            ]),
+            `--${mixed}--`,
+          ]
+    ).join("\r\n");
     socket.write(`${payload}\r\n.\r\n`);
     await readReply(250);
     write("QUIT");
@@ -246,12 +291,18 @@ async function sendGmail(args: {
 
 function quoteOfferEmailHtml(args: {
   contactName: string;
+  quoteNumber: string;
   quoteAmount: number;
   profileLabels: string[];
   quoteDescription: string;
+  resend: boolean;
 }): string {
   const profiles = args.profileLabels.map(escapeHtml).join(", ");
   const amount = args.quoteAmount.toFixed(2);
+  const heading = args.resend ? "Tu cotización actualizada" : "Tu cotización HERCOM";
+  const intro = args.resend
+    ? "Actualizamos la cotización de tu requerimiento de chofer corporativo según lo conversado."
+    : "Compartimos la cotización para tu requerimiento de chofer corporativo.";
   return `<!DOCTYPE html>
 <html lang="es">
 <body style="margin:0;padding:0;background:#ffffff;">
@@ -268,10 +319,10 @@ function quoteOfferEmailHtml(args: {
           </tr>
           <tr>
             <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-              <p style="margin:0 0 10px;font-size:13px;line-height:1.4;color:#6b7280;">Cotización</p>
-              <h1 style="margin:0 0 16px;font-size:28px;line-height:1.2;font-weight:600;letter-spacing:-0.03em;color:#111111;">Tu cotización HERCOM</h1>
-              <p style="margin:0 0 32px;font-size:16px;line-height:1.6;color:#374151;">Hola ${escapeHtml(args.contactName)}. Compartimos la cotización para tu requerimiento de chofer corporativo.</p>
-              <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">Costo</p>
+              <p style="margin:0 0 10px;font-size:13px;line-height:1.4;color:#6b7280;">Cotización ${escapeHtml(args.quoteNumber)}</p>
+              <h1 style="margin:0 0 16px;font-size:28px;line-height:1.2;font-weight:600;letter-spacing:-0.03em;color:#111111;">${heading}</h1>
+              <p style="margin:0 0 32px;font-size:16px;line-height:1.6;color:#374151;">Hola ${escapeHtml(args.contactName)}. ${intro} Adjuntamos el PDF con el detalle y las condiciones.</p>
+              <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">Costo (no incluye IGV)</p>
               <p style="margin:0 0 24px;font-size:32px;font-weight:600;letter-spacing:-0.02em;color:#111111;">S/ ${amount}</p>
               <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">Perfiles de chofer</p>
               <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#111111;">${profiles}</p>
@@ -289,15 +340,68 @@ function quoteOfferEmailHtml(args: {
 </html>`;
 }
 
-export const sendQuoteOffer = internalAction({
+async function fetchLogo(): Promise<Uint8Array | null> {
+  try {
+    const response = await fetch(HERCOM_LOGO_URL);
+    if (!response.ok) return null;
+    return new Uint8Array(await response.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+async function renderQuotePdf(
+  quote: Doc<"corporateQuotes">,
+  offer: { quoteAmount: number; driverProfiles: Array<keyof typeof PROFILE_LABELS>; quoteDescription: string },
+): Promise<{ bytes: Uint8Array; quoteNumber: string; profileLabels: string[] }> {
+  const profileLabels = offer.driverProfiles.map((profile) => PROFILE_LABELS[profile]);
+  const input = quotePdfInput(
+    quote,
+    {
+      quoteAmount: offer.quoteAmount,
+      profileLabels,
+      quoteDescription: offer.quoteDescription,
+    },
+    process.env.GMAIL_SMTP_USER?.trim() ?? "",
+  );
+  const bytes = await buildQuotePdf(input, await fetchLogo());
+  return { bytes, quoteNumber: input.quoteNumber, profileLabels };
+}
+
+const driverProfile = v.union(
+  v.literal("premium"),
+  v.literal("corporativo"),
+  v.literal("seguro"),
+  v.literal("flota"),
+);
+
+/** El panel arma el PDF con lo que hay en el formulario, aunque aún no esté guardado. */
+export const previewQuotePdf = action({
   args: {
-    contactName: v.string(),
-    email: v.string(),
+    id: v.id("corporateQuotes"),
     quoteAmount: v.number(),
-    profileLabels: v.array(v.string()),
+    driverProfiles: v.array(driverProfile),
     quoteDescription: v.string(),
   },
-  handler: async (_ctx, args): Promise<boolean> => {
+  handler: async (ctx, args): Promise<{ base64: string; filename: string }> => {
+    await ctx.runQuery(internal.corporateQuotes.assertStaffUser, {});
+    const quote = await ctx.runQuery(internal.corporateQuotes.getQuoteForOfferEmail, {
+      id: args.id,
+    });
+    if (quote === null) {
+      throw new ConvexError("No encontramos el requerimiento.");
+    }
+    const { bytes, quoteNumber } = await renderQuotePdf(quote, args);
+    return {
+      base64: Buffer.from(bytes).toString("base64"),
+      filename: `Cotizacion-HERCOM-${quoteNumber}.pdf`,
+    };
+  },
+});
+
+export const sendQuoteOffer = internalAction({
+  args: { id: v.id("corporateQuotes"), resend: v.boolean() },
+  handler: async (ctx, args): Promise<boolean> => {
     const user = process.env.GMAIL_SMTP_USER?.trim() ?? "";
     const pass = appPassword(process.env.GMAIL_SMTP_PASSWORD);
     if (user === "" || pass === "") {
@@ -306,27 +410,60 @@ export const sendQuoteOffer = internalAction({
       );
       return false;
     }
+    const quote = await ctx.runQuery(internal.corporateQuotes.getQuoteForOfferEmail, {
+      id: args.id,
+    });
+    if (
+      quote === null ||
+      quote.quoteAmount === undefined ||
+      quote.quoteDescription === undefined
+    ) {
+      return false;
+    }
     const from = process.env.QUOTE_FROM_EMAIL?.trim() || `HERCOM <${user}>`;
-    const amount = args.quoteAmount.toFixed(2);
+    const amount = quote.quoteAmount.toFixed(2);
     try {
+      const pdf = await renderQuotePdf(quote, {
+        quoteAmount: quote.quoteAmount,
+        driverProfiles: quote.driverProfiles ?? [],
+        quoteDescription: quote.quoteDescription,
+      });
       await sendGmail({
         user,
         pass,
         from,
-        to: args.email,
-        subject: `Cotización HERCOM — S/ ${amount}`,
+        to: quote.email,
+        subject: args.resend
+          ? `Cotización actualizada HERCOM ${pdf.quoteNumber} — S/ ${amount}`
+          : `Cotización HERCOM ${pdf.quoteNumber} — S/ ${amount}`,
         text: [
-          `Hola ${args.contactName},`,
+          `Hola ${quote.contactName},`,
           "",
-          "Tu cotización HERCOM:",
-          `Costo: S/ ${amount}`,
-          `Perfiles: ${args.profileLabels.join(", ")}`,
+          args.resend ? "Tu cotización HERCOM actualizada:" : "Tu cotización HERCOM:",
+          `N.° ${pdf.quoteNumber}`,
+          `Costo: S/ ${amount} (no incluye IGV)`,
+          `Perfiles: ${pdf.profileLabels.join(", ")}`,
           "",
-          args.quoteDescription,
+          quote.quoteDescription,
           "",
+          "Adjuntamos el PDF con el detalle y las condiciones.",
           HERCOM_SITE,
         ].join("\n"),
-        html: quoteOfferEmailHtml(args),
+        html: quoteOfferEmailHtml({
+          contactName: quote.contactName,
+          quoteNumber: pdf.quoteNumber,
+          quoteAmount: quote.quoteAmount,
+          profileLabels: pdf.profileLabels,
+          quoteDescription: quote.quoteDescription,
+          resend: args.resend,
+        }),
+        attachments: [
+          {
+            filename: `Cotizacion-HERCOM-${pdf.quoteNumber}.pdf`,
+            contentType: "application/pdf",
+            content: pdf.bytes,
+          },
+        ],
       });
       return true;
     } catch (error) {

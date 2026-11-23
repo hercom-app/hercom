@@ -8,7 +8,7 @@ import {
   type ActionCtx,
 } from "./_generated/server";
 import { api, internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { requireStaff } from "./lib/auth";
 
 const quoteArgs = {
@@ -188,10 +188,32 @@ export const markEmail = internalMutation({
   },
 });
 
-export const markQuoteOfferEmail = internalMutation({
-  args: { id: v.id("corporateQuotes"), sent: v.boolean() },
+function hasBeenSent(quote: Doc<"corporateQuotes">): boolean {
+  return (
+    quote.quoteOfferEmailSent === true ||
+    (quote.quoteSends ?? []).some((send) => send.ok)
+  );
+}
+
+export const recordQuoteOfferSend = internalMutation({
+  args: {
+    id: v.id("corporateQuotes"),
+    ok: v.boolean(),
+    resend: v.boolean(),
+    quoteAmount: v.number(),
+  },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, { quoteOfferEmailSent: args.sent });
+    const quote = await ctx.db.get(args.id);
+    if (quote === null) return;
+    const sends = [
+      ...(quote.quoteSends ?? []),
+      { sentAt: Date.now(), quoteAmount: args.quoteAmount, resend: args.resend, ok: args.ok },
+    ];
+    await ctx.db.patch(args.id, {
+      quoteSends: sends,
+      quoteOfferEmailSent: args.ok,
+      ...(args.ok ? { quoteStatus: args.resend ? "resent" : "sent" } : {}),
+    });
   },
 });
 
@@ -201,16 +223,6 @@ export const getQuoteForOfferEmail = internalQuery({
     return await ctx.db.get(args.id);
   },
 });
-
-const PROFILE_LABELS: Record<
-  "premium" | "corporativo" | "seguro" | "flota",
-  string
-> = {
-  premium: "Chofer Premium",
-  corporativo: "Chofer Corporativo",
-  seguro: "Chofer Seguro",
-  flota: "Chofer de Flota",
-};
 
 export const getForAdmin = query({
   args: { id: v.id("corporateQuotes") },
@@ -248,6 +260,7 @@ export const saveQuote = mutation({
       driverProfiles: uniqueProfiles,
       quoteDescription: args.quoteDescription.trim().slice(0, 2000),
       quotedAt: Date.now(),
+      quoteStatus: hasBeenSent(existing) ? "revising" : "draft",
     });
   },
 });
@@ -343,30 +356,30 @@ export const deliverQuote = action({
     driverProfiles: v.array(driverProfile),
     quoteDescription: v.string(),
   },
-  handler: async (ctx, args): Promise<{ quoteOfferEmailSent: boolean }> => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ quoteOfferEmailSent: boolean; resend: boolean }> => {
     await ctx.runQuery(internal.corporateQuotes.assertStaffUser, {});
-    await ctx.runMutation(api.corporateQuotes.saveQuote, args);
-    const quote = await ctx.runQuery(internal.corporateQuotes.getQuoteForOfferEmail, {
+    const before = await ctx.runQuery(internal.corporateQuotes.getQuoteForOfferEmail, {
       id: args.id,
     });
-    if (quote === null) {
+    if (before === null) {
       throw new ConvexError("No encontramos el requerimiento.");
     }
-    const profileLabels = (quote.driverProfiles ?? []).map(
-      (profile) => PROFILE_LABELS[profile],
-    );
-    const sent = await ctx.runAction(internal.quoteMail.sendQuoteOffer, {
-      contactName: quote.contactName,
-      email: quote.email,
-      quoteAmount: quote.quoteAmount ?? args.quoteAmount,
-      profileLabels,
-      quoteDescription: quote.quoteDescription ?? args.quoteDescription,
-    });
-    await ctx.runMutation(internal.corporateQuotes.markQuoteOfferEmail, {
+    const resend = hasBeenSent(before);
+    await ctx.runMutation(api.corporateQuotes.saveQuote, args);
+    const sent: boolean = await ctx.runAction(internal.quoteMail.sendQuoteOffer, {
       id: args.id,
-      sent,
+      resend,
     });
-    return { quoteOfferEmailSent: sent };
+    await ctx.runMutation(internal.corporateQuotes.recordQuoteOfferSend, {
+      id: args.id,
+      ok: sent,
+      resend,
+      quoteAmount: Math.round(args.quoteAmount * 100) / 100,
+    });
+    return { quoteOfferEmailSent: sent, resend };
   },
 });
 

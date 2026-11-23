@@ -8,6 +8,8 @@ import { internalAction } from "./_generated/server";
 
 const SMTP_HOST = "smtp.gmail.com";
 const SMTP_PORT = 465;
+const HERCOM_LOGO_URL = "https://www.hercom.pe/logo.png";
+const HERCOM_LOGO_MUTED_URL = "https://www.hercom.pe/logo-inverted.png";
 
 function appPassword(raw: string | undefined): string {
   return (raw ?? "").replace(/\s/g, "");
@@ -62,8 +64,10 @@ function quoteEmailHtml(args: {
       <td align="center" style="padding:56px 24px 40px;">
         <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:480px;max-width:480px;">
           <tr>
-            <td style="padding:0 0 48px;font-family:Georgia,'Times New Roman',serif;font-size:20px;letter-spacing:0.22em;color:#111111;">
-              HERCOM
+            <td style="padding:0 0 48px;">
+              <a href="https://www.hercom.pe" style="text-decoration:none;">
+                <img src="${HERCOM_LOGO_URL}" alt="HERCOM" width="64" height="54" style="display:block;border:0;outline:none;width:64px;height:auto;" />
+              </a>
             </td>
           </tr>
           <tr>
@@ -85,16 +89,16 @@ function quoteEmailHtml(args: {
             </td>
           </tr>
           <tr>
-            <td style="padding:40px 0 0;border-top:1px solid #e5e7eb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-              <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.18em;color:#111111;">HERCOM</p>
-              <p style="margin:0 0 8px;font-size:13px;line-height:1.6;">
+            <td style="padding:40px 0 0;border-top:1px solid #e5e7eb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;text-align:center;">
+              <img src="${HERCOM_LOGO_MUTED_URL}" alt="" width="52" height="44" style="display:inline-block;border:0;outline:none;width:52px;height:auto;opacity:0.5;" />
+              <p style="margin:16px 0 8px;font-size:13px;line-height:1.6;">
                 <a href="https://www.hercom.pe" style="color:#6b7280;text-decoration:none;">Inicio</a>
                 <span style="color:#d1d5db;"> · </span>
-                <a href="https://www.hercom.pe/viajes-corporativos" style="color:#6b7280;text-decoration:none;">Viajes</a>
+                <a href="https://www.hercom.pe/viajes-corporativos" style="color:#6b7280;text-decoration:none;">Viajes corporativos</a>
                 <span style="color:#d1d5db;"> · </span>
                 <a href="https://www.hercom.pe/contactanos" style="color:#6b7280;text-decoration:none;">Contacto</a>
               </p>
-              <p style="margin:0;font-size:12px;line-height:1.6;color:#9ca3af;">Chofer para Remplazo · Lima, Perú<br>www.hercom.pe</p>
+              <p style="margin:0;font-size:12px;line-height:1.6;color:#9ca3af;">HERCOM - Chofer para Remplazo · Lima, Perú<br>www.hercom.pe</p>
             </td>
           </tr>
         </table>

@@ -8,7 +8,6 @@ import { useAction } from "convex/react";
 
 import { submitCorporateQuote } from "@/lib/convexApi";
 import { formatConvexError } from "@/lib/convexError";
-import SolicitudImg from "@/assets/solicitud-recibida.png";
 import {
   PERU_DEPARTMENTS,
   PERU_DISTRICTS,
@@ -700,7 +699,9 @@ export function CorporateQuoteForm() {
         <Image
           alt=""
           className="h-auto w-full max-w-[280px] shrink-0 sm:max-w-[320px]"
-          src={SolicitudImg}
+          height={500}
+          src="/solicitud-recibida.svg"
+          width={500}
         />
       </div>
     );

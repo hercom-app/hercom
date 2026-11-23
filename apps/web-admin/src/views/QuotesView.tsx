@@ -10,7 +10,6 @@ import {
   AdminEmpty,
   AdminLoading,
   AdminPage,
-  AdminTableWrap,
 } from "../components/AdminLayout";
 import { btnPrimaryClass, btnSecondaryClass, selectClass } from "../lib/adminUi";
 
@@ -33,20 +32,17 @@ function formatServiceDate(value: string | undefined): string {
   );
 }
 
-function place(
-  department: string | undefined,
-  province: string | undefined,
-  district: string | undefined,
-): string {
-  const text = [district, province, department]
-    .filter((part) => part !== undefined && part !== "")
-    .join(", ");
-  return text === "" ? "—" : text;
-}
-
-function formatHours(value: number | undefined): string {
-  if (value === undefined) return "—";
-  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+function quoteStatus(row: {
+  quoteAmount?: number;
+  quoteOfferEmailSent?: boolean;
+}): string {
+  if (row.quoteOfferEmailSent === true) {
+    return row.quoteAmount === undefined
+      ? "Enviada"
+      : `Enviada · S/ ${row.quoteAmount.toFixed(2)}`;
+  }
+  if (row.quoteAmount === undefined) return "Pendiente";
+  return `S/ ${row.quoteAmount.toFixed(2)}`;
 }
 
 function sourceLabel(source: "web" | "manual" | undefined): string {
@@ -168,26 +164,28 @@ export function QuotesView() {
         ) : filtered.length === 0 ? (
           <AdminEmpty message="No hay cotizaciones con este filtro." />
         ) : (
-          <AdminTableWrap>
-            <table className="min-w-[1520px] w-full text-left text-sm">
+          <div className="w-full overflow-x-hidden">
+            <table className="w-full table-fixed text-left text-sm">
+              <colgroup>
+                <col className="w-[9.5rem]" />
+                <col className="w-[4.5rem]" />
+                <col />
+                <col className="w-[22%]" />
+                <col className="w-[6.5rem]" />
+                <col className="w-[7.5rem]" />
+                <col className="w-[6.75rem]" />
+              </colgroup>
               <thead className="text-xs uppercase tracking-wide text-zinc-400">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Fecha</th>
-                  <th className="px-4 py-3 font-medium">Canal</th>
-                  <th className="px-4 py-3 font-medium">Contacto</th>
-                  <th className="px-4 py-3 font-medium">Empresa</th>
-                  <th className="px-4 py-3 font-medium">RUC</th>
-                  <th className="px-4 py-3 font-medium">Correo</th>
-                  <th className="px-4 py-3 font-medium">Teléfono</th>
-                  <th className="px-4 py-3 font-medium">Origen</th>
-                  <th className="px-4 py-3 font-medium">Acciones</th>
-                  <th className="px-4 py-3 font-medium">Inicio</th>
-                  <th className="px-4 py-3 font-medium">Destino</th>
-                  <th className="px-4 py-3 font-medium">Fin</th>
-                  <th className="px-4 py-3 font-medium">Horas</th>
-                  <th className="px-4 py-3 font-medium">Choferes</th>
-                  <th className="px-4 py-3 font-medium">Cotización</th>
-                  <th className="px-4 py-3 font-medium">Confirmación</th>
+                  <th className="px-2 py-3 font-medium sm:px-3">Fecha</th>
+                  <th className="px-2 py-3 font-medium sm:px-3">Canal</th>
+                  <th className="px-2 py-3 font-medium sm:px-3">Contacto</th>
+                  <th className="hidden px-2 py-3 font-medium sm:table-cell sm:px-3">
+                    Empresa
+                  </th>
+                  <th className="px-2 py-3 font-medium sm:px-3">Inicio</th>
+                  <th className="px-2 py-3 font-medium sm:px-3">Cotización</th>
+                  <th className="px-2 py-3 font-medium sm:px-3">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -200,10 +198,10 @@ export function QuotesView() {
                       setScreen({ kind: "requirement", id: row._id, notice: null })
                     }
                   >
-                    <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
+                    <td className="whitespace-nowrap px-2 py-3 text-zinc-500 sm:px-3">
                       {formatWhen(row.createdAt)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3">
+                    <td className="whitespace-nowrap px-2 py-3 sm:px-3">
                       <span
                         className={
                           (row.source ?? "web") === "manual"
@@ -214,30 +212,24 @@ export function QuotesView() {
                         {sourceLabel(row.source)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-medium text-zinc-900">
+                    <td className="truncate px-2 py-3 font-medium text-zinc-900 sm:px-3">
                       <span className="group-hover:text-sky-700 group-hover:underline">
                         {row.contactName}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="hidden truncate px-2 py-3 text-zinc-700 sm:table-cell sm:px-3">
                       {row.companyName === "" ? "—" : row.companyName}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {row.ruc ?? "—"}
+                    <td className="whitespace-nowrap px-2 py-3 sm:px-3">
+                      {formatServiceDate(row.serviceStart)}
                     </td>
-                    <td className="px-4 py-3">{row.email}</td>
-                    <td className="whitespace-nowrap px-4 py-3">{row.phone}</td>
-                    <td className="px-4 py-3">
-                      {place(
-                        row.originDepartment,
-                        row.originProvince,
-                        row.originDistrict,
-                      )}
+                    <td className="truncate px-2 py-3 text-zinc-700 sm:px-3">
+                      {quoteStatus(row)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3">
+                    <td className="whitespace-nowrap px-2 py-3 sm:px-3">
                       <button
                         type="button"
-                        className={btnSecondaryClass}
+                        className={`${btnSecondaryClass} px-3 py-1.5 text-xs`}
                         onClick={(event) => {
                           event.stopPropagation();
                           setScreen({ kind: "quote", id: row._id });
@@ -246,34 +238,11 @@ export function QuotesView() {
                         Cotizar
                       </button>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {formatServiceDate(row.serviceStart)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {place(
-                        row.destinationDepartment,
-                        row.destinationProvince,
-                        row.destinationDistrict,
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {formatServiceDate(row.serviceEnd)}
-                    </td>
-                    <td className="px-4 py-3">{formatHours(row.serviceHours)}</td>
-                    <td className="px-4 py-3">{row.driverCount ?? "—"}</td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {row.quoteAmount === undefined
-                        ? "Pendiente"
-                        : `S/ ${row.quoteAmount.toFixed(2)}`}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {row.emailSent ? "Enviado" : "Pendiente"}
-                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </AdminTableWrap>
+          </div>
         )}
       </AdminCard>
     </AdminPage>

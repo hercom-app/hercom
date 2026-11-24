@@ -41,6 +41,7 @@ type DriverPayoutFields = {
 type DriverMyDataProps = {
   driver: DriverPayoutFields;
   fallbackName?: string;
+  email?: string | null;
 };
 
 const STATUS_COPY = {
@@ -241,8 +242,11 @@ function InfoRow({
 export function DriverMyData({
   driver,
   fallbackName = "",
+  email = null,
 }: DriverMyDataProps) {
   const application = useQuery(api.driverApplications.getMyApplication);
+  const me = useQuery(api.users.getMe);
+  const accountEmail = display(email ?? me?.email);
   const [preview, setPreview] = useState<PreviewFile | null>(null);
 
   if (application === undefined) {
@@ -288,6 +292,8 @@ export function DriverMyData({
               <TacticalStatus label="Sin solicitud" tone="idle" />
             )}
           </View>
+
+          <InfoRow label="Correo" value={accountEmail} />
 
           {application === null ? (
             <TacticalText size={12}>

@@ -45,9 +45,10 @@ export const getDriverByUser = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
-    if (user === null || user.role !== "driver") {
+    if (user === null) {
       return null;
     }
+    // Permiso de chofer = fila en `drivers` (users.role puede seguir en client).
     const driver = await ctx.db
       .query("drivers")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))

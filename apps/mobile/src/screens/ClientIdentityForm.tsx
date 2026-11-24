@@ -157,6 +157,30 @@ export function ClientIdentityForm({
         keyboardShouldPersistTaps="handled"
       >
         <TacticalPanel corners>
+          {(me?.email?.trim() ?? "") !== "" ? (
+            <View className="mb-4">
+              <TacticalLabel tone="accent">Correo</TacticalLabel>
+              <View
+                className="mt-2 px-3.5 py-3"
+                style={{
+                  backgroundColor: TACTICAL_COLORS.surfaceSunken,
+                  borderRadius: TACTICAL_RADIUS.sharp,
+                  borderWidth: 1,
+                  borderColor: TACTICAL_BORDER,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: MONO.medium,
+                    fontSize: 15,
+                    color: TACTICAL_COLORS.textStrong,
+                  }}
+                >
+                  {me?.email}
+                </Text>
+              </View>
+            </View>
+          ) : null}
           <TacticalLabel tone="accent">DNI</TacticalLabel>
           <TextInput
             value={dni}

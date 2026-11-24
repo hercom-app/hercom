@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
+import { api } from "@proyecto/backend";
 import type { Doc } from "@proyecto/backend/dataModel";
 import { DriverMyData } from "../DriverMyData";
 import { DrawerIcon, type DrawerIconName } from "../DrawerIcons";
@@ -79,6 +81,8 @@ export function DriverProfileTab({
   const { colors } = useAppTheme();
   const { signOut } = useAuthActions();
   const { setMode } = useAppMode();
+  const me = useQuery(api.users.getMe);
+  const accountEmail = me?.email?.trim() ?? "";
   const [switching, setSwitching] = useState(false);
   const [legal, setLegal] = useState<LegalDocument | null>(null);
   const displayName = userName.trim() !== "" ? userName : "Chofer Hercom";
@@ -97,7 +101,11 @@ export function DriverProfileTab({
           }
         />
         <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}>
-          <DriverMyData driver={driver} fallbackName={userName} />
+          <DriverMyData
+            driver={driver}
+            fallbackName={userName}
+            email={accountEmail === "" ? null : accountEmail}
+          />
         </View>
       </View>
     );
@@ -139,6 +147,14 @@ export function DriverProfileTab({
             >
               {displayName}
             </Text>
+            {accountEmail !== "" ? (
+              <Text
+                numberOfLines={1}
+                style={{ marginTop: 2, fontFamily: POPPINS.regular, fontSize: 14, color: colors.steel }}
+              >
+                {accountEmail}
+              </Text>
+            ) : null}
             <Text style={{ marginTop: 2, fontFamily: POPPINS.regular, fontSize: 15, color: colors.steel }}>
               {`${driver.rating.toFixed(1)} ★ · ${driver.totalTrips} ${driver.totalTrips === 1 ? "viaje" : "viajes"}`}
             </Text>

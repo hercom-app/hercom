@@ -80,6 +80,7 @@ export function ClientSettingsScreen({ onOpenMenu }: ClientSettingsScreenProps) 
             <TacticalText size={12}>Cargando…</TacticalText>
           ) : (
             <>
+              <ReadOnlyField label="Correo" value={me.email} />
               <ReadOnlyField label="DNI" value={me.dni} />
               <ReadOnlyField label="Nombres" value={me.firstName} />
               <ReadOnlyField label="Apellido paterno" value={me.firstLastName} />
@@ -105,7 +106,6 @@ export function ClientSettingsScreen({ onOpenMenu }: ClientSettingsScreenProps) 
                   />
                 </View>
               )}
-              <ReadOnlyField label="Correo" value={me.email} />
               <ReadOnlyField label="Teléfono" value={me.phone} last />
             </>
           )}

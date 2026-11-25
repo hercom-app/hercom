@@ -43,10 +43,9 @@ export default function Page() {
             vehículo.
           </p>
         }
-        eyebrow="Cuidando vidas"
         image={CuidandoVidasImg}
         imageAlt="Familia viajando segura con HERCOM"
-        imageClassName="object-[40%_40%]"
+        imageClassName="object-[50%_42%]"
         title="Tomar y manejar no es una anécdota"
       />
       <section className="section pb-16 lg:pb-24">
@@ -76,7 +75,7 @@ export default function Page() {
           ))}
           <div className="flex flex-col justify-between rounded-3xl bg-primary p-8 text-white">
             <p className="text-xl font-bold leading-snug">
-              Pide un chofer y llega a casa en la comodidad de tu propio auto
+              Pide un chofer para remplazo y llega a casa en la comodidad de tu propio vehículo.
             </p>
             <a
               className="mt-6 w-fit rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-primary"

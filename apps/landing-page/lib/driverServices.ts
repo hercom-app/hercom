@@ -54,10 +54,10 @@ export const driverServices: DriverService[] = [
       "Si requiere de protección para el traslado de un bien u objetos; contamos con el servicio de Chofer Seguro, como también de un equipo de profesionales para una seguridad privada.",
       "Contáctate para mayor información con uno de nuestros ejecutivos.",
     ],
-    lead: "Chofer Seguro es el servicio para empresarios que requieren un conductor con licencia para el uso de armas.",
+    lead: "Chofer Seguro es el servicio para empresarios que requieren un conductor con licencia de arma de fuego",
     points: [
       "Traslado de personas y de bienes u objetos que necesitan protección durante el recorrido.",
-      "El conductor cuenta con licencia de armas.",
+      "El conductor cuenta con licencia de arma de fuego.",
       "Cuando el servicio lo exige, se suma un equipo de profesionales de seguridad privada.",
     ],
   },
@@ -69,10 +69,10 @@ export const driverServices: DriverService[] = [
       "Son los profesionales de ruta larga o especificaciones especiales para el traslado de maquinarias, buses, tráiler, entre otros equipos de flota requeridas a nuestra central.",
       "Contáctate para mayor información con uno de nuestros ejecutivos.",
     ],
-    lead: "Chofer de Flota es el servicio para el manejo de vehículos especiales y de ruta larga.",
+    lead: "Chofer de Flota es el servicio profesional y de alta responsabilidad diseñado para la conducción de vehículos comerciales.",
     points: [
-      "Maquinaria, buses, tráiler y otros equipos de flota.",
-      "Conductores con especificación de ruta larga y de vehículos especiales.",
+      "Agilidad urbana y transporte de equipo (A-IIa y A-IIb): Al volante de tus pick-ups, minivans, cústers y camiones ligeros para que tu reparto o personal nunca se detenga.",
+      "Para carga pesada y grandes distancias (A-IIIa, A-IIIb y A-IIIc): Conductores expertos en buses, volquetes, tráileres y semirremolques listos para conquistar la ruta larga.",
     ],
   },
 ];

@@ -7,10 +7,14 @@ export type LegalBlock =
   | { kind: "list"; items: string[] }
   | { kind: "callout"; text: string };
 
+export type LegalAudienceGroup = "cliente" | "chofer";
+
 export type LegalSection = {
   id: string;
   title: string;
   blocks: LegalBlock[];
+  /** Bloques PARA CLIENTE / PARA CHOFER en términos unificados */
+  group?: LegalAudienceGroup;
 };
 
 export type LegalDocument = {
@@ -238,151 +242,160 @@ export const PASSENGER_TERMS_DOCUMENT: LegalDocument = {
   title: "Términos de uso para pasajeros",
   navLabel: "Para pasajeros",
   updated: LEGAL_UPDATED,
-  lead: "HERCOM traslada a los usuarios desde el inicio hasta el final del viaje solicitado, en el confort de su propio vehículo o camioneta. La misión es mitigar los accidentes de tránsito y sus consecuencias legales. La visión es profesionalizar el servicio de choferes, con calidad y confianza.",
+  lead: "HERCOM y su servicio de Chofer para Remplazo se caracteriza por trasladar a los USUARIOS desde el inicio hasta el final de un viaje por la que fue solicitado un chofer en el confort de su propio vehículo o camioneta.",
   sections: [
     {
-      id: "app",
-      title: "1. La app y los choferes",
+      id: "mision-vision",
+      title: "1. Misión y visión",
       blocks: [
         {
           kind: "p",
-          text: "HERCOM – Choferes para Remplazo articula la conducción entre el usuario y un chofer disponible, para el traslado al hogar o al destino requerido.",
+          text: "HERCOM y su servicio de Chofer para Remplazo se caracteriza por trasladar a los USUARIOS desde el inicio hasta el final de un viaje por la que fue solicitado un chofer en el confort de su propio vehículo o camioneta.",
         },
         {
           kind: "p",
-          text: "Los choferes están registrados en una base de datos. Su información la corrobora y verifica el socio estratégico, el estudio Wharton & Asociados, y los partners nacionales o internacionales cuando corresponde. Esa información se mantiene actualizada. Los choferes son monitoreados, capacitados y evaluados en las fechas u operaciones que se determinen.",
+          text: "Nuestra misión es mitigar los riesgos ocasionados por los accidentes de tránsito y de sus consecuencias legales.",
+        },
+        {
+          kind: "p",
+          text: "Nuestra visión es poder profesionalizar el servicio de Choferes; ofreciendo calidad y confianza en el traslado desde la comodidad de su propio vehículo.",
+        },
+      ],
+    },
+    {
+      id: "servicios-app",
+      title: "2. Servicios de la App",
+      blocks: [
+        {
+          kind: "p",
+          text: "HERCOM - Choferes para Remplazo, es una app que nos permite articular el servicio de conducción vehicular entre el usuario y un chofer disponible para el buen traslado a su hogar o a su destino final requerido en su servicio solicitado.",
+        },
+        {
+          kind: "p",
+          text: "Es importante considerar que todos los choferes son registrados en una base de datos, la cual su información es corroborada y verificada por nuestro socio estratégico el estudio WHARON & ASOCIADOS, como también nuestros PARNERTS NACIONALES O PARNERTS INTERNACIOONALES de ser el caso; adicionalmente toda la información de los choferes se mantiene en constante actualización.",
+        },
+        {
+          kind: "p",
+          text: "Los choferes son monitoreados, capacitados y evaluados por nuestro socio estratégico WHARON & ASOCIADOS, PARNERTS NACIONALES O PARNERTS INTERNACIOONALES, en determinadas fechas u operaciones a realizar.",
         },
       ],
     },
     {
       id: "inscripcion",
-      title: "2. Inscripción",
+      title: "3. Sobre su inscripción",
       blocks: [
         {
           kind: "p",
-          text: "Podrá descargar la app desde su celular y completar los campos requeridos.",
+          text: "Toda persona que desee obtener el servicio de HERCOM, podrá descargar desde su dispositivo móvil y proceder a llenar toda la información necesaria para su inscripción. De ingresar y cumplir con todos los requisitos Ud. podrá iniciar a generar requerimientos de traslado a su destino final o de requerir otros servicios para choferes en otros canales comerciales.",
         },
         {
           kind: "p",
-          text: "Antes de pedir un servicio, el usuario debe conocer estas normas. El lema «Cuidamos de ti y de tu familia» es el compromiso con el que se creó la app.",
-        },
-        {
-          kind: "list",
-          items: [
-            "Evitas accidentes de tránsito.",
-            "Evitas multas o papeletas.",
-            "Evitas la retención de tu brevete.",
-            "Dejas de depender del amigo elegido.",
-            "Evitas terminar en la cárcel.",
-          ],
+          text: "Otras fuentes de ingreso: www.hercom.pe",
         },
       ],
     },
     {
       id: "politicas",
-      title: "3. Políticas de uso",
+      title: "4. Normas y políticas de uso",
       blocks: [
         {
-          kind: "list",
-          items: [
-            "Al generar un requerimiento, el usuario se compromete a brindar las facilidades técnicas del vehículo que el chofer necesite para iniciar el recorrido.",
-            "Todos los usuarios son bienvenidos al servicio.",
-            "El usuario confirma la notificación que el chofer envía al celular desde el que se generó el requerimiento, 5 minutos antes de llegar a la dirección.",
-            "Al pedir el servicio por la app o por cualquier canal de venta, el usuario cumple estas políticas.",
-            "El 25% de adelanto del acuerdo lo hace responsable de un horario agendado, de un servicio programado y de facilitar que el chofer tome el control del vehículo.",
-            "El vehículo o camioneta debe contar con la documentación en regla, según el Reglamento de Tránsito y la normativa aplicable. Si no cumple las condiciones, se entiende como incumplimiento y se procede conforme a las políticas de HERCOM, o como cancelación, y el usuario asume los costos incurridos.",
-            "El tiempo de espera es de máximo 5 minutos. Si hay retraso, el usuario se comunica con el chofer que ya sabe que llega al punto de partida.",
-            "El chofer no está obligado a comprar gasolina, cambiar llantas, buscar mecánicos por averías ni hacer tareas ajenas al servicio, salvo acuerdo con uno de los choferes.",
-            "Son de cuenta del usuario el mantenimiento preventivo, los seguros, los peajes, el combustible y un celular con datos móviles suficientes para la plataforma.",
-            "Al entregar las llaves, el chofer revisa el exterior e indica en el Checklist choques, abolladuras o rayones. Luego revisa la maletera: llanta de repuesto, gata, llaves y herramientas, y lo anota en el Checklist.",
-            "Si el vehículo ya tiene choques, abolladuras o rayones, el usuario debe informarlo. Se toman fotografías o un video por los cuatro lados, y el chofer queda liberado de responsabilidad por actos anteriores.",
-            "Todo objeto que se deje en el vehículo debe mencionarse para el inventario del Checklist. Se sugiere no llevar objetos de valor, sustancias o mercaderías ilícitas. Si no se informa, el usuario solicitante responde ante las autoridades.",
-            "Para prolongar el servicio hay que ampliar las horas en la misma app. Si no se hace en la app, no se considera un servicio adicional y se pierde la seguridad y la confianza del servicio.",
-            "Al finalizar se envía una calificación por el servicio recibido.",
-            "Una vez instalado en el vehículo, el chofer tiene prohibido bajarse a realizar compras. Hacerlo es una falta grave.",
-            "Ante una falta grave o un acto indecoroso, el chofer advierte al usuario. Si continúa, hay una segunda advertencia. A la tercera, se estaciona el vehículo en el carril derecho inmediato y se cancela el servicio, sin reclamo. Los gastos del servicio truncado por malas prácticas del usuario se reconocen en un máximo de 24 horas; si no, se siguen las acciones legales pertinentes.",
-            "En una emergencia médica, la app inicia el protocolo para llevar al cliente al centro médico más cercano.",
-            "Conviene registrar uno o más teléfonos de un familiar o de una persona de contacto.",
-            "Si el usuario ingirió bebidas alcohólicas o está delicado de salud, se recomienda que lo acompañe un familiar o una persona de confianza que firme los protocolos. Si va solo, se procede a una grabación con celular o cámara que garantice la ejecución y la conformidad del servicio.",
-            "Los choferes serán respetuosos. Pedimos el mismo respeto para seguir trasladándolos a su destino.",
-          ],
+          kind: "p",
+          text: "Todo usuario, antes de requerir los servicios de la App HERCOM - Chofer para remplazo, deben de conocer las siguientes normas o políticas que les garantice viajar a su destino en la comodidad de su vehículo.",
         },
         {
           kind: "p",
-          text: "La App HERCOM – Chofer para Remplazo es el amigo elegido para llevarlo a su casa, al trabajo o al destino final, en la comodidad de su vehículo.",
+          text: "Con nuestro lema: “Cuidamos de ti y de tu familia”, es un compromiso con nuestra familia y nuestra sociedad por lo cual fue creada la app Hercom – Chofer para Remplazo.",
+        },
+        {
+          kind: "list",
+          items: [
+            "Al generar un requerimiento de Chofer para Remplazo, se compromete a brindar todas las facilidades técnicas de su vehículo requeridas por el chofer para iniciar el recorrido del servicio solicitado.",
+            "Todos nuestros usuarios son bienvenidos al servicio de la App HERCOM - CHOFER PARA REMPLAZO.",
+            "Confirmar la notificación enviada por el Chofer a su número de celular de donde genero el requerimiento del servicio, 05 minutos antes de llegar a la dirección solicitada.",
+            "Al solicitar un servicio por la App HERCOM - Chofer para remplazo o cualquiera de nuestros canales de venta; Ud. deberá de cumplir con nuestras políticas.",
+            "El 25% de adelanto del acuerdo realizado con el chofer por el servicio en la app lo hace responsable de un horario agendado, de un servicio programado y de mantener un cordial apoyo para que el chofer pueda rápidamente tomar el control de su vehículo.",
+            "Contar con toda la documentación en regla de EL VEHÍCULO O CAMIONETA de acuerdo al Reglamento de Tránsito y de cualquier otra normativa que sea aplicable, según determinen las autoridades competentes. En caso de que el vehículo o camioneta no cumpla con las condiciones y nivel de servicio, independientemente de la situación y que ésta sea imputable a el Chofer para remplazo se entenderá como un incumplimiento por lo que se procederá conforme a lo establecido en las Políticas de Hercom o considerado como una cancelación del servicio, asumiendo los costos incurridos.",
+            "El usuario debe tener conocimiento que el tiempo de espera es de máximo 05 minutos o en todo caso de algún retraso ponerse en contacto con el chofer que Ud. ya tiene conocimiento de su llegada al punto de partida del servicio.",
+            "El Chofer para remplazo no tienen la obligación de realizar: compras de gasolina, cambio de llantas, buscar mecánicos por averías, u otras tareas que no son parte del servicio solicitado. Salvo acuerdo que uno de nuestros choferes pueda gestionar.",
+            "Serán por cuenta del usuario los gastos que se originen por concepto de mantenimiento preventivo, seguros, peajes, combustible, contar con un celular con datos móviles suficientes para el uso de la plataforma de Hercom.",
+            "Al entregar sus llaves del vehículo o camioneta; el Chofer para Remplazo, realizará una revisión externa del vehículo, indicando en el Checklist si hay choques, abolladuras o rayanos en la pintura de su vehículo. Luego se procederá con la maletera a revisar su llanta de repuesto, gatas, llaves o herramientas, las cuales se indicará en el Checklist.",
+            "De ser el caso, si tuviera choques, abolladuras o rayones en la pintura de su vehículo informarlo; ya que se procederá con la toma de fotografías o realizar un video por los cuatro lados liberando de responsabilidad al chofer por actos anteriores que se pudieran ocasionar.",
+            "Si dejará algún objeto dentro de su vehículo: MENCIONARLO, para que sea considerado en el inventario del Checklist. Sugerimos no tener objetos de valor, sustancias o mercaderías ilícitas que ocasionen problemas con las autoridades; de no informarlo, el usuario solicitante se hará responsable de todos los cargos sustentándolo ante las autoridades competentes.",
+            "Si desea prolongar el servicio requerido de Chofer para remplazo, en su mismo aplicativo podrá ampliar las horas requeridas. De no hacerlo en la App, no se considera como un servicio ADICIONAL, perdiendo todo tipo de seguridad y confianza por el servicio.",
+            "Al finalizar el servicio, se procederá a realizar una calificación, colocando el puntaje, se le enviará un mensaje de calificación por el servicio recibido.",
+            "El Chofer para remplazo, una vez instalado en su vehículo o camioneta, están prohibidos de bajarse a realizar cualquier tipo de compras. Si lo realizará estarían cometiendo una falta grave en su servicio.",
+            "Si hubiera una falta grave o acciones indecorosas en el recorrido del servicio, el chofer le comunicará al usuario de manera preventiva dicha falta; si continúa y hace caso omiso a la recomendación del chofer, se le indicará de manera preventiva una segunda vez su falta; procediendo a un tercer anuncio donde se procede a estacionar el vehículo en el carril derecho inmediato y se cancelará el servicio; sin poder realizar ni un tipo de reclamo por la cancelación del mismo. Todos los gastos incurridos por el servicio truncado, por malas prácticas del usuario deberán ser reconocidas en un tiempo máximo de 24 horas o se procederá a las acciones légales pertinentes.",
+            "En caso de una emergencia médica, nuestra app estará programada para iniciar el protocolo de llevar al cliente al centro médico más cercano.",
+            "Es recomendable por emergencias médicas, llenar los datos de uno o más números telefónicos de un familiar o de alguna persona de contacto como dato referencial al servicio para llamarlos.",
+            "En caso de que Ud. haya ingerido bebidas alcohólicas, o se encuentre delicado de salud le recomendamos ser acompañado por un familiar o una persona de su confianza que firmará los diferentes protocolos del servicio. Si se encontrará solo, se procederá a una grabación con algún tipo de instrumento (celular o cámara) que garantice la ejecución y la conformidad del servicio.",
+            "Señores usuarios, La App HERCOM - Chofer para remplazo son sus amigos elegidos para llevarlo a su casa, al trabajo o al destino final en la comodidad de su vehículo, NOSOTROS seguiremos trabajando para mitigar riesgo de tránsito y de las consecuencias legales por el bien de su vida y la vida de los demás, antes de tomar el volante.",
+            "Todos los choferes serán respetuosos con Uds., solicitamos que Uds. nos den el mismo respeto para seguir trasladándolos a su destino final con bien.",
+            "Hercom - Chofer para Remplazo; Por seguridad mantendremos toda la información en nuestra base de datos de clientes y choferes en estado confidencial. De ser el caso de un incidente, falta grave o algún tipo de delito cometido, los documentos de los choferes o usuarios serán entregados formalmente mediante un certificado de denuncia policial o de una denuncia judicial. Siendo responsables de la reglamentación de la ley de protección de datos personales y de la confidencialidad de los mismos.",
+          ],
         },
       ],
     },
     {
       id: "pagos",
-      title: "4. Precio y pago",
+      title: "5. De los pagos por el servicio",
       blocks: [
         {
           kind: "p",
-          text: "El precio es el que se estipula en cada momento en el sitio web y en la app, al contratar con el chofer. Los montos están en la divisa aplicable e incluyen los descuentos y los impuestos vigentes a la fecha del contrato.",
+          text: "PRECIO. –  El precio de los servicios será el que se estipule en cada momento en nuestro sitio web y en la app, en el momento de realizar el contrato con el chofer, todos los montos son reflejados o están indicados en la divisa aplicable, incluyen tanto los posibles descuentos como los impuestos aplicables a la fecha del contrato.",
         },
         {
           kind: "p",
-          text: "El monto lo sugiere la app y puede variar según las condiciones o los acuerdos con el usuario. Se cobra en efectivo o por transferencia electrónica (Yape, Plin u otro medio electrónico). Para aceptar el servicio, el usuario abona a la billetera digital o cuenta bancaria del chofer el 25% como adelanto. El 75% restante se cancela al culminar el servicio.",
+          text: "PAGO. –  El monto por el servicio realizado de cada Chofer es sugerido por la app; sin embargo, cada servicio podrá contar con algunas variaciones según condiciones o acuerdos realizados con el usuario final. Este monto podrá ser cobrado en efectivo o por trasferencia electrónica (yape, plin u otro tipo de pago electrónico que exista en el mercado). Como procedimiento de aceptación del servicio, el usuario abonará a la billetera digital o cuenta bancaria del chofer un 25% del costo del servicio en condición de adelanto. Siendo cancelada la diferencia el 75% al culminar el servicio solicitado.",
         },
         {
           kind: "p",
-          text: "Las horas adicionales, la espera y si corresponde la movilidad para que el chofer llegue al punto (taxi) requieren aprobación previa del cliente. La calificación del usuario en la app permite garantizar el servicio.",
+          text: "El pago del servicio por horas adicionales o de espera, como también de ser el caso de una movilidad de traslado para que le de el alcance el chofer al destino solicitante (taxi) deberá ser previa aprobación del cliente; Es importante contar con la calificación del servicio por el usuario en la app ya que nos permitirá garantizar un buen servicio.",
         },
         {
           kind: "p",
-          text: "Los servicios diurnos (6:00 a. m. a 9:00 p. m.) toman precios estándar del mercado. En horario nocturno (10:00 p. m. a 5:00 a. m.) puede haber incrementos según zona, distancia u otras características que evalúe la app. En días festivos o feriados el tarifario puede modificarse.",
+          text: "El costo de los servicios diurnos (6:00 am a 9:00pm) son considerados precios estándar del mercado; en los horarios nocturnos (10:00 pm a 5:00 am) podrán tener incrementos sugeridos por zonas, distancias u otras características que evalúe la app. En caso de los días festivos o feriados podrán tener modificaciones en el tarifário.",
         },
         {
           kind: "p",
-          text: "Aceptar el servicio compromete al usuario a pagar todos los gastos estipulados en estas políticas y cualquier vinculación económica que se acuerde durante el servicio. El usuario actúa en nombre propio al asumir obligaciones o al adquirir el crédito.",
+          text: "La aceptación del servicio de chofer compromete a Ud. a cumplir con el pago de todos los gastos ocasionados y estipulados en las políticas mencionadas en este documento, expresamente cualquier vinculación económica que en el desarrollo del servicio se acuerde; el usuario actuará en nombre propio al asumir obligaciones o al adquirir el crédito.",
         },
       ],
     },
     {
       id: "cancelacion",
-      title: "5. Cancelación",
+      title: "6. Políticas de cancelación del servicio",
       blocks: [
         {
-          kind: "p",
-          text: "Se aplica el 25% del costo como penalidad o gastos operativos si se cancela después del tiempo máximo de espera de 5 minutos, una vez solicitado el servicio.",
+          kind: "list",
+          items: [
+            "En servicios de Chofer para Remplazo:  Se aplicará el 25% del costo en caso de cancelación por penalidad o gastos operativos, después del tiempo máximo de espera del servicio sin haberlo cancelado en el tiempo máximo sugerido una vez solicitado (05 minutos).",
+          ],
         },
         {
           kind: "p",
-          text: "Esta política puede verse afectada en estos casos:",
+          text: "Esta política de cancelación se podrá ver afectada en los siguientes casos:",
         },
         {
           kind: "list",
           items: [
-            "Eventos especiales en la ciudad que afecten la demanda general.",
-            "Comportamiento inadmisible del cliente para el desarrollo del servicio.",
-            "Otros hechos que afecten la moral o el buen desarrollo del servicio del Chofer para Remplazo.",
+            "Durante eventos especiales en la ciudad los cuales afecten a la demanda general.",
+            "Cuando el cliente tenga un comportamiento inadmisible para el desarrollo del servicio.",
+            "Otros que afecten a la moral o al buen desarrollo del servicio del Chofer para Remplazo.",
           ],
         },
       ],
     },
     {
       id: "tiempos",
-      title: "6. Tiempos",
+      title: "7. Tiempos del servicio",
       blocks: [
         {
           kind: "p",
-          text: "El servicio tiene un tiempo mínimo de inicio y de fin de 2 horas, contado desde la llegada del chofer al punto requerido hasta el destino final. El pasajero puede recargar horas en la app. Si no recarga, el sistema caduca al tiempo establecido y no cabe reclamo: la app tiene un contador interno para auditoría. La espera máxima es de 5 minutos, salvo coordinación con el chofer responsable.",
+          text: "El Servicio de Chofer para remplazo tiene un tiempo mínimo establecido de inicio y de fin de 02 horas; que es contabilizado desde la llegada del chofer al punto requerido hasta la llegada de su destino final. El pasajero podrá realizar recargas de horas adicionales del servicio en el mismo aplicativo con la finalidad de mantener la seguridad de su servicio. De no realizar la recarga en el aplicativo, el sistema caducará al tiempo establecido según políticas y se perderá todo tipo de reclamo ya que la app cuenta con un contador interno de tiempo para su auditoria. El tiempo de espera podrá ser máximo de 05 minutos, salvo coordinación con el Chofer responsable del servicio para ampliar la espera.",
         },
         {
           kind: "p",
-          text: "Cumplir estas obligaciones permite seguir trabajando en futuros viajes. También existen los servicios de chofer seguro, chofer de flota, chofer corporativo y chofer premium. La información de costos está en el área comercial y en www.hercom.pe.",
-        },
-        { kind: "list", items: SOCIAL },
-      ],
-    },
-    {
-      id: "confidencialidad",
-      title: "7. Confidencialidad",
-      blocks: [
-        {
-          kind: "p",
-          text: "La información de clientes y choferes se mantiene confidencial. Ante un incidente, una falta grave o un delito, los documentos se entregan mediante un certificado de denuncia policial o una denuncia judicial, conforme a la Ley de Protección de Datos Personales.",
+          text: "Es importante cumplir con todas las obligaciones a su cargo de acuerdo con nuestras políticas del servicio para seguir trabajando en futuros viajes.",
         },
       ],
     },
@@ -392,153 +405,178 @@ export const PASSENGER_TERMS_DOCUMENT: LegalDocument = {
 export const DRIVER_TERMS_DOCUMENT: LegalDocument = {
   slug: "choferes",
   path: "/terminos-choferes",
-  title: "Términos de uso para choferes",
+  title: "Términos de uso para los choferes",
   navLabel: "Para choferes",
   updated: LEGAL_UPDATED,
-  lead: "HERCOM traslada a los usuarios de inicio a fin, en el confort de su propio vehículo. La misión es mitigar los accidentes de tránsito y sus consecuencias legales. La visión es profesionalizar el servicio, con calidad y confianza.",
+  lead: "HERCOM y su servicio de Chofer para Remplazo se caracteriza por trasladar a los USUARIOS de inicio a fin de un viaje solicitado en el confort de su propio vehículo.",
   sections: [
     {
-      id: "servicio",
-      title: "1. Cómo funciona para el chofer",
+      id: "mision-vision",
+      title: "1. Misión y visión",
       blocks: [
         {
           kind: "p",
-          text: "Los servicios se ven en la opción Lista del menú. Ahí el chofer recibe los requerimientos y oferta un costo. Los gastos adicionales, como un taxi, no pueden ser mayores al costo mínimo de la tarifa básica de 2 horas.",
+          text: "HERCOM y su servicio de Chofer para Remplazo se caracteriza por trasladar a los USUARIOS de inicio a fin de un viaje solicitado en el confort de su propio vehículo.",
         },
         {
           kind: "p",
-          text: "La app articula la conducción entre el usuario y un chofer disponible. Desde la inscripción, el chofer responde por sus obligaciones con el usuario final.",
+          text: "Nuestra misión es mitigar los riesgos ocasionados por los accidentes de tránsito y de sus consecuencias legales.",
         },
         {
           kind: "p",
-          text: "Los choferes se registran en una base de datos del estudio Wharton & Asociados. La información la corroboran los socios estratégicos y se mantiene actualizada. Wharton & Asociados y los partners locales o internacionales monitorean, capacitan y evalúan a los choferes. El profesionalismo abre las líneas de chofer seguro, chofer de flota, chofer corporativo y chofer premium, cada una con sus condiciones, administradas por el área comercial.",
+          text: "Nuestra visión es poder profesionalizar el servicio de Choferes; ofreciendo calidad y confianza a nuestros usuarios trasladándolos a sus destinos desde la comodidad de su propio vehículo.",
+        },
+        {
+          kind: "p",
+          text: "Los servicios podrán visualizarse desde la opción del menú de la app lista. Lugar dónde podrán recibir y ofertar costos por cada servicio requerido por los usuarios. Los gastos adicionales como taxi, no podrán ser mayor al costo mínimo de nuestra tarifa básica de 02 horas.",
+        },
+      ],
+    },
+    {
+      id: "servicios-app",
+      title: "2. Servicios de la App",
+      blocks: [
+        {
+          kind: "p",
+          text: "HERCOM - Chofer para Remplazo, es una app que nos permite articular el servicio de conducción vehicular entre el usuario y un chofer disponible para el buen traslado a su destino final.",
+        },
+        {
+          kind: "p",
+          text: "Es importante considerar que todos los choferes son registrados en una base de datos por el estudio WHARTON & ASOCIADOS, la cual su información es corroborada y verificada por nuestros socios estratégicos, considerando que desde que todo chofer sea inscrito en la base de datos son responsables de vuestras obligaciones con el usuario final; adicionalmente toda la información de los choferes se mantiene en constante actualización.",
+        },
+        {
+          kind: "p",
+          text: "Los choferes son monitoreados, capacitados y evaluados por el estudio WHARTON & ASOCIADOS, PARNERTS LOCALES O PARTERTS INTERNACIONALES; en determinadas fechas u operaciones que vienen realizando. El profesionalismo de cada uno de Uds. Les permitirá nuevas opciones en las ofertas que realizará la empresa como: Choferes Seguros, Choferes de Flota, Choferes Corporativos, Choferes Premium. Cada una de las líneas de negocio antes mencionada tiene sus propias condiciones y reglas de trabajo que son administradas por el área comercial.",
         },
       ],
     },
     {
       id: "inscripcion",
-      title: "2. Inscripción y cómo recibir servicios",
+      title: "3. Sobre la inscripción",
       blocks: [
         {
           kind: "p",
-          text: "Quien desee ser parte de HERCOM descarga la app y llena los campos para su evaluación. Si cumple los requisitos, puede generar ingresos todos los días del año. También puede postular en www.hercom.pe o en reclutamiento@ricardosymas.com.",
+          text: "Toda persona que desee ser parte de HERCOM, podrá descargar la app y proceder a llenar todos los campos necesarios para su evaluación. De ingresar y cumplir con todos los requisitos Ud. podrá iniciar a generarse ingresos todos los días del año.",
         },
         {
           kind: "p",
-          text: "Para recibir servicios en Lista, el chofer desliza el botón de azul a verde. Debe vincular su tarjeta o comprar membresías. Los montos, según tarifarios y ofertas, se ven en su billetera digital. A mayor pago, puede acceder a más promociones o sorteos.",
+          text: "Otras fuentes de ingreso: www.hercom.pe o al correo electrónico reclutamiento@ricardosymas.com",
         },
         {
           kind: "p",
-          text: "El lema «Cuidamos de ti y de tu familia» es el compromiso con el que se creó la app. El servicio existe para evitar accidentes de tránsito, multas o papeletas, la retención del brevete, depender del amigo elegido y terminar en la cárcel.",
+          text: "Como Recibir más Servicios de Clientes:",
+        },
+        {
+          kind: "p",
+          text: "Para que Ud. comience a recibir servicios en la opción del menú lista, tendrá que deslizar el botón azul a color verde; una vez que descargue la app en su celular, deberá vincular su tarjeta de crédito o realizar la copra de MEMBRESIAS; los montos según tarifarios y ofertas que podría recibir lo podrá visualizarlo en su billetera digital. A Mayor pago, Ud. Podrá contar con mayores promociones o sorteos que se realizarán cada cierto tiempo.",
+        },
+        {
+          kind: "p",
+          text: "Con nuestro lema: “Cuidamos de ti y de tu familia”, es un compromiso con nuestra familia y nuestra sociedad por lo cual fue creada la app Hercom – Chofer para Remplazo.",
         },
       ],
     },
     {
       id: "politicas",
-      title: "3. Políticas del chofer",
+      title: "4. Normas y políticas del chofer",
       blocks: [
         {
           kind: "list",
           items: [
-            "Cuidar la imagen de la empresa y ofrecer un buen servicio.",
-            "Ser parte de HERCOM es integrar la familia empresarial y la familia de quien solicita el servicio.",
-            "Cumplir la puntualidad y la dedicación acordadas en todos los servicios.",
-            "El 25% de adelanto acordado con el cliente responsabiliza al chofer de un horario, de un servicio y de llevar al usuario a su destino.",
-            "Llenar el Checklist antes de cada servicio. Es obligatorio, y la conformidad del usuario genera el pago en la cuenta bancaria o en la billetera digital.",
-            "No dejar el vehículo estacionado en lugares prohibidos ni distintos del destino contratado.",
-            "El lugar de trabajo es la ruta de inicio a fin de lo requerido.",
-            "Conducir respetando las señales de tránsito y la ley.",
-            "Si el vehículo sufre un daño por culpa o negligencia comprobada del chofer, este cubre el 100% de la reparación. Igual obligación tiene si maneja a exceso de velocidad o bajo el efecto de algún estupefaciente. Cuando aplique, cubre el 100% del deducible.",
-            "Está prohibido hablar o contestar el teléfono personal en horario de servicio. En una emergencia, se estaciona y se llama previa comunicación al usuario.",
-            "Garantizar higiene personal, vestimenta y valores. Los choferes se califican de forma constante y pueden ser retirados de la base de datos si incumplen. Se recomienda adquirir camisas, playeras u otros distintivos al menos una vez a la semana, en los puntos de venta autorizados de la web o de la app.",
-            "Está prohibido conversar, escuchar o transmitir información personal, empresarial o del cliente en el vehículo. La misión es la confidencialidad y la concentración al volante.",
-            "Prohibido ingerir bebidas alcohólicas en un plazo no menor de 48 horas antes del servicio. El incumplimiento restringe de por vida el acceso a la base de datos.",
-            "Prohibido el consumo de drogas o estupefacientes antes, durante o después del servicio. Es falta muy grave y causa expulsión. Pueden hacerse pruebas médicas sin aviso previo.",
-            "Está prohibido tocar o mover objetos del vehículo, salvo que el usuario pida que se los alcancen. De preferencia se estaciona y el propietario los toma. Si el chofer está solo, queda terminantemente prohibido tocar prendas u objetos. Es falta muy grave: expulsión de por vida y denuncia penal.",
-            "La ineficiencia, la falta de calidad o los actos fraudulentos o dolosos en nombre o contra HERCOM causan el retiro de la base de datos.",
-            "Si el chofer está solo, tiene prohibido fumar, encender la radio o usar un objeto electrónico que distraiga.",
-            "En una emergencia de salud del usuario, el chofer se dirige al centro médico más cercano y comunica a la central de riesgos con carácter muy urgente. La app tiene un botón de asistencia, vía Waze, hacia un hospital, clínica o centro médico.",
-            "Combustible, peajes y otros gastos de la ruta los asume el propietario. En un caso extremo sin dinero, los asume el chofer y HERCOM los reembolsa previa verificación.",
-            "Ante una falta de disciplina del cliente, el chofer toma medidas preventivas que sustenten los actos y comunica a la central de riesgos.",
-            "Una vez recibido el vehículo, el chofer no se baja a hacer compras ni encargos. El servicio es conducir de inicio a fin.",
-            "Cambiar las rutas que indica la app es falta muy grave. Tiempos y distancias los monitorea la app, con un margen mínimo de error. De lo contrario se activa el botón de emergencia en coordinación con la PNP.",
-            "Está prohibido ingerir comida o bebidas dentro del vehículo. Es falta grave.",
-            "Se recomienda conducir a la defensiva y cumplir el reglamento de tránsito en zonas de alta concentración vehicular.",
-            "Está prohibido pedir trabajo al usuario, para sí o para un familiar, o entablar conversaciones que lo incomoden. Solo cabe lo propio del servicio, como el Checklist.",
-            "La acumulación de faltas graves o muy graves condiciona la expulsión y la pérdida del derecho a reclamos.",
-            "La app es un servicio libre de horarios y no genera responsabilidad laboral con la empresa.",
-            "El chofer se mantiene informado de las normas de tránsito del MTC.",
-            "El chofer cumple lealmente estos deberes y las instrucciones del cargo.",
-            "Cualquier prestación o beneficio no señalado se entiende conferido a título personal y no obliga a la empresa.",
+            "Todo Chofer para Remplazo tiene como responsabilidad valorar y cuidar la imagen de la empresa y de ofrecer un buen servicio a sus usuarios.",
+            "Ser miembro del equipo de HERCOM – Chofer para Remplazo, es ser un integrante más de la familia empresarial, como también de la familia de quien solicita nuestros servicios.",
+            "Ajustarse a las normas acordadas con respecto de la puntualidad y la dedicación con la que debe desempeñar todos LOS SERVICIOS.",
+            "El 25% de adelanto del acuerdo realizado con el cliente por el servicio en la app lo hace responsable de un horario, de un servicio y de llevar al usuario amablemente a su destino solicitado.",
+            "Siempre deberá de llenar sus formatos del Checklist antes de sus servicios; Recordar que el llenado del Checklist es obligatorio y de la conformidad del servicio del usuario para generar el pago en su cuenta bancaria o en su billetera digital.",
+            "Por ningún motivo una vez instalado puede Ud. dejar la móvil estacionada en lugares prohibidos o diferentes al destino contratado.",
+            "Considerando la naturaleza de los servicios, el lugar de trabajo será́ de la ruta comprendida de inicio a fin de lo requerido.",
+            "Todo Chofer para Remplazo deberá conducir el vehículo respetando las señales de tránsito dentro del marco de la ley.",
+            "Si   el   VEHÍCULO   destinado   al servicio objeto sufriera un daño ocasionado   por   culpa   o negligencia debidamente comprobada del Chofer para Remplazo, éste se obliga a cubrir el 100% de los gastos de reparación de los mismos; igualmente, en caso de manejar a exceso de velocidad, o bajo el efecto de algún estupefaciente, el Chofer para Remplazo se obliga a cubrir el 100% de los daños ocasionados al VEHÍCULO; en los casos que aplique, será el 100%del deducible.",
+            "Está prohibido hablar o contestar el teléfono personal en horario de servicio. Caso de emergencia estacionarse y realizar la llamada telefónica previa comunicación al usuario que adquirió el servicio.",
+            "Garantizar su higiene personal, como su vestimenta y sus valores al tomar contacto con cada uno de los usuarios que ha requerido un servicio. Todo los Choferes para Remplazo son calificados constantemente por el servicio realizado; pudiendo ser retirado de la base de datos de incumplir con dicha disposición. Se recomienda adquirir la compra de sus camisas, playeras u otros distintivos de servicios mínimo una vez a la semana. Consultar lugar de venta o concesionarios autorizados en la página web o en la misma app.",
+            "Se encuentra prohibido conversar, escuchar o transmitir cualquier tipo de información personal, empresarial o del cliente en el vehículo. Nuestra misión es la máxima confidencialidad y concentración al volante.",
+            "Prohibido ingerir bebidas alcohólicas en un plazo no menor de 48 horas anteriores al servicio. Si incumple con esta política será restringido de por vida de la base de datos de Choferes para Remplazo.",
+            "Prohibido el consumo de drogas o estupefaciente alguno antes de un servicio, en el servicio o después del servicio. Se considera falta muy grave y será expulsado del equipo de choferes. Se realizarán pruebas o exámenes medico cada cierto tiempo sin comunicado alguno.",
+            "Está prohibido tocar o mover cualquier tipo de objetos dentro del vehículo, salvo que el USUARIO le indique que se lo alcance; de preferencia estacionarse y que el propietario personalmente lo coja. Si en caso el chofer está solo en el vehículo, queda terminante prohibido tocar cualquier tipo de prenda u objeto. Se convierte en una falta muy grave donde será expulsado de la base de datos de por vida y se procederá a formalizar una denuncia penal en contra del chofer responsable.",
+            "Por ineficiencia y/o falta de calidad en la prestación del servicio, comisión de actos fraudulentos o dolosos en nombre o contra HERCOM, será causal de retiro de la base de datos como Chofer para Remplazo.",
+            "Si se encuentra solo en el vehículo, está prohibido fumar o encender la radio o cualquier tipo de objeto electrónico que genere distracción al conducir.",
+            "En caso de una emergencia sanitaria del usuario (salud), dirigirse al centro médico más cercano y comunicarse con la central de riesgo en condición de muy urgente, para continuar con los protocolos de atención al cliente. La app Hercom cuenta con un botón de asistencia vía waze para dirigirlo a un hospital, clínica o centro medico mas cercano.",
+            "El consumo de combustible, peajes u otros servicios, que acontecen en la ruta son asumidos por el propietario del vehículo. En caso de no tener dinero (caso extremo), será asumido por el chofer y rembolsado por Hercom previa verificación.",
+            "En caso de falta indisciplinaría por parte del cliente, se tomará medidas preventivas que sustente dichos actos y comunicar a la central de riesgos para tomar acciones con el usuario solicitante.",
+            "Por ni un motivo una vez recibido el vehículo deberá bajarse a realizar cualquier tipo de compras o encargos por el cliente. Chofer para Remplazo se caracteriza por conducir un vehículo de inicio al fin del servicio de manera segura.",
+            "Es falta muy grave cambiar las rutas que indique la App. Los tiempos y las distancias son monitoreadas y calculadas por la App con un margen mínimo de error. De caso contrario se activará el botón de emergencia en coordinación con la PNP.",
+            "Está prohibido ingerir cualquier tipo de comida o bebidas dentro del vehículo, considerado como una falta grave.",
+            "Se recomienda conducir los vehículos a la defensiva, manteniendo el correcto reglamento de tránsito en lugares de alta concentración vehicular.",
+            "Está prohibido solicitar o pedir trabajo al usuario como chofer o para algún familiar. Por ni un motivo se deberá entablar conversaciones generando incomodidad con el usuario; salvo sean propios del servicio como el Checklist.",
+            "La acumulación de faltas graves o muy graves condicionarán al chofer a ser expulsado de la base de datos de la empresa y perdiendo todos sus derechos a reclamos.",
+            "La App Hercom - Chofer para Remplazo, es un servicio libre de horarios que no genera responsabilidad alguna con la empresa.",
+            "Hercom - Chofer para Remplazo; Por seguridad mantendremos toda la información en nuestra base de datos de clientes y choferes en estado confidencial. De ser el caso de un incidente, falta grave o algún tipo de delito cometido, los documentos de los choferes o usuarios serán entregados formalmente mediante un certificado de denuncia policial o de una denuncia judicial. Siendo respetuosos de la reglamentación de la ley de protección de datos personales y de la confidencialidad de los mismos.",
+            "Mantenerse informado con las normas y políticas de tránsito impuestas por el MTC, garantizando un servicio profesional y de calidad.",
+            "El chofer para Remplazo queda obligado a cumplir leal y correctamente con todos los deberes que le imponga este instrumento o aquellos que se deriven de las funciones y cargo, debiendo ejecutar las instrucciones que le confieran.",
+            "Cualquiera otra prestación o beneficio, que no sean señalados, se entenderán conferidos a título personal del Chofer, por lo que en ningún caso constituirán una obligación para la empresa.",
           ],
         },
       ],
     },
     {
       id: "pagos",
-      title: "4. Pagos",
+      title: "5. De los pagos por el servicio",
       blocks: [
         {
           kind: "p",
-          text: "El monto lo sugiere la app y puede variar según las condiciones o los acuerdos con el usuario. Se cobra en efectivo o por transferencia electrónica (Yape, Plin u otro medio). Para aceptar el servicio, el usuario abona a la billetera digital o cuenta bancaria del chofer el 25% del costo total como adelanto. La diferencia se completa al culminar.",
+          text: "El monto por el servicio realizado de cada Chofer es sugerido por la app; sin embargo, cada servicio podrá contar con algunas variaciones según condiciones o acuerdos realizados con el usuario final. Este monto podrá ser cobrado en efectivo o por trasferencia electrónica (yape, plin u otro tipo de pago electrónico que exista en el mercado). Como procedimiento de aceptación del servicio, el usuario abonará a la billetera digital o cuenta bancaria del chofer un 25% del costo total del servicio en condición de adelanto. Siendo completado la diferencia al culminar el servicio solicitado.",
         },
         {
           kind: "p",
-          text: "Horas adicionales, espera y, si corresponde, la movilidad del chofer hasta el punto (taxi) requieren aprobación previa del cliente. Una buena calificación del usuario permite garantizar el servicio.",
+          text: "El pago del servicio por horas adicionales o de espera, como también de ser el caso de una movilidad adquirida para el traslado del chofer al destino solicitante (taxi) deberá ser previa aprobación del cliente; Es importante contar con una buena calificación por el usuario en la app ya que nos permitirá garantizar un buen servicio realizado.",
         },
         {
           kind: "p",
-          text: "Los servicios diurnos (6:00 a. m. a 9:00 p. m.) toman precios estándar. En horario nocturno (10:00 p. m. a 5:00 a. m.) puede haber incrementos por zona, distancia u otras características. En días festivos o feriados el tarifario puede modificarse.",
+          text: "El costo de los servicios diurnos (6:00 am a 9:00pm) son considerados precios estándar del mercado; en los horarios nocturnos (10:00 pm a 5:00 am) podrán tener incrementos sugeridos por zonas, distancias u otras características que evalúe la app. En caso de los días festivos o fferiados podrán tener modificaciones en el tarifario.",
         },
         {
           kind: "p",
-          text: "HERCOM quiere profesionalizar a cada chofer, con capacitaciones, valores, atención al cliente y nuevas oportunidades que incrementen sus ingresos. Hace falta el compromiso de cuidar el puesto y pensar en el bienestar de su familia.",
+          text: "Cabe recordarles que HERCOM – Chofer para Remplazo; desea profesionalizar a cada uno de Uds.; brindándoles capacitaciones, valores, atención al cliente y nuevas oportunidades de servicios que incrementarán sus ingresos. Lo único que se necesita es el compromiso de cuidar su puesto de trabajo y pensar en el bienestar de su familia.",
         },
       ],
     },
     {
       id: "cancelacion",
-      title: "5. Cancelación",
+      title: "6. Políticas de cancelación del servicio",
       blocks: [
         {
           kind: "p",
-          text: "Se aplica el 25% del costo como penalidad o gastos operativos si el usuario cancela o cambia el servicio después de los 5 minutos de espera máxima. Tiempos, agendas y disposición de los choferes dependen de las reservas programadas. No hay reclamo ni devolución cuando el usuario omite esta política.",
+          text: "En servicios de Chofer para Remplazo:  Se aplicará el 25% del costo en caso de cancelación por penalidad o gastos operativos, después del tiempo máximo de espera (05 minutos) que podrá cancelar o cambiar un servicio, los tiempos, agendas, disposición de los choferes están sujetos a los requerimientos programados por los usuarios solicitantes de las reservas programadas. No hay derecho de reclamos o devolución de dinero una vez que han obviado esta política de cancelación de servicios por el usuario solicitante.",
+        },
+        {
+          kind: "p",
+          text: "Esta política de cancelación se podrá ver afectada en los siguientes casos:",
         },
         {
           kind: "list",
           items: [
-            "Eventos especiales en la ciudad que afecten la demanda general.",
-            "Comportamiento inadmisible del cliente.",
-            "Otros hechos que afecten la moral o el buen desarrollo del servicio.",
+            "Durante eventos especiales en la ciudad los cuales afecten a la demanda general.",
+            "Cuando el cliente tenga un comportamiento inadmisible para el desarrollo del servicio.",
+            "Otros que afecten a la moral o al buen desarrollo del servicio del Chofer para Remplazo.",
           ],
         },
       ],
     },
     {
       id: "tiempos",
-      title: "6. Tiempos",
+      title: "7. Tiempos del servicio",
       blocks: [
         {
           kind: "p",
-          text: "La duración mínima es de 2 horas, contadas desde la llegada del chofer a la dirección requerida hasta el destino final. El usuario puede recargar horas en la app. Si no recarga, el servicio culmina al agotar el tiempo.",
+          text: "El Servicio de Chofer para Remplazo tiene una duración mínima de 02 horas que es contabilizado desde la llegada del chofer a la dirección por lo que fue requerido hasta el destino final del servicio. El usuario podrá realizar recargas de horas adicionales en el mismo aplicativo con la finalidad de mantener la seguridad del servicio. De no realizar la recarga en el aplicativo nos veremos en la necesidad de culminar el servicio al haber agotado su tiempo del servicio.",
         },
         {
           kind: "p",
-          text: "El chofer no debe aceptar propuestas de servicios extras que no administre la app. Es una falta muy grave y puede causar la expulsión de la base de datos de conductores.",
+          text: "Señores Chóferes no deberán de aceptar propuestas de servicios extras que no sean administradas por la app; porque caerán en una falta muy grave a nuestras políticas y podrán ser expulsados de la base de datos como conductores.",
         },
         {
           kind: "p",
-          text: "La espera máxima es de 5 minutos, salvo coordinación con el usuario para que recargue en la app.",
-        },
-      ],
-    },
-    {
-      id: "confidencialidad",
-      title: "7. Confidencialidad",
-      blocks: [
-        {
-          kind: "p",
-          text: "La información de clientes y choferes se mantiene confidencial. Ante un incidente, una falta grave o un delito, los documentos se entregan mediante un certificado de denuncia policial o una denuncia judicial, conforme a la Ley de Protección de Datos Personales.",
+          text: "El tiempo de espera podrá ser un máximo de 05 minutos, salvo coordinación con el Usuario para que pueda realizar su recarga en la App.",
         },
       ],
     },
@@ -718,34 +756,21 @@ function stripNumber(title: string): string {
   return title.replace(/^\d+\.\s*/, "");
 }
 
-const CLIENT_SECTION: LegalSection = {
-  id: "cliente",
-  title: "Para el cliente",
-  blocks: [
-    {
-      kind: "callout",
-      text: "El cliente confirma que cuenta con toda la documentación legal de su vehículo: la tarjeta de propiedad, el Seguro Obligatorio de Accidentes de Tránsito (SOAT) y el Certificado de Revisión Técnica.",
-    },
-    {
-      kind: "p",
-      text: "Sin esa documentación en regla no se traslada el vehículo, por considerarse una situación delictiva, sospechosa o de robo. Es una falta muy grave del solicitante, sin derecho a reclamos ni a devolución de lo pagado.",
-    },
-    {
-      kind: "p",
-      text: "Si el cliente es titular, autoriza al Chofer para Remplazo a conducir y estacionar el vehículo para el servicio. Si no es titular, debe contar con autorización de quien sí lo es. El vehículo debe estar en buenas condiciones mecánicas y con mantenimiento preventivo.",
-    },
-    {
-      kind: "p",
-      text: "Todo objeto que esté en el vehículo se declara en el Checklist al inicio. El propietario responde por lo que haya dentro. El chofer se presenta solo con su identificación y su licencia de conducir.",
-    },
-  ],
+export const LEGAL_AUDIENCE_LABELS: Record<LegalAudienceGroup, string> = {
+  cliente: "Para cliente",
+  chofer: "Para chofer",
 };
 
-function asGroup(sections: LegalSection[], group: string): LegalSection[] {
-  return sections.map((section) => ({
+function buildAudienceSections(
+  sections: LegalSection[],
+  audience: LegalAudienceGroup,
+  idPrefix: string,
+): LegalSection[] {
+  return sections.map((section, index) => ({
     ...section,
-    id: `${group}-${section.id}`,
-    title: `${group}. ${stripNumber(section.title)}`,
+    id: `${idPrefix}-${section.id}`,
+    group: audience,
+    title: `${index + 1}. ${stripNumber(section.title)}`,
   }));
 }
 
@@ -757,13 +782,13 @@ export const TERMS_DOCUMENT: LegalDocument = {
   updated: LEGAL_UPDATED,
   lead: GENERAL_TERMS_DOCUMENT.lead,
   sections: [
-    CLIENT_SECTION,
-    ...asGroup(PASSENGER_TERMS_DOCUMENT.sections, "Pasajero"),
-    ...asGroup(DRIVER_TERMS_DOCUMENT.sections, "Chofer"),
-  ].map((section, index) => ({
-    ...section,
-    title: `${index + 1}. ${section.title}`,
-  })),
+    ...buildAudienceSections(
+      PASSENGER_TERMS_DOCUMENT.sections,
+      "cliente",
+      "cliente",
+    ),
+    ...buildAudienceSections(DRIVER_TERMS_DOCUMENT.sections, "chofer", "chofer"),
+  ],
 };
 
 export const LEGAL_DOCUMENTS: LegalDocument[] = [

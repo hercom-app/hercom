@@ -7,38 +7,44 @@ export const metadata: Metadata = {
   title: "Nosotros",
 };
 
+const WHARTON_COMMITMENT =
+  "El profesionalismo y la comodidad serán parte de los servicios, contamos con una base de datos filtrada de choferes a nivel nacional; nuestro socio estratégico, el estudio Wharton & asociados, es el responsable de la selección y reclutamiento de los choferes. Es importante poder contar con su participación para lograr superar desafíos que el mercado de hoy nos exige. La importancia del uso del aplicativo Hercom – Chofer para remplazo es poder cerrar una brecha social que son los ACCIDENTES DE TRANSITO por los diferentes motivos sociales ocasionado.";
+
 export default function Page() {
   return (
     <>
       <PageHero
         description={
-          <div className="space-y-4">
-            <p>
-              Somos una empresa que trabaja pensando por el bienestar de tu
-              familia; impulsando desde tu celular el uso del aplicativo HERCOM
-              – Chofer para remplazo; queremos llegar a tu hogar para que desde
-              una aplicación móvil puedas llevar o traer a tus familiares con
-              choferes calificados en la comodidad de tu propio vehículo.
-            </p>
-            <p>
-              El profesionalismo y la comodidad serán parte de los servicios,
-              contamos con una base de datos filtrada de choferes a nivel
-              nacional; nuestros socios estratégicos el estudio Wharton &amp;
-              asociados son los responsables de la selección y reclutamiento de
-              los choferes. Es importante poder contar con su participación para
-              lograr superar desafíos que el mercado de hoy nos exige. La
-              importancia del uso del aplicativo Hercom – Chofer para remplazo
-              es poder cerrar una brecha social que son los ACCIDENTES DE
-              TRANSITO por los diferentes motivos sociales ocasionado.
-            </p>
-          </div>
+          <p>
+            Somos una empresa que trabaja pensando por el bienestar de tu
+            familia; impulsando desde tu celular el uso del aplicativo HERCOM
+            – Chofer para remplazo; queremos llegar a tu hogar para que desde
+            una aplicación móvil puedas llevar o traer a tus familiares con
+            choferes calificados en la comodidad de tu propio vehículo.
+          </p>
         }
-        eyebrow="Nosotros"
         image={NosotrosImg}
         imageAlt="Equipo de HERCOM"
         imageClassName="object-[50%_35%]"
         title="Cuidamos de ti y de tu familia"
       />
+
+      <section className="section pb-12 lg:pb-16">
+        <div className="overflow-hidden rounded-[2rem] border border-default-200/80 bg-default-100 dark:border-default-100 dark:bg-default-50">
+          <div className="grid lg:grid-cols-[auto_1fr]">
+            <div className="flex items-center bg-primary px-8 py-10 text-primary-foreground lg:max-w-xs lg:px-10 lg:py-12">
+              <p className="text-2xl font-bold leading-snug tracking-tight">
+                Puntualidad y Confianza
+              </p>
+            </div>
+            <div className="px-8 py-10 lg:px-12 lg:py-12">
+              <p className="text-lg leading-relaxed text-default-600">
+                {WHARTON_COMMITMENT}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="section grid gap-10 pb-16 lg:grid-cols-[1fr_2fr] lg:gap-16 lg:pb-24">
         <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -46,16 +52,10 @@ export default function Page() {
         </h2>
         <div className="space-y-5 text-lg leading-relaxed text-default-600">
           <p>
-            Los accidentes de tránsito causados por el estrés, el agotamiento o
-            el alcohol se pueden prevenir. Por eso creamos la app HERCOM - Chofer
-            para Remplazo, una solución móvil diseñada para proteger tu vida
-            poniendo a un conductor profesional al volante de tu propio auto.
+          Los accidentes de tránsito causados por el estrés, el agotamiento o el alcohol se pueden prevenir. Para superar este desafío; se creó la app HERCOM - Chofer para remplazo, una solución móvil diseñada para cuidar tu vida y la vida de los demás; donde podrás ubicar de la manera más simple y sencilla a un chofer profesional para la conducción de tu volante y de esa forma mitigaras riesgos de accidentes de tránsito.
           </p>
           <p>
-            Nuestro compromiso va más allá del traslado: profesionalizamos la
-            labor del chofer mediante estándares de seguridad física, médica y
-            social, creando un ecosistema pensado para que tú y tu equipo
-            vuelvan siempre sanos y salvos a casa.
+          Nuestro compromiso va más allá del traslado: profesionalizamos la labor del chofer mediante estándares de seguridad física, médica y social, creando un ecosistema pensado para que tú y tu familia vuelvan siempre a casa.
           </p>
         </div>
       </section>

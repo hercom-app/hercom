@@ -8,6 +8,11 @@ import {
   ThumbsUpIcon,
 } from "@/components/icons";
 import { Faqs } from "@/components/faqs";
+import {
+  marketingHeroImageClass,
+  marketingHeroSectionClass,
+  marketingHeroTitleClass,
+} from "@/components/page-hero";
 import { StoreBadges } from "@/components/store-badges";
 import ServiciosImg from "@/assets/servicios_background.png";
 import NosotrosImg from "@/assets/nosotros_background.png";
@@ -30,14 +35,14 @@ const REASONS = [
     icon: <ThumbsUpIcon size={28} />,
     title: "En un solo click",
     description:
-      "Descarga nuestro aplicativo y en un solo click podrás llamar a nuestros Choferes para Remplazo",
+      "Descarga nuestro aplicativo y en un solo click podrás comunicarte con un Chofer para remplazo",
   },
 ];
 
 const DISCOVER = [
   {
     title: "Nosotros",
-    description: "Una empresa peruana que trabaja para mitigar los accidentes de tránsito.",
+    description: "Somos un equipo de profesionales que trabajamos para prevenir los accidentes de tránsito con choferes para remplazo.",
     href: "/nosotros",
     image: NosotrosImg,
     imageClassName: "object-[50%_35%]",
@@ -55,17 +60,17 @@ const SAFETY = [
   {
     icon: <ThumbsUpIcon size={24} />,
     title: "Choferes calificados",
-    description: "Nuestros choferes son evaluados antes de manejar tu vehículo.",
+    description: "Los choferes son evaluados antes de manejar tu vehículo.",
   },
   {
     icon: <PhoneCheckIcon size={24} />,
     title: "Comparte tu viaje",
-    description: "Tu familia puede seguir el recorrido en vivo hasta que llegues.",
+    description: "Tu familia puede seguir el recorrido en vivo hasta que llegues a tu destino final.",
   },
   {
     icon: <SecurityIcon size={24} />,
-    title: "PIN de seguridad",
-    description: "Confirma con un PIN que el chofer que llega es el asignado.",
+    title: "Código de Seguridad",
+    description: "Confirma con un código de seguridad que el chofer que llega es el asignado.",
   },
   {
     icon: <HeartFilledIcon size={24} />,
@@ -97,9 +102,9 @@ const sectionTitle =
 export default function Home() {
   return (
     <>
-      <section className="section grid items-center gap-10 pb-12 pt-8 lg:grid-cols-[1fr_1.05fr] lg:gap-14 lg:pb-20 lg:pt-14">
-        <div className="flex flex-col items-start">
-          <h1 className="text-[2.75rem] font-bold leading-[1.04] tracking-tight sm:text-6xl xl:text-7xl">
+      <section className={marketingHeroSectionClass}>
+        <div className="flex min-w-0 flex-col items-start">
+          <h1 className={marketingHeroTitleClass}>
             Cuidamos de ti y de tu familia
           </h1>
           <p className="mt-6 max-w-lg text-lg leading-relaxed text-default-600">
@@ -121,7 +126,7 @@ export default function Home() {
           <StoreBadges className="mt-8" />
         </div>
 
-        <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] bg-default-100">
+        <div className={marketingHeroImageClass}>
           <Image
             fill
             priority

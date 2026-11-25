@@ -66,10 +66,9 @@ export default function ViajesCorporativosPage() {
     <>
       <PageHero
         description={HERO_DESCRIPTION}
-        eyebrow="Viajes corporativos"
         image={ContactanosImg}
         imageAlt="Ejecutiva de atención de HERCOM"
-        imageClassName="object-[50%_30%]"
+        imageClassName="object-[55%_35%]"
         title="Reserva un chofer para ti o tu empresa"
       >
         <a
@@ -117,7 +116,7 @@ export default function ViajesCorporativosPage() {
           Cuéntanos de tu viaje
         </h2>
         <p className="mt-3 text-base leading-snug text-default-600 md:whitespace-nowrap md:text-lg">
-          Compártenos los detalles de tu traslado aquí abajo para ayudarte.
+          Compártenos los detalles de tu traslado aquí abajo para ayudarte y generarte una cotización.
         </p>
         <div className="mt-6">
           <CorporateQuoteForm />
